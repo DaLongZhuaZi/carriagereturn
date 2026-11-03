@@ -1,0 +1,22 @@
+# SOURCE.txt — 回车音效原始素材（BigSoundBank 三件）
+
+- 下载日期：2026-11-03
+- 来源站：BigSoundBank（https://bigsoundbank.com）
+- 作者：Joseph SARDIN
+- 协议快照（2026-11-03 打开文件页核实，站方 FAQ 原话）：CC0 / WTFPL / public domain dedication；免费、无需账号、无需署名、可商用、可编辑、可再分发（含放进自己的游戏、应用、音效库）。
+- 文件名规则：App 内资源名去品牌化，原始录音对象名只留本文件，不进 App 内文件名或界面文案。
+
+## 文件映射
+
+| 本地文件 | 原始标题 | 来源页 | 编号 | 规格 | SHA-256 |
+|---|---|---|---|---|---|
+| typewriter-bed-01.wav | Typewriter #5（录音对象：Hermes Precisa 305，打字 1:28） | https://bigsoundbank.com/typewriter-5-s2838.html | 2838 | WAV，48kHz / 24-bit，单声道，12,672,832 字节 | 0c2efd2543c721f33d780a2b0b8b77ed7e91aecaa5058abd60762ef0a8c9e376 |
+| space-key-01.wav | Typewriter, space（空格单键 1 秒） | https://bigsoundbank.com/typewriter-space-s2843.html | 2843 | WAV，48kHz / 24-bit，单声道，143,754 字节 | f681dda9b53feaf75540ab3310398b37855173d694b55cb183c846e076fafe9e |
+| margin-bell-01.wav | Typewriter, Bell #1（边际铃 3 秒） | https://bigsoundbank.com/typewriter-bell-s2844.html | 2844 | WAV，48kHz / 24-bit，单声道，366,752 字节 | deb29f0d2729450e0b2b0f7d3f3259811579c30e688822acec06e519372b0661 |
+
+## 切分记录（待处理）
+
+- typewriter-bed-01.wav：切分出 10–15 个按键变体（App 内用），另配 BMacZero 单键做瞬态层（Freesound CC0，待人工下载）。
+- space-key-01.wav：直接用，无需切分。
+- margin-bell-01.wav：行末铃主备之一（另三件 Freesound CC0 铃待人工下载）。
+- 注意：本目录是原始素材；App 内音效总预算 <2MB，切分后转 OGG 再进包，原始 WAV 不直接进包。

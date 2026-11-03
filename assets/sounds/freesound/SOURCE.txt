@@ -1,0 +1,47 @@
+回车 CarriageReturn · Freesound 音效来源记录（SOURCE.txt）
+下载方式：用户人工经 Freesound 网站下载（Freesound API 免费档仅限非商业用途，禁用 API 自动化拉取），后存入用户 Google Drive 文件夹“打字机声音补充”（hpyrnoav@gmail.com），2026-11-03 由 Muse 经 Drive 连接下载归档。
+协议确认：用户 2026-11-03 人工确认以下 8 件全部免费可用；CC0 件无需署名，CC BY 件进设置→关于→音效致谢页署名。
+品牌名只出现于本文件来源记录，归档文件名已去品牌化。
+
+1. bell-01-ramsamba-318687.wav
+   来源：https://freesound.org/people/ramsamba/sounds/318687/
+   作者/标题：ramsamba / Typewriter Bell.wav；协议：CC0；时长 0.889 秒；原 Drive 名：typewriter-bell.wav
+   SHA-256：6e38f620e2fac06f227d4330226dace38a2a4ab5c75788c3b3a3d6d36e19948c
+
+2. bell-carriage-reset-knufds-345955.wav
+   来源：https://freesound.org/people/knufds/sounds/345955/
+   作者/标题：knufds / Typewriter bell & carriage reset；协议：CC0；时长 2.921 秒；原 Drive 名：typewriter-bell-carriage-reset.wav
+   SHA-256：2959e478fd2f2fc67f98f0fc2c297d49e3115d52e50f0ed67764ceb3a873fdae
+
+3. bell-02-masternavigator-444813.wav
+   来源：https://freesound.org/people/MasterNavigator/sounds/444813/
+   作者/标题：MasterNavigator / typewriter bell；协议：CC0；时长 5.051 秒，峰值偏高入库时归一化；原 Drive 名：masternavigator__typewriter-bell.wav
+   SHA-256：5970afb742992a963d26f54195e6f6b15086ac09c976c54062f95b8fd1fbefe1
+
+4. bed-second-lyricalgirl-788956.mp3
+   来源：https://freesound.org/people/lyricalgirl/sounds/788956/
+   作者/标题：lyricalgirl / Old typewriter；协议：CC0；时长 188.66 秒（3:08），带走廊回声只作第二台机床料；原 Drive 名：old-typewriter.mp3
+   SHA-256：ab6ce3b27e7a90e89ab588ced4d192d953b7e3a6874018583059ce4214f3fa2c
+
+5. key-transient-bmaczero-160678.wav
+   来源：https://freesound.org/people/BMacZero/sounds/160678/
+   作者/标题：BMacZero / typewriter.wav；协议：CC0；时长 0.117 秒，作按键主体瞬态层；原 Drive 名：bmaczero__typewriter.wav
+   SHA-256：f62eade0c6b597f9faa00406ff74924d61f75ff770b906e45b90388b81907bd3
+
+6. key-01-ddohler-9098.wav
+   来源：https://freesound.org/people/ddohler/sounds/9098/
+   作者/标题：ddohler / Typewriter.wav；协议：CC BY（需致谢页署名）；时长 0.998 秒；原 Drive 名：ddohler__typewriter.wav
+   SHA-256：7d470875994c2cf959c0e3d82c99a469f0fa9dd9da71f75ff9570988d
+
+7. bed-ylearkisto-271525.wav
+   来源：https://freesound.org/people/YleArkisto/sounds/271525/
+   作者/标题：YleArkisto / Kirjoituskone…（芬兰广播档案 DAT 录音）；协议：CC BY（需致谢页署名）；时长 166.60 秒（2:46），覆盖打字、铃、手动回车、卷纸，切分价值最高；原 Drive 名含录音对象品牌型号说明，仅记于此不进资源名
+   SHA-256：bf9e1e73f0b280613b468d530f2a7741b81ce721c692dc882ec27a936c79eef2
+
+8. bed-evsecrets-334458.wav
+   来源：https://freesound.org/s/334458/
+   作者/标题：evsecrets / Typing on a typewriter with ding at end of each line.wav；协议：作者声明 public domain，用户 2026-11-03 人工确认免费（此前报告要求的人工徽标复核由本次用户确认覆盖）；时长 86.75 秒（1:26），每行末带叮；原 Drive 名同标题
+   SHA-256：9f666a48beecfee42e42b81929dc03502ac840e1ecb1b6c362f5a856870977ed
+
+未到齐（403 三处，用户侧未提供，跳过不影响整套）：ramsamba 318686、tams_kp 43558、OGA《typewriter-sounds》。
+待处理：床切分（BigSoundBank 床 10–15 变体 + 本批床料）与转 OGG，App 内总预算 <2MB。

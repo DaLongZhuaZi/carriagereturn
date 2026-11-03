@@ -1,0 +1,25 @@
+回车音效包 v1 构建记录
+key-01.ogg 源偏移 0.23s 长 0.464s 8185B
+key-02.ogg 源偏移 6.30s 长 0.210s 6104B
+key-03.ogg 源偏移 15.28s 长 0.249s 6696B
+key-04.ogg 源偏移 23.14s 长 0.254s 6529B
+key-05.ogg 源偏移 33.13s 长 0.384s 7539B
+key-06.ogg 源偏移 40.64s 长 0.464s 7767B
+key-07.ogg 源偏移 46.17s 长 0.464s 7678B
+key-08.ogg 源偏移 55.46s 长 0.254s 6542B
+key-09.ogg 源偏移 61.26s 长 0.464s 8489B
+key-10.ogg 源偏移 71.91s 长 0.464s 8422B
+key-11.ogg 源偏移 77.99s 长 0.180s 5862B
+key-12.ogg 源偏移 84.05s 长 0.464s 8276B
+pack2-key-01.ogg 源偏移 0.10s 长 0.190s 5782B
+pack2-key-02.ogg 源偏移 62.29s 长 0.614s 9482B
+pack2-key-03.ogg 源偏移 120.93s 长 0.210s 5856B
+pack2-key-04.ogg 源偏移 186.08s 长 0.614s 9770B
+space-01.ogg 源偏移 0.07s 长 0.344s 7403B
+bell-01.ogg 源偏移 0.00s 长 0.890s 11208B
+bell-02.ogg 源偏移 0.05s 长 1.232s 11924B
+bell-03.ogg 源偏移 0.05s 长 1.013s 9488B
+carriage-reset-01.ogg 源偏移 0.01s 长 2.679s 27933B
+key-transient.ogg 源偏移 0.00s 长 0.117s 4980B
+key-alt-01.ogg 源偏移 0.18s 长 0.090s 4729B
+总计 23 个文件，196644 字节
