@@ -158,6 +158,24 @@ export class DocModel {
     return { changed: true, marginBell: false, lineBreak: false };
   }
 
+  /**
+   * XXX 覆盖（§7.3 第 8 步）：光标回退一格并在该字上打 X，错字保留 X 痕，光标停在 X 之后。
+   * 与现代删除的区别：不删字，只覆盖；行首无可覆盖字符时返回 changed=false。
+   */
+  overwriteBack(): EditOutcome {
+    const lineIndex: number = this.cursorPos.line;
+    const offset: number = this.cursorPos.offset;
+    if (offset <= 0) {
+      return { changed: false, marginBell: false, lineBreak: false };
+    }
+    const line: DocLine = this.lines[lineIndex];
+    line.text = line.text.substring(0, offset - 1) + 'X' + line.text.substring(offset);
+    // 光标回退一格停在 X 上（§7.3 第 8 步：光标回退一格，错字保留 X 痕）
+    this.cursorPos = { line: lineIndex, offset: offset - 1 };
+    this.meta.updatedAt = Date.now();
+    return { changed: true, marginBell: false, lineBreak: false };
+  }
+
   /** 回车：在光标处断行（光标之后的文本移到新行）。 */
   newline(): EditOutcome {
     const lineIndex: number = this.cursorPos.line;
