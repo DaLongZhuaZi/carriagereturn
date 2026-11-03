@@ -12,7 +12,7 @@
 
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { display, font } from '@kit.ArkUI';
+import { display, Font } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { KeyAction, KeyCommit, KeyboardCallbacks, KeyboardViewSpec } from '../ui/KeyboardPanel';
 import { PaperRow, PaperViewSpec } from '../ui/PaperSheet';
@@ -319,12 +319,20 @@ struct Index {
     }
   }
 
+  /**
+   * 注册纸面字体。
+   *
+   * 走 UIContext.getFont().registerFont()（@ohos.arkui.UIContext.d.ts:4440 getFont() → Font:69 registerFont），
+   * 不用全局 font.registerFont —— 后者在 API 26 已标 deprecated。
+   * 参数类型仍是 font.FontOptions，familySrc 收 $rawfile 的 Resource。
+   */
   private registerPaperFonts(): void {
     try {
-      font.registerFont({ familyName: 'CourierPrime', familySrc: $rawfile('font/CourierPrime-Regular.ttf') });
-      font.registerFont({ familyName: 'SpecialElite', familySrc: $rawfile('font/SpecialElite-Regular.ttf') });
-      font.registerFont({ familyName: 'NotoSerifSC', familySrc: $rawfile('font/NotoSerifSC-wght.ttf') });
-      font.registerFont({ familyName: 'LXGWWenKai', familySrc: $rawfile('font/LXGWWenKai-Regular.ttf') });
+      const fontMgr: Font = this.getUIContext().getFont();
+      fontMgr.registerFont({ familyName: 'CourierPrime', familySrc: $rawfile('font/CourierPrime-Regular.ttf') });
+      fontMgr.registerFont({ familyName: 'SpecialElite', familySrc: $rawfile('font/SpecialElite-Regular.ttf') });
+      fontMgr.registerFont({ familyName: 'NotoSerifSC', familySrc: $rawfile('font/NotoSerifSC-wght.ttf') });
+      fontMgr.registerFont({ familyName: 'LXGWWenKai', familySrc: $rawfile('font/LXGWWenKai-Regular.ttf') });
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'registerFont failed: %{public}s', JSON.stringify(err));

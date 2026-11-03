@@ -109,7 +109,7 @@ function pad2(value: number): string {
  *
  * 接线：页面（或 Ability）先把 Context 注入进来最稳：
  *   audioService.attachContext(this.getUIContext().getHostContext() as common.Context);
- * 不注入也能工作：preload() 用全局 getContext() 兜底（该 API 自 API 18 起标废弃，见 resolveResourceManager）。
+ * 必须注入：页面在 preload() 之前调 attachContext()。不再用全局 getContext() 兜底（API 18 起废弃）。
  */
 export class AudioService implements AudioEngineExposed {
   private pool: media.SoundPool | null = null;
@@ -337,25 +337,18 @@ export class AudioService implements AudioEngineExposed {
   }
 
   /**
-   * 拿 resourceManager：优先用注入的 Context，否则退回全局 getContext()。
-   * 类型依据：component/common.d.ts:1428 declare type Context = import('../api/application/Context').default，
-   * 与 common.Context 同源；resourceManager 属性见 application/Context.d.ts:46。
+   * 拿 resourceManager：**只认显式注入**。
+   *
+   * 不再退回全局 getContext()：该 API 自 API 18 起废弃（API 26 编译告警），
+   * 且组件外调用依赖不确定的全局态。页面必须在 preload() 之前调 attachContext()。
+   * 类型依据：application/Context.d.ts:46 resourceManager 属性。
    */
   private resolveResourceManager(): resourceManager.ResourceManager | null {
     const injected: resourceManager.ResourceManager | null = this.resourceMgr;
     if (injected !== null) {
       return injected;
     }
-    try {
-      const host: common.Context | undefined = getContext();
-      if (host !== undefined) {
-        const rm: resourceManager.ResourceManager = host.resourceManager;
-        this.resourceMgr = rm;
-        return rm;
-      }
-    } catch (err) {
-      logWarn('getContext() unavailable for resourceManager');
-    }
+    logWarn('resourceManager not attached; call attachContext() before preload()');
     return null;
   }
 

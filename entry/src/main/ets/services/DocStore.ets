@@ -10,8 +10,13 @@
  */
 
 import { fileIo as fs } from '@kit.CoreFileKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { DocData, DocSummary } from '../model/DocModel';
 import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
+
+const DOMAIN: number = 0x0000;
+const TAG: string = 'DocStore';
 
 const DOC_DIR: string = 'documents';
 const TEXT_DIR: string = 'documents-text';
@@ -172,27 +177,50 @@ export class DocStore {
     return fallback;
   }
 
+  /** 写整个文本文件。异常就地处理（文件 I/O 全部可能抛），失败只记日志不向上抛。 */
   private writeText(path: string, content: string): void {
-    const file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+    let file: fs.File | null = null;
     try {
+      file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
       fs.writeSync(file.fd, content);
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.error(DOMAIN, TAG, 'writeText failed: %{public}s', JSON.stringify(err));
     } finally {
-      fs.closeSync(file);
+      this.closeQuietly(file);
     }
   }
 
+  /** 读整个文本文件；任何异常（不存在 / 无权限 / 读失败）返回空串。 */
   private readText(path: string): string {
-    const stat = fs.statSync(path);
-    if (stat.size <= 0) {
-      return '';
-    }
-    const file = fs.openSync(path, fs.OpenMode.READ_ONLY);
+    let file: fs.File | null = null;
     try {
+      const stat: fs.Stat = fs.statSync(path);
+      if (stat.size <= 0) {
+        return '';
+      }
+      file = fs.openSync(path, fs.OpenMode.READ_ONLY);
       const buf: ArrayBuffer = new ArrayBuffer(stat.size);
       const readLen: number = fs.readSync(file.fd, buf);
       return this.decodeUtf8(buf, readLen);
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.warn(DOMAIN, TAG, 'readText failed: %{public}s', JSON.stringify(err));
+      return '';
     } finally {
+      this.closeQuietly(file);
+    }
+  }
+
+  /** 关闭文件句柄；关闭本身失败不再抛（避免覆盖上面的真实错误）。 */
+  private closeQuietly(file: fs.File | null): void {
+    if (file === null) {
+      return;
+    }
+    try {
       fs.closeSync(file);
+    } catch (e) {
+      // 句柄已关闭或进程退出中：忽略
     }
   }
 
