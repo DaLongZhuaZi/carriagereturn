@@ -11,6 +11,66 @@
     {
       "name": "EntryAbility_label",
       "value": "CarriageReturn"
+    },
+    {
+      "name": "app_title",
+      "value": "CarriageReturn"
+    },
+    {
+      "name": "onboarding_first_title",
+      "value": "Welcome to CarriageReturn"
+    },
+    {
+      "name": "onboarding_first_body",
+      "value": "Press any key to hear the first strike.\nFor Chinese, tap the «中 / EN» key above the keyboard to switch to the system input method."
+    },
+    {
+      "name": "onboarding_first_start",
+      "value": "Start typing"
+    },
+    {
+      "name": "hint_new_paper",
+      "value": "A fresh sheet. Press the first key to begin."
+    },
+    {
+      "name": "keyboard_shift",
+      "value": "Shift"
+    },
+    {
+      "name": "keyboard_backspace",
+      "value": "Del"
+    },
+    {
+      "name": "keyboard_return",
+      "value": "Return"
+    },
+    {
+      "name": "keyboard_lang_en",
+      "value": "EN"
+    },
+    {
+      "name": "keyboard_lang_zh",
+      "value": "中"
+    },
+    {
+      "name": "doc_untitled",
+      "value": "Untitled"
+    },
+    {
+      "name": "paper_letter",
+      "value": "Letter"
+    },
+    {
+      "name": "paper_manuscript",
+      "value": "Manuscript"
+    },
+    {
+      "name": "paper_postcard",
+      "value": "Postcard"
+    },
+    {
+      "name": "paper_memo",
+      "value": "Memo"
     }
   ]
 }

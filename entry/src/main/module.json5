@@ -33,6 +33,9 @@
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:layered_image",
         "startWindowBackground": "$color:start_window_background",
+        // 方向锁定（2026-11-03 用户定）：手机 / 平板 / PC 竖屏默认锁定；
+        // 横屏不做简单适配（将来完全重新设计）；折叠屏三态不受本锁定影响。
+        "orientation": "portrait",
         "exported": true,
         "skills": [
           {

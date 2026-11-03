@@ -1,0 +1,291 @@
+/**
+ * 回车 · 文档本地存储（阶段1 实现）
+ *
+ * 只做 I/O：JSON（文本行 + 元数据）与纯文本 .txt 成对保存、成对删除，
+ * 全部落在应用沙箱 context.filesDir，不联网、不上传、零遥测。
+ * 文档模型本身在 model/DocModelCore.ets（纯逻辑，可单测）。
+ *
+ * 技术架构设计 §2：文档存两份 —— JSON（文本 + 机器/纸张/色带/字体/时间戳）
+ * 与纯文本（UTF-8，可再编辑）；绝不学 Rebi 存图片。
+ */
+
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { DocData, DocSummary } from '../model/DocModel';
+import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
+
+const DOC_DIR: string = 'documents';
+const TEXT_DIR: string = 'documents-text';
+const INDEX_FILE: string = 'documents-index.json';
+
+/** 一份文档的落盘索引项。 */
+interface DocIndexEntry {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface DocIndex {
+  version: number;
+  entries: DocIndexEntry[];
+}
+
+/**
+ * 文档本地存储。
+ * 生命周期：Ability.onCreate 里 init(context.filesDir) 一次；页面与服务共用单例。
+ */
+export class DocStore {
+  private baseDir: string = '';
+  private initialized: boolean = false;
+
+  /** 必须在 Ability 里先调一次（filesDir 就绪后）。 */
+  init(filesDir: string): void {
+    this.baseDir = filesDir;
+    this.initialized = true;
+  }
+
+  isReady(): boolean {
+    return this.initialized;
+  }
+
+  private docPath(id: string): string {
+    return this.baseDir + '/' + DOC_DIR + '/' + id + '.json';
+  }
+
+  private textPath(id: string): string {
+    return this.baseDir + '/' + TEXT_DIR + '/' + id + '.txt';
+  }
+
+  private indexPath(): string {
+    return this.baseDir + '/' + INDEX_FILE;
+  }
+
+  private ensureDirs(): void {
+    this.mkdirIfAbsent(this.baseDir + '/' + DOC_DIR);
+    this.mkdirIfAbsent(this.baseDir + '/' + TEXT_DIR);
+  }
+
+  private mkdirIfAbsent(path: string): void {
+    try {
+      if (!fs.accessSync(path)) {
+        fs.mkdirSync(path);
+      }
+    } catch (e) {
+      // 已存在或并发创建：忽略
+    }
+  }
+
+  /** 保存一份文档；id 为空则新建。返回实际使用的 id。 */
+  save(id: string, data: DocData, fallbackTitle: string): string {
+    if (!this.initialized) {
+      return id;
+    }
+    this.ensureDirs();
+    const docId: string = id.length > 0 ? id : 'doc-' + Date.now();
+    this.writeText(this.docPath(docId), JSON.stringify(data));
+
+    // 纯文本与 JSON 成对保存（内容可再编辑，绝不只存图片）。
+    this.writeText(this.textPath(docId), this.plainTextOf(data));
+
+    this.upsertIndex(docId, this.titleOf(data, fallbackTitle), data.meta.createdAt, data.meta.updatedAt);
+    return docId;
+  }
+
+  /** 读取一份文档；不存在或损坏返回 null（不抛，避免打断主屏）。 */
+  load(id: string): DocData | null {
+    if (!this.initialized) {
+      return null;
+    }
+    try {
+      const text: string = this.readText(this.docPath(id));
+      if (text.length === 0) {
+        return null;
+      }
+      const parsed: DocData = JSON.parse(text) as DocData;
+      if (parsed.lines === undefined || parsed.lines.length === 0) {
+        return null;
+      }
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** 删除一份文档：JSON 与 .txt 成对删除。 */
+  remove(id: string): boolean {
+    if (!this.initialized) {
+      return false;
+    }
+    this.unlinkIfPresent(this.docPath(id));
+    this.unlinkIfPresent(this.textPath(id));
+    this.removeFromIndex(id);
+    return true;
+  }
+
+  /** 文档库列表（按更新时间倒序）。 */
+  list(): DocSummary[] {
+    if (!this.initialized) {
+      return [];
+    }
+    const index: DocIndex = this.readIndex();
+    const out: DocSummary[] = [];
+    for (const entry of index.entries) {
+      out.push({
+        id: entry.id,
+        title: entry.title,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        machine: DEFAULT_MACHINE,
+        paper: DEFAULT_PAPER,
+      });
+    }
+    return out;
+  }
+
+  /** 暴露给导出（阶段3）：读某文档的纯文本。 */
+  readPlainText(id: string): string {
+    if (!this.initialized) {
+      return '';
+    }
+    try {
+      return this.readText(this.textPath(id));
+    } catch (e) {
+      return '';
+    }
+  }
+
+  private plainTextOf(data: DocData): string {
+    const parts: string[] = [];
+    for (const line of data.lines) {
+      parts.push(line.text);
+    }
+    return parts.join('\n') + '\n';
+  }
+
+  private titleOf(data: DocData, fallback: string): string {
+    for (const line of data.lines) {
+      const t: string = line.text.trim();
+      if (t.length > 0) {
+        return t.length > 24 ? t.substring(0, 24) : t;
+      }
+    }
+    return fallback;
+  }
+
+  private writeText(path: string, content: string): void {
+    const file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+    try {
+      fs.writeSync(file.fd, content);
+    } finally {
+      fs.closeSync(file);
+    }
+  }
+
+  private readText(path: string): string {
+    const stat = fs.statSync(path);
+    if (stat.size <= 0) {
+      return '';
+    }
+    const file = fs.openSync(path, fs.OpenMode.READ_ONLY);
+    try {
+      const buf: ArrayBuffer = new ArrayBuffer(stat.size);
+      const readLen: number = fs.readSync(file.fd, buf);
+      return this.decodeUtf8(buf, readLen);
+    } finally {
+      fs.closeSync(file);
+    }
+  }
+
+  private unlinkIfPresent(path: string): void {
+    try {
+      fs.unlinkSync(path);
+    } catch (e) {
+      // 文件已不存在视为成功
+    }
+  }
+
+  private readIndex(): DocIndex {
+    try {
+      const text: string = this.readText(this.indexPath());
+      if (text.length === 0) {
+        return { version: 1, entries: [] };
+      }
+      const parsed: DocIndex = JSON.parse(text) as DocIndex;
+      if (parsed.entries === undefined) {
+        return { version: 1, entries: [] };
+      }
+      return parsed;
+    } catch (e) {
+      return { version: 1, entries: [] };
+    }
+  }
+
+  private upsertIndex(id: string, title: string, createdAt: number, updatedAt: number): void {
+    const index: DocIndex = this.readIndex();
+    let found: boolean = false;
+    for (const entry of index.entries) {
+      if (entry.id === id) {
+        entry.title = title;
+        entry.updatedAt = updatedAt;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      index.entries.push({ id: id, title: title, createdAt: createdAt, updatedAt: updatedAt });
+    }
+    index.entries.sort((a: DocIndexEntry, b: DocIndexEntry) => b.updatedAt - a.updatedAt);
+    this.writeIndex(index);
+  }
+
+  private removeFromIndex(id: string): void {
+    const index: DocIndex = this.readIndex();
+    const kept: DocIndexEntry[] = [];
+    for (const entry of index.entries) {
+      if (entry.id !== id) {
+        kept.push(entry);
+      }
+    }
+    index.entries = kept;
+    this.writeIndex(index);
+  }
+
+  private writeIndex(index: DocIndex): void {
+    try {
+      this.writeText(this.indexPath(), JSON.stringify(index));
+    } catch (e) {
+      // 索引失败不阻断文档保存
+    }
+  }
+
+  /** UTF-8 解码（含 4 字节码元），避免依赖 util.TextDecoder 的平台差异。 */
+  private decodeUtf8(buf: ArrayBuffer, length: number): string {
+    const bytes: Uint8Array = new Uint8Array(buf);
+    const end: number = Math.min(length, bytes.length);
+    let out: string = '';
+    let i: number = 0;
+    while (i < end) {
+      const c: number = bytes[i];
+      if (c < 0x80) {
+        out += String.fromCharCode(c);
+        i += 1;
+      } else if (c < 0xE0 && i + 1 < end) {
+        out += String.fromCharCode(((c & 0x1F) << 6) | (bytes[i + 1] & 0x3F));
+        i += 2;
+      } else if (c < 0xF0 && i + 2 < end) {
+        out += String.fromCharCode(((c & 0x0F) << 12) | ((bytes[i + 1] & 0x3F) << 6) | (bytes[i + 2] & 0x3F));
+        i += 3;
+      } else if (i + 3 < end) {
+        const cp: number = ((c & 0x07) << 18) | ((bytes[i + 1] & 0x3F) << 12) | ((bytes[i + 2] & 0x3F) << 6) | (bytes[i + 3] & 0x3F);
+        out += String.fromCodePoint(cp);
+        i += 4;
+      } else {
+        i += 1;
+      }
+    }
+    return out;
+  }
+}
+
+/** 全局单例：Ability 里 init(filesDir) 一次，页面与服务共用。 */
+export const docStore: DocStore = new DocStore();

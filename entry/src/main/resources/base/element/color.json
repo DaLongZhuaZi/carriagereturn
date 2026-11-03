@@ -3,6 +3,42 @@
     {
       "name": "start_window_background",
       "value": "#312b24"
+    },
+    {
+      "name": "paper_base",
+      "value": "#eee4ce"
+    },
+    {
+      "name": "paper_highlight",
+      "value": "#e4d8c5"
+    },
+    {
+      "name": "body_main",
+      "value": "#312b24"
+    },
+    {
+      "name": "body_mid",
+      "value": "#574d43"
+    },
+    {
+      "name": "body_dark",
+      "value": "#15120e"
+    },
+    {
+      "name": "keycap_ivory",
+      "value": "#dbccb3"
+    },
+    {
+      "name": "bg_main",
+      "value": "#cdc0af"
+    },
+    {
+      "name": "bg_dark",
+      "value": "#af9d8b"
+    },
+    {
+      "name": "metal_highlight",
+      "value": "#beb4a8"
     }
   ]
 }

@@ -1,0 +1,93 @@
+# SOURCE.txt — 回车 CarriageReturn · App 内音效包 v1 来源与授权记录
+
+> 存放位置：`entry/src/main/resources/rawfile/sound/pack/SOURCE.txt`
+> 汇总来源：`assets/sounds/pack/`（成品包，23 个 .ogg）、`assets/sounds/bigsoundbank/SOURCE.txt`、`assets/sounds/freesound/SOURCE.txt`
+> 原始素材下载日期：2026-11-03
+> 协议快照日期：2026-11-03（BigSoundBank 文件页 / Freesound 各文件页，用户人工核实）
+> 哈希算法：SHA-256。下表哈希除特别注明外均为 2026-11-03 本机实测。
+
+## 1. 包概况
+
+| 项 | 值 |
+|---|---|
+| 目录 | `entry/src/main/resources/rawfile/sound/pack/` |
+| 音频文件 | 23 个 `.ogg`（本文件不计入） |
+| 合计字节 | 196,644 B（实测） |
+| 格式 | OGG Vorbis，单声道 44.1kHz，峰值归一化 -1.5dB |
+| 构建脚本 | `assets/sounds/build-pack.py`；逐文件切分参数见 `assets/sounds/pack/BUILD-REPORT.txt` |
+| 用途分工 | 主按键 12 变体（key-01～12）、第二台机 4 变体（pack2-key-01～04）、空格、3 个铃、回车复位、瞬态层、CC BY 变体 |
+
+## 2. 来源 A：BigSoundBank（3 件原始素材，全部 CC0，无需署名）
+
+- 来源站：<https://bigsoundbank.com>
+- 作者：Joseph SARDIN
+- 协议快照（2026-11-03 打开文件页核实，站方 FAQ 原话）：CC0 / WTFPL / public domain dedication；免费、无需账号、无需署名、可商用、可编辑、可再分发（含放进自己的游戏、应用、音效库）。
+- 原始文件：
+
+| 本地原始文件 | 原始标题 | 来源页 | 编号 | 规格 | 字节 | SHA-256（实测） |
+|---|---|---|---|---|---|---|
+| typewriter-bed-01.wav | Typewriter #5（录音对象：Hermes Precisa 305，打字 1:28） | https://bigsoundbank.com/typewriter-5-s2838.html | 2838 | WAV，48kHz / 24-bit，单声道 | 12,672,832 | `0c2efd2543c721f33d780a2b0b8b77ed7e91aecaa5058abd60762ef0a8c9e376` |
+| space-key-01.wav | Typewriter, space（空格单键 1 秒） | https://bigsoundbank.com/typewriter-space-s2843.html | 2843 | WAV，48kHz / 24-bit，单声道 | 143,754 | `f681dda9b53feaf75540ab3310398b37855173d694b55cb183c846e076fafe9e` |
+| margin-bell-01.wav | Typewriter, Bell #1（边际铃 3 秒） | https://bigsoundbank.com/typewriter-bell-s2844.html | 2844 | WAV，48kHz / 24-bit，单声道 | 366,752 | `deb29f0d2729450e0b2b0f7d3f3259811579c30e688822acec06e519372b0661` |
+
+## 3. 来源 B：Freesound（8 件原始素材）
+
+- 来源站：<https://freesound.org>
+- 采集方式：用户人工经 Freesound 网站下载（Freesound API 免费档仅限非商业用途，禁用 API 自动化拉取），2026-11-03 归档。
+- 协议快照日期：2026-11-03（用户逐件人工确认；CC0 无需署名，CC BY 需在设置 → 关于 → 音效致谢页署名）。
+- 原始文件：
+
+| 本地原始文件 | 作者 / 标题 | 协议 | 来源页 | SHA-256（实测） |
+|---|---|---|---|---|
+| bell-01-ramsamba-318687.wav | ramsamba / Typewriter Bell.wav | CC0 | https://freesound.org/people/ramsamba/sounds/318687/ | `6e38f620e2fac06f227d4330226dace38a2a4ab5c75788c3b3a3d6d36e19948c` |
+| bell-carriage-reset-knufds-345955.wav | knufds / Typewriter bell & carriage reset | CC0 | https://freesound.org/people/knufds/sounds/345955/ | `2959e478fd2f2fc67f98f0fc2c297d49e3115d52e50f0ed67764ceb3a873fdae` |
+| bell-02-masternavigator-444813.wav | MasterNavigator / typewriter bell | CC0 | https://freesound.org/people/MasterNavigator/sounds/444813/ | `5970afb742992a963d26f54195e6f6b15086ac09c976c54062f95b8fd1fbefe1` |
+| bed-second-lyricalgirl-788956.mp3 | lyricalgirl / Old typewriter | CC0 | https://freesound.org/people/lyricalgirl/sounds/788956/ | `ab6ce3b27e7a90e89ab588ced4d192d953b7e3a6874018583059ce4214f3fa2c` |
+| key-transient-bmaczero-160678.wav | BMacZero / typewriter.wav | CC0 | https://freesound.org/people/BMacZero/sounds/160678/ | `f62eade0c6b597f9faa00406ff74924d61f75ff770b906e45b90388b81907bd3` |
+| key-01-ddohler-9098.wav | ddohler / Typewriter.wav | CC BY | https://freesound.org/people/ddohler/sounds/9098/ | `7d470875994c2cf959c0e3d82c99a469f0fa9dd9da71c4443aad78ff9570988d` |
+| bed-ylearkisto-271525.wav | YleArkisto / Kirjoituskone…（芬兰广播档案 DAT 录音） | CC BY | https://freesound.org/people/YleArkisto/sounds/271525/ | `bf9e1e73f0b280613b468d530f2a7741b81ce721c692dc882ec27a936c79eef2` |
+| bed-evsecrets-334458.wav | evsecrets / Typing on a typewriter with ding at end of each line.wav | 作者声明 public domain | https://freesound.org/s/334458/ | `9f666a48beecfee42e42b81929dc03502ac840e1ecb1b6c362f5a856870977ed` |
+
+- 本包 v1 未切分的备料：`bed-ylearkisto-271525.wav`（CC BY）、`bed-evsecrets-334458.wav`（作者声明 public domain）。
+
+## 4. 包内文件 → 原始素材映射与文件哈希
+
+| 包内文件 | 源素材 | 源偏移 | 时长 | 字节 | SHA-256（实测） |
+|---|---|---|---|---|---|
+| bell-01.ogg | bell-01-ramsamba-318687.wav | 0.00s | 0.890s | 11,208 | `6934180a700da1fd31e8d0f77a719ad80f2fa1fdf8ffb1feef34551494848f54` |
+| bell-02.ogg | margin-bell-01.wav | 0.05s | 1.232s | 11,924 | `48f92fff5e2d7b1b671590107e6eae604c6bb7aba393997fc0fda803b7629fbd` |
+| bell-03.ogg | bell-02-masternavigator-444813.wav | 0.05s | 1.013s | 9,488 | `d4300e1abcd48cd238da7cf5f65b5cec498e10500741773f5dfc7a6c4b1144a0` |
+| carriage-reset-01.ogg | bell-carriage-reset-knufds-345955.wav | 0.01s | 2.679s | 27,933 | `f29cc69236704860fb0146de7e9f2f16567a7149d816792da6c5cd481d493233` |
+| key-01.ogg | typewriter-bed-01.wav | 0.23s | 0.464s | 8,185 | `64aa089b0044e5e9026997f9deb98a50827a1235c4c3691036f4fc1db8f952a8` |
+| key-02.ogg | typewriter-bed-01.wav | 6.30s | 0.210s | 6,104 | `5114142594ca23ee593d71b9d3f6cbfb06dd18b5e17f16d7aa95c05a3ad565d2` |
+| key-03.ogg | typewriter-bed-01.wav | 15.28s | 0.249s | 6,696 | `fa3ba2beacec34f43b41108a0f87df363d046bec15d2ea45ffe8d83c90b3fac7` |
+| key-04.ogg | typewriter-bed-01.wav | 23.14s | 0.254s | 6,529 | `519b1caa5d6a810ca1fcbe7be2efc1f12596fa50095313df0181e1c30ab48c53` |
+| key-05.ogg | typewriter-bed-01.wav | 33.13s | 0.384s | 7,539 | `d377a000dacefe09bb0b370dc0a2e9b64924775df94adf9d9f3e186b5f1ad858` |
+| key-06.ogg | typewriter-bed-01.wav | 40.64s | 0.464s | 7,767 | `c44299dcb247191fb3ca089d30eff7d0fc73506461e535118cc2372b718c70d9` |
+| key-07.ogg | typewriter-bed-01.wav | 46.17s | 0.464s | 7,678 | `444e883ff9d35d643a128480c05658ad49843c8f16675638e954d579f9614699` |
+| key-08.ogg | typewriter-bed-01.wav | 55.46s | 0.254s | 6,542 | `0afe53df7e3241a9f61b914c065b70fb49d9e604e60782a5f9e80f30f4bcbbd3` |
+| key-09.ogg | typewriter-bed-01.wav | 61.26s | 0.464s | 8,489 | `953e8cd021d037884e6bdd965f66e05d9a0d66cdd757b643dc628c01ca4b0d62` |
+| key-10.ogg | typewriter-bed-01.wav | 71.91s | 0.464s | 8,422 | `06bb14fb4d8f47e380601335df3a0fbef1db344386261f50f5e5d600810df8a6` |
+| key-11.ogg | typewriter-bed-01.wav | 77.99s | 0.180s | 5,862 | `2d9804988374390473c87e2fa7e73cdcef8abcf3869c22fc9e270a163235ee1a` |
+| key-12.ogg | typewriter-bed-01.wav | 84.05s | 0.464s | 8,276 | `f7ae439527aa797797a81afc85398da082090cec4776c5f5b21a14bf54fc8c22` |
+| key-alt-01.ogg | key-01-ddohler-9098.wav | 0.18s | 0.090s | 4,729 | `fb9bae7a07ab424ce56495bbe97d89b4b644e9291e7166655960b69befe20947` |
+| key-transient.ogg | key-transient-bmaczero-160678.wav | 0.00s | 0.117s | 4,980 | `4c3a0a637021241608d9880a0de81c0802bf2ffeb46ff67eecba78df7bae8994` |
+| pack2-key-01.ogg | bed-second-lyricalgirl-788956.mp3 | 0.10s | 0.190s | 5,782 | `809530fd26233daf032a13941e6a20e983b275c74c999cb95561c4bdb6de2e8c` |
+| pack2-key-02.ogg | bed-second-lyricalgirl-788956.mp3 | 62.29s | 0.614s | 9,482 | `6ed93d48348beba77960fb7e6d61607e16d3a35671c98a87e6e2904a3b609ced` |
+| pack2-key-03.ogg | bed-second-lyricalgirl-788956.mp3 | 120.93s | 0.210s | 5,856 | `d8b058a1dcb15ab0d407df46d0927c94f04e865abb12b147f8764e109eb3c656` |
+| pack2-key-04.ogg | bed-second-lyricalgirl-788956.mp3 | 186.08s | 0.614s | 9,770 | `80caf68702854720a61a38490c84488f6086d2676cd4059413abbe3a2b85feb9` |
+| space-01.ogg | space-key-01.wav | 0.07s | 0.344s | 7,403 | `79708a7ad0c3cab93989120dcdc7b97e2336c641461ffe2d05ee66a6ea39fe1c` |
+
+## 5. 切分与转码记录
+
+- 逐文件源偏移、切分时长与字节见 `assets/sounds/pack/BUILD-REPORT.txt`（23 行，总计 196,644 字节）。
+- 本包未改动音频数据：rawfile 内 23 个 .ogg 与 `assets/sounds/pack/` 同名文件逐字节一致（`cmp` 23/23 相同）。
+
+## 6. 哈希核对说明
+
+- BigSoundBank 3 件：与 `assets/sounds/bigsoundbank/SOURCE.txt` 记录逐条一致。
+- Freesound 8 件：7 件与 `assets/sounds/freesound/SOURCE.txt` 记录一致；`key-01-ddohler-9098.wav` 在原 SOURCE.txt 中记录的哈希为 63 位且与实测不符——
+  - 原记录值：`7d470875994c2cf959c0e3d82c99a469f0fa9dd9da71f75ff9570988d`
+  - 实测值（本文件采用）：`7d470875994c2cf959c0e3d82c99a469f0fa9dd9da71c4443aad78ff9570988d`
+  - 建议 Lead 回头修正 `assets/sounds/freesound/SOURCE.txt` 该行（本次未改动 assets/ 下原始文件）。
+- 其余原始素材哈希均与记录一致。
