@@ -244,7 +244,7 @@ export struct PaperSheet {
     if (this.spec.marginVVp > 0) {
       return this.spec.marginVVp;
     }
-    return findPaper(paperKindOf(this.spec.paperKind)).marginV;
+    return findPaper(paperKindOf(this.spec.paperKind)).marginTop;
   }
 
   /** 页眉带高度：有页眉时让出整整一行，页眉线画在这条带的下沿。 */

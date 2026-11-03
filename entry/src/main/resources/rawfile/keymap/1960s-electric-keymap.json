@@ -1,0 +1,264 @@
+{
+  "master": "1960s-electric-keyarea.jpg",
+  "master_size": [
+    2048,
+    2048
+  ],
+  "note": "53 caps (14/13/13/12 + space). Top-left corner is now a full square cap, fixing the c2k0 narrow-sliver defect. Tentative labels: top-row extras = and ?; wide caps: row2-left extra, row2-right Backspace, row3-left Shift, row3-right Return, row4 both Shift. Extra caps carry no overlay letter.",
+  "rows": [
+    {
+      "y": 819,
+      "caps": [
+        {
+          "x": 158,
+          "label": "1"
+        },
+        {
+          "x": 285,
+          "label": "2"
+        },
+        {
+          "x": 410,
+          "label": "3"
+        },
+        {
+          "x": 535,
+          "label": "4"
+        },
+        {
+          "x": 662,
+          "label": "5"
+        },
+        {
+          "x": 788,
+          "label": "6"
+        },
+        {
+          "x": 913,
+          "label": "7"
+        },
+        {
+          "x": 1040,
+          "label": "8"
+        },
+        {
+          "x": 1167,
+          "label": "9"
+        },
+        {
+          "x": 1292,
+          "label": "0"
+        },
+        {
+          "x": 1419,
+          "label": "-"
+        },
+        {
+          "x": 1544,
+          "label": "="
+        },
+        {
+          "x": 1671,
+          "label": "?"
+        },
+        {
+          "x": 1853,
+          "label": "extra"
+        }
+      ]
+    },
+    {
+      "y": 973,
+      "caps": [
+        {
+          "x": 190,
+          "label": "extra"
+        },
+        {
+          "x": 344,
+          "label": "Q"
+        },
+        {
+          "x": 469,
+          "label": "W"
+        },
+        {
+          "x": 596,
+          "label": "E"
+        },
+        {
+          "x": 723,
+          "label": "R"
+        },
+        {
+          "x": 850,
+          "label": "T"
+        },
+        {
+          "x": 977,
+          "label": "Y"
+        },
+        {
+          "x": 1104,
+          "label": "U"
+        },
+        {
+          "x": 1229,
+          "label": "I"
+        },
+        {
+          "x": 1356,
+          "label": "O"
+        },
+        {
+          "x": 1483,
+          "label": "P"
+        },
+        {
+          "x": 1612,
+          "label": "extra"
+        },
+        {
+          "x": 1821,
+          "label": "Backspace"
+        }
+      ]
+    },
+    {
+      "y": 1128,
+      "caps": [
+        {
+          "x": 213,
+          "label": "Shift"
+        },
+        {
+          "x": 367,
+          "label": "A"
+        },
+        {
+          "x": 494,
+          "label": "S"
+        },
+        {
+          "x": 621,
+          "label": "D"
+        },
+        {
+          "x": 748,
+          "label": "F"
+        },
+        {
+          "x": 874,
+          "label": "G"
+        },
+        {
+          "x": 1001,
+          "label": "H"
+        },
+        {
+          "x": 1128,
+          "label": "J"
+        },
+        {
+          "x": 1255,
+          "label": "K"
+        },
+        {
+          "x": 1382,
+          "label": "L"
+        },
+        {
+          "x": 1509,
+          "label": ";"
+        },
+        {
+          "x": 1640,
+          "label": "'"
+        },
+        {
+          "x": 1829,
+          "label": "Return"
+        }
+      ]
+    },
+    {
+      "y": 1282,
+      "caps": [
+        {
+          "x": 236,
+          "label": "Shift"
+        },
+        {
+          "x": 430,
+          "label": "Z"
+        },
+        {
+          "x": 557,
+          "label": "X"
+        },
+        {
+          "x": 684,
+          "label": "C"
+        },
+        {
+          "x": 811,
+          "label": "V"
+        },
+        {
+          "x": 938,
+          "label": "B"
+        },
+        {
+          "x": 1065,
+          "label": "N"
+        },
+        {
+          "x": 1192,
+          "label": "M"
+        },
+        {
+          "x": 1319,
+          "label": ","
+        },
+        {
+          "x": 1448,
+          "label": "."
+        },
+        {
+          "x": 1581,
+          "label": "/"
+        },
+        {
+          "x": 1802,
+          "label": "Shift"
+        }
+      ]
+    }
+  ],
+  "space": {
+    "x_min": 438,
+    "x_max": 1603,
+    "y_min": 1348,
+    "y_max": 1475
+  },
+  "bands": {
+    "phone": {
+      "x0": 0,
+      "y0": 549,
+      "w": 2048,
+      "h": 975,
+      "aspect": 2.1
+    },
+    "fold": {
+      "x0": 0,
+      "y0": 671,
+      "w": 2048,
+      "h": 853,
+      "aspect": 2.4
+    }
+  },
+  "overlay": {
+    "font": "current machine font",
+    "color_1960s": "#312b24"
+  }
+}

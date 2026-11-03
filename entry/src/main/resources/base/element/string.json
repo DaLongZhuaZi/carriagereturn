@@ -17,24 +17,20 @@
       "value": "回车"
     },
     {
-      "name": "onboarding_first_title",
-      "value": "欢迎来到回车"
-    },
-    {
-      "name": "onboarding_first_body",
-      "value": "敲下任意一个键，就能听见第一声。\n中文输入请点键盘上方的「中 / EN」切换系统输入法。"
-    },
-    {
-      "name": "onboarding_first_start",
-      "value": "开始打字"
+      "name": "onboarding_first_text",
+      "value": "这是一台打字机。敲下去，字就落在纸上。"
     },
     {
       "name": "hint_new_paper",
-      "value": "这是一张新纸，敲下第一个键开始写吧。"
+      "value": "开始打字吧。"
     },
     {
-      "name": "keyboard_shift",
-      "value": "Shift"
+      "name": "keyboard_delete",
+      "value": "删除"
+    },
+    {
+      "name": "keyboard_newline",
+      "value": "换行"
     },
     {
       "name": "keyboard_backspace",
@@ -45,12 +41,12 @@
       "value": "回车"
     },
     {
-      "name": "keyboard_lang_en",
-      "value": "EN"
-    },
-    {
       "name": "keyboard_lang_zh",
       "value": "中"
+    },
+    {
+      "name": "keyboard_lang_en",
+      "value": "EN"
     },
     {
       "name": "doc_untitled",
