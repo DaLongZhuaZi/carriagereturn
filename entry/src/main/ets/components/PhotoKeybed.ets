@@ -171,23 +171,23 @@ export struct PhotoKeybed {
       // 照片带：机型 × 手机/折叠 静态分支
       if (this.machineKind === MachineKind.UPRIGHT_1920S) {
         if (this.foldBand) {
-          Image($rawfile('machine/1920s-upright-keyband-fold.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1920s-upright-keyband-fold.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         } else {
-          Image($rawfile('machine/1920s-upright-keyband-phone.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1920s-upright-keyband-phone.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         }
       } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-        Image($rawfile('machine/1930s-portable-keyband-phone.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+        Image($rawfile('machine/1930s-portable-keyband-phone.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
       } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
         if (this.foldBand) {
-          Image($rawfile('machine/1950s-streamlined-keyband-fold.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1950s-streamlined-keyband-fold.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         } else {
-          Image($rawfile('machine/1950s-streamlined-keyband-phone.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1950s-streamlined-keyband-phone.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         }
       } else {
         if (this.foldBand) {
-          Image($rawfile('machine/1960s-electric-keyband-fold.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1960s-electric-keyband-fold.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         } else {
-          Image($rawfile('machine/1960s-electric-keyband-phone.jpg')).width('100%').height('100%').objectFit(ImageFit.Fill)
+          Image($rawfile('machine/1960s-electric-keyband-phone.jpg')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
         }
       }
 
@@ -218,7 +218,7 @@ export struct PhotoKeybed {
         .hitTestBehavior(HitTestMode.None)
       }, (cap: CapDef) => cap.id)
     }
-    .width('100%')
+    .width(this.widthVp)
     .height(this.heightVp)
     .clip(true)
     .onTouch((event: TouchEvent) => {

@@ -95,26 +95,27 @@ interface RawKeymap {
 /** 解析结果缓存（按 machine + band + 尺寸）。 */
 export class KeymapParser {
   /**
-   * 把一份 keymap JSON 换算成显示坐标系键位表。
+   * 把一份 keymap JSON 换算成**比例**键位表（§2.5：只用比例，绝不用单缩放）。
    *
-   * @param jsonText keymap 原文
-   * @param machine 机型标识（用作叠字取色与 id）
-   * @param fold 是否折叠带
-   * @param widthVp 键区显示宽（vp）
-   * @param heightVp 键区显示高（vp）
-   * @param overlayColor 叠字颜色（由主屏按机型传入）
+   * xRatio = (母版 x − 带 x0) / 带宽
+   * yRatio = (母版 y − 带 y0) / 带高
+   * 显示坐标：cx = xRatio × widthVp，cy = yRatio × heightVp。
+   *
+   * 旧实现用单一 scale = widthVp / 带宽 同时算 cx 与 cy，只有在键区高恰好
+   * = 宽 × 带高/带宽 时才成立；宽高比对不上时 cy 被系统性放大，行 y 越大偏越多
+   * （§2.5 已判为错，本实现作废该式）。
    */
   static parse(jsonText: string, machine: string, fold: boolean, widthVp: number, heightVp: number,
     overlayColor: string, overlayFontSize: number): KeymapLayout {
     const raw: RawKeymap = JSON.parse(jsonText) as RawKeymap;
     const band: RawBand = fold ? raw.bands.fold : raw.bands.phone;
-    const scale: number = widthVp / band.w;
     const caps: CapDef[] = [];
     let rowGapMin: number = 100000;
     for (let r = 0; r < raw.rows.length; r++) {
       const row: RawRow = raw.rows[r];
       if (r > 0) {
-        const gap: number = (row.y - raw.rows[r - 1].y) * scale;
+        const gapRatio: number = (row.y - raw.rows[r - 1].y) / band.h;
+        const gap: number = gapRatio * heightVp;
         if (gap > 0 && gap < rowGapMin) {
           rowGapMin = gap;
         }
@@ -122,11 +123,13 @@ export class KeymapParser {
       for (let c = 0; c < row.caps.length; c++) {
         const cap: RawCap = row.caps[c];
         const label: string = cap.label;
+        const xRatio: number = (cap.x - band.x0) / band.w;
+        const yRatio: number = (row.y - band.y0) / band.h;
         caps.push({
           id: machine + ':' + r.toString() + ':' + c.toString(),
           label: label,
-          cx: (cap.x - band.x0) * scale,
-          cy: (row.y - band.y0) * scale,
+          cx: xRatio * widthVp,
+          cy: yRatio * heightVp,
           rowIndex: r,
           isExtra: label === 'extra',
         });
@@ -136,10 +139,10 @@ export class KeymapParser {
     return {
       machine: machine,
       caps: caps,
-      spaceXMin: (raw.space.x_min - band.x0) * scale,
-      spaceXMax: (raw.space.x_max - band.x0) * scale,
-      spaceYMin: (raw.space.y_min - band.y0) * scale,
-      spaceYMax: (raw.space.y_max - band.y0) * scale,
+      spaceXMin: ((raw.space.x_min - band.x0) / band.w) * widthVp,
+      spaceXMax: ((raw.space.x_max - band.x0) / band.w) * widthVp,
+      spaceYMin: ((raw.space.y_min - band.y0) / band.h) * heightVp,
+      spaceYMax: ((raw.space.y_max - band.y0) / band.h) * heightVp,
       hitRadius: hitRadius,
       overlayColor: overlayColor,
       overlayFontSize: overlayFontSize,

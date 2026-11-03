@@ -89,6 +89,8 @@ export struct TypebarLayer {
           centerY: this.layerHeightVp * 0.867,
         })
         .offset({ x: this.offsetXVp, y: this.offsetYVp })
+        // §2.5：静止态必须隐藏（不许以 −64° 的可见竖条横在纸面区里）
+        .opacity(this.angle === REST_ANGLE ? 0 : 1)
     }
     .width('100%')
     .height('100%')
