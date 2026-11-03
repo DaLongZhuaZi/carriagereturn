@@ -1,0 +1,232 @@
+{
+  "master": "1920s-upright-keyarea.jpg",
+  "master_size": [
+    2048,
+    2048
+  ],
+  "note": "43 caps (11/10/11/11). Bottom-right large cap tentatively '/' (single left Shift); old animation/1920s-upright/keymap.json (46-cap old keyband) is superseded.",
+  "rows": [
+    {
+      "y": 836,
+      "caps": [
+        {
+          "x": 242,
+          "label": "1"
+        },
+        {
+          "x": 401,
+          "label": "2"
+        },
+        {
+          "x": 559,
+          "label": "3"
+        },
+        {
+          "x": 719,
+          "label": "4"
+        },
+        {
+          "x": 879,
+          "label": "5"
+        },
+        {
+          "x": 1036,
+          "label": "6"
+        },
+        {
+          "x": 1196,
+          "label": "7"
+        },
+        {
+          "x": 1354,
+          "label": "8"
+        },
+        {
+          "x": 1513,
+          "label": "9"
+        },
+        {
+          "x": 1673,
+          "label": "0"
+        },
+        {
+          "x": 1831,
+          "label": "-"
+        }
+      ]
+    },
+    {
+      "y": 1020,
+      "caps": [
+        {
+          "x": 324,
+          "label": "Q"
+        },
+        {
+          "x": 481,
+          "label": "W"
+        },
+        {
+          "x": 639,
+          "label": "E"
+        },
+        {
+          "x": 797,
+          "label": "R"
+        },
+        {
+          "x": 954,
+          "label": "T"
+        },
+        {
+          "x": 1112,
+          "label": "Y"
+        },
+        {
+          "x": 1270,
+          "label": "U"
+        },
+        {
+          "x": 1427,
+          "label": "I"
+        },
+        {
+          "x": 1585,
+          "label": "O"
+        },
+        {
+          "x": 1743,
+          "label": "P"
+        }
+      ]
+    },
+    {
+      "y": 1178,
+      "caps": [
+        {
+          "x": 231,
+          "label": "A"
+        },
+        {
+          "x": 385,
+          "label": "S"
+        },
+        {
+          "x": 539,
+          "label": "D"
+        },
+        {
+          "x": 694,
+          "label": "F"
+        },
+        {
+          "x": 848,
+          "label": "G"
+        },
+        {
+          "x": 1001,
+          "label": "H"
+        },
+        {
+          "x": 1155,
+          "label": "J"
+        },
+        {
+          "x": 1311,
+          "label": "K"
+        },
+        {
+          "x": 1464,
+          "label": "L"
+        },
+        {
+          "x": 1618,
+          "label": ";"
+        },
+        {
+          "x": 1772,
+          "label": "'"
+        }
+      ]
+    },
+    {
+      "y": 1352,
+      "caps": [
+        {
+          "x": 264,
+          "label": "Shift"
+        },
+        {
+          "x": 422,
+          "label": "Z"
+        },
+        {
+          "x": 580,
+          "label": "X"
+        },
+        {
+          "x": 737,
+          "label": "C"
+        },
+        {
+          "x": 893,
+          "label": "V"
+        },
+        {
+          "x": 1051,
+          "label": "B"
+        },
+        {
+          "x": 1208,
+          "label": "N"
+        },
+        {
+          "x": 1364,
+          "label": "M"
+        },
+        {
+          "x": 1522,
+          "label": ","
+        },
+        {
+          "x": 1679,
+          "label": "."
+        },
+        {
+          "x": 1837,
+          "label": "/"
+        }
+      ]
+    }
+  ],
+  "space": {
+    "x_min": 420,
+    "x_max": 1634,
+    "y_min": 1483,
+    "y_max": 1610
+  },
+  "bands": {
+    "phone": {
+      "x0": 0,
+      "y0": 704,
+      "w": 2048,
+      "h": 975,
+      "aspect": 2.1
+    },
+    "fold": {
+      "x0": 0,
+      "y0": 765,
+      "w": 2048,
+      "h": 853,
+      "aspect": 2.4
+    },
+    "tablet": {
+      "status": "deleted",
+      "reason": "mirrored pad produced ghost caps at edges, unusable; tablet band deferred pending tablet layout design"
+    }
+  },
+  "overlay": {
+    "font": "current machine font",
+    "color_1920s": "#312b24"
+  }
+}
