@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "回车 entry 模块",
+  "main": "",
+  "author": "DaLongzhuazi",
+  "license": "MIT",
+  "dependencies": {
+    "ngf_framework": "file:../ngf_framework"
+  }
+}

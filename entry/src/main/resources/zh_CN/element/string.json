@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "回车 entry module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "回车 main ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "回车"
+    }
+  ]
+}

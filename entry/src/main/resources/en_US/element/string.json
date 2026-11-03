@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "CarriageReturn entry module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "CarriageReturn main ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "CarriageReturn"
+    }
+  ]
+}
