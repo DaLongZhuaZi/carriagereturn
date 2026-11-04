@@ -23,6 +23,8 @@ import {
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
 import { PaperRow } from '../ui/PaperSheet';
 import { DocModel } from '../model/DocModelCore';
+import { docStore } from '../services/DocStore';
+import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
@@ -55,6 +57,8 @@ function emptyLayout(): KeymapLayout {
 @Component
 struct Index {
   private docModel: DocModel = new DocModel();
+  private docId: string = '';
+  private saveTimer: number = -1;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
   private bellRungLines: Set<number> = new Set<number>();
@@ -126,7 +130,10 @@ struct Index {
     this.detectLayers();
     this.applyImmersive();
     this.hintText = this.resolveString($r('app.string.hint_new_paper'));
+    this.restoreLastDocument();
     this.syncRows();
+    // 启动即有 O：按当前行光标重算，不许归 0
+    this.recalcOffsetFromCursor();
     this.audioService.preload('pack');
   }
 
@@ -547,6 +554,7 @@ struct Index {
     this.syncRows();
     this.animateGuide();
     this.stepCarriageLeft();
+    this.scheduleSave();
     if (outcome.marginBell) {
       this.audioService.playBell();
     }
@@ -554,6 +562,30 @@ struct Index {
     if (this.docModel.getCursor().offset >= this.charsPerLineNum) {
       this.onNewline();
     }
+  }
+
+  /**
+   * 启动 / 载入文档时按当前行光标重算 O（不许归 0）：
+   * O = −当前行已落字总宽，钳制到 −可用行宽，使末字落在导件处、中央件随手左移。
+   */
+  private recalcOffsetFromCursor(): void {
+    const cursor = this.docModel.getCursor();
+    const line = this.docModel.getLines()[cursor.line];
+    let w: number = 0;
+    for (let i = 0; i < cursor.offset && i < line.text.length; i++) {
+      w += this.charWidthVp(line.text.charAt(i));
+    }
+    const limit: number = -(this.stageWidth - 2 * findPaper(this.paperKind).marginH);
+    let o: number = -w;
+    if (o < limit) {
+      o = limit;
+    }
+    this.carriageOffsetVp = o;
+    hilog.info(DOMAIN, TAG,
+      'recalcOffset cursor=%{public}s lineW=%{public}s O=%{public}s guideX=%{public}s lastCharX=%{public}s',
+      cursor.offset.toString(), w.toFixed(1), o.toFixed(1), (this.stageWidth * 0.5).toFixed(1),
+      // 末字屏 x = 纸偏移(guide − 边距 + O) + 纸内文本起点(边距) + 行宽 = guide + O + w
+      (this.stageWidth * 0.5 + o + w).toFixed(1));
   }
 
   /**
@@ -594,6 +626,7 @@ struct Index {
     this.animatePaperHeight();
     this.audioService.playCarriageReset();
     this.audioService.vibrate();
+    this.scheduleSave();
     this.resetCarriageAndGuide();
   }
 
@@ -607,6 +640,51 @@ struct Index {
   }
 
   /** 只刷新行数据；顶栏标题绝不随打字变化（§2.5）。 */
+  /** 防抖落盘（重设计重写时丢失，本次补回）：停顿 800ms 存一次。 */
+  private scheduleSave(): void {
+    if (this.saveTimer !== -1) {
+      clearTimeout(this.saveTimer);
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = -1;
+      this.flushSave();
+    }, 800);
+  }
+
+  private flushSave(): void {
+    if (!docStore.isReady() || this.docModel.isEmpty()) {
+      return;
+    }
+    try {
+      this.docId = docStore.save(this.docId, this.docModel.toDocData(),
+        this.resolveString($r('app.string.doc_untitled')));
+      hilog.info(DOMAIN, TAG, 'saved doc id=%{public}s', this.docId);
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'flushSave failed');
+    }
+  }
+
+  /** 启动时恢复上一次编辑的文档（JSON + 元数据），光标一并恢复。 */
+  private restoreLastDocument(): void {
+    try {
+      const list: DocSummary[] = docStore.list();
+      if (list.length === 0) {
+        return;
+      }
+      const data: DocData | null = docStore.load(list[0].id);
+      if (data === null) {
+        return;
+      }
+      this.docId = list[0].id;
+      this.docModel = new DocModel(data);
+      this.hintText = '';
+      hilog.info(DOMAIN, TAG, 'restored doc id=%{public}s lines=%{public}s',
+        this.docId, data.lines.length.toString());
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'restoreLastDocument failed');
+    }
+  }
+
   private syncRows(): void {
     const lines = this.docModel.getLines();
     const cursor = this.docModel.getCursor();
