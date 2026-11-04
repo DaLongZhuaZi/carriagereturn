@@ -25,6 +25,10 @@ export struct CarriageLayers {
   @Prop maxTravelVp: number = 136;
   /** 当前偏移（vp，0 → −maxTravelVp）。 */
   @Prop carriageOffsetVp: number = 0;
+  /** 总成竖向 jolt（vp）。 */
+  @Prop joltYVp: number = 0;
+  /** 旋钮累计转角（度）：走纸期间线性增加、不回零；打字时只平移不转。 */
+  @Prop knobAngleDeg: number = 0;
 
   /** 容器高 Hc。 */
   private hc(): number {
@@ -63,6 +67,7 @@ export struct CarriageLayers {
           .height(this.hc() * 0.92)
           .objectFit(ImageFit.Contain)
           .position({ x: 0, y: (this.hc() - this.hc() * 0.92) / 2 })
+          .rotate({ angle: this.knobAngleDeg })
 
         // 右旋钮（同一张复用）
         Image($rawfile('layers/1920s-upright/knob.png'))
@@ -70,6 +75,7 @@ export struct CarriageLayers {
           .height(this.hc() * 0.92)
           .objectFit(ImageFit.Contain)
           .position({ x: this.canvasW() - this.hc() * 0.92, y: (this.hc() - this.hc() * 0.92) / 2 })
+          .rotate({ angle: this.knobAngleDeg })
       }
       .width(this.canvasW())
       .height(this.hc())
@@ -98,6 +104,7 @@ export struct CarriageLayers {
     }
     .width(this.stageWidth)
     .height(this.hc())
+    .translate({ y: this.joltYVp })
     // §2.9：外层不 clip，否则中央件上半被切；只留滚筒组内层 clip
     .clip(false)
     .onAreaChange((oldA: Area, newA: Area) => {

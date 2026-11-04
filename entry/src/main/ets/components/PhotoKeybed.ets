@@ -36,6 +36,8 @@ export struct PhotoKeybed {
   @Prop heightVp: number = 186;
   @Prop layout: KeymapLayout = emptyLayout();
   @Prop overlayFontFamily: string = 'CourierPrime';
+  /** 落字计数：Index 每次 commitChar +1，用于「Up 与落字较晚者才清」的落字侧。 */
+  @Prop @Watch('onCommitSeqChanged') commitSeq: number = 0;
 
   @State heldIds: string[] = [];
 
@@ -90,6 +92,11 @@ export struct PhotoKeybed {
   /** 落字到达时清高亮（若 Up 更早，这里是实际清除点）。 */
   releaseOnCommit(capId: string): void {
     this.removeHeld(capId);
+  }
+
+  /** 落字计数变化：清掉所有已落字的按键高亮（Up 与落字两者较晚者）。 */
+  onCommitSeqChanged(): void {
+    this.heldIds = [];
   }
 
   private handleTouch(event: TouchEvent): void {
@@ -220,24 +227,13 @@ export struct PhotoKeybed {
         // 一个 item 只能有一个根节点：叠字与按下高亮都放进这个 Stack
         Stack({ alignContent: Alignment.Center }) {
           if (this.capIndex(cap.id) >= 0) {
-            // 按下三件套：帽区黑色下压层 + 帽底深色边 + 深色描边环（不缩放、不动 transform）
+            // 圆形叠加层：直径 = 视觉帽径(2×hitRadius)、圆角 = 半径、黑 0.30、居中、无描边无底条
             Column()
-              .width(this.layout.hitRadius * 1.9)
-              .height(this.layout.hitRadius * 1.6)
-              .borderRadius(6)
+              .width(this.layout.hitRadius * 2)
+              .height(this.layout.hitRadius * 2)
+              .borderRadius(this.layout.hitRadius)
               .backgroundColor('#000000')
-              .opacity(0.40)
-            Column()
-              .width(this.layout.hitRadius * 1.9)
-              .height(3)
-              .backgroundColor('#15120e')
-              .offset({ y: this.layout.hitRadius * 0.78 })
-            Column()
-              .width(this.layout.hitRadius * 1.9)
-              .height(this.layout.hitRadius * 1.6)
-              .borderRadius(6)
-              .border({ width: 2, color: '#15120e' })
-              .opacity(0.6)
+              .opacity(0.30)
           }
           if (!cap.isExtra) {
             Text(cap.label)
@@ -247,7 +243,7 @@ export struct PhotoKeybed {
               .maxLines(1)
               .textAlign(TextAlign.Center)
               // 叠字下移 3vp（只在按下时）
-              .translate({ y: this.capIndex(cap.id) >= 0 ? 3 : 0 })
+              .translate({ y: this.capIndex(cap.id) >= 0 ? 2 : 0 })
           }
         }
         .width(this.layout.hitRadius * 2)

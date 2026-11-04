@@ -66,6 +66,14 @@ struct Index {
   private soundCount: number = 0;
   private fastCount: number = 0;
   @State arriveCount: number = 0;
+  /** 总成竖向 jolt（vp）：打字当刻下沉 1vp。 */
+  @State joltYVp: number = 0;
+  /** 落字计数：驱动 PhotoKeybed 清高亮。 */
+  @State commitSeq: number = 0;
+  /** 旋钮累计转角（度，走纸期间线性增加，不回零）。 */
+  @State knobAngle: number = 0;
+  /** 换行计数：驱动 LeverLayer 摆动。 */
+  @State newlineTick: number = 0;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
   private bellRungLines: Set<number> = new Set<number>();
@@ -311,9 +319,18 @@ struct Index {
     if (target < limit) {
       target = limit;
     }
-    this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
+    // 30ms 线性单步（弹簧作废）
+    this.getUIContext().animateTo({ duration: 30, curve: Curve.Linear }, () => {
       this.carriageOffsetVp = target;
     });
+    // 总成竖向 jolt 1vp：击打当刻下沉 40ms 回弹
+    this.getUIContext().animateTo({ duration: 20, curve: Curve.Linear }, () => {
+      this.joltYVp = 1;
+    });
+    this.getUIContext().animateTo({ duration: 20, delay: 20, curve: Curve.Linear }, () => {
+      this.joltYVp = 0;
+    });
+    this.commitSeq = this.commitSeq + 1;
     hilog.info(DOMAIN, TAG, 'carriage offset -> %{public}s', target.toFixed(2));
   }
 
@@ -330,9 +347,20 @@ struct Index {
 
   /** 换行回位：250ms 弹簧从累计量一次性滑回 0，与拨杆摆动 + 叮声 + 导件回左缘同步。 */
   private resetCarriage(): void {
-    this.getUIContext().animateTo({ duration: 250, curve: curves.springMotion() }, () => {
+    // 快速回位：200ms fast-out，末端 2vp 叩击回弹（不用 250ms 弹簧）
+    const start: number = this.carriageOffsetVp;
+    this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
       this.carriageOffsetVp = 0;
+      this.joltYVp = 2;
     });
+    this.getUIContext().animateTo({ duration: 60, delay: 200, curve: Curve.FastOutSlowIn }, () => {
+      this.joltYVp = 0;
+    });
+    // 旋钮走纸期间累计转 21°/行，线性、不回零
+    this.getUIContext().animateTo({ duration: 200, curve: Curve.Linear }, () => {
+      this.knobAngle = this.knobAngle + 21;
+    });
+    void start;
   }
 
   // ---------------- 换装 ----------------
@@ -761,21 +789,6 @@ struct Index {
           Column().width('100%').height(this.paperTopGap)
 
           Stack({ alignContent: Alignment.Bottom }) {
-            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-              // 字杆层：尺寸由 stageWidth 派生；支点锚定字车条下方（笼子位置）
-              TypebarLayer({
-                layerWidthVp: this.stageWidth,
-                layerHeightVp: this.stageWidth,
-                strikeTick: this.strikeTick,
-                animScale: 1,
-                offsetXVp: this.guideXVp - this.stageWidth * 0.5, // 导件固定在舞台中心时恒为 0
-                offsetYVp: this.regionHeightVp + 0.752 * this.stageWidth - this.stageWidth * 0.867,
-                onArrive: (): void => {
-                  this.onStrikeArrive();
-                },
-              })
-            }
-
             // 页码轨锚定纸片：与纸片同高、同底
             Stack({ alignContent: Alignment.TopEnd }) {
               PaperStage({
@@ -797,6 +810,7 @@ struct Index {
                 pageNo: 1,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
                 offsetXVp: this.stageWidth * 0.5 - findPaper(this.paperKind).marginH + this.carriageOffsetVp,
+                // 字杆层与拨杆层在纸之上渲染（E 项）
 
               })
                 .width('100%')
@@ -826,6 +840,8 @@ struct Index {
           CarriageLayers({
             stageWidth: this.photoW(),
             maxTravelVp: this.maxTravelVp, // = 可用行宽，画布宽 = 舞台宽 + 行宽
+            joltYVp: this.joltYVp,
+            knobAngleDeg: this.knobAngle,
             carriageOffsetVp: this.carriageOffsetVp,
           })
             .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
@@ -855,6 +871,7 @@ struct Index {
           heightVp: this.keybedHeight,
           layout: this.keymapLayout,
           overlayFontFamily: this.fontFamily,
+          commitSeq: this.commitSeq,
           onCapDown: (cap: CapDef): void => {
             this.onCapDown(cap);
           },
