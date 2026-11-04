@@ -35,6 +35,11 @@ export struct CarriageLayers {
     return this.stageWidth + this.maxTravelVp;
   }
 
+  /** 打击点屏 x（相对容器左缘）：固定，不随 carriageOffset / 光标变化。 */
+  private strikeXVp(): number {
+    return this.stageWidth * 0.5;
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // ---- 滚筒 / 压纸卷 / 左手把，三件在宽画布内同进同退，由父级 clip 裁到舞台宽 ----
@@ -70,6 +75,14 @@ export struct CarriageLayers {
       .height(this.hc())
       .clip(true)
       .translate({ x: this.carriageOffsetVp })
+
+      // ---- 竖向导件（件3）：唯一打击点指示，屏 x 恒定，不随 carriageOffset 平移 ----
+      Column()
+        .width(2)
+        .height(this.hc() * 0.82)
+        .backgroundColor('#e8ddc9')
+        .opacity(0.85)
+        .position({ x: this.strikeXVp() - 1, y: this.hc() * 0.10 })
 
       // ---- 中央件：机器坐标系，宽画布内居中，向上伸出容器（不被 clip）----
       Image($rawfile('layers/1920s-upright/central-guide.png'))

@@ -682,8 +682,8 @@ struct Index {
                 marginBottomVp: findPaper(this.paperKind).marginBottom,
                 inkColor: this.inkColor,
                 pageNo: 1,
-                cursorXVp: this.guideXVp,
-                cursorVisible: true,
+                offsetXVp: this.carriageOffsetVp,
+
               })
                 .width('100%')
 

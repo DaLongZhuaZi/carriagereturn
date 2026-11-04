@@ -7,7 +7,7 @@
  * - 纸片高 = 初始 96 + 行数 × 行高（未满幅）；满幅后高度不变，内容整体上移（creep）。
  * - 由此推出：当前打击行永远落在「纸片底缘 − 底边距 20vp」上方，无需单独推位置。
  *
- * 纸面不画光标：打击点由字车条中央竖向导件指示（§2.2）。
+ * 纸面不画光标：打击点由字车条上固定的竖向导件指示（件3，2026-11-04 定）。
  * 纸面区上部空出的部分是深底渐变背景（由 Index 铺），本组件只管纸片本身。
  */
 
@@ -45,10 +45,9 @@ export struct PaperStage {
   /** 墨色（色带）。 */
   @Prop inkColor: string = '#1a1a1a';
   @Prop pageNo: number = 1;
-  /** 纸面光标 x（vp，相对纸片左缘）：舞台左缘 + 28 + 当前行已落字总宽。 */
-  @Prop cursorXVp: number = 28;
-  /** 纸面光标可见（行首也可，始终可见）。 */
-  @Prop cursorVisible: boolean = true;
+  /** 纸与字车共用的偏移 O（vp，≤0）：纸随 O 左移，与字车同弹簧同帧。 */
+  @Prop offsetXVp: number = 0;
+
 
   /** 页眉带 + 顶边距 = 内容起始 y。 */
   private contentTop(): number {
@@ -147,17 +146,6 @@ export struct PaperStage {
         .margin({ top: this.paperHeightVp - this.marginBottomVp - this.lineHeightVp })
       }
 
-      // 纸面光标（§2.8 改名：画在纸面上，不是字车条上的细线）
-      // y = 纸片下缘 − 20vp − 行高 至 纸片下缘 − 20vp，宽 2vp，颜色 = 当前墨色
-      if (this.cursorVisible) {
-        Column()
-          .width(2)
-          .height(this.lineHeightVp)
-          .backgroundColor(this.inkColor)
-          .position({ x: this.cursorXVp, y: this.paperHeightVp - this.marginBottomVp - this.lineHeightVp })
-          .hitTestBehavior(HitTestMode.None)
-      }
-
       // 下缘短实阴影（纸压在字车上）
       Column()
         .width('100%')
@@ -168,6 +156,7 @@ export struct PaperStage {
     .width('100%')
     .height(this.paperHeightVp)
     .clip(true)
+    .translate({ x: this.offsetXVp })
     .onAreaChange((oldA: Area, newA: Area) => {
       // 取证：纸片 rect + 纸底 y + 纸片高（与 Keybed / CarriageLayers 同一次运行）
       const w: number = newA.width as number;
