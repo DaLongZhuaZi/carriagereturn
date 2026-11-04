@@ -12,6 +12,10 @@
  *         打击行 y = 容器顶 − 12vp，故中央件向上伸出容器（本组件根不 clip，只有滚筒组 clip）
  */
 import { curves } from '@kit.ArkUI';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const CDOMAIN: number = 0x0100;
+const CTAG: string = 'CarriageLayers';
 
 @Component
 export struct CarriageLayers {
@@ -81,6 +85,14 @@ export struct CarriageLayers {
     .height(this.hc())
     // §2.9：外层不 clip，否则中央件上半被切；只留滚筒组内层 clip
     .clip(false)
+    .onAreaChange((oldA: Area, newA: Area) => {
+      const w: number = newA.width as number;
+      const topY: number = newA.globalPosition.y as number;
+      hilog.info(CDOMAIN, CTAG,
+        'carriage w=%{public}s Hc=%{public}s canvasW=%{public}s topY=%{public}s bottomY=%{public}s',
+        w.toFixed(1), this.hc().toFixed(1), this.canvasW().toFixed(1),
+        topY.toFixed(1), (topY + this.hc()).toFixed(1));
+    })
     .linearGradient({
       direction: GradientDirection.Bottom,
       colors: [['#171310', 0.0], ['#241c16', 1.0]],

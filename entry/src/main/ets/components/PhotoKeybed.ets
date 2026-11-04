@@ -9,7 +9,11 @@
  * - 滑入只发声不上屏（防误落字）。
  */
 import { MachineKind } from '../model/DocModel';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { CapDef, KeymapLayout } from '../model/KeymapModel';
+
+const KDOMAIN: number = 0x0100;
+const KTAG: string = 'Keybed';
 
 /** 空键位表：未加载时用，保证 layout 永不为 null（避免非空断言）。 */
 function emptyLayout(): KeymapLayout {
@@ -221,6 +225,23 @@ export struct PhotoKeybed {
     .width(this.widthVp)
     .height(this.heightVp)
     .clip(true)
+    .onAreaChange((oldA: Area, newA: Area) => {
+      // 取证：组件宽高 + Contain 下 Image 实际绘制矩形 + 组件顶 y
+      const w: number = newA.width as number;
+      const h: number = newA.height as number;
+      const imgAspect: number = 2048 / 975;
+      let dw: number = w;
+      let dh: number = w / imgAspect;
+      if (dh > h) {
+        dh = h;
+        dw = h * imgAspect;
+      }
+      const topY: number = newA.globalPosition.y as number;
+      hilog.info(KDOMAIN, KTAG,
+        'keybed w=%{public}s h=%{public}s aspect=%{public}s imgDraw=%{public}sx%{public}s insetX=%{public}s insetY=%{public}s topY=%{public}s',
+        w.toFixed(1), h.toFixed(1), (w / h).toFixed(4), dw.toFixed(1), dh.toFixed(1),
+        ((w - dw) / 2).toFixed(1), ((h - dh) / 2).toFixed(1), topY.toFixed(1));
+    })
     .onTouch((event: TouchEvent) => {
       this.handleTouch(event);
     })

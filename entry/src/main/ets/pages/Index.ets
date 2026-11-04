@@ -341,6 +341,8 @@ struct Index {
       }
       const rm: resourceManager.ResourceManager = host.resourceManager;
       const spec = findMachine(this.machineKind);
+      hilog.info(DOMAIN, TAG, 'reloadKeymap called: stageW=%{public}s keybedH=%{public}s path=%{public}s',
+        this.stageWidth.toFixed(1), this.keybedHeight.toFixed(1), spec.keymapRawfile);
       const text: string = readRawTextSync(rm, spec.keymapRawfile);
       this.keymapLayout = KeymapParser.parse(text, this.machineKind as string, false,
         this.stageWidth, this.keybedHeight, spec.overlayColor, spec.overlayFontSizeVp);
@@ -419,7 +421,12 @@ struct Index {
         }
       }
       this.useLayers = all;
-      hilog.info(DOMAIN, TAG, 'layers available=%{public}s count=%{public}s', all ? 'true' : 'false', names.length.toString());
+      let joined: string = '';
+      for (const n of names) {
+        joined += n + ',';
+      }
+      hilog.info(DOMAIN, TAG, 'detectLayers names=[%{public}s] all=%{public}s count=%{public}s useLayers=%{public}s',
+        joined, all ? 'true' : 'false', names.length.toString(), this.useLayers ? 'true' : 'false');
     } catch (e) {
       this.useLayers = false;
       hilog.error(DOMAIN, TAG, 'detectLayers failed, fallback to strip');
