@@ -35,6 +35,7 @@ import { PageRail } from '../components/PageRail';
 import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
+import { LeverLayer } from '../components/LeverLayer';
 
 const TAG: string = 'MainScreen';
 const DOMAIN: number = 0x0100;
@@ -564,6 +565,17 @@ struct Index {
 
   private queueChar(ch: string): void {
     this.pendingChars.push(ch);
+    // 兜底：200ms 内若无 onArrive，强制落字（动画缺失时打字不许静默全死）
+    const chSnapshot: string = ch;
+    setTimeout(() => {
+      const idx: number = this.pendingChars.indexOf(chSnapshot);
+      if (idx >= 0) {
+        this.pendingChars.splice(idx, 1);
+        this.droppedTicks += 1;
+        hilog.error(DOMAIN, TAG, 'typebar fallback: flush char=%{public}s', chSnapshot);
+        this.commitChar(chSnapshot);
+      }
+    }, 200);
     if (this.machineKind === MachineKind.UPRIGHT_1920S) {
       this.strikeTick = this.strikeTick + 1;
     } else {
@@ -598,7 +610,7 @@ struct Index {
     }
     this.lastArriveMs = now;
     this.flushPending();
-    if (this.arriveCount % 10 === 0) {
+    if (this.arriveCount <= 10 || this.arriveCount % 10 === 0) {
       const avgGap: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
       hilog.info(DOMAIN, TAG,
         'strike metrics arrives=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s sounds=%{public}s fast=%{public}s audio[%{public}s]',
@@ -789,6 +801,37 @@ struct Index {
           Column().width('100%').height(this.paperTopGap)
 
           Stack({ alignContent: Alignment.Bottom }) {
+            // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
+            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+              TypebarLayer({
+                layerWidthVp: this.stageWidth,
+                layerHeightVp: this.stageWidth,
+                strikeTick: this.strikeTick,
+                animScale: 1,
+                offsetXVp: this.guideXVp - this.stageWidth * 0.5,
+                offsetYVp: this.regionHeightVp + 0.752 * this.stageWidth - this.stageWidth * 0.867,
+                onArrive: (): void => {
+                  this.onStrikeArrive();
+                },
+              })
+                .zIndex(10)
+            }
+
+            // ---- 拨杆层（1920s）：newlineTick 驱动，换行时摆出 35° ----
+            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+              LeverLayer({
+                layerSizeVp: this.stageWidth * 0.55,
+                newlineTick: this.newlineTick,
+                tickWatch: this.newlineTick,
+                offsetXVp: this.stageWidth * 0.42,
+                offsetYVp: this.regionHeightVp - this.stageWidth * 0.10,
+                onSwingStart: (): void => {
+                  this.audioService.playCarriageReset();
+                },
+              })
+                .zIndex(9)
+            }
+
             // 页码轨锚定纸片：与纸片同高、同底
             Stack({ alignContent: Alignment.TopEnd }) {
               PaperStage({
