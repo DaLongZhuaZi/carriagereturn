@@ -76,23 +76,25 @@ export struct CarriageLayers {
       .clip(true)
       .translate({ x: this.carriageOffsetVp })
 
-      // ---- 竖向导件（件3）：唯一打击点指示，屏 x 恒定，不随 carriageOffset 平移 ----
-      Column()
-        .width(2)
-        .height(this.hc() * 0.82)
-        .backgroundColor('#e8ddc9')
-        .opacity(0.85)
-        .position({ x: this.strikeXVp() - 1, y: this.hc() * 0.10 })
-
-      // ---- 中央件：机器坐标系，宽画布内居中，向上伸出容器（不被 clip）----
+      // ---- 中央件：缩进字车区（高 = Hc，不再 ×1.5），顶 y = 字车容器顶，不进纸面 ----
       Image($rawfile('layers/1920s-upright/central-guide.png'))
-        .width(this.hc() * 1.5 * 0.848)
-        .height(this.hc() * 1.5)
+        .width(this.hc() * 0.848)
+        .height(this.hc())
         .objectFit(ImageFit.Contain)
         .position({
-          x: this.canvasW() / 2 - this.hc() * 1.5 * 0.848 / 2 + this.carriageOffsetVp,
-          y: -12 - this.hc() * 1.5 * 0.550,
+          x: this.canvasW() / 2 - this.hc() * 0.848 / 2 + this.carriageOffsetVp,
+          y: 0,
         })
+
+      // ---- 缝隙小三角（8vp 缝隙内）：尖朝上顶纸底缘，底座落字车顶缘，屏 x 恒为舞台中心 ----
+      Path()
+        .width(10)
+        .height(8)
+        .commands('M5 0 L10 8 L0 8 Z')
+        .fill('#e8ddc9')
+        .stroke('#15120e')
+        .strokeWidth(1)
+        .position({ x: this.stageWidth * 0.5 - 5, y: -8 })
     }
     .width(this.stageWidth)
     .height(this.hc())
