@@ -137,31 +137,66 @@ struct Index {
 
   private measureStage(): void {
     try {
-      const d = display.getDefaultDisplaySync();
-      const w: number = this.getUIContext().px2vp(d.width);
-      const hRaw: number = this.getUIContext().px2vp(d.height);
-      // §2.9：可用高 = 窗口高 − topInset − bottomInset，不许再用全屏高
-      const h: number = hRaw - this.topInset - this.bottomInset;
-      const byHeight: number = h * DESIGN_W / DESIGN_H;
-      const stageW: number = w < byHeight ? w : byHeight;
+      // §2.6/§2.9：输入一律来自 onAreaChange 存的窗口宽高，不再读 display
+      const winW: number = this.winWidthVp;
+      const winH: number = this.winHeightVp;
+      if (winW <= 0 || winH <= 0) {
+        hilog.error(DOMAIN, TAG, 'measureStage skipped: winW=%{public}s winH=%{public}s',
+          winW.toFixed(1), winH.toFixed(1));
+        return;
+      }
+      // 可用宽 = 窗口宽 − 左右安全区（本批只取上下，左右按 0）
+      const availW: number = winW;
+      // 可用高 = 窗口高 − topInset − bottomInset
+      const availH: number = winH - this.topInset - this.bottomInset;
+      if (availH <= 240) {
+        return;
+      }
+      this.availableWidthVp = availW;
+      this.availableHeightVp = availH;
+      // 分级：可用宽 ≥600vp 为平板级
+      this.isTablet = availW >= 600;
+      // 舞台宽：平板级 = min(可用宽, 776) 居中；手机级 = 可用宽
+      let stageW: number = availW;
+      if (this.isTablet && stageW > 776) {
+        stageW = 776;
+      }
       this.stageWidth = stageW;
-      this.stageHeight = h;
+      this.stageHeight = availH;
       this.topBarHeight = TOP_BAR_HEIGHT_VP;
       this.paperTopGap = PAPER_TOP_GAP_VP;
-      // 照片高度只由宽高比派生（不设 uiScale）
-      // 照片宽 = 舞台宽 + 最大行程；高按 (舞台宽+行程)/7.14 派生，否则 Contain 会把宽图缩回舞台宽、平移失效
+      // 照片高度只由宽高比派生
       this.maxTravelVp = stageW * 0.35 < 180 ? stageW * 0.35 : 180;
       this.carriageHeight = (stageW + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
       this.fontBarHeight = FONT_BAR_HEIGHT_VP;
       this.keybedHeight = stageW / KEYBAND_ASPECT;
       this.functionRowHeight = FUNCTION_ROW_HEIGHT_VP;
       const carriageConsumed: number = this.carriageHeight - CARRIAGE_PAPER_OVERLAP_VP;
-      const region: number = h - this.topBarHeight - this.paperTopGap - carriageConsumed
+      const region: number = availH - this.topBarHeight - this.paperTopGap - carriageConsumed
         - this.fontBarHeight - this.keybedHeight - this.functionRowHeight;
       this.regionHeightVp = region > 120 ? region : 120;
+
+      // 字号 = (可用宽 − 56) / 30，钳制 17–24；行高按字号比例缩放（基数 28/17）
+      let fs: number = (availW - 56) / 30;
+      if (fs < 17) {
+        fs = 17;
+      }
+      if (fs > 24) {
+        fs = 24;
+      }
+      this.fontSizeVp = fs;
+      this.lineHeightVp = fs * (28 / 17);
+
+      // 原生像素 guard：照片组件宽超过 2048/vp2px(1) 时封顶居中（舞台宽本身不封顶）
+      const vp2px: number = this.getUIContext().vp2px(1);
+      this.photoWidthCap = (availW * vp2px > 2048) ? 2048 / vp2px : 0;
+
+      // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
-      hilog.info(DOMAIN, TAG, 'stage w=%{public}s h=%{public}s region=%{public}s',
-        stageW.toFixed(1), h.toFixed(1), this.regionHeightVp.toFixed(1));
+      hilog.info(DOMAIN, TAG,
+        'stage availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s cap=%{public}s',
+        availW.toFixed(1), availH.toFixed(1), this.isTablet ? 'true' : 'false',
+        stageW.toFixed(1), this.regionHeightVp.toFixed(1), fs.toFixed(2), this.photoWidthCap.toFixed(1));
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'measureStage failed: %{public}s', JSON.stringify(err));
@@ -223,9 +258,7 @@ struct Index {
 
   private applyPaper(kind: PaperKind): void {
     this.paperKind = kind;
-    const machine = findMachine(this.machineKind);
-    this.lineHeightVp = machine.englishLineHeightVp;
-    this.fontSizeVp = machine.fontScale;
+    // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖，避免公式被机器基数冲掉
     this.fontFamily = findFont(DEFAULT_FONT).familyName;
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
@@ -334,7 +367,7 @@ struct Index {
 
   private recalcPaperHeight(): void {
     const lineCount: number = this.docModel.getLines().length;
-    const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
+    const rawHeight: number = (this.isTablet ? this.regionHeightVp : PAPER_INITIAL_HEIGHT_VP) + (lineCount - 1) * this.lineHeightVp;
     if (rawHeight <= this.regionHeightVp) {
       this.paperHeightVp = rawHeight;
       this.creepOffsetVp = 0;
@@ -346,7 +379,7 @@ struct Index {
 
   private animatePaperHeight(): void {
     const lineCount: number = this.docModel.getLines().length;
-    const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
+    const rawHeight: number = (this.isTablet ? this.regionHeightVp : PAPER_INITIAL_HEIGHT_VP) + (lineCount - 1) * this.lineHeightVp;
     const targetHeight: number = rawHeight <= this.regionHeightVp ? rawHeight : this.regionHeightVp;
     const targetCreep: number = rawHeight <= this.regionHeightVp ? 0 : -(rawHeight - this.regionHeightVp);
     this.getUIContext().animateTo({
