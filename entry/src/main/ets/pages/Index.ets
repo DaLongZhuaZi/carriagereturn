@@ -10,7 +10,7 @@
  */
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { curves, display } from '@kit.ArkUI';
+import { curves, display, window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { CorrectionMode, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
@@ -98,6 +98,9 @@ struct Index {
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
   /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
   @State useLayers: boolean = false;
+  /** 动态安全区（vp）：取不到时 topInset 回退 28、bottomInset 回退 0（§2.9）。 */
+  @State topInset: number = 28;
+  @State bottomInset: number = 0;
 
   aboutToAppear(): void {
     const host = this.getUIContext().getHostContext();
@@ -111,6 +114,7 @@ struct Index {
     this.applyRibbon(DEFAULT_RIBBON);
     this.reloadKeymap();
     this.detectLayers();
+    this.applyImmersive();
     this.hintText = this.resolveString($r('app.string.hint_new_paper'));
     this.syncRows();
     this.audioService.preload('pack');
@@ -236,6 +240,44 @@ struct Index {
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'reloadKeymap failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /**
+   * §2.9 沉浸式：栏可见、内容伸到栏下、用安全区避让（不是 FULL_IMMERSIVE）。
+   * 状态栏 / 导航栏 / 导航指示器一律保持启用，透明底，内容色 #dbccb3。
+   * 安全区动态取；取不到回退 top 28vp / bottom 0，并记 hilog。
+   */
+  private async applyImmersive(): Promise<void> {
+    const host = this.getUIContext().getHostContext();
+    if (host === undefined || host === null) {
+      hilog.error(DOMAIN, TAG, 'no host context, keep fallback insets');
+      return;
+    }
+    try {
+      const win: window.Window = await window.getLastWindow(host as common.UIAbilityContext);
+      await win.setWindowLayoutFullScreen(true);
+      await win.setWindowSystemBarProperties({
+        statusBarColor: '#00000000',
+        navigationBarColor: '#00000000',
+        statusBarContentColor: '#dbccb3',
+        navigationBarContentColor: '#dbccb3',
+      });
+      await win.setSpecificSystemBarEnabled('status', true, true);
+      await win.setSpecificSystemBarEnabled('navigation', true, true);
+
+      const sys = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+      const nav = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      const top: number = this.getUIContext().px2vp(sys.topRect.height);
+      const bottom: number = this.getUIContext().px2vp(nav.bottomRect.height);
+      this.topInset = top;
+      this.bottomInset = bottom;
+      hilog.info(DOMAIN, TAG, 'insets top=%{public}s bottom=%{public}s', top.toFixed(1), bottom.toFixed(1));
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      this.topInset = 28;
+      this.bottomInset = 0;
+      hilog.error(DOMAIN, TAG, 'immersive failed, fallback insets: %{public}s', JSON.stringify(err));
     }
   }
 
@@ -461,6 +503,7 @@ struct Index {
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
+      // §2.9 内容伸到栏下，用安全区避让
       // 深底背景铺满整屏；舞台居中
       Column()
         .width('100%')
@@ -471,6 +514,8 @@ struct Index {
         })
 
       Column() {
+        // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
+        Column().width('100%').height(this.topInset)
         TopBar({ title: this.docTitle, heightVp: this.topBarHeight })
 
         Column() {
@@ -599,6 +644,9 @@ struct Index {
             this.onNewline();
           },
         })
+
+        // 功能行 52vp 本体不变，底距 = 动态 bottomInset
+        Column().width('100%').height(this.bottomInset)
       }
       .width(this.stageWidth)
       .height(this.stageHeight)
@@ -606,5 +654,6 @@ struct Index {
     }
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

@@ -2,7 +2,7 @@ import { AbilityConstant, UIAbility, Want, common } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { FileUtils, logger, ngfI18nManagerFacade, ngfStarterKernel, ngfThemeManagerFacade, uiContextManager } from 'ngf_framework';
+import { FileUtils, logger, ngfDeviceAdaptationFacade, ngfI18nManagerFacade, ngfPlatformWindowManagerFacade, ngfStarterKernel, ngfThemeManagerFacade, uiContextManager } from 'ngf_framework';
 import { docStore } from '../services/DocStore';
 import { appPreferences } from '../services/AppPreferences';
 
@@ -52,6 +52,10 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
+    // §2.9 沉浸式按 NGF 标准接线（照源仓 af-app）：两行都要有，否则 NGF 沉浸式栈是死代码。
+    // 本批只调用已有门面，不改 vendored 框架副本（AGENTS.md）。
+    ngfPlatformWindowManagerFacade.bindWindowStage(windowStage);
+    ngfDeviceAdaptationFacade.bindWindowStage(windowStage);
     windowStage.loadContent('pages/Index', (err: BusinessError) => {
       if (err.code) {
         hilog.error(DOMAIN, TAG, 'loadContent failed: %{public}s', JSON.stringify(err));
@@ -62,6 +66,8 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageDestroy(): void {
+    ngfPlatformWindowManagerFacade.clearWindowStage();
+    ngfDeviceAdaptationFacade.clearWindowStage();
     hilog.info(DOMAIN, TAG, '%{public}s', 'EntryAbility onWindowStageDestroy');
   }
 
