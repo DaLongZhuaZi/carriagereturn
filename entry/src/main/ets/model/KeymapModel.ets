@@ -25,6 +25,9 @@ export interface CapDef {
   rowIndex: number;
   /** extra 帽：留空、不可落字。 */
   isExtra: boolean;
+  /** 比例坐标：渲染时用「比例 × 当前宽高」现算，避免缓存 layout 跟不上尺寸变化。 */
+  xRatio: number;
+  yRatio: number;
 }
 
 /** 一台机器的键位表（已换算到显示 vp）。 */
@@ -132,6 +135,8 @@ export class KeymapParser {
           cy: yRatio * heightVp,
           rowIndex: r,
           isExtra: label === 'extra',
+          xRatio: xRatio,
+          yRatio: yRatio,
         });
       }
     }
@@ -161,6 +166,8 @@ export class KeymapParser {
         cy: (layout.spaceYMin + layout.spaceYMax) / 2,
         rowIndex: -1,
         isExtra: false,
+        xRatio: 0.5,
+        yRatio: 0.5,
       };
     }
     let best: CapDef | null = null;

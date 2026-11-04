@@ -156,11 +156,14 @@ export struct PhotoKeybed {
         cy: (layout.spaceYMin + layout.spaceYMax) / 2,
         rowIndex: -1,
         isExtra: false,
+        xRatio: 0.5,
+        yRatio: 0.5,
       };
     }
     for (const cap of layout.caps) {
-      const dx: number = cap.cx - x;
-      const dy: number = cap.cy - y;
+      // 命中同样用比例现算，与叠字同一坐标系
+      const dx: number = cap.xRatio * this.widthVp - x;
+      const dy: number = cap.yRatio * this.heightVp - y;
       const d: number = Math.sqrt(dx * dx + dy * dy);
       if (d <= bestDist) {
         bestDist = d;
@@ -218,7 +221,11 @@ export struct PhotoKeybed {
         }
         .width(this.layout.hitRadius * 2)
         .height(this.layout.hitRadius * 1.7)
-        .position({ x: cap.cx - this.layout.hitRadius, y: cap.cy - this.layout.hitRadius * 0.85 })
+        // 方案二：渲染时用当前宽高 × 比例现算，不依赖缓存 layout 里的绝对坐标
+        .position({
+          x: cap.xRatio * this.widthVp - this.layout.hitRadius,
+          y: cap.yRatio * this.heightVp - this.layout.hitRadius * 0.85,
+        })
         .hitTestBehavior(HitTestMode.None)
       }, (cap: CapDef) => cap.id)
     }
