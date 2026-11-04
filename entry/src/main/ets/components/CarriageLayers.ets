@@ -79,7 +79,8 @@ export struct CarriageLayers {
     }
     .width(this.stageWidth)
     .height(this.hc())
-    .clip(true)
+    // §2.9：外层不 clip，否则中央件上半被切；只留滚筒组内层 clip
+    .clip(false)
     .linearGradient({
       direction: GradientDirection.Bottom,
       colors: [['#171310', 0.0], ['#241c16', 1.0]],

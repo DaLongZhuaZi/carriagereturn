@@ -77,6 +77,15 @@ struct Index {
   @State keybedHeight: number = DESIGN_W / KEYBAND_ASPECT;
   @State functionRowHeight: number = FUNCTION_ROW_HEIGHT_VP;
   @State regionHeightVp: number = 461;
+  /** 窗口可用尺寸（vp，onAreaChange 实测，减 inset 后）。 */
+  private winWidthVp: number = 0;
+  private winHeightVp: number = 0;
+  @State availableWidthVp: number = 390;
+  @State availableHeightVp: number = 720;
+  /** 平板级（可用宽 ≥600vp）。 */
+  @State isTablet: boolean = false;
+  /** 照片组件宽封顶（原生像素 guard，2048/vp2px(1)）。 */
+  @State photoWidthCap: number = 0;
 
   @State paperHeightVp: number = PAPER_INITIAL_HEIGHT_VP;
   @State creepOffsetVp: number = 0;
@@ -130,7 +139,9 @@ struct Index {
     try {
       const d = display.getDefaultDisplaySync();
       const w: number = this.getUIContext().px2vp(d.width);
-      const h: number = this.getUIContext().px2vp(d.height);
+      const hRaw: number = this.getUIContext().px2vp(d.height);
+      // §2.9：可用高 = 窗口高 − topInset − bottomInset，不许再用全屏高
+      const h: number = hRaw - this.topInset - this.bottomInset;
       const byHeight: number = h * DESIGN_W / DESIGN_H;
       const stageW: number = w < byHeight ? w : byHeight;
       this.stageWidth = stageW;
@@ -272,6 +283,8 @@ struct Index {
       const bottom: number = this.getUIContext().px2vp(nav.bottomRect.height);
       this.topInset = top;
       this.bottomInset = bottom;
+      // insets 到达后必须重算（初值 28/0 只作占位，不当终值）
+      this.measureStage();
       hilog.info(DOMAIN, TAG, 'insets top=%{public}s bottom=%{public}s', top.toFixed(1), bottom.toFixed(1));
     } catch (e) {
       const err: BusinessError = e as BusinessError;
@@ -655,5 +668,18 @@ struct Index {
     .width('100%')
     .height('100%')
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .onAreaChange((oldArea: Area, newArea: Area) => {
+      const w: number = newArea.width as number;
+      const h: number = newArea.height as number;
+      const dw: number = Math.abs(w - this.winWidthVp);
+      const dh: number = Math.abs(h - this.winHeightVp);
+      // 去抖：小于 1vp 视为同一次
+      if (dw < 1 && dh < 1 && this.winWidthVp > 0) {
+        return;
+      }
+      this.winWidthVp = w;
+      this.winHeightVp = h;
+      this.measureStage();
+    })
   }
 }
