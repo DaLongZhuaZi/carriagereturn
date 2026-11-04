@@ -15,24 +15,24 @@ export struct CarriageStrip {
   @Prop widthVp: number = 390;
   /** 导件 x（vp，相对字车条左缘）。 */
   @Prop guideXVp: number = 28;
-  /** 照片横向回位位移（vp，≤16）。 */
-  @Prop photoShiftVp: number = 0;
+  /** 字车条累计左移量（vp，负值左移，行首 0）；导件不随它平移。 */
+  @Prop carriageOffsetVp: number = 0;
   @Prop guideVisible: boolean = true;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.machineKind === MachineKind.UPRIGHT_1920S) {
         Image($rawfile('carriage/1920s-upright-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
-          .translate({ x: this.photoShiftVp })
+          .translate({ x: this.carriageOffsetVp })
       } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
         Image($rawfile('carriage/1930s-portable-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
-          .translate({ x: this.photoShiftVp })
+          .translate({ x: this.carriageOffsetVp })
       } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
         Image($rawfile('carriage/1950s-streamlined-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
-          .translate({ x: this.photoShiftVp })
+          .translate({ x: this.carriageOffsetVp })
       } else {
         Image($rawfile('carriage/1960s-electric-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
-          .translate({ x: this.photoShiftVp })
+          .translate({ x: this.carriageOffsetVp })
       }
 
       // 竖向导件：2vp 深的竖条，指向纸面打击点
@@ -49,5 +49,10 @@ export struct CarriageStrip {
     .width(this.widthVp)
     .height(this.heightVp)
     .clip(true)
+    // 字车条左移时右侧露出的是深底，不留白：容器背景与主屏同一渐变（§2.1）
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      colors: [['#171310', 0.0], ['#241c16', 1.0]],
+    })
   }
 }

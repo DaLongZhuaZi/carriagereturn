@@ -84,7 +84,14 @@ struct Index {
   @State fontFamily: string = 'CourierPrime';
 
   @State guideXVp: number = 28;
-  @State photoShiftVp: number = 0;
+  /** 字车条累计左移量（vp）：负值左移，行首为 0。不是"换行时 12→0 的 bump"。 */
+  @State carriageOffsetVp: number = 0;
+  /** 每行可容纳字数（按舞台宽算，非屏幕宽）。 */
+  private charsPerLineNum: number = 43;
+  /** 每字行程 = 最大行程 / 每行字数。 */
+  private travelPerChar: number = 1.5;
+  /** 最大行程（vp）。 */
+  private maxTravelVp: number = 64;
   @State strikeTick: number = 0;
   @State langZh: boolean = false;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
@@ -131,12 +138,54 @@ struct Index {
       const region: number = h - this.topBarHeight - this.paperTopGap - carriageConsumed
         - this.fontBarHeight - this.keybedHeight - this.functionRowHeight;
       this.regionHeightVp = region > 120 ? region : 120;
+      this.recalcTravel();
       hilog.info(DOMAIN, TAG, 'stage w=%{public}s h=%{public}s region=%{public}s',
         stageW.toFixed(1), h.toFixed(1), this.regionHeightVp.toFixed(1));
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'measureStage failed: %{public}s', JSON.stringify(err));
     }
+  }
+
+  /**
+   * 字车条行程（§2.1 字车条动效）：最大行程 = min(64vp, 舞台宽 × 0.16)；
+   * 每字行程 = 最大行程 / 每行字数；每行字数按舞台宽算，不用屏幕宽。
+   */
+  private recalcTravel(): void {
+    const usable: number = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
+    const perLine: number = Math.floor(usable / (this.fontSizeVp * 0.6));
+    this.charsPerLineNum = perLine > 6 ? perLine : 6;
+    const byWidth: number = this.stageWidth * 0.16;
+    this.maxTravelVp = byWidth < 64 ? byWidth : 64;
+    this.travelPerChar = this.maxTravelVp / this.charsPerLineNum;
+    hilog.info(DOMAIN, TAG, 'travel max=%{public}s perChar=%{public}s cpl=%{public}s',
+      this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
+  }
+
+  /** 每落一字：字车条左移一格（70ms 弹簧快步）。 */
+  private stepCarriageLeft(): void {
+    const target: number = this.carriageOffsetVp - this.travelPerChar;
+    this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
+      this.carriageOffsetVp = target;
+    });
+  }
+
+  /** 删除/覆盖删除：字车条右退一格，上限 0。 */
+  private stepCarriageRight(): void {
+    let target: number = this.carriageOffsetVp + this.travelPerChar;
+    if (target > 0) {
+      target = 0;
+    }
+    this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
+      this.carriageOffsetVp = target;
+    });
+  }
+
+  /** 换行回位：250ms 弹簧从累计量一次性滑回 0，与拨杆摆动 + 叮声 + 导件回左缘同步。 */
+  private resetCarriage(): void {
+    this.getUIContext().animateTo({ duration: 250, curve: curves.springMotion() }, () => {
+      this.carriageOffsetVp = 0;
+    });
   }
 
   // ---------------- 换装 ----------------
@@ -283,8 +332,13 @@ struct Index {
     const outcome = this.docModel.insertText(ch, this.charsPerLine());
     this.syncRows();
     this.animateGuide();
+    this.stepCarriageLeft();
     if (outcome.marginBell) {
       this.audioService.playBell();
+    }
+    // 行满自动换行：同样走换行回位，不许让字车条停在行末位置开始下一行
+    if (this.docModel.getCursor().offset >= this.charsPerLineNum) {
+      this.onNewline();
     }
   }
 
@@ -303,6 +357,7 @@ struct Index {
       if (o2.changed) {
         this.syncRows();
         this.animateGuide();
+        this.stepCarriageRight();
       }
       return;
     }
@@ -310,6 +365,7 @@ struct Index {
     if (o.changed) {
       this.syncRows();
       this.animateGuide();
+      this.stepCarriageRight();
     }
   }
 
@@ -320,18 +376,14 @@ struct Index {
     this.animatePaperHeight();
     this.audioService.playCarriageReset();
     this.audioService.vibrate();
-    this.animateCarriageReturn();
+    this.resetCarriageAndGuide();
   }
 
-  private animateCarriageReturn(): void {
+  /** 换行回位（§2.1）：字车条一次性跳回 0 + 导件回左缘，250ms 弹簧，与叮声同步。 */
+  private resetCarriageAndGuide(): void {
     const base: number = findPaper(this.paperKind).marginH;
-    this.getUIContext().animateTo({ duration: 120, curve: curves.springCurve(0, 1, 220, 18) }, () => {
-      this.photoShiftVp = 12;
-    });
-    this.getUIContext().animateTo({ duration: 260, delay: 120, curve: curves.springMotion() }, () => {
-      this.photoShiftVp = 0;
-    });
-    this.getUIContext().animateTo({ duration: 200, curve: curves.springMotion() }, () => {
+    this.resetCarriage();
+    this.getUIContext().animateTo({ duration: 250, curve: curves.springMotion() }, () => {
       this.guideXVp = base;
     });
   }
@@ -441,7 +493,7 @@ struct Index {
           widthVp: this.stageWidth,
           heightVp: this.carriageHeight,
           guideXVp: this.guideXVp,
-          photoShiftVp: this.photoShiftVp,
+          carriageOffsetVp: this.carriageOffsetVp,
           guideVisible: true,
         })
           .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
