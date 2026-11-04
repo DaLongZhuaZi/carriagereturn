@@ -61,17 +61,20 @@ export struct TypebarLayer {
       duration: STRIKE_MS * this.animScale,
       curve: Curve.FastOutSlowIn,
       onFinish: () => {
-        // busy 只管去程：onArrive 当刻即释放，回程不阻塞下一击
+        // 顺序钉死：busy=false → onArrive() → 判定是否还有队列
         this.busy = false;
         this.onArrive();
-        this.runNext();
-        // 回程：并行、非阻塞、可被下一去程打断
-        this.getUIContext().animateTo({
-          duration: RETURN_MS * this.animScale,
-          curve: Curve.Linear,
-        }, () => {
-          this.angle = REST_ANGLE;
-        });
+        // 回程创建必须在此判定之前/之后只选其一：有队列则跳过回程，直接小回退再下一击
+        if (this.pending > 0) {
+          this.getUIContext().animateTo({ duration: 20 * this.animScale, curve: Curve.Linear }, () => {
+            this.angle = -20;
+          });
+          this.runNext();
+        } else {
+          this.getUIContext().animateTo({ duration: RETURN_MS * this.animScale, curve: Curve.Linear }, () => {
+            this.angle = REST_ANGLE;
+          });
+        }
       },
     }, () => {
       this.angle = 0;

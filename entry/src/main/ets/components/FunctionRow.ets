@@ -13,8 +13,10 @@ export struct FunctionRow {
   onDelete: () => void = (): void => {};
   onNewline: () => void = (): void => {};
 
+  @State pressedKey: string = '';
+
   @Builder
-  metalKey(label: string, light: boolean, cb: () => void) {
+  metalKey(id: string, label: string, light: boolean, cb: () => void) {
     Stack() {
       Column()
         .width('100%')
@@ -23,32 +25,44 @@ export struct FunctionRow {
         .linearGradient({
           direction: GradientDirection.Bottom,
           colors: light
-            ? [['#e8ddc9', 0.0], ['#cdbfa8', 0.55], ['#b3a48d', 1.0]]
-            : [['#4a423a', 0.0], ['#312b24', 0.5], ['#1b1712', 1.0]],
+            ? (this.pressedKey === id
+              ? [['#c9bda6', 0.0], ['#b0a189', 0.55], ['#96876f', 1.0]]
+              : [['#e8ddc9', 0.0], ['#cdbfa8', 0.55], ['#b3a48d', 1.0]])
+            : (this.pressedKey === id
+              ? [['#2e2823', 0.0], ['#1f1a15', 0.5], ['#120f0b', 1.0]]
+              : [['#4a423a', 0.0], ['#312b24', 0.5], ['#1b1712', 1.0]]),
         })
       // 顶部高光线
-      Column()
-        .width('100%')
-        .height(1)
-        .backgroundColor(light ? '#f6efe2' : '#6b6055')
-        .position({ x: 0, y: 1 })
+      if (this.pressedKey !== id) {
+        Column()
+          .width('100%')
+          .height(1)
+          .backgroundColor(light ? '#f6efe2' : '#6b6055')
+          .position({ x: 0, y: 1 })
+      }
       Text(label)
         .fontSize(14)
         .fontColor(light ? '#312b24' : '#dbccb3')
         .maxLines(1)
+        .translate({ y: this.pressedKey === id ? 1 : 0 })
     }
     .width('100%')
     .height('100%')
     .padding(6)
-    .onClick(() => {
-      cb();
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.pressedKey = id;
+        cb();
+      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+        this.pressedKey = '';
+      }
     })
   }
 
   build() {
     Row({ space: 6 }) {
       Column() {
-        this.metalKey(this.langLabel, false, (): void => {
+        this.metalKey('lang', this.langLabel, false, (): void => {
           this.onLang();
         })
       }
@@ -56,7 +70,7 @@ export struct FunctionRow {
       .height('100%')
 
       Column() {
-        this.metalKey(this.deleteLabel, false, (): void => {
+        this.metalKey('del', this.deleteLabel, false, (): void => {
           this.onDelete();
         })
       }
@@ -64,7 +78,7 @@ export struct FunctionRow {
       .height('100%')
 
       Column() {
-        this.metalKey(this.newlineLabel, true, (): void => {
+        this.metalKey('nl', this.newlineLabel, true, (): void => {
           this.onNewline();
         })
       }

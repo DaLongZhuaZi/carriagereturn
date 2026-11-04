@@ -80,6 +80,18 @@ export struct PhotoKeybed {
     this.heldIds = next;
   }
 
+  /** 高亮至少保持 minMs；若落字更晚，由 releaseOnCommit 再清。 */
+  private scheduleRelease(capId: string, minMs: number): void {
+    setTimeout(() => {
+      this.removeHeld(capId);
+    }, minMs);
+  }
+
+  /** 落字到达时清高亮（若 Up 更早，这里是实际清除点）。 */
+  releaseOnCommit(capId: string): void {
+    this.removeHeld(capId);
+  }
+
   private handleTouch(event: TouchEvent): void {
     const layout: KeymapLayout = this.layout;
     if (event.type === TouchType.Down) {
@@ -117,12 +129,12 @@ export struct PhotoKeybed {
       }
       return;
     }
-    // Up / Cancel：清理该触点 id（id 会被复用，必须清）
+    // Up / Cancel：只清触点映射；高亮保持由「Up 与落字较晚者」决定（最小 120ms）
     for (const t of event.changedTouches) {
       const prevId: string | undefined = this.touchState.map.get(t.id);
       if (prevId !== undefined) {
-        this.removeHeld(prevId);
         this.touchState.map.delete(t.id);
+        this.scheduleRelease(prevId, 120);
         const cap: CapDef | null = this.findById(layout, prevId);
         if (cap !== null) {
           this.onCapUp(cap);
@@ -208,12 +220,24 @@ export struct PhotoKeybed {
         // 一个 item 只能有一个根节点：叠字与按下高亮都放进这个 Stack
         Stack({ alignContent: Alignment.Center }) {
           if (this.capIndex(cap.id) >= 0) {
+            // 按下三件套：帽区黑色下压层 + 帽底深色边 + 深色描边环（不缩放、不动 transform）
             Column()
               .width(this.layout.hitRadius * 1.9)
               .height(this.layout.hitRadius * 1.6)
               .borderRadius(6)
-              .backgroundColor('#f2e6c9')
-              .opacity(0.45)
+              .backgroundColor('#000000')
+              .opacity(0.40)
+            Column()
+              .width(this.layout.hitRadius * 1.9)
+              .height(3)
+              .backgroundColor('#15120e')
+              .offset({ y: this.layout.hitRadius * 0.78 })
+            Column()
+              .width(this.layout.hitRadius * 1.9)
+              .height(this.layout.hitRadius * 1.6)
+              .borderRadius(6)
+              .border({ width: 2, color: '#15120e' })
+              .opacity(0.6)
           }
           if (!cap.isExtra) {
             Text(cap.label)
@@ -222,6 +246,8 @@ export struct PhotoKeybed {
               .fontFamily(this.overlayFontFamily)
               .maxLines(1)
               .textAlign(TextAlign.Center)
+              // 叠字下移 3vp（只在按下时）
+              .translate({ y: this.capIndex(cap.id) >= 0 ? 3 : 0 })
           }
         }
         .width(this.layout.hitRadius * 2)
