@@ -63,6 +63,8 @@ struct Index {
   private arriveGapSumMs: number = 0;
   private arriveGapCount: number = 0;
   private droppedTicks: number = 0;
+  private soundCount: number = 0;
+  private fastCount: number = 0;
   @State arriveCount: number = 0;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
@@ -550,10 +552,18 @@ struct Index {
   }
 
   private onStrikeArrive(): void {
-    // 主击打音与落字、纸移动同帧
-    this.audioService.playKey();
-    this.arriveCount += 1;
+    // 主击打音与落字、纸移动同帧；快速连打换 key-transient 短音，每字仍一音
     const now: number = Date.now();
+    const gapMs: number = this.lastArriveMs > 0 ? now - this.lastArriveMs : 9999;
+    const fast: boolean = gapMs < 150 || this.pendingChars.length >= 1;
+    if (fast) {
+      this.audioService.playKeyTransient();
+    } else {
+      this.audioService.playKey();
+    }
+    this.soundCount += 1;
+    this.fastCount += fast ? 1 : 0;
+    this.arriveCount += 1;
     if (this.lastArriveMs > 0) {
       this.arriveGapSumMs += now - this.lastArriveMs;
       this.arriveGapCount += 1;
@@ -563,9 +573,10 @@ struct Index {
     if (this.arriveCount % 10 === 0) {
       const avgGap: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
       hilog.info(DOMAIN, TAG,
-        'strike metrics arrives=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s',
+        'strike metrics arrives=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s sounds=%{public}s fast=%{public}s audio[%{public}s]',
         this.arriveCount.toString(), avgGap.toFixed(1), this.pendingChars.length.toString(),
-        this.droppedTicks.toString());
+        this.droppedTicks.toString(), this.soundCount.toString(), this.fastCount.toString(),
+        this.audioService.metrics());
     }
   }
 

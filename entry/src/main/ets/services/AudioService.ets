@@ -126,6 +126,32 @@ export class AudioService implements AudioEngineExposed {
   /** pitch 是否被运行时接受；收到 401 后关掉并用默认音高重播。 */
   private pitchAccepted: boolean = true;
 
+  /** 流控（§2.9 第 2 项）：按角色记并发 streamId，满则停最旧；铃/复位受保护永不被顶。 */
+  private streams: number[] = [];
+  private streamRole: Map<number, SoundRole> = new Map<number, SoundRole>();
+  private streamAt: Map<number, number> = new Map<number, number>();
+  private peakConcurrent: number = 0;
+  private refusedCount: number = 0;
+
+  /** 各角色并发上限：主键 6、空格 2、铃 1、复位 1、删除 2。 */
+  private capFor(role: SoundRole): number {
+    if (role === SoundRole.KEY) { return 6; }
+    if (role === SoundRole.SPACE) { return 2; }
+    if (role === SoundRole.BELL) { return 1; }
+    if (role === SoundRole.CARRIAGE_RESET) { return 1; }
+    return 2;
+  }
+
+  /** 受保护角色：铃与回车复位，永不被顶掉。 */
+  private isProtected(role: SoundRole): boolean {
+    return role === SoundRole.BELL || role === SoundRole.CARRIAGE_RESET;
+  }
+
+  metrics(): string {
+    return 'peak=' + this.peakConcurrent.toString() + ' refused=' + this.refusedCount.toString()
+      + ' live=' + this.streams.length.toString();
+  }
+
   // ------------------------------------------------------------------
   // 契约外的接线辅助（不改契约字段，只是让 service 层拿得到 resourceManager）
   // ------------------------------------------------------------------
@@ -233,7 +259,24 @@ export class AudioService implements AudioEngineExposed {
       index = 0;
     }
     bank.cursor = (index + 1) % bank.soundIds.length;
-    this.emit(pool, bank.soundIds[index], this.pitchAccepted);
+    this.emit(pool, bank.soundIds[index], this.pitchAccepted, role);
+  }
+
+  /** 快速连打用的短音（key-transient.ogg，0.117s）；缺该 stem 时退回主键音。 */
+  playKeyTransient(): void {
+    if (!this.ready || !this.soundEnabled) {
+      return;
+    }
+    const pool: media.SoundPool | null = this.pool;
+    if (pool === null) {
+      return;
+    }
+    const sid: number | undefined = this.stemIds.get('key-transient');
+    if (sid === undefined || sid <= 0) {
+      this.playByRole(SoundRole.KEY);
+      return;
+    }
+    this.emit(pool, sid, this.pitchAccepted, SoundRole.KEY);
   }
 
   /** 单次触感反馈 15~30ms；系统触感开关关闭 / 无马达 / 权限被拒均静默。 */
@@ -285,7 +328,8 @@ export class AudioService implements AudioEngineExposed {
   // ------------------------------------------------------------------
 
   /** 真正发声：play 是 Promise，但这里只挂 then/catch，绝不同步等待。 */
-  private emit(pool: media.SoundPool, soundId: number, withPitch: boolean): void {
+  private emit(pool: media.SoundPool, soundId: number, withPitch: boolean, role: SoundRole): void {
+    this.trimStreams(pool, role);
     let params: media.PlayParameters;
     if (withPitch) {
       params = {
@@ -305,9 +349,16 @@ export class AudioService implements AudioEngineExposed {
     }
     try {
       pool.play(soundId, params).then((streamId: number) => {
-        // fire-and-forget：流 id 不参与逻辑，仅可用于真机排查重叠行为。
+        // 回收 streamId 并记并发（§2.9 第 2 项）
+        this.streams.push(streamId);
+        this.streamRole.set(streamId, role);
+        this.streamAt.set(streamId, Date.now());
+        if (this.streams.length > this.peakConcurrent) {
+          this.peakConcurrent = this.streams.length;
+        }
       }).catch((err: BusinessError) => {
-        this.onPlayRejected(pool, soundId, err);
+        this.refusedCount += 1;
+        this.onPlayRejected(pool, soundId, err, role);
       });
     } catch (err) {
       logWarn('play threw synchronously');
@@ -315,14 +366,98 @@ export class AudioService implements AudioEngineExposed {
   }
 
   /**
+   * 流控（§2.9 第 2 项）：先按 2s 老化剪枝，再按角色上限停最旧；
+   * 同角色达上限先停该角色最旧流；总流达 12 时先停最旧主键流，绝不先停铃/复位。
+   * stop 是异步，只挂 catch，不同步等待。
+   */
+  private trimStreams(pool: media.SoundPool, role: SoundRole): void {
+    const now: number = Date.now();
+    const kept: number[] = [];
+    for (const sid of this.streams) {
+      const at: number = this.streamAt.get(sid) ?? 0;
+      if (now - at > 2000) {
+        this.streamRole.delete(sid);
+        this.streamAt.delete(sid);
+      } else {
+        kept.push(sid);
+      }
+    }
+    this.streams = kept;
+
+    // 同角色上限：停该角色最旧
+    const cap: number = this.capFor(role);
+    let count: number = 0;
+    for (const sid of this.streams) {
+      if (this.streamRole.get(sid) === role) {
+        count += 1;
+      }
+    }
+    while (count >= cap && this.streams.length > 0) {
+      let victim: number = -1;
+      for (const sid of this.streams) {
+        if (this.streamRole.get(sid) === role) {
+          victim = sid;
+          break;
+        }
+      }
+      if (victim < 0) {
+        break;
+      }
+      this.stopAndForget(pool, victim);
+      count -= 1;
+    }
+
+    // 总流上限 12：先停最旧主键；没有主键才停最旧的非受保护流
+    while (this.streams.length >= 12) {
+      let victim: number = -1;
+      for (const sid of this.streams) {
+        if (this.streamRole.get(sid) === SoundRole.KEY) {
+          victim = sid;
+          break;
+        }
+      }
+      if (victim < 0) {
+        for (const sid of this.streams) {
+          const r: SoundRole | undefined = this.streamRole.get(sid);
+          if (r !== undefined && !this.isProtected(r)) {
+            victim = sid;
+            break;
+          }
+        }
+      }
+      if (victim < 0) {
+        break;
+      }
+      this.stopAndForget(pool, victim);
+    }
+  }
+
+  private stopAndForget(pool: media.SoundPool, streamId: number): void {
+    const idx: number = this.streams.indexOf(streamId);
+    if (idx >= 0) {
+      this.streams.splice(idx, 1);
+    }
+    this.streamRole.delete(streamId);
+    this.streamAt.delete(streamId);
+    try {
+      pool.stop(streamId).catch(() => {
+        // 流已自然结束：忽略
+      });
+    } catch (err) {
+      // 忽略
+    }
+  }
+
+  /**
    * 播放被拒的降级路径：401 参数错误通常是运行时不认 pitch，
    * 关掉 pitch 用默认音高重播一次，避免因为一个可选参数让整套音静音。
    */
-  private onPlayRejected(pool: media.SoundPool, soundId: number, err: BusinessError): void {
+  private onPlayRejected(pool: media.SoundPool, soundId: number, err: BusinessError, role: SoundRole): void {
     if (this.pitchAccepted && err.code === PARAM_ERROR_CODE) {
       this.pitchAccepted = false;
+      this.refusedCount -= 1; // 参数降级重播不算拒播
       logWarn('play rejected with 401, retry without pitch');
-      this.emit(pool, soundId, false);
+      this.emit(pool, soundId, false, role);
       return;
     }
     logWarn('play rejected: ' + err.message);
