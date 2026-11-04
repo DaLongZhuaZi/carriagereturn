@@ -8,6 +8,9 @@
         "targetSdkVersion": "26.0.0",
         "compatibleSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS",
+        // 本地调试签名：引用下方 signingConfigs 的 default。
+        // 缺这一行时 assembleHap 只出 entry-default-unsigned.hap，装机报 9568320 no signature file。
+        "signingConfig": "default",
         "buildOption": {
           "strictMode": {
             "caseSensitiveCheck": true,
@@ -22,6 +25,21 @@
       },
       {
         "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\13359\\.ohos\\config\\default_carriagereturn_9sUL-84virpu8VxwBVVKHn4CslaKeq5FrL4fGziAs0Y=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B14221267CC4EED7AE5AC770A29F4D882C8158D2520C772FD5E772BFD563292ACB6AB17CCCE4655",
+          "profile": "C:\\Users\\13359\\.ohos\\config\\default_carriagereturn_9sUL-84virpu8VxwBVVKHn4CslaKeq5FrL4fGziAs0Y=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\13359\\.ohos\\config\\default_carriagereturn_9sUL-84virpu8VxwBVVKHn4CslaKeq5FrL4fGziAs0Y=.p12",
+          "storePassword": "0000001BFAA158733E19193DF408F3D0EB9197D14B2301C885C3D5B5C41B16075EAC909C7E1DAF122D58A2"
+        }
       }
     ]
   },
