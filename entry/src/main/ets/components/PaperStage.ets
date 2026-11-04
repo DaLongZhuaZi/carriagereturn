@@ -13,6 +13,10 @@
 
 import { PaperKind } from '../model/DocModel';
 import { PaperRow } from '../ui/PaperSheet';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const PDOMAIN: number = 0x0100;
+const PTAG: string = 'PaperStage';
 
 /** 新纸初始高（vp）：顶边距 24 + 页眉区约 20 + 1 行 28 + 底边距 20 ≈ 92，取整 96。 */
 export const PAPER_INITIAL_HEIGHT_VP: number = 96;
@@ -164,5 +168,15 @@ export struct PaperStage {
     .width('100%')
     .height(this.paperHeightVp)
     .clip(true)
+    .onAreaChange((oldA: Area, newA: Area) => {
+      // 取证：纸片 rect + 纸底 y + 纸片高（与 Keybed / CarriageLayers 同一次运行）
+      const w: number = newA.width as number;
+      const h: number = newA.height as number;
+      const topY: number = newA.globalPosition.y as number;
+      const leftX: number = newA.globalPosition.x as number;
+      hilog.info(PDOMAIN, PTAG,
+        'paper left=%{public}s w=%{public}s topY=%{public}s h=%{public}s bottomY=%{public}s',
+        leftX.toFixed(1), w.toFixed(1), topY.toFixed(1), h.toFixed(1), (topY + h).toFixed(1));
+    })
   }
 }
