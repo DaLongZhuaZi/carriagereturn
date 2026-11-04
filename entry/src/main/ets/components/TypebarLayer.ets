@@ -10,8 +10,9 @@
 import { curves } from '@kit.ArkUI';
 
 // 硬曲线：固定时长，不许用 springMotion 猜结算时间
-const STRIKE_MS: number = 60;
-const RETURN_MS: number = 90;
+// 常速：去程 90ms（60fps 下约 5–6 帧，摆动可见又不显迟钝）、回程 120ms
+const STRIKE_MS: number = 90;
+const RETURN_MS: number = 120;
 /** 静止角：杆收进篮子方向。 */
 const REST_ANGLE: number = -64;
 // 去丢队：上限放宽到 20（快打不许丢字）
@@ -93,8 +94,7 @@ export struct TypebarLayer {
           centerY: this.layerHeightVp * 0.867,
         })
         .offset({ x: this.offsetXVp, y: this.offsetYVp })
-        // §2.5：静止态必须隐藏（不许以 −64° 的可见竖条横在纸面区里）
-        .opacity(this.angle === REST_ANGLE ? 0 : 1)
+        // 静止不靠 opacity 跳变隐藏：杆在 −64° 时由字车条/纸区裁剪自然遮挡，摆动时从篮子里出来
     }
     .width('100%')
     .height('100%')

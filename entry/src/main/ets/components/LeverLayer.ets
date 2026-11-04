@@ -7,6 +7,8 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 const LDOMAIN: number = 0x0100;
 const LTAG: string = 'LeverLayer';
 const SWING_DEG: number = 35;
+/** 层素材 536×2522，宽高比写死，不许方形层套 Contain。 */
+const LEVER_ASPECT: number = 536 / 2522;
 const SWING_MS: number = 150;
 const BACK_MS: number = 200;
 const PIVOT_X_RATIO: number = 0.500;
@@ -16,7 +18,8 @@ const PIVOT_Y_RATIO: number = 0.952;
 export struct LeverLayer {
   @Prop layerSizeVp: number = 120;
   /** 换行计数：+1 触发一次摆动。 */
-  @Prop newlineTick: number = 0;
+  /** 换行计数：+1 触发一次摆动（@Watch 直接挂它，避免复制属性竞态）。 */
+  @Prop @Watch('onTickChanged') newlineTick: number = 0;
   @Prop offsetXVp: number = 0;
   @Prop offsetYVp: number = 0;
 
@@ -25,8 +28,6 @@ export struct LeverLayer {
 
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
   onSwingStart: () => void = (): void => {};
-
-  @Prop @Watch('onTickChanged') tickWatch: number = 0;
 
   onTickChanged(): void {
     if (this.newlineTick === this.lastTick) {
@@ -45,14 +46,14 @@ export struct LeverLayer {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Image($rawfile('typebar/1920s-lever-single.png'))
+      Image($rawfile('layers/1920s-upright/lever.png'))
         .width(this.layerSizeVp)
-        .height(this.layerSizeVp)
-        .objectFit(ImageFit.Contain)
+        .height(this.layerSizeVp / LEVER_ASPECT)
+        .objectFit(ImageFit.Fill)
         .rotate({
           angle: this.angle,
           centerX: this.layerSizeVp * PIVOT_X_RATIO,
-          centerY: this.layerSizeVp * PIVOT_Y_RATIO,
+          centerY: (this.layerSizeVp / LEVER_ASPECT) * PIVOT_Y_RATIO,
         })
         .offset({ x: this.offsetXVp, y: this.offsetYVp })
     }

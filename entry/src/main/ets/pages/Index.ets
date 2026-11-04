@@ -809,7 +809,10 @@ struct Index {
                 strikeTick: this.strikeTick,
                 animScale: 1,
                 offsetXVp: this.guideXVp - this.stageWidth * 0.5,
-                offsetYVp: this.regionHeightVp + 0.752 * this.stageWidth - this.stageWidth * 0.867,
+                // 杆头落在打击行（纸底 − 底边距 − 行高/2），不是纸底缘
+                // 层内杆尖 y = 0.115×H（H=stageWidth），故 offsetY = strikeY − 0.115×H
+                offsetYVp: this.regionHeightVp - findPaper(this.paperKind).marginBottom
+                  - this.lineHeightVp / 2 - 0.115 * this.stageWidth,
                 onArrive: (): void => {
                   this.onStrikeArrive();
                 },
@@ -820,9 +823,8 @@ struct Index {
             // ---- 拨杆层（1920s）：newlineTick 驱动，换行时摆出 35° ----
             if (this.machineKind === MachineKind.UPRIGHT_1920S) {
               LeverLayer({
-                layerSizeVp: this.stageWidth * 0.55,
+                layerSizeVp: this.stageWidth * 0.18,
                 newlineTick: this.newlineTick,
-                tickWatch: this.newlineTick,
                 offsetXVp: this.stageWidth * 0.42,
                 offsetYVp: this.regionHeightVp - this.stageWidth * 0.10,
                 onSwingStart: (): void => {
