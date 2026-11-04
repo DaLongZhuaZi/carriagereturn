@@ -136,6 +136,21 @@ struct Index {
 
   // ---------------- §2.5 舞台几何 ----------------
 
+  /**
+   * 全屏对角线英寸数（§2.6）：用全屏 display 的 px 与 densityDPI 算，只用于判定设备尺寸，
+   * 量窗口仍用 onAreaChange。
+   */
+  private screenDiagonalInch(): number {
+    try {
+      const d = display.getDefaultDisplaySync();
+      const dx: number = d.width / d.densityDPI;
+      const dy: number = d.height / d.densityDPI;
+      return Math.sqrt(dx * dx + dy * dy);
+    } catch (e) {
+      return 0;
+    }
+  }
+
   /** 照片组件宽：超过原生像素 guard 封顶并居中（舞台宽本身不封顶）。 */
   private photoW(): number {
     if (this.photoWidthCap > 0 && this.stageWidth > this.photoWidthCap) {
@@ -173,17 +188,22 @@ struct Index {
       this.availableWidthVp = availW;
       this.availableHeightVp = availH;
       // §2.9 新口径：deviceType 为 tablet/2in1 且可用宽 ≥600vp 才是平板级；其余 deviceType 回退宽度单条件
-      const isTabletDev: boolean = this.deviceTypeName() === 'tablet' || this.deviceTypeName() === '2in1';
-      this.isTablet = isTabletDev ? (availW >= 600) : (availW >= 600);
+      // §2.6：tabletDevice = deviceType tablet/2in1 或 全屏对角线 ≥7.0 英寸（仅算设备尺寸，量窗口仍用 onAreaChange）
+      const dev: string = this.deviceTypeName();
+      const diagInch: number = this.screenDiagonalInch();
+      const tabletDevice: boolean = dev === 'tablet' || dev === '2in1' || diagInch >= 7.0;
+      // 真两级判定：先判设备，再判宽度
+      const newTablet: boolean = tabletDevice && (availW >= 600);
       // 舞台宽：平板级 = min(可用宽, 776) 居中；手机级 = 可用宽
       let stageW: number = availW;
-      if (this.isTablet && stageW > 776) {
+      if (newTablet && stageW > 776) {
         stageW = 776;
       }
       const prevStageW: number = this.stageWidth;
       const prevKeybedH: number = this.keybedHeight;
       const prevTablet: boolean = this.isTablet;
       const prevRegion: number = this.regionHeightVp;
+      this.isTablet = newTablet;
       this.stageWidth = stageW;
       // 舞台高改回窗口高（region 仍按可用高算）
       this.stageHeight = winH;
@@ -212,9 +232,14 @@ struct Index {
       // 行高：中文 fs×30/17、英文 fs×28/17（随语言切换同步）
       this.lineHeightVp = this.langZh ? fs * (30 / 17) : fs * (28 / 17);
 
-      // 原生像素 guard：照片组件宽超过 2048/vp2px(1) 时封顶居中（舞台宽本身不封顶）
+      // 原生像素 guard：整套封顶（照片宽 + 键区高 + 字车高都按封顶宽重算，不许只封 Image）
       const vp2px: number = this.getUIContext().vp2px(1);
       this.photoWidthCap = (availW * vp2px > 2048) ? 2048 / vp2px : 0;
+      if (this.photoWidthCap > 0 && stageW > this.photoWidthCap) {
+        const capped: number = this.photoWidthCap;
+        this.keybedHeight = capped / KEYBAND_ASPECT;
+        this.carriageHeight = (capped + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
+      }
 
       // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
@@ -225,13 +250,13 @@ struct Index {
         this.reloadKeymap();
       }
       // isTablet / region 变化 → 纸高瞬时重算（不走打字弹簧动画）
-      if (this.isTablet !== prevTablet || Math.abs(this.regionHeightVp - prevRegion) >= 1) {
+      if (newTablet !== prevTablet || Math.abs(this.regionHeightVp - prevRegion) >= 1) {
         this.recalcPaperHeight();
       }
 
       hilog.info(DOMAIN, TAG,
-        'layout dev=%{public}s availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s paper=%{public}s kmW=%{public}s kmH=%{public}s cap=%{public}s',
-        this.deviceTypeName(), availW.toFixed(1), availH.toFixed(1), this.isTablet ? 'true' : 'false',
+        'layout dev=%{public}s diag=%{public}s availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s paper=%{public}s kmW=%{public}s kmH=%{public}s cap=%{public}s',
+        dev, diagInch.toFixed(2), availW.toFixed(1), availH.toFixed(1), newTablet ? 'true' : 'false',
         stageW.toFixed(1), this.regionHeightVp.toFixed(1), fs.toFixed(2),
         this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
         this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
