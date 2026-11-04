@@ -275,9 +275,8 @@ struct Index {
     const usable: number = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
     const perLine: number = Math.floor(usable / (this.fontSizeVp * 0.6));
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
-    // §2.1 平移宽图：最大行程 = min(舞台宽 × 0.35, 180)
-    const byWidth: number = this.stageWidth * 0.35;
-    this.maxTravelVp = byWidth < 180 ? byWidth : 180;
+    // 物理模型：最大行程 = 可用行宽（舞台宽 − 2×28vp），不许再写回 min(×0.35,180)
+    this.maxTravelVp = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
     this.travelPerChar = this.maxTravelVp / this.charsPerLineNum;
     hilog.info(DOMAIN, TAG, 'recalcTravel max=%{public}s perChar=%{public}s cpl=%{public}s',
       this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
@@ -557,11 +556,15 @@ struct Index {
     }
   }
 
+  /**
+   * 导件固定在舞台中心（本批定稿）：不随光标右移、不随 carriageOffset 平移。
+   * 上一版「行首中央件窗中心」与「guide = 边距 + 行宽」两种右移口径均作废。
+   */
   private animateGuide(): void {
-    const target: number = findPaper(this.paperKind).marginH + this.currentLineWidthVp();
-    this.getUIContext().animateTo({ duration: 90, curve: curves.springCurve(0, 1, 240, 20) }, () => {
-      this.guideXVp = target;
-    });
+    const fixed: number = this.stageWidth * 0.5;
+    if (this.guideXVp !== fixed) {
+      this.guideXVp = fixed;
+    }
   }
 
   private onDelete(): void {
@@ -655,7 +658,7 @@ struct Index {
                 layerHeightVp: this.stageWidth,
                 strikeTick: this.strikeTick,
                 animScale: 1,
-                offsetXVp: this.guideXVp - this.stageWidth * 0.5,
+                offsetXVp: this.guideXVp - this.stageWidth * 0.5, // 导件固定在舞台中心时恒为 0
                 offsetYVp: this.regionHeightVp + 0.752 * this.stageWidth - this.stageWidth * 0.867,
                 onArrive: (): void => {
                   this.onStrikeArrive();
@@ -682,7 +685,8 @@ struct Index {
                 marginBottomVp: findPaper(this.paperKind).marginBottom,
                 inkColor: this.inkColor,
                 pageNo: 1,
-                offsetXVp: this.carriageOffsetVp,
+                // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
+                offsetXVp: this.stageWidth * 0.5 - findPaper(this.paperKind).marginH + this.carriageOffsetVp,
 
               })
                 .width('100%')
@@ -711,7 +715,7 @@ struct Index {
         if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
           CarriageLayers({
             stageWidth: this.photoW(),
-            maxTravelVp: this.maxTravelVp,
+            maxTravelVp: this.maxTravelVp, // = 可用行宽，画布宽 = 舞台宽 + 行宽
             carriageOffsetVp: this.carriageOffsetVp,
           })
             .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
