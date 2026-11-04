@@ -13,6 +13,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
 import { CorrectionMode, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
 import {
   CARRIAGE_PAPER_OVERLAP_VP, DEFAULT_FONT, DEFAULT_MACHINE, DEFAULT_PAPER, DEFAULT_RIBBON,
@@ -135,6 +136,23 @@ struct Index {
 
   // ---------------- §2.5 舞台几何 ----------------
 
+  /** 照片组件宽：超过原生像素 guard 封顶并居中（舞台宽本身不封顶）。 */
+  private photoW(): number {
+    if (this.photoWidthCap > 0 && this.stageWidth > this.photoWidthCap) {
+      return this.photoWidthCap;
+    }
+    return this.stageWidth;
+  }
+
+  /** 设备类型（phone / tablet / 2in1 / ...）。 */
+  private deviceTypeName(): string {
+    try {
+      return deviceInfo.deviceType;
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
   private measureStage(): void {
     try {
       // §2.6/§2.9：输入一律来自 onAreaChange 存的窗口宽高，不再读 display
@@ -154,15 +172,21 @@ struct Index {
       }
       this.availableWidthVp = availW;
       this.availableHeightVp = availH;
-      // 分级：可用宽 ≥600vp 为平板级
-      this.isTablet = availW >= 600;
+      // §2.9 新口径：deviceType 为 tablet/2in1 且可用宽 ≥600vp 才是平板级；其余 deviceType 回退宽度单条件
+      const isTabletDev: boolean = this.deviceTypeName() === 'tablet' || this.deviceTypeName() === '2in1';
+      this.isTablet = isTabletDev ? (availW >= 600) : (availW >= 600);
       // 舞台宽：平板级 = min(可用宽, 776) 居中；手机级 = 可用宽
       let stageW: number = availW;
       if (this.isTablet && stageW > 776) {
         stageW = 776;
       }
+      const prevStageW: number = this.stageWidth;
+      const prevKeybedH: number = this.keybedHeight;
+      const prevTablet: boolean = this.isTablet;
+      const prevRegion: number = this.regionHeightVp;
       this.stageWidth = stageW;
-      this.stageHeight = availH;
+      // 舞台高改回窗口高（region 仍按可用高算）
+      this.stageHeight = winH;
       this.topBarHeight = TOP_BAR_HEIGHT_VP;
       this.paperTopGap = PAPER_TOP_GAP_VP;
       // 照片高度只由宽高比派生
@@ -176,7 +200,7 @@ struct Index {
         - this.fontBarHeight - this.keybedHeight - this.functionRowHeight;
       this.regionHeightVp = region > 120 ? region : 120;
 
-      // 字号 = (可用宽 − 56) / 30，钳制 17–24；行高按字号比例缩放（基数 28/17）
+      // 字号 = (可用宽 − 56) / 30，钳制 17–24
       let fs: number = (availW - 56) / 30;
       if (fs < 17) {
         fs = 17;
@@ -185,7 +209,8 @@ struct Index {
         fs = 24;
       }
       this.fontSizeVp = fs;
-      this.lineHeightVp = fs * (28 / 17);
+      // 行高：中文 fs×30/17、英文 fs×28/17（随语言切换同步）
+      this.lineHeightVp = this.langZh ? fs * (30 / 17) : fs * (28 / 17);
 
       // 原生像素 guard：照片组件宽超过 2048/vp2px(1) 时封顶居中（舞台宽本身不封顶）
       const vp2px: number = this.getUIContext().vp2px(1);
@@ -193,10 +218,23 @@ struct Index {
 
       // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
+
+      // —— measureStage 末尾同步重算依赖项（回归修复）——
+      // stageWidth / keybedHeight 变化 ≥1vp → 键位表按新宽重算（否则叠字停在旧坐标）
+      if (Math.abs(stageW - prevStageW) >= 1 || Math.abs(this.keybedHeight - prevKeybedH) >= 1) {
+        this.reloadKeymap();
+      }
+      // isTablet / region 变化 → 纸高瞬时重算（不走打字弹簧动画）
+      if (this.isTablet !== prevTablet || Math.abs(this.regionHeightVp - prevRegion) >= 1) {
+        this.recalcPaperHeight();
+      }
+
       hilog.info(DOMAIN, TAG,
-        'stage availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s cap=%{public}s',
-        availW.toFixed(1), availH.toFixed(1), this.isTablet ? 'true' : 'false',
-        stageW.toFixed(1), this.regionHeightVp.toFixed(1), fs.toFixed(2), this.photoWidthCap.toFixed(1));
+        'layout dev=%{public}s availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s paper=%{public}s kmW=%{public}s kmH=%{public}s cap=%{public}s',
+        this.deviceTypeName(), availW.toFixed(1), availH.toFixed(1), this.isTablet ? 'true' : 'false',
+        stageW.toFixed(1), this.regionHeightVp.toFixed(1), fs.toFixed(2),
+        this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
+        this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'measureStage failed: %{public}s', JSON.stringify(err));
@@ -630,7 +668,7 @@ struct Index {
 
         if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
           CarriageLayers({
-            stageWidth: this.stageWidth,
+            stageWidth: this.photoW(),
             maxTravelVp: this.maxTravelVp,
             carriageOffsetVp: this.carriageOffsetVp,
           })
@@ -638,7 +676,7 @@ struct Index {
         } else {
           CarriageStrip({
             machineKind: this.machineKind,
-            widthVp: this.stageWidth,
+            widthVp: this.photoW(),
             photoWidthVp: this.stageWidth + this.maxTravelVp,
             heightVp: this.carriageHeight,
             guideXVp: this.guideXVp,
@@ -657,7 +695,7 @@ struct Index {
         PhotoKeybed({
           machineKind: this.machineKind,
           foldBand: false,
-          widthVp: this.stageWidth,
+          widthVp: this.photoW(),
           heightVp: this.keybedHeight,
           layout: this.keymapLayout,
           overlayFontFamily: this.fontFamily,
@@ -682,6 +720,9 @@ struct Index {
           newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
           onLang: (): void => {
             this.langZh = !this.langZh;
+            // 语言切换同步改行高与纸高（中文 fs×30/17、英文 fs×28/17）
+            this.lineHeightVp = this.langZh ? this.fontSizeVp * (30 / 17) : this.fontSizeVp * (28 / 17);
+            this.recalcPaperHeight();
           },
           onDelete: (): void => {
             this.onDelete();
