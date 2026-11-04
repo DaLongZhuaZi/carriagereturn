@@ -85,6 +85,11 @@ export struct PhotoKeybed {
     if (event.type === TouchType.Down) {
       for (const t of event.changedTouches) {
         const cap: CapDef | null = this.hitAt(layout, t.x, t.y);
+        hilog.info(KDOMAIN, KTAG,
+          'DOWN t=(%{public}s,%{public}s) comp=%{public}sx%{public}s layout=%{public}sx%{public}s hitR=%{public}s hit=%{public}s',
+          t.x.toFixed(1), t.y.toFixed(1), this.widthVp.toFixed(1), this.heightVp.toFixed(1),
+          layout.widthVp.toFixed(1), layout.heightVp.toFixed(1),
+          layout.hitRadius.toFixed(2), cap === null ? 'null' : cap.label);
         if (cap !== null) {
           this.touchState.map.set(t.id, cap.id);
           this.addHeld(cap.id);

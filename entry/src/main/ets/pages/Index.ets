@@ -210,7 +210,8 @@ struct Index {
       this.topBarHeight = TOP_BAR_HEIGHT_VP;
       this.paperTopGap = PAPER_TOP_GAP_VP;
       // 照片高度只由宽高比派生
-      this.maxTravelVp = stageW * 0.35 < 180 ? stageW * 0.35 : 180;
+      // 物理模型：行程上限 = 可用行宽（舞台宽 − 2×28），不再是 min(舞台宽×0.35,180)
+      this.maxTravelVp = stageW - 2 * 28;
       this.carriageHeight = (stageW + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
       this.fontBarHeight = FONT_BAR_HEIGHT_VP;
       this.keybedHeight = stageW / KEYBAND_ASPECT;
@@ -282,11 +283,20 @@ struct Index {
       this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
   }
 
-  /** 每落一字：字车条左移一格（70ms 弹簧快步）。 */
+  /**
+   * 每落一字：纸与字车共用的偏移 O 左移「当前字宽」（物理模型，§2.7 解除授权后）。
+   * 不用 travelPerChar（最大行程/每行字数）—— 那会让纸移得比字距慢、末字屏 x 右漂。
+   */
   private stepCarriageLeft(): void {
-    let target: number = this.carriageOffsetVp - this.travelPerChar;
-    if (target < -this.maxTravelVp) {
-      target = -this.maxTravelVp;
+    const cursor = this.docModel.getCursor();
+    const line = this.docModel.getLines()[cursor.line];
+    const lastIdx: number = cursor.offset - 1;
+    const ch: string = lastIdx >= 0 && lastIdx < line.text.length ? line.text.charAt(lastIdx) : 'a';
+    const dO: number = this.charWidthVp(ch);
+    let target: number = this.carriageOffsetVp - dO;
+    const limit: number = -(this.stageWidth - 2 * 28);
+    if (target < limit) {
+      target = limit;
     }
     this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
       this.carriageOffsetVp = target;
