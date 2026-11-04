@@ -31,6 +31,7 @@ import { FunctionRow } from '../components/FunctionRow';
 import { PageRail } from '../components/PageRail';
 import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
+import { CarriageLayers } from '../components/CarriageLayers';
 
 const TAG: string = 'MainScreen';
 const DOMAIN: number = 0x0100;
@@ -95,6 +96,8 @@ struct Index {
   @State strikeTick: number = 0;
   @State langZh: boolean = false;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
+  /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
+  @State useLayers: boolean = false;
 
   aboutToAppear(): void {
     const host = this.getUIContext().getHostContext();
@@ -107,6 +110,7 @@ struct Index {
     this.applyPaper(DEFAULT_PAPER);
     this.applyRibbon(DEFAULT_RIBBON);
     this.reloadKeymap();
+    this.detectLayers();
     this.hintText = this.resolveString($r('app.string.hint_new_paper'));
     this.syncRows();
     this.audioService.preload('pack');
@@ -232,6 +236,42 @@ struct Index {
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'reloadKeymap failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /** 探测 1920s 分层素材是否齐备；缺失则回退旧 carriage-strip.png。 */
+  private detectLayers(): void {
+    if (this.machineKind !== MachineKind.UPRIGHT_1920S) {
+      this.useLayers = false;
+      return;
+    }
+    try {
+      const host = this.getUIContext().getHostContext();
+      if (host === undefined || host === null) {
+        this.useLayers = false;
+        return;
+      }
+      const rm: resourceManager.ResourceManager = host.resourceManager;
+      const names: string[] = rm.getRawFileListSync('layers/1920s-upright');
+      const need: string[] = ['knob.png', 'central-guide.png', 'paper-bail.png', 'roller-texture.jpg'];
+      let all: boolean = true;
+      for (const n of need) {
+        let found: boolean = false;
+        for (const got of names) {
+          if (got === n || got.endsWith('/' + n)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          all = false;
+        }
+      }
+      this.useLayers = all;
+      hilog.info(DOMAIN, TAG, 'layers available=%{public}s count=%{public}s', all ? 'true' : 'false', names.length.toString());
+    } catch (e) {
+      this.useLayers = false;
+      hilog.error(DOMAIN, TAG, 'detectLayers failed, fallback to strip');
     }
   }
 
@@ -471,6 +511,8 @@ struct Index {
                 marginBottomVp: findPaper(this.paperKind).marginBottom,
                 inkColor: this.inkColor,
                 pageNo: 1,
+                cursorXVp: this.guideXVp,
+                cursorVisible: true,
               })
                 .width('100%')
 
@@ -495,16 +537,25 @@ struct Index {
         .width('100%')
         .layoutWeight(1)
 
-        CarriageStrip({
-          machineKind: this.machineKind,
-          widthVp: this.stageWidth,
-          photoWidthVp: this.stageWidth + this.maxTravelVp,
-          heightVp: this.carriageHeight,
-          guideXVp: this.guideXVp,
-          carriageOffsetVp: this.carriageOffsetVp,
-          guideVisible: true,
-        })
-          .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
+        if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+          CarriageLayers({
+            stageWidth: this.stageWidth,
+            maxTravelVp: this.maxTravelVp,
+            carriageOffsetVp: this.carriageOffsetVp,
+          })
+            .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
+        } else {
+          CarriageStrip({
+            machineKind: this.machineKind,
+            widthVp: this.stageWidth,
+            photoWidthVp: this.stageWidth + this.maxTravelVp,
+            heightVp: this.carriageHeight,
+            guideXVp: this.guideXVp,
+            carriageOffsetVp: this.carriageOffsetVp,
+            guideVisible: false,
+          })
+            .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
+        }
 
         FontBar({
           fontFamily: this.fontFamily,

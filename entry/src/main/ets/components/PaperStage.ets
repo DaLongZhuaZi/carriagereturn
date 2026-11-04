@@ -41,6 +41,10 @@ export struct PaperStage {
   /** 墨色（色带）。 */
   @Prop inkColor: string = '#1a1a1a';
   @Prop pageNo: number = 1;
+  /** 纸面光标 x（vp，相对纸片左缘）：舞台左缘 + 28 + 当前行已落字总宽。 */
+  @Prop cursorXVp: number = 28;
+  /** 纸面光标可见（行首也可，始终可见）。 */
+  @Prop cursorVisible: boolean = true;
 
   /** 页眉带 + 顶边距 = 内容起始 y。 */
   private contentTop(): number {
@@ -137,6 +141,17 @@ export struct PaperStage {
         .width('100%')
         .padding({ left: this.marginHVp, right: this.marginHVp })
         .margin({ top: this.paperHeightVp - this.marginBottomVp - this.lineHeightVp })
+      }
+
+      // 纸面光标（§2.8 改名：画在纸面上，不是字车条上的细线）
+      // y = 纸片下缘 − 20vp − 行高 至 纸片下缘 − 20vp，宽 2vp，颜色 = 当前墨色
+      if (this.cursorVisible) {
+        Column()
+          .width(2)
+          .height(this.lineHeightVp)
+          .backgroundColor(this.inkColor)
+          .position({ x: this.cursorXVp, y: this.paperHeightVp - this.marginBottomVp - this.lineHeightVp })
+          .hitTestBehavior(HitTestMode.None)
       }
 
       // 下缘短实阴影（纸压在字车上）
