@@ -130,7 +130,9 @@ struct Index {
       this.topBarHeight = TOP_BAR_HEIGHT_VP;
       this.paperTopGap = PAPER_TOP_GAP_VP;
       // 照片高度只由宽高比派生（不设 uiScale）
-      this.carriageHeight = stageW / CARRIAGE_STRIP_ASPECT;
+      // 照片宽 = 舞台宽 + 最大行程；高按 (舞台宽+行程)/7.14 派生，否则 Contain 会把宽图缩回舞台宽、平移失效
+      this.maxTravelVp = stageW * 0.35 < 180 ? stageW * 0.35 : 180;
+      this.carriageHeight = (stageW + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
       this.fontBarHeight = FONT_BAR_HEIGHT_VP;
       this.keybedHeight = stageW / KEYBAND_ASPECT;
       this.functionRowHeight = FUNCTION_ROW_HEIGHT_VP;
@@ -155,19 +157,24 @@ struct Index {
     const usable: number = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
     const perLine: number = Math.floor(usable / (this.fontSizeVp * 0.6));
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
-    const byWidth: number = this.stageWidth * 0.16;
-    this.maxTravelVp = byWidth < 64 ? byWidth : 64;
+    // §2.1 平移宽图：最大行程 = min(舞台宽 × 0.35, 180)
+    const byWidth: number = this.stageWidth * 0.35;
+    this.maxTravelVp = byWidth < 180 ? byWidth : 180;
     this.travelPerChar = this.maxTravelVp / this.charsPerLineNum;
-    hilog.info(DOMAIN, TAG, 'travel max=%{public}s perChar=%{public}s cpl=%{public}s',
+    hilog.info(DOMAIN, TAG, 'recalcTravel max=%{public}s perChar=%{public}s cpl=%{public}s',
       this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
   }
 
   /** 每落一字：字车条左移一格（70ms 弹簧快步）。 */
   private stepCarriageLeft(): void {
-    const target: number = this.carriageOffsetVp - this.travelPerChar;
+    let target: number = this.carriageOffsetVp - this.travelPerChar;
+    if (target < -this.maxTravelVp) {
+      target = -this.maxTravelVp;
+    }
     this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
       this.carriageOffsetVp = target;
     });
+    hilog.info(DOMAIN, TAG, 'carriage offset -> %{public}s', target.toFixed(2));
   }
 
   /** 删除/覆盖删除：字车条右退一格，上限 0。 */
@@ -491,6 +498,7 @@ struct Index {
         CarriageStrip({
           machineKind: this.machineKind,
           widthVp: this.stageWidth,
+          photoWidthVp: this.stageWidth + this.maxTravelVp,
           heightVp: this.carriageHeight,
           guideXVp: this.guideXVp,
           carriageOffsetVp: this.carriageOffsetVp,

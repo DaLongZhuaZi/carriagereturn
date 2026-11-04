@@ -13,6 +13,8 @@ export struct CarriageStrip {
   @Prop heightVp: number = 55;
   /** 舞台宽（vp）：字车条宽 = 舞台宽，高由 2048/287 宽高比派生。 */
   @Prop widthVp: number = 390;
+  /** 照片宽 = 舞台宽 + 最大行程（§2.1 平移宽图）；容器仍是舞台宽。 */
+  @Prop photoWidthVp: number = 390;
   /** 导件 x（vp，相对字车条左缘）。 */
   @Prop guideXVp: number = 28;
   /** 字车条累计左移量（vp，负值左移，行首 0）；导件不随它平移。 */
@@ -22,16 +24,16 @@ export struct CarriageStrip {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-        Image($rawfile('carriage/1920s-upright-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
+        Image($rawfile('carriage/1920s-upright-carriage-strip.png')).width(this.photoWidthVp).height(this.photoWidthVp / 7.14).objectFit(ImageFit.Contain)
           .translate({ x: this.carriageOffsetVp })
       } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-        Image($rawfile('carriage/1930s-portable-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
+        Image($rawfile('carriage/1930s-portable-carriage-strip.png')).width(this.photoWidthVp).height(this.photoWidthVp / 7.14).objectFit(ImageFit.Contain)
           .translate({ x: this.carriageOffsetVp })
       } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-        Image($rawfile('carriage/1950s-streamlined-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
+        Image($rawfile('carriage/1950s-streamlined-carriage-strip.png')).width(this.photoWidthVp).height(this.photoWidthVp / 7.14).objectFit(ImageFit.Contain)
           .translate({ x: this.carriageOffsetVp })
       } else {
-        Image($rawfile('carriage/1960s-electric-carriage-strip.png')).width(this.widthVp).height(this.heightVp).objectFit(ImageFit.Contain)
+        Image($rawfile('carriage/1960s-electric-carriage-strip.png')).width(this.photoWidthVp).height(this.photoWidthVp / 7.14).objectFit(ImageFit.Contain)
           .translate({ x: this.carriageOffsetVp })
       }
 
@@ -47,7 +49,7 @@ export struct CarriageStrip {
       }
     }
     .width(this.widthVp)
-    .height(this.heightVp)
+    .height(this.photoWidthVp / 7.14)
     .clip(true)
     // 字车条左移时右侧露出的是深底，不留白：容器背景与主屏同一渐变（§2.1）
     .linearGradient({
