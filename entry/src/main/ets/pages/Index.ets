@@ -43,7 +43,7 @@ const DESIGN_H: number = 844;
 /** 键带手机宽高比 2048/975；字车条 2048/287。 */
 const KEYBAND_ASPECT: number = 2048 / 975;
 const CARRIAGE_STRIP_ASPECT: number = 2048 / 287;
-const GROW_DURATION_MS: number = 260;
+const GROW_DURATION_MS: number = 60; // 硬曲线：纸移动 50–70ms，写死
 const BELL_REMAINING: number = 8;
 
 function emptyLayout(): KeymapLayout {
@@ -59,6 +59,11 @@ struct Index {
   private docModel: DocModel = new DocModel();
   private docId: string = '';
   private saveTimer: number = -1;
+  private lastArriveMs: number = 0;
+  private arriveGapSumMs: number = 0;
+  private arriveGapCount: number = 0;
+  private droppedTicks: number = 0;
+  @State arriveCount: number = 0;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
   private bellRungLines: Set<number> = new Set<number>();
@@ -522,7 +527,7 @@ struct Index {
     if (cap.label === 'Shift') {
       return;
     }
-    this.audioService.playKey();
+    // Down 只给高亮 + 震动；主击打音移到 onArrive（与落字、纸移动同帧）
     this.audioService.vibrate();
     this.queueChar(cap.label.toLowerCase());
   }
@@ -545,7 +550,23 @@ struct Index {
   }
 
   private onStrikeArrive(): void {
+    // 主击打音与落字、纸移动同帧
+    this.audioService.playKey();
+    this.arriveCount += 1;
+    const now: number = Date.now();
+    if (this.lastArriveMs > 0) {
+      this.arriveGapSumMs += now - this.lastArriveMs;
+      this.arriveGapCount += 1;
+    }
+    this.lastArriveMs = now;
     this.flushPending();
+    if (this.arriveCount % 10 === 0) {
+      const avgGap: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
+      hilog.info(DOMAIN, TAG,
+        'strike metrics arrives=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s',
+        this.arriveCount.toString(), avgGap.toFixed(1), this.pendingChars.length.toString(),
+        this.droppedTicks.toString());
+    }
   }
 
   private commitChar(ch: string): void {

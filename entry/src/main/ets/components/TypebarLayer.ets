@@ -9,11 +9,13 @@
  */
 import { curves } from '@kit.ArkUI';
 
-const STRIKE_MS: number = 70;
-const RETURN_MS: number = 110;
+// 硬曲线：固定时长，不许用 springMotion 猜结算时间
+const STRIKE_MS: number = 60;
+const RETURN_MS: number = 90;
 /** 静止角：杆收进篮子方向。 */
 const REST_ANGLE: number = -64;
-const MAX_QUEUE: number = 3;
+// 去丢队：上限放宽到 20（快打不许丢字）
+const MAX_QUEUE: number = 20;
 
 @Component
 export struct TypebarLayer {
@@ -54,20 +56,19 @@ export struct TypebarLayer {
     }
     this.busy = true;
     this.pending -= 1;
-    // 去程：快
+    // 去程：固定时长
     this.getUIContext().animateTo({
       duration: STRIKE_MS * this.animScale,
-      curve: curves.responsiveSpringMotion(0.2, 1.0),
+      curve: Curve.FastOutSlowIn,
       onFinish: () => {
+        // busy 只管去程：onArrive 当刻即释放，回程不阻塞下一击
+        this.busy = false;
         this.onArrive();
-        // 回程：稍慢，带一次微震荡
+        this.runNext();
+        // 回程：并行、非阻塞、可被下一去程打断
         this.getUIContext().animateTo({
           duration: RETURN_MS * this.animScale,
-          curve: curves.springMotion(),
-          onFinish: () => {
-            this.busy = false;
-            this.runNext();
-          },
+          curve: Curve.Linear,
         }, () => {
           this.angle = REST_ANGLE;
         });
