@@ -90,6 +90,8 @@ struct Index {
   /** 实测单字 advance（vp）：隐藏 Text 量宽得到，中英分开。 */
   @State advEngVp: number = 0;
   @State advCjkVp: number = 0;
+  /** 整行渲染实测宽（隐藏 Text 的 onAreaChange）。 */
+  @State lineWidthMeasuredVp: number = -1;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
   private bellRungLines: Set<number> = new Set<number>();
@@ -588,7 +590,11 @@ struct Index {
     return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
   }
 
+  /** 优先用整行渲染实测宽；未测到才退回逐字累加。 */
   private currentLineWidthVp(): number {
+    if (this.lineWidthMeasuredVp >= 0) {
+      return this.lineWidthMeasuredVp;
+    }
     const cursor = this.docModel.getCursor();
     const line = this.docModel.getLines()[cursor.line];
     let w: number = 0;
@@ -927,10 +933,11 @@ struct Index {
                   strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
                     + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
                   canvasOffsetVp: this.carriageOffsetVp,
-                    strikeYVp: this.strikeLineVp - this.carriageTopVp,
+                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
                 })
                   // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht
-                  .offset({ y: this.carriageTopVp })
+                  // 金属件与滚筒同锚点：旋钮中心 y = 滚筒中心
+                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
 
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
                 LeverLayer({

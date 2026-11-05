@@ -86,14 +86,16 @@ export struct CarriageLayers {
           .width(this.knobD())
           .height(this.knobD())
           .objectFit(ImageFit.Contain)
-          .position({ x: this.paperLeftVp - this.knobD() - 4, y: this.hc() / 2 - this.knobD() / 2 })
+          // 中心贴纸左缘（半个旋钮压在纸缘上），y = 滚筒中心
+          .position({ x: this.paperLeftVp - this.knobD() / 2, y: this.hc() / 2 - this.knobD() / 2 })
           .rotate({ angle: this.knobAngleDeg })
 
         Image($rawfile('layers/1920s-upright/knob.png'))
           .width(this.knobD())
           .height(this.knobD())
           .objectFit(ImageFit.Contain)
-          .position({ x: this.paperLeftVp + this.paperWidthVp + 4, y: this.hc() / 2 - this.knobD() / 2 })
+          // 中心贴纸右缘
+          .position({ x: this.paperLeftVp + this.paperWidthVp - this.knobD() / 2, y: this.hc() / 2 - this.knobD() / 2 })
           .rotate({ angle: this.knobAngleDeg })
       }
     }
