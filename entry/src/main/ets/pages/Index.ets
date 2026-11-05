@@ -274,11 +274,13 @@ struct Index {
       // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
-      // 纸为锚点：纸高 = 纸面区满高，纸宽 = 纸高/1.414，Hc = 纸宽×0.17
-      this.paperHeightVp = this.regionHeightVp;
-      this.paperWidthVp = this.paperHeightVp / 1.414;
+      // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
+      this.paperWidthVp = this.regionHeightVp / 1.414;
       this.paperCenterXVp = this.stageWidth / 2;
       this.carriageHeight = this.paperWidthVp * 0.17;
+      this.maxTravelVp = Math.min(64, this.paperWidthVp * 0.25);
+      this.recalcTravel();
+      this.recalcPaperHeight();
 
       // —— measureStage 末尾同步重算依赖项（回归修复）——
       // stageWidth / keybedHeight 变化 ≥1vp → 键位表按新宽重算（否则叠字停在旧坐标）
@@ -311,7 +313,9 @@ struct Index {
     const perLine: number = Math.floor(usable / (this.fontSizeVp * 0.6));
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
     // 物理模型：最大行程 = 可用行宽（舞台宽 − 2×28vp），不许再写回 min(×0.35,180)
-    this.maxTravelVp = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
+    // 小幅纸移动：最大行程 = min(64vp, 纸宽×0.25)
+    const smallT: number = this.paperWidthVp * 0.25;
+    this.maxTravelVp = smallT < 64 ? smallT : 64;
     this.travelPerChar = this.maxTravelVp / this.charsPerLineNum;
     hilog.info(DOMAIN, TAG, 'recalcTravel max=%{public}s perChar=%{public}s cpl=%{public}s',
       this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
@@ -322,11 +326,8 @@ struct Index {
    * 不用 travelPerChar（最大行程/每行字数）—— 那会让纸移得比字距慢、末字屏 x 右漂。
    */
   private stepCarriageLeft(): void {
-    const cursor = this.docModel.getCursor();
-    const line = this.docModel.getLines()[cursor.line];
-    const lastIdx: number = cursor.offset - 1;
-    const ch: string = lastIdx >= 0 && lastIdx < line.text.length ? line.text.charAt(lastIdx) : 'a';
-    const dO: number = this.charWidthVp(ch);
+    // 小幅纸移动：每字 dO = travelPerChar（= 小行程 / 每行字数），不是字宽
+    const dO: number = this.travelPerChar;
     let target: number = this.carriageOffsetVp - dO;
     const limit: number = -(this.stageWidth - 2 * 28);
     if (target < limit) {
@@ -499,11 +500,14 @@ struct Index {
 
   // ---------------- 纸片 ----------------
 
-  /** 纸为锚点：纸高恒 = 纸面区满高，不再按行数长高；走纸只上移内容。 */
+  /** 纸高 = 96 + (行数-1)×行高，上限 regionHeight（小幅纸移动版）。 */
   private recalcPaperHeight(): void {
-    this.paperHeightVp = this.regionHeightVp;
-    this.paperWidthVp = this.paperHeightVp / 1.414;
-    this.paperCenterXVp = this.stageWidth / 2;
+    const lc: number = this.docModel.getLines().length;
+    let h: number = PAPER_INITIAL_HEIGHT_VP + (lc - 1) * this.lineHeightVp;
+    if (h > this.regionHeightVp) {
+      h = this.regionHeightVp;
+    }
+    this.paperHeightVp = h;
     return;
     const lineCount: number = this.docModel.getLines().length;
     const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
@@ -517,7 +521,14 @@ struct Index {
   }
 
   private animatePaperHeight(): void {
-    this.creepOffsetVp = this.creepOffsetVp - this.lineHeightVp;
+    const lc: number = this.docModel.getLines().length;
+    let target: number = PAPER_INITIAL_HEIGHT_VP + (lc - 1) * this.lineHeightVp;
+    if (target > this.regionHeightVp) {
+      target = this.regionHeightVp;
+    }
+    this.getUIContext().animateTo({ duration: GROW_DURATION_MS, curve: Curve.FastOutSlowIn }, () => {
+      this.paperHeightVp = target;
+    });
     return;
     const lineCount: number = this.docModel.getLines().length;
     const rawHeight: number = (this.isTablet ? this.regionHeightVp : PAPER_INITIAL_HEIGHT_VP) + (lineCount - 1) * this.lineHeightVp;
@@ -828,7 +839,9 @@ struct Index {
                 layerHeightVp: this.carriageHeight * 2.5,
                 strikeTick: this.strikeTick,
                 animScale: 1,
-                offsetXVp: this.guideXVp - this.stageWidth * 0.5,
+                // 字杆支点 x = 打击点（纸屏左 + marginH + 已落字总宽）
+                offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                  + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
                 // 杆头落在打击行（纸底 − 底边距 − 行高/2），不是纸底缘
                 // 层内杆尖 y = 0.115×H（H=stageWidth），故 offsetY = strikeY − 0.115×H
                 // 总成坐标系：层底对齐 Stack 底，杆尖 0.115×H；offsetY 使杆尖落在打击行
@@ -845,13 +858,14 @@ struct Index {
             if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
               CarriageLayers({
                 stageWidth: this.photoW(),
-                maxTravelVp: this.maxTravelVp,
                 joltYVp: this.joltYVp,
                 knobAngleDeg: this.knobAngle,
-                carriageOffsetVp: this.carriageOffsetVp,
                 part: 'roller',
                 paperWidthVp: this.paperWidthVp,
-                paperCenterXVp: this.paperCenterXVp,
+                paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                  + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
               })
                 // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
@@ -864,13 +878,14 @@ struct Index {
               if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
                 CarriageLayers({
                   stageWidth: this.photoW(),
-                  maxTravelVp: this.maxTravelVp,
                   joltYVp: this.joltYVp,
                   knobAngleDeg: this.knobAngle,
-                  carriageOffsetVp: this.carriageOffsetVp,
-                  part: 'metal',
+                    part: 'metal',
                   paperWidthVp: this.paperWidthVp,
-                  paperCenterXVp: this.paperCenterXVp,
+                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                  strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                  canvasOffsetVp: this.carriageOffsetVp,
                     strikeYVp: (this.stageWidth + this.maxTravelVp) / 7.14 / 2
                     - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
                 })
@@ -881,7 +896,9 @@ struct Index {
                 LeverLayer({
                   layerSizeVp: this.carriageHeight * 2.5 * 0.212,
                   newlineTick: this.newlineTick,
-                  offsetXVp: (this.stageWidth + this.maxTravelVp) * 0.94 - this.stageWidth * 0.16 * 0.5 + this.carriageOffsetVp,
+                  // 拨杆支点 x = 纸屏左 + Pw − 层宽/2
+                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                    + this.paperWidthVp - this.carriageHeight * 2.5 * 0.212 / 2,
                   offsetYVp: this.carriageHeight / 2 - (this.stageWidth * 0.16 / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
@@ -914,7 +931,7 @@ struct Index {
                 inkColor: this.inkColor,
                 pageNo: 1,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
-                offsetXVp: this.stageWidth * 0.5 - findPaper(this.paperKind).marginH + this.carriageOffsetVp,
+                offsetXVp: this.carriageOffsetVp,
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
               })

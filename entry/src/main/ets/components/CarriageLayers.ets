@@ -1,12 +1,11 @@
 /**
- * 字车分层（§2.9 纸为锚点，2026-11-05）
+ * 字车分层（§2.9 纸屏左起算，2026-11-05）
  *
- * 全部尺寸由纸派生，不用舞台宽：
- *   Pw = 纸宽、Ph = 纸高；Hc = Pw×0.17
- *   中央件 Hg = Hc×1.5、宽 = Hg×0.848，窗中心 = 打击行，x = 纸中心 + O
- *   旋钮直径 = Hc×0.92，x 在纸宽之外（左 = 纸左缘 − 直径 − 4vp，右 = 纸右缘 + 4vp），y 与滚筒中心同高
- *   压纸卷带长 = 纸宽 + 2×旋钮直径，辊子落在纸面上
- *   part='roller' 只画滚筒（纸后）；part='metal' 只画压纸卷+中央件+旋钮（纸前）
+ * 全部 x 从「纸屏左」（布局左 + O）起算：
+ *   中央件 x = 纸屏左 + marginH + 已落字总宽 − 中央件宽/2（打击点，随字右移）
+ *   压纸卷 x = 纸屏左 − 旋钮直径
+ *   左旋钮 x = 纸屏左 − 直径 − 4；右旋钮 x = 纸屏左 + Pw + 4
+ *   Hc = Pw×0.17；中央件 Hg = Hc×1.5、宽 = Hg×0.848；旋钮直径 = Hc×0.92
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
@@ -15,38 +14,36 @@ const CTAG: string = 'CarriageLayers';
 
 @Component
 export struct CarriageLayers {
-  /** 舞台宽（vp）：只用于画布宽。 */
   @Prop stageWidth: number = 390;
-  /** 纸宽（vp）。 */
+  /** 纸宽 Pw（vp）。 */
   @Prop paperWidthVp: number = 242;
-  /** 纸中心 x（相对舞台左缘，vp）。 */
-  @Prop paperCenterXVp: number = 195;
-  /** 最大行程（vp）。 */
-  @Prop maxTravelVp: number = 334;
-  @Prop carriageOffsetVp: number = 0;
+  /** 纸屏左 = 布局左 + O（vp，相对舞台左缘）。 */
+  @Prop paperLeftVp: number = 74;
+  /** 打击点 x（= 纸屏左 + marginH + 已落字总宽，相对舞台左缘）。 */
+  @Prop strikeXVp: number = 102;
   @Prop joltYVp: number = 0;
   @Prop knobAngleDeg: number = 0;
   @Prop part: string = 'roller';
-  /** 中央件窗中心 y（相对金属顶，vp）。 */
+  /** 中央件窗中心 y（相对金属顶）。 */
   @Prop strikeYVp: number = 0;
+  /** 画布横向偏移（滚筒等宽图件用，一般等于 O）。 */
+  @Prop canvasOffsetVp: number = 0;
 
-  /** 滚筒高 Hc = 纸宽 × 0.17。 */
   private hc(): number {
     return this.paperWidthVp * 0.17;
   }
 
-  private canvasW(): number {
-    return this.stageWidth + this.maxTravelVp;
-  }
-
-  /** 旋钮直径 = Hc×0.92。 */
   private knobD(): number {
     return this.hc() * 0.92;
   }
 
-  /** 纸左缘 x（相对舞台左缘）。 */
-  private paperLeft(): number {
-    return this.paperCenterXVp - this.paperWidthVp / 2;
+  /** 压纸卷带长 = 纸宽 + 2×旋钮直径。 */
+  private bailW(): number {
+    return this.paperWidthVp + 2 * this.knobD();
+  }
+
+  private canvasW(): number {
+    return this.stageWidth + 2 * this.hc();
   }
 
   build() {
@@ -58,53 +55,45 @@ export struct CarriageLayers {
             .height(this.hc())
             .objectFit(ImageFit.Cover)
         }
-        .width(this.canvasW())
+        .width(this.stageWidth)
         .height(this.hc())
         .clip(true)
-        .translate({ x: this.carriageOffsetVp })
+        .translate({ x: this.canvasOffsetVp })
       }
 
       if (this.part === 'metal') {
-        // 压纸卷：带长 = 纸宽 + 2×旋钮直径，辊子压在纸面上
+        // 压纸卷：x = 纸屏左 − 旋钮直径
         Image($rawfile('layers/1920s-upright/paper-bail.png'))
-          .width(this.paperWidthVp + 2 * this.knobD())
-          .height((this.paperWidthVp + 2 * this.knobD()) / 15.32)
+          .width(this.bailW())
+          .height(this.bailW() / 15.32)
           .objectFit(ImageFit.Fill)
           .position({
-            x: this.paperLeft() - this.knobD() + this.carriageOffsetVp,
-            y: this.strikeYVp - 6 - (this.paperWidthVp + 2 * this.knobD()) / 15.32,
+            x: this.paperLeftVp - this.knobD(),
+            y: this.strikeYVp - 6 - this.bailW() / 15.32,
           })
 
-        // 中央件：Hg = Hc×1.5，窗中心 = 打击行，x = 纸中心 + O
+        // 中央件：x = 打击点 − 宽/2
         Image($rawfile('layers/1920s-upright/central-guide.png'))
           .width(this.hc() * 1.5 * 0.848)
           .height(this.hc() * 1.5)
           .objectFit(ImageFit.Contain)
           .position({
-            x: this.paperCenterXVp - this.hc() * 1.5 * 0.848 / 2 + this.carriageOffsetVp,
+            x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
             y: this.strikeYVp - this.hc() * 1.5 * 0.550,
           })
 
-        // 左旋钮：纸左缘 − 直径 − 4vp
         Image($rawfile('layers/1920s-upright/knob.png'))
           .width(this.knobD())
           .height(this.knobD())
           .objectFit(ImageFit.Contain)
-          .position({
-            x: this.paperLeft() - this.knobD() - 4 + this.carriageOffsetVp,
-            y: this.hc() / 2 - this.knobD() / 2,
-          })
+          .position({ x: this.paperLeftVp - this.knobD() - 4, y: this.hc() / 2 - this.knobD() / 2 })
           .rotate({ angle: this.knobAngleDeg })
 
-        // 右旋钮：纸右缘 + 4vp
         Image($rawfile('layers/1920s-upright/knob.png'))
           .width(this.knobD())
           .height(this.knobD())
           .objectFit(ImageFit.Contain)
-          .position({
-            x: this.paperLeft() + this.paperWidthVp + 4 + this.carriageOffsetVp,
-            y: this.hc() / 2 - this.knobD() / 2,
-          })
+          .position({ x: this.paperLeftVp + this.paperWidthVp + 4, y: this.hc() / 2 - this.knobD() / 2 })
           .rotate({ angle: this.knobAngleDeg })
       }
     }
@@ -113,9 +102,10 @@ export struct CarriageLayers {
     .translate({ y: this.joltYVp })
     .clip(false)
     .onAreaChange((oldA: Area, newA: Area) => {
-      const w: number = newA.width as number;
-      hilog.info(CDOMAIN, CTAG, 'part=%{public}s w=%{public}s Hc=%{public}s Pw=%{public}s',
-        this.part, w.toFixed(1), this.hc().toFixed(1), this.paperWidthVp.toFixed(1));
+      hilog.info(CDOMAIN, CTAG,
+        'part=%{public}s Hc=%{public}s Pw=%{public}s paperL=%{public}s strikeX=%{public}s',
+        this.part, this.hc().toFixed(1), this.paperWidthVp.toFixed(1),
+        this.paperLeftVp.toFixed(1), this.strikeXVp.toFixed(1));
     })
     .linearGradient({
       direction: GradientDirection.Bottom,
