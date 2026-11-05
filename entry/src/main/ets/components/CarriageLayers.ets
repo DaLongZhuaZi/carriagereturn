@@ -33,9 +33,14 @@ export struct CarriageLayers {
   @Prop part: string = 'roller';
   /** 中央件窗中心的目标 y（相对本组件顶，vp）；'metal' 时按它反推中央件顶。 */
   @Prop strikeYVp: number = -1;
+  /** 容器高 Hc：由 Index 单源传入，组件内不再自算，避免两处 Hc 不同源。 */
+  @Prop hcVp: number = 0;
 
-  /** 容器高 Hc。 */
+  /** 容器高 Hc（单源：优先用 Index 传入值）。 */
   private hc(): number {
+    if (this.hcVp > 0) {
+      return this.hcVp;
+    }
     return (this.stageWidth + this.maxTravelVp) / 7.14;
   }
 

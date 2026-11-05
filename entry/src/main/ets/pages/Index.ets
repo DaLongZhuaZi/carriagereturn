@@ -834,8 +834,11 @@ struct Index {
                 knobAngleDeg: this.knobAngle,
                 carriageOffsetVp: this.carriageOffsetVp,
                 part: 'roller',
+                hcVp: this.carriageHeight,
                 strikeYVp: 0,
               })
+                // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
+                .offset({ y: this.assemblyHeightVp - this.carriageHeight })
                 .zIndex(1)
             }
 
@@ -849,6 +852,7 @@ struct Index {
                   knobAngleDeg: this.knobAngle,
                   carriageOffsetVp: this.carriageOffsetVp,
                   part: 'metal',
+                  hcVp: this.carriageHeight,
                   strikeYVp: (this.stageWidth + this.maxTravelVp) / 7.14 / 2
                     - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
                 })
