@@ -750,6 +750,19 @@ struct Index {
 
   private commitChar(ch: string): void {
     this.hintText = '';
+    // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
+    //    raw > limit 与 clampedStrikeXVp 同一判据
+    const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
+    const nextRaw: number = paperLeft + findPaper(this.paperKind).marginH
+      + this.currentLineWidthVp() + this.charWidthVp(ch);
+    const limit: number = paperLeft + this.paperWidthVp - this.carriageHeight * 0.92 / 2;
+    if (nextRaw > limit && this.docModel.getCursor().offset > 0) {
+      hilog.info(DOMAIN, TAG,
+        'autoWrap by position offset=%{public}s strikeX=%{public}s nextRaw=%{public}s limit=%{public}s',
+        this.carriageOffsetVp.toFixed(2), this.clampedStrikeXVp().toFixed(2),
+        nextRaw.toFixed(2), limit.toFixed(2));
+      this.onNewline();
+    }
     const outcome = this.docModel.insertText(ch, this.charsPerLine());
     this.syncRows();
     this.animateGuide();
@@ -772,7 +785,7 @@ struct Index {
       this.audioService.playBell();
     }
     // 行满自动换行：同样走换行回位，不许让字车条停在行末位置开始下一行
-    if (this.docModel.getCursor().offset >= this.charsPerLineNum) {
+    if (this.docModel.getCursor().offset >= this.charsPerLine()) {
       this.onNewline();
     }
   }
