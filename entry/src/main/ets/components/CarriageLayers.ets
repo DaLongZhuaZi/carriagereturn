@@ -110,9 +110,7 @@ export struct CarriageLayers {
         this.part, this.hc().toFixed(1), this.paperWidthVp.toFixed(1),
         this.paperLeftVp.toFixed(1), this.strikeXVp.toFixed(1));
     })
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]],
-    })
+    // 根 Stack 不许铺整块不透明深底：金属件（zIndex 3）在纸之上，
+    // 该深底会盖住纸的下半截（实测纸从 103.5vp 缩到 77.3vp）。各件均为独立 Image，无需底色。
   }
 }
