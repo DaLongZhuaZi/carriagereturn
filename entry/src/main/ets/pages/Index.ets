@@ -1162,6 +1162,8 @@ struct Index {
             // 纸与字同一刚体：容器 x 带 O，纸内不再重复 translate(O)
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
             .clip(true)
+            // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
+            .zIndex(2)
           }
           .width('100%')
           .height(this.availableHeightVp)
