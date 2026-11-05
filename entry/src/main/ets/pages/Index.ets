@@ -834,6 +834,41 @@ struct Index {
                 .zIndex(9)
             }
 
+            // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
+            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+              CarriageLayers({
+                stageWidth: this.photoW(),
+                maxTravelVp: this.maxTravelVp,
+                joltYVp: this.joltYVp,
+                knobAngleDeg: this.knobAngle,
+                carriageOffsetVp: this.carriageOffsetVp,
+                part: 'roller',
+                strikeYVp: 0,
+              })
+                .zIndex(1)
+            }
+
+            // ---- 压纸卷 + 中央件 + 旋钮（纸前）：包在 Stack 里，zIndex 3 盖在纸上 ----
+            Stack({ alignContent: Alignment.TopStart }) {
+              if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+                CarriageLayers({
+                  stageWidth: this.photoW(),
+                  maxTravelVp: this.maxTravelVp,
+                  joltYVp: this.joltYVp,
+                  knobAngleDeg: this.knobAngle,
+                  carriageOffsetVp: this.carriageOffsetVp,
+                  part: 'metal',
+                  strikeYVp: (this.stageWidth + this.maxTravelVp) / 7.14 / 2
+                    - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
+                })
+                  .offset({ y: this.paperHeightVp - (this.stageWidth + this.maxTravelVp) / 7.14 / 2 })
+              }
+            }
+            .width('100%')
+            .height('100%')
+            .hitTestBehavior(HitTestMode.Transparent)
+            .zIndex(3)
+
             // 页码轨锚定纸片：与纸片同高、同底
             Stack({ alignContent: Alignment.TopEnd }) {
               PaperStage({
@@ -870,26 +905,22 @@ struct Index {
               .padding({ right: 2, top: 6 })
               .hitTestBehavior(HitTestMode.Transparent)
             }
+
             .width('100%')
             .height(this.paperHeightVp)
             .offset({ y: 0 })
+            .margin({ bottom: (this.stageWidth + this.maxTravelVp) / 7.14 / 2 })
           }
           .width('100%')
           .layoutWeight(1)
-          .clip(true)
+          .clip(false)
         }
         .width('100%')
         .layoutWeight(1)
 
         if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
-          CarriageLayers({
-            stageWidth: this.photoW(),
-            maxTravelVp: this.maxTravelVp, // = 可用行宽，画布宽 = 舞台宽 + 行宽
-            joltYVp: this.joltYVp,
-            knobAngleDeg: this.knobAngle,
-            carriageOffsetVp: this.carriageOffsetVp,
-          })
-            .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
+          // 1920s 的滚筒/中央件已在总成 Stack 内渲染；此处只占位保持纵向构成高度
+          Column().width('100%').height(this.carriageHeight)
         } else {
           CarriageStrip({
             machineKind: this.machineKind,

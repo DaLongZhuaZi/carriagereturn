@@ -29,6 +29,10 @@ export struct CarriageLayers {
   @Prop joltYVp: number = 0;
   /** 旋钮累计转角（度）：走纸期间线性增加、不回零；打字时只平移不转。 */
   @Prop knobAngleDeg: number = 0;
+  /** 渲染部位：'roller' 只画滚筒（在纸后）；'metal' 只画压纸卷+中央件+旋钮（在纸前）。 */
+  @Prop part: string = 'roller';
+  /** 中央件窗中心的目标 y（相对本组件顶，vp）；'metal' 时按它反推中央件顶。 */
+  @Prop strikeYVp: number = -1;
 
   /** 容器高 Hc。 */
   private hc(): number {
@@ -46,51 +50,57 @@ export struct CarriageLayers {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // ---- 滚筒 / 压纸卷 / 左手把，三件在宽画布内同进同退，由父级 clip 裁到舞台宽 ----
-      Stack({ alignContent: Alignment.TopStart }) {
+      // ---- 滚筒（纸后，仅 part='roller'）----
+      if (this.part === 'roller') {
+        Stack({ alignContent: Alignment.TopStart }) {
         // 滚筒：不透明 JPG，7.14 容器上 Cover = 纵向居中裁掉上下各 27px，不拉伸、不走 alpha
         Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
           .width(this.canvasW())
           .height(this.hc())
           .objectFit(ImageFit.Cover)
 
-        // 压纸卷：杆在上、两辊在下压滚筒上部；顶对齐容器顶
+        }
+        .width(this.canvasW())
+        .height(this.hc())
+        .clip(true)
+        .translate({ x: this.carriageOffsetVp })
+      }
+
+      // ---- 压纸卷 + 中央件 + 旋钮（纸前，仅 part='metal'）----
+      if (this.part === 'metal') {
+        // 压纸卷：辊子落在纸面上（打击行上方 4vp），x 随 O
         Image($rawfile('layers/1920s-upright/paper-bail.png'))
           .width(this.canvasW())
           .height(this.canvasW() / 15.32)
-          .objectFit(ImageFit.Contain)
-          .position({ x: 0, y: 0 })
+          .objectFit(ImageFit.Fill)
+          .position({ x: this.carriageOffsetVp, y: this.strikeYVp - 4 - this.canvasW() / 15.32 })
 
-        // 左旋钮
+        // 中央件：窗中心落在打击行，向上伸进纸面
+        Image($rawfile('layers/1920s-upright/central-guide.png'))
+          .width(this.hc() * 1.5 * 0.848)
+          .height(this.hc() * 1.5)
+          .objectFit(ImageFit.Contain)
+          .position({
+            x: this.canvasW() / 2 - this.hc() * 1.5 * 0.848 / 2 + this.carriageOffsetVp,
+            y: this.strikeYVp - this.hc() * 1.5 * 0.550,
+          })
+
+        // 左旋钮（y 与滚筒中心同高，x = 滚筒端 + O）
         Image($rawfile('layers/1920s-upright/knob.png'))
           .width(this.hc() * 0.92)
           .height(this.hc() * 0.92)
           .objectFit(ImageFit.Contain)
-          .position({ x: 0, y: (this.hc() - this.hc() * 0.92) / 2 })
+          .position({ x: 0 + this.carriageOffsetVp, y: (this.hc() - this.hc() * 0.92) / 2 })
           .rotate({ angle: this.knobAngleDeg })
 
-        // 右旋钮（同一张复用）
+        // 右旋钮
         Image($rawfile('layers/1920s-upright/knob.png'))
           .width(this.hc() * 0.92)
           .height(this.hc() * 0.92)
           .objectFit(ImageFit.Contain)
-          .position({ x: this.canvasW() - this.hc() * 0.92, y: (this.hc() - this.hc() * 0.92) / 2 })
+          .position({ x: this.canvasW() - this.hc() * 0.92 + this.carriageOffsetVp, y: (this.hc() - this.hc() * 0.92) / 2 })
           .rotate({ angle: this.knobAngleDeg })
       }
-      .width(this.canvasW())
-      .height(this.hc())
-      .clip(true)
-      .translate({ x: this.carriageOffsetVp })
-
-      // ---- 中央件：缩进字车区（高 = Hc，不再 ×1.5），顶 y = 字车容器顶，不进纸面 ----
-      Image($rawfile('layers/1920s-upright/central-guide.png'))
-        .width(this.hc() * 0.848)
-        .height(this.hc())
-        .objectFit(ImageFit.Contain)
-        .position({
-          x: this.canvasW() / 2 - this.hc() * 0.848 / 2 + this.carriageOffsetVp,
-          y: 0,
-        })
 
       // ---- 缝隙小三角（8vp 缝隙内）：尖朝上顶纸底缘，底座落字车顶缘，屏 x 恒为舞台中心 ----
       Path()
