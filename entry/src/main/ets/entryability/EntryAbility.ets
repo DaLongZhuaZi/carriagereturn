@@ -54,7 +54,7 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     // 注册 Courier Prime（此前全仓无一处 registerFont，纸面 Text 回落系统比例字体）
     try {
-      font.registerFont({ familyName: 'CourierPrime', familySrc: $rawfile('font/CourierPrime-Regular.ttf') });
+      font.registerFont({ familyName: 'CourierPrime', familySrc: '/font/CourierPrime-Regular.ttf' });
       hilog.info(DOMAIN, TAG, 'registerFont CourierPrime ok');
     } catch (e) {
       hilog.error(DOMAIN, TAG, 'registerFont failed');

@@ -713,6 +713,16 @@ struct Index {
     this.syncRows();
     this.animateGuide();
     this.stepCarriageLeft();
+    try {
+      const px: number = this.getUIContext().getMeasureUtils().measureText({
+        textContent: this.currentLineText(),
+        fontSize: this.fontSizeVp,
+        fontFamily: this.fontFamily,
+      });
+      this.lineWidthMeasuredVp = this.getUIContext().px2vp(px);
+    } catch (e) {
+      // 量宽失败保留旧值
+    }
     hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s lineW=%{public}s strikeX=%{public}s',
       this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2), this.strikeLineVp.toFixed(2));
     this.scheduleSave();
