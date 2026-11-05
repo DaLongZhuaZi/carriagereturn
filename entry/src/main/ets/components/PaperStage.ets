@@ -7,7 +7,7 @@
  * - 纸片高 = 初始 96 + 行数 × 行高（未满幅）；满幅后高度不变，内容整体上移（creep）。
  * - 由此推出：当前打击行永远落在「纸片底缘 − 底边距 20vp」上方，无需单独推位置。
  *
- * 纸面不画光标：打击点由字车条上固定的竖向导件指示（件3，2026-11-04 定）。
+ * 模型 B（2026-11-05）：纸高按屏高百分比三态生长；光标为墨色小三角，尖朝下悬在下一字上方。
  * 纸面区上部空出的部分是深底渐变背景（由 Index 铺），本组件只管纸片本身。
  */
 
@@ -157,7 +157,7 @@ export struct PaperStage {
           .height(6)
           .commands('M0 0 L8 0 L4 6 Z')
           .fill(this.inkColor)
-          .position({ x: this.cursorXVp, y: this.cursorYVp })
+          .position({ x: this.cursorXVp, y: this.cursorYVp >= 0 ? this.cursorYVp : 0 })
           .hitTestBehavior(HitTestMode.None)
       }
 
@@ -170,7 +170,6 @@ export struct PaperStage {
     }
     .width('100%')
     .height(this.paperHeightVp)
-    .clip(true)
     .translate({ x: this.offsetXVp })
     .onAreaChange((oldA: Area, newA: Area) => {
       // 取证：纸片 rect + 纸底 y + 纸片高（与 Keybed / CarriageLayers 同一次运行）

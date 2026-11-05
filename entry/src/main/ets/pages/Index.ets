@@ -77,6 +77,10 @@ struct Index {
   @State assemblyHeightVp: number = 0;
   /** 模型 B：纸顶 / 落字行 / 字车条 三处 y（相对总成 Stack 顶，vp）。 */
   @State paperTopVp: number = 0;
+  @State contentTopVp: number = 44;
+  @State stackTopGlobalYVp: number = 0;
+  /** H 冻结值（首次稳定测到的可用高）。 */
+  private frozenHVp: number = 0;
   @State strikeLineVp: number = 0;
   @State carriageTopVp: number = 0;
   /** 换行计数：驱动 LeverLayer 摆动。 */
@@ -279,6 +283,7 @@ struct Index {
       this.recalcTravel();
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
+      this.paperWidthVp = 0.82 * stageW;
       this.carriageHeight = this.paperWidthVp * 0.17;
       this.maxTravelVp = Math.min(64, this.paperWidthVp * 0.25);
       this.recalcTravel();
@@ -510,25 +515,37 @@ struct Index {
    *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
    */
   private recalcPaperHeight(): void {
-    // f1a52f1 口径：y 一律相对总成 Stack 顶，不再减 bodyTop
-    const H: number = this.availableHeightVp > 0 ? this.availableHeightVp : this.regionHeightVp;
+    // H 冻结：只用首次稳定测到的 availableHeightVp，不每轮重读 live inset
+    if (this.frozenHVp <= 0 && this.availableHeightVp > 0) {
+      this.frozenHVp = this.availableHeightVp;
+    }
+    const H: number = this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp;
     const rows: number = this.docModel.getLines().length;
     const step: number = 0.0283 * H;
-    let top: number = 0.25 * H - (rows - 1) * step;
-    if (top < 0.10 * H) {
-      top = 0.10 * H;
+    // 模型 B 百分比作用在**打击行**上（28% → … → 47%），纸顶由打击行反推
+    let strikePct: number = 0.28 + (rows - 1) * 0.0283;
+    if (strikePct > 0.47) {
+      strikePct = 0.47;
     }
     this.carriageTopVp = 0.56 * H;
+    this.strikeLineVp = strikePct * H;
+    // 打击行相对纸顶 = contentTop(44) + (行−1)×lineHeight + lineHeight/2
+    const rel: number = 44 + (rows - 1) * this.lineHeightVp + this.lineHeightVp / 2;
+    let top: number = this.strikeLineVp - rel;
+    if (top < 0.10 * H) {
+      top = 0.10 * H;
+      this.strikeLineVp = top + rel;
+    }
     this.paperTopVp = top;
-    this.strikeLineVp = top + 0.03 * H + (rows - 1) * step;
     this.paperHeightVp = this.carriageTopVp - this.paperTopVp;
+    this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
-    this.paperWidthVp = 370;
     this.carriageHeight = this.paperWidthVp * 0.17;
     hilog.info(DOMAIN, TAG,
-      'modelB rows=%{public}s top=%{public}s strike=%{public}s carr=%{public}s pw=%{public}s',
+      'modelB rows=%{public}s top=%{public}s strike=%{public}s carr=%{public}s pw=%{public}s H=%{public}s inset=%{public}s stackTop=%{public}s',
       rows.toString(), this.paperTopVp.toFixed(1), this.strikeLineVp.toFixed(1),
-      this.carriageTopVp.toFixed(1), this.paperWidthVp.toFixed(1));
+      this.carriageTopVp.toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
+      this.topInset.toFixed(1), this.stackTopGlobalYVp.toFixed(1));
     return;
     const lineCount: number = this.docModel.getLines().length;
     const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
@@ -866,8 +883,8 @@ struct Index {
                 // 杆头落在打击行（纸底 − 底边距 − 行高/2），不是纸底缘
                 // 层内杆尖 y = 0.115×H（H=stageWidth），故 offsetY = strikeY − 0.115×H
                 // 总成坐标系：层底对齐 Stack 底，杆尖 0.115×H；offsetY 使杆尖落在打击行
-                offsetYVp: 0.885 * this.stageWidth - this.carriageHeight / 2
-                  - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
+                // 杆尖 y = strikeLineVp：层内杆尖在 0.115×层高处
+                offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
                 onArrive: (): void => {
                   this.onStrikeArrive();
                 },
@@ -890,7 +907,8 @@ struct Index {
                 strikeYVp: 0,
               })
                 // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
-                .offset({ y: this.carriageTopVp })
+                // 滚筒锚点钉死：offset y = carriageTopVp − Hc/2（纸底 = carriageTopVp + Hc/2）
+                .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
                 .zIndex(1)
             }
 
@@ -916,10 +934,11 @@ struct Index {
                 LeverLayer({
                   layerSizeVp: this.carriageHeight * 2.5 * 0.212,
                   newlineTick: this.newlineTick,
-                  // 拨杆支点 x = 纸屏左 + Pw − 层宽/2
+                  // 拨杆：支点 x = 纸右缘 + O，支点 y = carriageTopVp + Hc/2（栈顶坐标）
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
                     + this.paperWidthVp - this.carriageHeight * 2.5 * 0.212 / 2,
-                  offsetYVp: this.carriageHeight / 2 - (this.stageWidth * 0.16 / (536 / 2522)) * 0.952,
+                  offsetYVp: this.carriageTopVp + this.carriageHeight / 2
+                    - (this.carriageHeight * 2.5 * 0.212 / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
@@ -953,7 +972,9 @@ struct Index {
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
                 offsetXVp: this.carriageOffsetVp,
                 cursorXVp: findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
-                cursorYVp: this.strikeLineVp - this.paperTopVp - this.lineHeightVp,
+                // 三角 y = 打击行（相对纸顶）− 8vp，且 ≥0
+                cursorYVp: Math.max(0, 44 + (this.docModel.getLines().length - 1) * this.lineHeightVp
+                  + this.lineHeightVp / 2 - 8),
                 cursorVisible: true,
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
@@ -979,6 +1000,7 @@ struct Index {
           .height(this.availableHeightVp)
           .clip(false)
           .onAreaChange((oldA: Area, newA: Area) => {
+            this.stackTopGlobalYVp = newA.globalPosition.y as number;
             const ht: number = newA.height as number;
             if (Math.abs(ht - this.assemblyHeightVp) >= 1) {
               this.assemblyHeightVp = ht;
