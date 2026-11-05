@@ -87,6 +87,9 @@ struct Index {
   @State carriageTopVp: number = 0;
   /** 换行计数：驱动 LeverLayer 摆动。 */
   @State newlineTick: number = 0;
+  /** 实测单字 advance（vp）：隐藏 Text 量宽得到，中英分开。 */
+  @State advEngVp: number = 0;
+  @State advCjkVp: number = 0;
   private audioService: AudioService = new AudioService();
   private pendingChars: string[] = [];
   private bellRungLines: Set<number> = new Set<number>();
@@ -269,6 +272,7 @@ struct Index {
         fs = 24;
       }
       this.fontSizeVp = fs;
+      this.measureAdvance();
       // 行高：中文 fs×30/17、英文 fs×28/17（随语言切换同步）
       this.lineHeightVp = this.langZh ? fs * (30 / 17) : fs * (28 / 17);
 
@@ -319,7 +323,7 @@ struct Index {
    */
   private recalcTravel(): void {
     const usable: number = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
-    const perLine: number = Math.floor(usable / (this.fontSizeVp * 0.6));
+    const perLine: number = Math.floor(usable / (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp));
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
     // 物理模型：最大行程 = 可用行宽（舞台宽 − 2×28vp），不许再写回 min(×0.35,180)
     // 小幅纸移动：最大行程 = min(64vp, 纸宽×0.25)
@@ -560,9 +564,28 @@ struct Index {
 
   // ---------------- 击打链 ----------------
 
+  /** 实测单字 advance（MeasureUtils，px→vp）：字号或字体变时重测。 */
+  private measureAdvance(): void {
+    try {
+      const mu = this.getUIContext().getMeasureUtils();
+      const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      this.advEngVp = this.getUIContext().px2vp(ePx);
+      this.advCjkVp = this.getUIContext().px2vp(cPx);
+      hilog.info(DOMAIN, TAG, 'advance eng=%{public}s cjk=%{public}s fs=%{public}s',
+        this.advEngVp.toFixed(2), this.advCjkVp.toFixed(2), this.fontSizeVp.toFixed(2));
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'measureAdvance failed');
+    }
+  }
+
+  /** 字宽一律用实测 advance；未测到前退回字号（不作长期口径）。 */
   private charWidthVp(ch: string): number {
     const code: number = ch.length > 0 ? ch.charCodeAt(0) : 65;
-    return code > 127 ? this.fontSizeVp : this.fontSizeVp * 0.6;
+    if (code > 127) {
+      return this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp;
+    }
+    return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
   }
 
   private currentLineWidthVp(): number {
@@ -579,7 +602,7 @@ struct Index {
   private charsPerLine(): number {
     // 可用行宽 = 纸宽 − 2×28vp（不用舞台宽）
     const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
-    const n: number = Math.floor(usable / (this.fontSizeVp * 0.6));
+    const n: number = Math.floor(usable / (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp));
     return n > 6 ? n : 6;
   }
 
@@ -738,6 +761,8 @@ struct Index {
   }
 
   private onNewline(): void {
+    // 拨杆由 newlineTick 驱动（手动/自动换行都走这里）
+    this.newlineTick = this.newlineTick + 1;
     this.hintText = '';
     this.docModel.newline();
     this.syncRows();
@@ -918,6 +943,9 @@ struct Index {
                     - (this.carriageHeight * 2.5 * 0.212 / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
+                  },
+                  onLeverTap: (): void => {
+                    this.onNewline();
                   },
                 })
               }

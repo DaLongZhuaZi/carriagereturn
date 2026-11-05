@@ -28,6 +28,8 @@ export struct LeverLayer {
 
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
   onSwingStart: () => void = (): void => {};
+  /** 点拨杆 = 换行一次（与底部换行键同义）。 */
+  onLeverTap: () => void = (): void => {};
 
   onTickChanged(): void {
     if (this.newlineTick === this.lastTick) {
@@ -47,6 +49,9 @@ export struct LeverLayer {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Image($rawfile('layers/1920s-upright/lever.png'))
+        .onClick(() => {
+          this.onLeverTap();
+        })
         .width(this.layerSizeVp)
         .height(this.layerSizeVp / LEVER_ASPECT)
         .objectFit(ImageFit.Fill)
@@ -59,6 +64,5 @@ export struct LeverLayer {
     }
     .width('100%')
     .height('100%')
-    .hitTestBehavior(HitTestMode.Transparent)
   }
 }
