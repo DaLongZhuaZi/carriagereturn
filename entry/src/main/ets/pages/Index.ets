@@ -288,13 +288,15 @@ struct Index {
         - this.fontBarHeight - this.keybedHeight - this.functionRowHeight;
       this.regionHeightVp = region > 120 ? region : 120;
 
-      // 字号 = (可用宽 − 56) / 30，钳制 17–24
-      let fs: number = (availW - 56) / 30;
+      // ③字号保 DPI：目标物理 57px（= 手机 17vp×3.375）÷ vp2px
+      //    平板 vp2px=2.375 → 24vp；手机 3.375 → 16.9 钳到 17（与改前一致）
+      const pxPerVp0: number = this.getUIContext().vp2px(1);
+      let fs: number = 57 / (pxPerVp0 > 0 ? pxPerVp0 : 3.375);
       if (fs < 17) {
         fs = 17;
       }
-      if (fs > 24) {
-        fs = 24;
+      if (fs > 26) {
+        fs = 26;
       }
       this.fontSizeVp = fs;
       this.measureAdvance();
@@ -314,7 +316,8 @@ struct Index {
       this.recalcTravel();
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
-      this.paperWidthVp = 0.82 * this.geoWidthVp();
+      // ①纸宽：平板 0.72×stageWidth（MLR 485vp / 72%），手机维持 0.82×stageWidth
+      this.paperWidthVp = (this.isTablet ? 0.72 : 0.82) * this.stageWidth;
       // ①零件尺寸加顶：Hc 取 min(Pw×0.17, 纸带高×0.67)，使 Hg=1.5Hc 不超纸带、
     // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
     // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。
@@ -561,7 +564,9 @@ struct Index {
     // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
     this.paperHeightVp = this.paperWidthVp * 1.414;
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
-    this.paperTopTargetVp = this.carriageTopVp - 92 - (rows - 1) * this.lineHeightVp;
+    // 纸带基数随字号同步变：20（底边距）+ 行高 + 44（内容顶）
+    const paperBandBase: number = 20 + this.lineHeightVp + 44;
+    this.paperTopTargetVp = this.carriageTopVp - paperBandBase - (rows - 1) * this.lineHeightVp;
     // 纸片容器高 = 纸顶到滚筒
     this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp;
     if (this.paperAnimateNext) {
@@ -577,17 +582,21 @@ struct Index {
     }
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
-    // ①零件尺寸加顶：Hc = min(Pw×0.17, 纸带高×0.67)
-    // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92=61.6 顶住
-    this.carriageHeight = this.paperWidthVp * 0.17;
-    const lf: number = this.isTablet ? 2.0 : 2.5;
+    // ④Hc 加顶：min(Pw×0.17, 由「中央件顶 ≥ 纸顶」反推的上限)
+    //    中央件顶 = strikeLine − 1.5Hc×0.55，令其 ≥ 纸顶 → Hc ≤ (strikeLine − 纸顶)/0.825
+    const hcByPw: number = this.paperWidthVp * 0.17;
+    const hcByCeil: number = (this.strikeLineVp - this.paperTopTargetVp) / 0.825;
+    this.carriageHeight = hcByPw < hcByCeil ? hcByPw : hcByCeil;
+    // 拨杆高 = 支点 − 纸顶（平板 1.84×Hc 使顶端与纸顶齐平），手机维持 2.5
+    const lf: number = this.isTablet ? 1.84 : 2.5;
     const leverHActual: number = this.carriageHeight * lf;
     const leverPivotY: number = this.carriageTopVp + this.carriageHeight / 2;
     hilog.info(DOMAIN, TAG, 'leverH actual=%{public}s pivotY=%{public}s topY=%{public}s paperTop=%{public}s',
       leverHActual.toFixed(1), leverPivotY.toFixed(1), (leverPivotY - leverHActual).toFixed(1), this.paperTopVp.toFixed(1));
     hilog.info(DOMAIN, TAG,
-      'parts stageW=%{public}s geoW=%{public}s Pw=%{public}s H=%{public}s carrTop=%{public}s paperTop=%{public}s paperBox=%{public}s Hc=%{public}s Hg=%{public}s knobD=%{public}s leverH=%{public}s typebarH=%{public}s keybedH=%{public}s',
-      this.stageWidth.toFixed(1), this.geoWidthVp().toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
+      'parts stageW=%{public}s geoW=%{public}s fs=%{public}s lh=%{public}s Pw=%{public}s H=%{public}s carrTop=%{public}s paperTop=%{public}s paperBox=%{public}s Hc=%{public}s Hg=%{public}s knobD=%{public}s leverH=%{public}s typebarH=%{public}s keybedH=%{public}s',
+      this.stageWidth.toFixed(1), this.geoWidthVp().toFixed(1),
+      this.fontSizeVp.toFixed(2), this.lineHeightVp.toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
       this.carriageTopVp.toFixed(1), this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1),
       this.carriageHeight.toFixed(1), (this.carriageHeight * 1.5).toFixed(1),
       (this.carriageHeight * 0.92).toFixed(1), (this.carriageHeight * 2.5).toFixed(1),
@@ -1084,7 +1093,7 @@ struct Index {
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
                 LeverLayer({
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
-                  layerSizeVp: (this.isTablet ? this.carriageHeight * 2.0 : this.carriageHeight * 2.5) * 0.212,
+                  layerSizeVp: (this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212,
                   newlineTick: this.newlineTick,
                   // 拨杆：支点 x = 纸右缘 + O，支点 y = carriageTopVp + Hc/2（栈顶坐标）
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
