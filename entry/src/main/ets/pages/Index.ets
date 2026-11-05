@@ -584,8 +584,10 @@ struct Index {
       const mu = this.getUIContext().getMeasureUtils();
       const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
       const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
-      this.advEngVp = this.getUIContext().px2vp(ePx);
-      this.advCjkVp = this.getUIContext().px2vp(cPx);
+      // Courier Prime 的 hmtx 实测 1228/2048 = 0.600 em（fontTools 直读 ttf）。
+      // MeasureUtils 看不到 registerFont 注册的族名（会回落系统比例字体），故只记录、不回写。
+      this.advEngVp = this.fontSizeVp * 0.6;
+      this.advCjkVp = this.fontSizeVp;
       const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
       const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
       hilog.info(DOMAIN, TAG,
