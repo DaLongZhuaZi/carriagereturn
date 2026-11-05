@@ -79,6 +79,9 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
+  @State paperTopTargetVp: number = 0;
+  @State paperContainerTargetVp: number = 0;
+  private paperAnimateNext: boolean = false;
   @State contentTopVp: number = 44;
   @State stackTopGlobalYVp: number = 0;
   /** H 冻结值（首次稳定测到的可用高）。 */
@@ -390,15 +393,15 @@ struct Index {
   private resetCarriage(): void {
     // 快速回位：200ms fast-out，末端 2vp 叩击回弹（不用 250ms 弹簧）
     const start: number = this.carriageOffsetVp;
-    this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+    this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
       this.carriageOffsetVp = 0;
       this.joltYVp = 2;
     });
-    this.getUIContext().animateTo({ duration: 60, delay: 200, curve: Curve.FastOutSlowIn }, () => {
+    this.getUIContext().animateTo({ duration: 60, delay: 250, curve: Curve.FastOutSlowIn }, () => {
       this.joltYVp = 0;
     });
     // 旋钮走纸期间累计转 21°/行，线性、不回零
-    this.getUIContext().animateTo({ duration: 200, curve: Curve.Linear }, () => {
+    this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
       this.knobAngle = this.knobAngle + 21;
     });
     void start;
@@ -547,9 +550,20 @@ struct Index {
     // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
     this.paperHeightVp = this.paperWidthVp * 1.414;
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
-    this.paperTopVp = this.carriageTopVp - 92 - (rows - 1) * this.lineHeightVp;
+    this.paperTopTargetVp = this.carriageTopVp - 92 - (rows - 1) * this.lineHeightVp;
     // 纸片容器高 = 纸顶到滚筒
-    this.paperContainerVp = this.carriageTopVp - this.paperTopVp;
+    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp;
+    if (this.paperAnimateNext) {
+      // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
+      this.paperAnimateNext = false;
+      this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+        this.paperTopVp = this.paperTopTargetVp;
+        this.paperContainerVp = this.paperContainerTargetVp;
+      });
+    } else {
+      this.paperTopVp = this.paperTopTargetVp;
+      this.paperContainerVp = this.paperContainerTargetVp;
+    }
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
     this.carriageHeight = this.paperWidthVp * 0.17;
@@ -572,8 +586,8 @@ struct Index {
 
   /** 换行与行数变化一律走 recalcPaperHeight（纸高不再增长，只动纸顶）。 */
   private animatePaperHeight(): void {
+    this.paperAnimateNext = true;
     this.recalcPaperHeight();
-    return;
   }
 
   // ---------------- 击打链 ----------------
@@ -805,16 +819,25 @@ struct Index {
   }
 
   private onNewline(): void {
-    // 拨杆由 newlineTick 驱动（手动/自动换行都走这里）
+    // 三段编排：t=0 拨杆摆出 + 纸上滑 → t≈200 字车回位 250ms → t≈450 叮声（与到达同帧）
     this.newlineTick = this.newlineTick + 1;
     this.hintText = '';
     this.docModel.newline();
     this.syncRows();
     this.animatePaperHeight();
-    this.audioService.playCarriageReset();
-    this.audioService.vibrate();
     this.scheduleSave();
-    this.resetCarriageAndGuide();
+    const t0: number = 200;
+    setTimeout(() => {
+      this.resetCarriageAndGuide();
+    }, t0);
+    setTimeout(() => {
+      // 字车 250ms 回位结束同帧：叮声 + 振动
+      this.audioService.playCarriageReset();
+      this.audioService.vibrate();
+      hilog.info(DOMAIN, TAG, 'newline choreo bell at %{public}sms offset=%{public}s paperTop=%{public}s tick=%{public}s',
+        (t0 + 250).toString(), this.carriageOffsetVp.toFixed(2),
+        this.paperTopVp.toFixed(1), this.newlineTick.toString());
+    }, t0 + 250);
   }
 
   /** 换行回位（§2.1）：字车条一次性跳回 0 + 导件回左缘，250ms 弹簧，与叮声同步。 */
