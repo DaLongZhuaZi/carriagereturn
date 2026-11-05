@@ -580,6 +580,11 @@ struct Index {
     // ①零件尺寸加顶：Hc = min(Pw×0.17, 纸带高×0.67)
     // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92=61.6 顶住
     this.carriageHeight = this.paperWidthVp * 0.17;
+    const lf: number = this.isTablet ? 2.0 : 2.5;
+    const leverHActual: number = this.carriageHeight * lf;
+    const leverPivotY: number = this.carriageTopVp + this.carriageHeight / 2;
+    hilog.info(DOMAIN, TAG, 'leverH actual=%{public}s pivotY=%{public}s topY=%{public}s paperTop=%{public}s',
+      leverHActual.toFixed(1), leverPivotY.toFixed(1), (leverPivotY - leverHActual).toFixed(1), this.paperTopVp.toFixed(1));
     hilog.info(DOMAIN, TAG,
       'parts stageW=%{public}s geoW=%{public}s Pw=%{public}s H=%{public}s carrTop=%{public}s paperTop=%{public}s paperBox=%{public}s Hc=%{public}s Hg=%{public}s knobD=%{public}s leverH=%{public}s typebarH=%{public}s keybedH=%{public}s',
       this.stageWidth.toFixed(1), this.geoWidthVp().toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
