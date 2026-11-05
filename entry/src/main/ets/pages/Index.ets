@@ -77,6 +77,8 @@ struct Index {
   @State assemblyHeightVp: number = 0;
   /** 模型 B：纸顶 / 落字行 / 字车条 三处 y（相对总成 Stack 顶，vp）。 */
   @State paperTopVp: number = 0;
+  /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
+  @State paperContainerVp: number = 0;
   @State contentTopVp: number = 44;
   @State stackTopGlobalYVp: number = 0;
   /** H 冻结值（首次稳定测到的可用高）。 */
@@ -524,13 +526,12 @@ struct Index {
     this.carriageTopVp = 0.56 * H;
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
     this.strikeLineVp = this.carriageTopVp - 20 - this.lineHeightVp / 2;
-    // 纸底锚在滚筒（= carriageTopVp）；纸高 = 44 + 行数×行高 + 20，上限 regionHeight
-    let ph: number = 44 + rows * this.lineHeightVp + 20;
-    if (ph > this.regionHeightVp) {
-      ph = this.regionHeightVp;
-    }
-    this.paperHeightVp = ph;
-    this.paperTopVp = this.carriageTopVp - ph;
+    // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
+    this.paperHeightVp = this.paperWidthVp * 1.414;
+    // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
+    this.paperTopVp = this.carriageTopVp - 92 - (rows - 1) * this.lineHeightVp;
+    // 纸片容器高 = 纸顶到滚筒
+    this.paperContainerVp = this.carriageTopVp - this.paperTopVp;
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
     this.carriageHeight = this.paperWidthVp * 0.17;
@@ -543,35 +544,18 @@ struct Index {
     const lineCount: number = this.docModel.getLines().length;
     const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
     if (rawHeight <= this.regionHeightVp) {
-      this.paperHeightVp = rawHeight;
-      this.creepOffsetVp = 0;
+
+
     } else {
-      this.paperHeightVp = this.regionHeightVp;
-      this.creepOffsetVp = -(rawHeight - this.regionHeightVp);
+
+
     }
   }
 
+  /** 换行与行数变化一律走 recalcPaperHeight（纸高不再增长，只动纸顶）。 */
   private animatePaperHeight(): void {
-    const lc: number = this.docModel.getLines().length;
-    let target: number = PAPER_INITIAL_HEIGHT_VP + (lc - 1) * this.lineHeightVp;
-    if (target > this.regionHeightVp) {
-      target = this.regionHeightVp;
-    }
-    this.getUIContext().animateTo({ duration: GROW_DURATION_MS, curve: Curve.FastOutSlowIn }, () => {
-      this.paperHeightVp = target;
-    });
+    this.recalcPaperHeight();
     return;
-    const lineCount: number = this.docModel.getLines().length;
-    const rawHeight: number = (this.isTablet ? this.regionHeightVp : PAPER_INITIAL_HEIGHT_VP) + (lineCount - 1) * this.lineHeightVp;
-    const targetHeight: number = rawHeight <= this.regionHeightVp ? rawHeight : this.regionHeightVp;
-    const targetCreep: number = rawHeight <= this.regionHeightVp ? 0 : -(rawHeight - this.regionHeightVp);
-    this.getUIContext().animateTo({
-      duration: GROW_DURATION_MS,
-      curve: curves.springCurve(0, 1, 190, 22),
-    }, () => {
-      this.paperHeightVp = targetHeight;
-      this.creepOffsetVp = targetCreep;
-    });
   }
 
   // ---------------- 击打链 ----------------
@@ -948,7 +932,6 @@ struct Index {
               PaperStage({
                 regionHeightVp: this.regionHeightVp,
                 paperHeightVp: this.paperHeightVp,
-                creepOffsetVp: this.creepOffsetVp,
                 paperKind: this.paperKind,
                 hasHeader: findPaper(this.paperKind).hasHeader,
                 hasRuledGrid: findPaper(this.paperKind).hasRuledGrid,
@@ -973,6 +956,7 @@ struct Index {
 
               })
                 .width('100%')
+                .height(this.paperHeightVp)
 
               Row() {
                 PageRail({ pageNo: 1, pageCount: 1 })
@@ -985,9 +969,11 @@ struct Index {
               .hitTestBehavior(HitTestMode.Transparent)
             }
 
+            // 纸片容器：高 = 纸顶到滚筒，clip(true) 把纸底裁掉，不许在字体条/键盘区露出
             .width(this.paperWidthVp)
-            .height(this.paperHeightVp)
+            .height(this.paperContainerVp)
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2, y: this.paperTopVp })
+            .clip(true)
           }
           .width('100%')
           .height(this.availableHeightVp)
