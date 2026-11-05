@@ -590,6 +590,13 @@ struct Index {
     return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
   }
 
+  /** 当前行文本（供隐藏 Text 实测宽）。 */
+  private currentLineText(): string {
+    const cursor = this.docModel.getCursor();
+    const line = this.docModel.getLines()[cursor.line];
+    return line.text.length > 0 ? line.text : ' ';
+  }
+
   /** 优先用整行渲染实测宽；未测到才退回逐字累加。 */
   private currentLineWidthVp(): number {
     if (this.lineWidthMeasuredVp >= 0) {
@@ -859,6 +866,24 @@ struct Index {
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
+      // 隐藏整行 Text：实测纸面真实渲染宽（三角/打击点/扣子走它）
+      Row() {
+        Text(this.currentLineText())
+          .fontSize(this.fontSizeVp)
+          .fontFamily(this.fontFamily)
+          .opacity(0)
+          .onAreaChange((oldA: Area, newA: Area) => {
+            const w: number = newA.width as number;
+            if (Math.abs(w - this.lineWidthMeasuredVp) >= 0.1) {
+              this.lineWidthMeasuredVp = w;
+              hilog.info(DOMAIN, TAG, 'lineW measured=%{public}s', w.toFixed(2));
+            }
+          })
+      }
+      .width('100%')
+      .height(1)
+      .opacity(0)
+
       // §2.9 内容伸到栏下，用安全区避让
       // 深底背景铺满整屏；舞台居中
       Column()
@@ -981,7 +1006,7 @@ struct Index {
                 inkColor: this.inkColor,
                 pageNo: 1,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
-                offsetXVp: this.carriageOffsetVp,
+                offsetXVp: 0,
                 cursorXVp: findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
                 // 三角 y = 打击行（相对纸顶）− 8vp，且 ≥0
                 // 三角 y = 打击行 − 纸顶 − 8vp，且 ≥0（打击行固定）
@@ -1007,7 +1032,8 @@ struct Index {
             // 纸片容器：高 = 纸顶到滚筒，clip(true) 把纸底裁掉，不许在字体条/键盘区露出
             .width(this.paperWidthVp)
             .height(this.paperContainerVp)
-            .offset({ x: (this.stageWidth - this.paperWidthVp) / 2, y: this.paperTopVp })
+            // 纸与字同一刚体：容器 x 带 O，纸内不再重复 translate(O)
+            .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
             .clip(true)
           }
           .width('100%')

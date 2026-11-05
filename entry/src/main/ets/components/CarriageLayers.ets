@@ -69,7 +69,8 @@ export struct CarriageLayers {
           .objectFit(ImageFit.Fill)
           .position({
             x: this.paperLeftVp - this.knobD(),
-            y: this.strikeYVp - 6 - this.bailW() / 15.32,
+            // 压纸卷贴滚筒轴线：辊子中心 y = Hc/2（= 滚筒中心），横杆在当前行下方
+            y: this.hc() / 2 - this.bailW() / 15.32 / 2,
           })
 
         // 中央件：x = 打击点 − 宽/2
