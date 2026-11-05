@@ -308,7 +308,12 @@ struct Index {
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
       this.paperWidthVp = 0.82 * stageW;
-      this.carriageHeight = this.paperWidthVp * 0.17;
+      // ①零件尺寸加顶：Hc 取 min(Pw×0.17, 纸带高×0.67)，使 Hg=1.5Hc 不超纸带、
+    // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
+    // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。
+    const hcByPw: number = this.paperWidthVp * 0.17;
+    const hcByStrip: number = this.paperContainerTargetVp * 0.62;
+    this.carriageHeight = hcByPw < hcByStrip ? hcByPw : hcByStrip;
       this.maxTravelVp = Math.min(64, this.paperWidthVp * 0.25);
       this.recalcTravel();
       this.recalcPaperHeight();
@@ -567,7 +572,18 @@ struct Index {
     }
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
-    this.carriageHeight = this.paperWidthVp * 0.17;
+    // ①零件尺寸加顶：Hc = min(Pw×0.17, 纸带高×0.67)
+    // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92=61.6 顶住
+    const hcByPw: number = this.paperWidthVp * 0.17;
+    const hcByStrip: number = this.paperContainerTargetVp * 0.62;
+    this.carriageHeight = hcByPw < hcByStrip ? hcByPw : hcByStrip;
+    hilog.info(DOMAIN, TAG,
+      'parts stageW=%{public}s Pw=%{public}s H=%{public}s carrTop=%{public}s paperTop=%{public}s paperBox=%{public}s Hc=%{public}s Hg=%{public}s knobD=%{public}s leverH=%{public}s typebarH=%{public}s keybedH=%{public}s',
+      this.stageWidth.toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
+      this.carriageTopVp.toFixed(1), this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1),
+      this.carriageHeight.toFixed(1), (this.carriageHeight * 1.5).toFixed(1),
+      (this.carriageHeight * 0.92).toFixed(1), (this.carriageHeight * 2.5).toFixed(1),
+      (this.carriageHeight * 2.5).toFixed(1), this.carriageHeight.toFixed(1));
     hilog.info(DOMAIN, TAG,
       'modelB rows=%{public}s top=%{public}s strike=%{public}s carr=%{public}s pw=%{public}s H=%{public}s inset=%{public}s stackTop=%{public}s',
       rows.toString(), this.paperTopVp.toFixed(1), this.strikeLineVp.toFixed(1),
