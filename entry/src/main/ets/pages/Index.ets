@@ -185,6 +185,7 @@ struct Index {
     this.restoreLastDocument();
     this.syncRows();
     // 启动即有 O：按当前行光标重算，不许归 0
+    this.recalcTravel();
     this.recalcOffsetFromCursor();
     this.audioService.preload('pack');
   }
@@ -801,10 +802,14 @@ struct Index {
     for (let i = 0; i < cursor.offset && i < line.text.length; i++) {
       w += this.charWidthVp(line.text.charAt(i));
     }
-    const limit: number = -(this.stageWidth - 2 * findPaper(this.paperKind).marginH);
-    let o: number = -w;
-    if (o < limit) {
-      o = limit;
+    // 载入 O 与打字同口径：O = −travelPerChar × 光标列，钳制到 [−maxTravelVp, 0]
+    // （旧写法用 −(stageWidth−56)=−306.7vp 当限，与打字的 −maxTravelVp=−64vp 差 4.8 倍）
+    let o: number = -this.travelPerChar * cursor.offset;
+    if (o < -this.maxTravelVp) {
+      o = -this.maxTravelVp;
+    }
+    if (o > 0) {
+      o = 0;
     }
     this.carriageOffsetVp = o;
     hilog.info(DOMAIN, TAG,
