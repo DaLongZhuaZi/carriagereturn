@@ -574,8 +574,13 @@ struct Index {
       const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
       this.advEngVp = this.getUIContext().px2vp(ePx);
       this.advCjkVp = this.getUIContext().px2vp(cPx);
-      hilog.info(DOMAIN, TAG, 'advance eng=%{public}s cjk=%{public}s fs=%{public}s',
-        this.advEngVp.toFixed(2), this.advCjkVp.toFixed(2), this.fontSizeVp.toFixed(2));
+      const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      hilog.info(DOMAIN, TAG,
+        'advance eng=%{public}s cjk=%{public}s i=%{public}s m=%{public}s fs=%{public}s mono=%{public}s',
+        this.advEngVp.toFixed(2), this.advCjkVp.toFixed(2),
+        this.getUIContext().px2vp(iPx).toFixed(2), this.getUIContext().px2vp(mPx).toFixed(2),
+        this.fontSizeVp.toFixed(2), Math.abs(iPx - mPx) < 0.5 ? 'true' : 'false');
     } catch (e) {
       hilog.error(DOMAIN, TAG, 'measureAdvance failed');
     }
@@ -708,6 +713,8 @@ struct Index {
     this.syncRows();
     this.animateGuide();
     this.stepCarriageLeft();
+    hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s lineW=%{public}s strikeX=%{public}s',
+      this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2), this.strikeLineVp.toFixed(2));
     this.scheduleSave();
     if (outcome.marginBell) {
       this.audioService.playBell();
