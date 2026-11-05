@@ -154,6 +154,18 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // 字体注册放在页面（UIContext 已就绪）而不是 Ability.onCreate：
+    // 上一轮实测 onCreate 里注册两次都打 ok 但 i/m 仍比例字体
+    try {
+      this.getUIContext().getFont().registerFont({
+        familyName: 'CourierPrime',
+        familySrc: $rawfile('font/CourierPrime-Regular.ttf'),
+      });
+      hilog.info(DOMAIN, TAG, 'registerFont(page) CourierPrime ok');
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'registerFont(page) failed');
+    }
+
     const host = this.getUIContext().getHostContext();
     if (host !== undefined && host !== null) {
       this.audioService.attachContext(host as common.Context);
