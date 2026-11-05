@@ -279,8 +279,6 @@ struct Index {
       this.recalcTravel();
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
-      this.paperWidthVp = this.regionHeightVp / 1.414;
-      this.paperCenterXVp = this.stageWidth / 2;
       this.carriageHeight = this.paperWidthVp * 0.17;
       this.maxTravelVp = Math.min(64, this.paperWidthVp * 0.25);
       this.recalcTravel();
@@ -512,19 +510,20 @@ struct Index {
    *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
    */
   private recalcPaperHeight(): void {
+    // f1a52f1 口径：y 一律相对总成 Stack 顶，不再减 bodyTop
     const H: number = this.availableHeightVp > 0 ? this.availableHeightVp : this.regionHeightVp;
-    const bodyTop: number = this.topBarHeight + this.paperTopGap;
     const rows: number = this.docModel.getLines().length;
     const step: number = 0.0283 * H;
     let top: number = 0.25 * H - (rows - 1) * step;
     if (top < 0.10 * H) {
       top = 0.10 * H;
     }
-    this.carriageTopVp = 0.56 * H - bodyTop;
-    this.paperTopVp = top - bodyTop;
-    this.strikeLineVp = top - bodyTop + 0.03 * H + (rows - 1) * step;
+    this.carriageTopVp = 0.56 * H;
+    this.paperTopVp = top;
+    this.strikeLineVp = top + 0.03 * H + (rows - 1) * step;
     this.paperHeightVp = this.carriageTopVp - this.paperTopVp;
-    this.paperWidthVp = this.paperHeightVp / 1.414;
+    // Pw 单源固定值（唯一写 Pw 的地方）
+    this.paperWidthVp = 370;
     this.carriageHeight = this.paperWidthVp * 0.17;
     hilog.info(DOMAIN, TAG,
       'modelB rows=%{public}s top=%{public}s strike=%{public}s carr=%{public}s pw=%{public}s',
@@ -853,7 +852,7 @@ struct Index {
         Column() {
           Column().width('100%').height(this.paperTopGap)
 
-          Stack({ alignContent: Alignment.Bottom }) {
+          Stack({ alignContent: Alignment.TopStart }) {
             // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
             if (this.machineKind === MachineKind.UPRIGHT_1920S) {
               TypebarLayer({
@@ -975,10 +974,9 @@ struct Index {
             .width(this.paperWidthVp)
             .height(this.paperHeightVp)
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2, y: this.paperTopVp })
-            .margin({ bottom: this.carriageHeight / 2 })
           }
           .width('100%')
-          .height(this.regionHeightVp + this.carriageHeight)
+          .height(this.availableHeightVp)
           .clip(false)
           .onAreaChange((oldA: Area, newA: Area) => {
             const ht: number = newA.height as number;
