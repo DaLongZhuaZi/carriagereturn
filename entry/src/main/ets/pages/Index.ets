@@ -73,6 +73,8 @@ struct Index {
   @State commitSeq: number = 0;
   /** 旋钮累计转角（度，走纸期间线性增加，不回零）。 */
   @State knobAngle: number = 0;
+  /** 总成 Stack 实测高度 Ht（vp）：不用 paperHeightVp 冒充。 */
+  @State assemblyHeightVp: number = 0;
   /** 换行计数：驱动 LeverLayer 摆动。 */
   @State newlineTick: number = 0;
   private audioService: AudioService = new AudioService();
@@ -267,6 +269,8 @@ struct Index {
 
       // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
+      // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
+      this.carriageHeight = (this.photoW() + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
 
       // —— measureStage 末尾同步重算依赖项（回归修复）——
       // stageWidth / keybedHeight 变化 ≥1vp → 键位表按新宽重算（否则叠字停在旧坐标）
@@ -811,27 +815,14 @@ struct Index {
                 offsetXVp: this.guideXVp - this.stageWidth * 0.5,
                 // 杆头落在打击行（纸底 − 底边距 − 行高/2），不是纸底缘
                 // 层内杆尖 y = 0.115×H（H=stageWidth），故 offsetY = strikeY − 0.115×H
-                offsetYVp: this.regionHeightVp - findPaper(this.paperKind).marginBottom
-                  - this.lineHeightVp / 2 - 0.115 * this.stageWidth,
+                // 总成坐标系：层底对齐 Stack 底，杆尖 0.115×H；offsetY 使杆尖落在打击行
+                offsetYVp: 0.885 * this.stageWidth - this.carriageHeight / 2
+                  - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
                 onArrive: (): void => {
                   this.onStrikeArrive();
                 },
               })
                 .zIndex(10)
-            }
-
-            // ---- 拨杆层（1920s）：newlineTick 驱动，换行时摆出 35° ----
-            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-              LeverLayer({
-                layerSizeVp: this.stageWidth * 0.18,
-                newlineTick: this.newlineTick,
-                offsetXVp: this.stageWidth * 0.42,
-                offsetYVp: this.regionHeightVp - this.stageWidth * 0.10,
-                onSwingStart: (): void => {
-                  this.audioService.playCarriageReset();
-                },
-              })
-                .zIndex(9)
             }
 
             // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
@@ -861,7 +852,19 @@ struct Index {
                   strikeYVp: (this.stageWidth + this.maxTravelVp) / 7.14 / 2
                     - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
                 })
-                  .offset({ y: this.paperHeightVp - (this.stageWidth + this.maxTravelVp) / 7.14 / 2 })
+                  // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht
+                  .offset({ y: this.assemblyHeightVp - this.carriageHeight })
+
+                // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
+                LeverLayer({
+                  layerSizeVp: this.stageWidth * 0.16,
+                  newlineTick: this.newlineTick,
+                  offsetXVp: (this.stageWidth + this.maxTravelVp) * 0.94 - this.stageWidth * 0.16 * 0.5 + this.carriageOffsetVp,
+                  offsetYVp: this.carriageHeight / 2 - (this.stageWidth * 0.16 / (536 / 2522)) * 0.952,
+                  onSwingStart: (): void => {
+                    this.audioService.playCarriageReset();
+                  },
+                })
               }
             }
             .width('100%')
@@ -912,15 +915,22 @@ struct Index {
             .margin({ bottom: (this.stageWidth + this.maxTravelVp) / 7.14 / 2 })
           }
           .width('100%')
-          .layoutWeight(1)
+          .height(this.regionHeightVp + this.carriageHeight)
           .clip(false)
+          .onAreaChange((oldA: Area, newA: Area) => {
+            const ht: number = newA.height as number;
+            if (Math.abs(ht - this.assemblyHeightVp) >= 1) {
+              this.assemblyHeightVp = ht;
+              hilog.info(DOMAIN, TAG, 'assembly Ht=%{public}s Hc=%{public}s', ht.toFixed(1), this.carriageHeight.toFixed(1));
+            }
+          })
         }
         .width('100%')
         .layoutWeight(1)
 
         if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
           // 1920s 的滚筒/中央件已在总成 Stack 内渲染；此处只占位保持纵向构成高度
-          Column().width('100%').height(this.carriageHeight)
+          Column().width('100%').height(0)
         } else {
           CarriageStrip({
             machineKind: this.machineKind,
