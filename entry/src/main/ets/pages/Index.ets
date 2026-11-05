@@ -521,23 +521,16 @@ struct Index {
     }
     const H: number = this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp;
     const rows: number = this.docModel.getLines().length;
-    const step: number = 0.0283 * H;
-    // 模型 B 百分比作用在**打击行**上（28% → … → 47%），纸顶由打击行反推
-    let strikePct: number = 0.28 + (rows - 1) * 0.0283;
-    if (strikePct > 0.47) {
-      strikePct = 0.47;
-    }
     this.carriageTopVp = 0.56 * H;
-    this.strikeLineVp = strikePct * H;
-    // 打击行相对纸顶 = contentTop(44) + (行−1)×lineHeight + lineHeight/2
-    const rel: number = 44 + (rows - 1) * this.lineHeightVp + this.lineHeightVp / 2;
-    let top: number = this.strikeLineVp - rel;
-    if (top < 0.10 * H) {
-      top = 0.10 * H;
-      this.strikeLineVp = top + rel;
+    // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
+    this.strikeLineVp = this.carriageTopVp - 20 - this.lineHeightVp / 2;
+    // 纸底锚在滚筒（= carriageTopVp）；纸高 = 44 + 行数×行高 + 20，上限 regionHeight
+    let ph: number = 44 + rows * this.lineHeightVp + 20;
+    if (ph > this.regionHeightVp) {
+      ph = this.regionHeightVp;
     }
-    this.paperTopVp = top;
-    this.paperHeightVp = this.carriageTopVp - this.paperTopVp;
+    this.paperHeightVp = ph;
+    this.paperTopVp = this.carriageTopVp - ph;
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
     this.carriageHeight = this.paperWidthVp * 0.17;
@@ -973,8 +966,8 @@ struct Index {
                 offsetXVp: this.carriageOffsetVp,
                 cursorXVp: findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
                 // 三角 y = 打击行（相对纸顶）− 8vp，且 ≥0
-                cursorYVp: Math.max(0, 44 + (this.docModel.getLines().length - 1) * this.lineHeightVp
-                  + this.lineHeightVp / 2 - 8),
+                // 三角 y = 打击行 − 纸顶 − 8vp，且 ≥0（打击行固定）
+                cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
                 cursorVisible: true,
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
