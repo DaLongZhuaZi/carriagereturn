@@ -623,6 +623,19 @@ struct Index {
     return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
   }
 
+  /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
+  private clampedStrikeXVp(): number {
+    const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
+    const raw: number = paperLeft + findPaper(this.paperKind).marginH + this.currentLineWidthVp();
+    const paperRight: number = paperLeft + this.paperWidthVp;
+    const knobHalf: number = this.carriageHeight * 0.92 / 2;
+    const limit: number = paperRight - knobHalf;
+    if (raw > limit) {
+      return limit;
+    }
+    return raw;
+  }
+
   /** 当前行文本（供隐藏 Text 实测宽）。 */
   private currentLineText(): string {
     const cursor = this.docModel.getCursor();
@@ -632,9 +645,9 @@ struct Index {
 
   /** 优先用整行渲染实测宽；未测到才退回逐字累加。 */
   private currentLineWidthVp(): number {
-    if (this.lineWidthMeasuredVp >= 0) {
-      return this.lineWidthMeasuredVp;
-    }
+    // 只用 ttf 度量（0.600em）累加；隐藏 Text 的实测只记录，不参与布局——
+    // 两者在长行上差 ~70vp，实测串可能吃到回落比例字体
+
     const cursor = this.docModel.getCursor();
     const line = this.docModel.getLines()[cursor.line];
     let w: number = 0;
@@ -751,8 +764,9 @@ struct Index {
     } catch (e) {
       // 量宽失败保留旧值
     }
-    hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s lineW=%{public}s strikeX=%{public}s',
-      this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2), this.strikeLineVp.toFixed(2));
+    hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s measW=%{public}s accumW=%{public}s strikeX=%{public}s',
+      this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
+      this.currentLineWidthVp().toFixed(2), this.clampedStrikeXVp().toFixed(2));
     this.scheduleSave();
     if (outcome.marginBell) {
       this.audioService.playBell();
@@ -826,6 +840,15 @@ struct Index {
     this.syncRows();
     this.animatePaperHeight();
     this.scheduleSave();
+    // 编排自测：0/100/200/300/450ms 四点采样（数字代替录屏验单调性）
+    const marks: number[] = [0, 100, 200, 300, 450];
+    for (let k = 0; k < marks.length; k++) {
+      const ms: number = marks[k];
+      setTimeout(() => {
+        hilog.info(DOMAIN, TAG, 'choreoTrace t=%{public}s offset=%{public}s paperTop=%{public}s knob=%{public}s',
+          ms.toString(), this.carriageOffsetVp.toFixed(2), this.paperTopVp.toFixed(1), this.knobAngle.toFixed(1));
+      }, ms);
+    }
     const t0: number = 200;
     setTimeout(() => {
       this.resetCarriageAndGuide();
@@ -988,8 +1011,7 @@ struct Index {
                 part: 'roller',
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                  + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                strikeXVp: this.clampedStrikeXVp(),
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
               })
@@ -1009,8 +1031,7 @@ struct Index {
                     part: 'metal',
                   paperWidthVp: this.paperWidthVp,
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                  strikeXVp: this.clampedStrikeXVp(),
                   canvasOffsetVp: this.carriageOffsetVp,
                     strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
                 })
