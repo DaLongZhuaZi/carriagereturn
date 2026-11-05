@@ -45,6 +45,10 @@ export struct PaperStage {
   /** 墨色（色带）。 */
   @Prop inkColor: string = '#1a1a1a';
   @Prop pageNo: number = 1;
+  /** 小三角光标：x 相对纸片左缘、y 相对纸片顶（vn），尖朝下悬在下一字正上方。 */
+  @Prop cursorXVp: number = 28;
+  @Prop cursorYVp: number = 0;
+  @Prop cursorVisible: boolean = true;
   /** 纸与字车共用的偏移 O（vp，≤0）：纸随 O 左移，与字车同弹簧同帧。 */
   @Prop offsetXVp: number = 0;
 
@@ -144,6 +148,17 @@ export struct PaperStage {
         .width('100%')
         .padding({ left: this.marginHVp, right: this.marginHVp })
         .margin({ top: this.paperHeightVp - this.marginBottomVp - this.lineHeightVp })
+      }
+
+      // 小三角光标：墨色、尖朝下，只留一个，不画竖线
+      if (this.cursorVisible) {
+        Path()
+          .width(8)
+          .height(6)
+          .commands('M0 0 L8 0 L4 6 Z')
+          .fill(this.inkColor)
+          .position({ x: this.cursorXVp, y: this.cursorYVp })
+          .hitTestBehavior(HitTestMode.None)
       }
 
       // 下缘短实阴影（纸压在字车上）

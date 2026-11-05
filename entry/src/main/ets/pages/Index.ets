@@ -75,6 +75,10 @@ struct Index {
   @State knobAngle: number = 0;
   /** 总成 Stack 实测高度 Ht（vp）：不用 paperHeightVp 冒充。 */
   @State assemblyHeightVp: number = 0;
+  /** 模型 B：纸顶 / 落字行 / 字车条 三处 y（相对总成 Stack 顶，vp）。 */
+  @State paperTopVp: number = 0;
+  @State strikeLineVp: number = 0;
+  @State carriageTopVp: number = 0;
   /** 换行计数：驱动 LeverLayer 摆动。 */
   @State newlineTick: number = 0;
   private audioService: AudioService = new AudioService();
@@ -500,14 +504,32 @@ struct Index {
 
   // ---------------- 纸片 ----------------
 
-  /** 纸高 = 96 + (行数-1)×行高，上限 regionHeight（小幅纸移动版）。 */
+  /**
+   * 模型 B（屏高百分比三态）：
+   *   paperTop = max(10%, 25% − (行−1)×2.83%) × 屏高
+   *   strike   = paperTop + 3% + (行−1)×2.83%   ← 封顶前纸上移抵消、封顶后实打实下移
+   *   carriageTop = 56% × 屏高（三态同高，不动）
+   *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
+   */
   private recalcPaperHeight(): void {
-    const lc: number = this.docModel.getLines().length;
-    let h: number = PAPER_INITIAL_HEIGHT_VP + (lc - 1) * this.lineHeightVp;
-    if (h > this.regionHeightVp) {
-      h = this.regionHeightVp;
+    const H: number = this.availableHeightVp > 0 ? this.availableHeightVp : this.regionHeightVp;
+    const bodyTop: number = this.topBarHeight + this.paperTopGap;
+    const rows: number = this.docModel.getLines().length;
+    const step: number = 0.0283 * H;
+    let top: number = 0.25 * H - (rows - 1) * step;
+    if (top < 0.10 * H) {
+      top = 0.10 * H;
     }
-    this.paperHeightVp = h;
+    this.carriageTopVp = 0.56 * H - bodyTop;
+    this.paperTopVp = top - bodyTop;
+    this.strikeLineVp = top - bodyTop + 0.03 * H + (rows - 1) * step;
+    this.paperHeightVp = this.carriageTopVp - this.paperTopVp;
+    this.paperWidthVp = this.paperHeightVp / 1.414;
+    this.carriageHeight = this.paperWidthVp * 0.17;
+    hilog.info(DOMAIN, TAG,
+      'modelB rows=%{public}s top=%{public}s strike=%{public}s carr=%{public}s pw=%{public}s',
+      rows.toString(), this.paperTopVp.toFixed(1), this.strikeLineVp.toFixed(1),
+      this.carriageTopVp.toFixed(1), this.paperWidthVp.toFixed(1));
     return;
     const lineCount: number = this.docModel.getLines().length;
     const rawHeight: number = PAPER_INITIAL_HEIGHT_VP + (lineCount - 1) * this.lineHeightVp;
@@ -869,7 +891,7 @@ struct Index {
                 strikeYVp: 0,
               })
                 // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
-                .offset({ y: this.assemblyHeightVp - this.carriageHeight })
+                .offset({ y: this.carriageTopVp })
                 .zIndex(1)
             }
 
@@ -886,11 +908,10 @@ struct Index {
                   strikeXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
                     + findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
                   canvasOffsetVp: this.carriageOffsetVp,
-                    strikeYVp: (this.stageWidth + this.maxTravelVp) / 7.14 / 2
-                    - findPaper(this.paperKind).marginBottom - this.lineHeightVp / 2,
+                    strikeYVp: this.strikeLineVp - this.carriageTopVp,
                 })
                   // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht
-                  .offset({ y: this.assemblyHeightVp - this.carriageHeight })
+                  .offset({ y: this.carriageTopVp })
 
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
                 LeverLayer({
@@ -932,6 +953,9 @@ struct Index {
                 pageNo: 1,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
                 offsetXVp: this.carriageOffsetVp,
+                cursorXVp: findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                cursorYVp: this.strikeLineVp - this.paperTopVp - this.lineHeightVp,
+                cursorVisible: true,
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
               })
@@ -950,7 +974,7 @@ struct Index {
 
             .width(this.paperWidthVp)
             .height(this.paperHeightVp)
-            .offset({ x: (this.stageWidth - this.paperWidthVp) / 2, y: 0 })
+            .offset({ x: (this.stageWidth - this.paperWidthVp) / 2, y: this.paperTopVp })
             .margin({ bottom: this.carriageHeight / 2 })
           }
           .width('100%')
