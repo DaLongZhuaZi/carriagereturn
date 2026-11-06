@@ -12,7 +12,7 @@
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { DocData, DocSummary } from '../model/DocModel';
+import { DocData, DocSummary, MachineKind, PaperKind } from '../model/DocModel';
 import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
 
 const DOMAIN: number = 0x0000;
@@ -30,6 +30,9 @@ interface DocIndexEntry {
   updatedAt: number;
   /** 所属卷宗 id；缺省 = 未归档（§5 卷宗系统）。 */
   dossierId?: string | null;
+  /** 该纸的机器与纸张种类（供卷宗内页缩略图用真实纸纹）。 */
+  machine?: string;
+  paper?: string;
 }
 
 interface DocIndex {
@@ -95,7 +98,8 @@ export class DocStore {
     this.writeText(this.textPath(docId), this.plainTextOf(data));
 
     this.upsertIndex(docId, this.titleOf(data, fallbackTitle), data.meta.createdAt, data.meta.updatedAt,
-      data.dossierId === undefined ? null : data.dossierId);
+      data.dossierId === undefined ? null : data.dossierId,
+      data.meta.machine as string, data.meta.paper as string);
     return docId;
   }
 
@@ -143,8 +147,8 @@ export class DocStore {
         title: entry.title,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
-        machine: DEFAULT_MACHINE,
-        paper: DEFAULT_PAPER,
+        machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
+        paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
       });
     }
@@ -253,7 +257,7 @@ export class DocStore {
   }
 
   private upsertIndex(id: string, title: string, createdAt: number, updatedAt: number,
-    dossierId: string | null): void {
+    dossierId: string | null, machine: string, paper: string): void {
     const index: DocIndex = this.readIndex();
     let found: boolean = false;
     for (const entry of index.entries) {
@@ -261,13 +265,15 @@ export class DocStore {
         entry.title = title;
         entry.updatedAt = updatedAt;
         entry.dossierId = dossierId;
+        entry.machine = machine;
+        entry.paper = paper;
         found = true;
         break;
       }
     }
     if (!found) {
       index.entries.push({ id: id, title: title, createdAt: createdAt, updatedAt: updatedAt,
-        dossierId: dossierId });
+        dossierId: dossierId, machine: machine, paper: paper });
     }
     index.entries.sort((a: DocIndexEntry, b: DocIndexEntry) => b.updatedAt - a.updatedAt);
     this.writeIndex(index);
