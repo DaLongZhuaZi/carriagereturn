@@ -44,6 +44,9 @@ export struct DossierDetailPage {
   @State flyRot: number[] = [];
   @State flyOp: number[] = [];
   @State flySc: number[] = [];
+  /** 实测卡片中心（vp，相对页面）：onAreaChange 写入，动画用它算起点偏移。 */
+  private measuredCx: number[] = [];
+  private measuredCy: number[] = [];
   /** §2.10 动态安全区。 */
   @State topInset: number = 28;
   @State bottomInset: number = 0;
@@ -148,8 +151,9 @@ export struct DossierDetailPage {
 
   private launch(i: number): void {
     const S: number = FLY_SCALE;
-    const cxs: number = this.cardCx(i);
-    const cys: number = this.cardCy(i);
+    // 优先用实测中心；还没量到才退回算术推算（两者差 40-70vp，实测才对得上格子）
+    const cxs: number = this.measuredCx.length > i ? this.measuredCx[i] : this.cardCx(i);
+    const cys: number = this.measuredCy.length > i ? this.measuredCy[i] : this.cardCy(i);
     const sx: number = this.openingX();
     const sy: number = this.openingY();
     hilog.info(0x0000, 'DossierDetail', 'flyStart i=%{public}s from=(%{public}s,%{public}s) to=(%{public}s,%{public}s)',
@@ -282,6 +286,20 @@ export struct DossierDetailPage {
                 .width('100%')
                 .translate({ x: idx < this.flyX.length ? this.flyX[idx] : 0,
                   y: idx < this.flyY.length ? this.flyY[idx] : 0 })
+                // 量每张卡的真实中心（vp，相对页面左上），供飞出动画算起点偏移
+                .onAreaChange((oldA: Area, newA: Area) => {
+                  const ui: UIContext = this.getUIContext();
+                  const cx: number = ui.px2vp(newA.globalPosition.x as number) +
+                    ui.px2vp(newA.width as number) / 2;
+                  const cy: number = ui.px2vp(newA.globalPosition.y as number) +
+                    ui.px2vp(newA.height as number) / 2;
+                  while (this.measuredCx.length <= idx) {
+                    this.measuredCx.push(0);
+                    this.measuredCy.push(0);
+                  }
+                  this.measuredCx[idx] = cx;
+                  this.measuredCy[idx] = cy;
+                })
                 .rotate({ angle: idx < this.flyRot.length ? this.flyRot[idx] : 0 })
                 .scale({ x: idx < this.flySc.length ? this.flySc[idx] : 1,
                   y: idx < this.flySc.length ? this.flySc[idx] : 1 })
