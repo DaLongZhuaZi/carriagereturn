@@ -387,7 +387,8 @@ struct Index {
     // 小幅纸移动：每字 dO = travelPerChar（= 小行程 / 每行字数），不是字宽
     const dO: number = this.travelPerChar;
     let target: number = this.carriageOffsetVp - dO;
-    const limit: number = -(this.stageWidth - 2 * 28);
+    // 限位与载入钳制同口径：[-maxTravelVp, 0]（旧公式 -(stageWidth−56) 是错的，平板差 9.6 倍）
+    const limit: number = -this.maxTravelVp;
     if (target < limit) {
       target = limit;
     }
