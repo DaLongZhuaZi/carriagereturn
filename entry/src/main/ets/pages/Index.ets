@@ -870,9 +870,9 @@ struct Index {
       return;
     }
     if (cap.label === 'Shift') {
-      // 符号模式下 Shift 无动作（保持布局稳定）；字母模式为锁定式字档锁
+      // 按下模式：按住才大写，松开即 false（onCapUp 里清）。符号模式下无动作。
       if (!this.symbolMode) {
-        this.shiftActive = !this.shiftActive;
+        this.shiftActive = true;
       }
       return;
     }
@@ -1589,6 +1589,10 @@ struct Index {
             }
           },
           onCapUp: (cap: CapDef): void => {
+            // Shift 松开即清（多触点：松开 Shift 不影响正在按的字母）
+            if (cap.label === 'Shift') {
+              this.shiftActive = false;
+            }
           },
         })
 

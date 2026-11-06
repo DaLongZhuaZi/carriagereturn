@@ -254,7 +254,7 @@ export struct PhotoKeybed {
           y: cap.yRatio * this.heightVp - this.layout.hitRadius * 0.85,
         })
         .hitTestBehavior(HitTestMode.None)
-      }, (cap: CapDef) => cap.id)
+      }, (cap: CapDef) => cap.id + ':' + cap.label)
     }
     .width(this.widthVp)
     .height(this.heightVp)
