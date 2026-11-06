@@ -577,7 +577,8 @@ struct Index {
     const paperBandBase: number = 20 + this.lineHeightVp + 44;
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase - (rows - 1) * this.lineHeightVp;
     // 纸片容器高 = 纸顶到滚筒
-    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp;
+    // 纸底抬高 8vp：滚筒下半截要从纸底与底座顶之间露满（实测被遮约 10.8vp）
+    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp - 8;
     if (this.paperAnimateNext) {
       // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
       this.paperAnimateNext = false;
@@ -603,6 +604,10 @@ struct Index {
       (this.baseLeftRel() + this.baseW() * 0.32 - 55).toFixed(1),
       (this.carriageHeight + 8).toFixed(1), this.bracketTopRel().toFixed(1),
       this.pinXRel().toFixed(1), this.pinYRel().toFixed(1), this.leverW().toFixed(1));
+    hilog.info(DOMAIN, TAG, 'assemblyAbs bracketTopAbs=%{public}s pinYAbs=%{public}s grooveBottomAbs=%{public}s',
+      (this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel()).toFixed(1),
+      (this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()).toFixed(1),
+      (this.carriageTopVp - this.carriageHeight / 2 + this.carriageHeight + 22).toFixed(1));
     const lf: number = this.isTablet ? 1.84 : 2.5;
     const leverHActual: number = this.carriageHeight * lf;
     const leverPivotY: number = this.carriageTopVp + this.carriageHeight / 2;
@@ -1224,7 +1229,10 @@ struct Index {
                   .width(this.bracketW())
                   .height(this.bracketH())
                   .objectFit(ImageFit.Fill)
-                  .position({ x: this.bracketLeftRel(), y: this.bracketTopRel() })
+                  .position({
+                    x: this.bracketLeftRel(),
+                    y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
+                  })
                   .zIndex(8)
 
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
@@ -1234,7 +1242,8 @@ struct Index {
                   newlineTick: this.newlineTick,
                   // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.pinYRel() - (this.leverW() / (536 / 2522)) * 0.952,
+                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                    - (this.leverW() / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
