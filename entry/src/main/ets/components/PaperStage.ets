@@ -200,19 +200,14 @@ export struct PaperStage {
           .height(this.curlH())
           .linearGradient({
             direction: GradientDirection.Bottom,
-            colors: [['rgba(0,0,0,0)', 0.0], ['rgba(30,20,12,0.18)', 0.55], ['rgba(30,20,12,0.45)', 1.0]],
+            // 最暗点挪到 0.80，最后 20% 不再加深（0.30 封顶），与滚筒在该处亮度衔接
+            colors: [['rgba(0,0,0,0)', 0.0], ['rgba(30,20,12,0.18)', 0.45],
+              ['rgba(30,20,12,0.30)', 0.80], ['rgba(30,20,12,0.30)', 1.0]],
           })
           .position({ x: 0, y: this.visibleBottomVp - this.curlH() })
           .hitTestBehavior(HitTestMode.None)
 
-        // 纸底与滚筒交界的深色接缝线
-        Column()
-          .width('100%')
-          .height(2)
-          .backgroundColor('#1b120a')
-          .opacity(0.85)
-          .position({ x: 0, y: this.visibleBottomVp - 2 })
-          .hitTestBehavior(HitTestMode.None)
+        // 接缝线已删（v11：纸底不许画硬边/黑线/描边）；交界靠渐变与滚筒明暗衔接
       }
 
       // 下缘短实阴影（纸压在字车上）
