@@ -186,7 +186,8 @@ export struct DossierDetailPage {
       Column() {
         // 页眉
         Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9').width(30)
+          Text('‹').fontSize(26).fontColor('#e8ddc9')
+            .width(44).height(44).textAlign(TextAlign.Center)
             .onClick(() => { this.onBack(); })
           if (this.dCover.length > 0) {
             Image($rawfile(COVER_RAW[this.dCover]))
