@@ -55,7 +55,9 @@ export class DossierStore {
       return { version: INDEX_VERSION, dossiers: [] };
     }
     try {
-      if (!fs.accessSync(this.indexPath())) {
+      const exists: boolean = fs.accessSync(this.indexPath());
+      if (!exists) {
+        hilog.warn(DOMAIN, TAG, 'readIndex: index not exist path=%{public}s', this.indexPath());
         return { version: INDEX_VERSION, dossiers: [] };
       }
       const stat = fs.statSync(this.indexPath());
@@ -66,8 +68,10 @@ export class DossierStore {
       const text: string = new util.TextDecoder().decodeToString(new Uint8Array(buf));
       const parsed: DossierIndex = JSON.parse(text) as DossierIndex;
       if (parsed.dossiers === undefined || parsed.dossiers === null) {
+        hilog.warn(DOMAIN, TAG, 'readIndex: dossiers missing in json');
         return { version: INDEX_VERSION, dossiers: [] };
       }
+      hilog.info(DOMAIN, TAG, 'readIndex ok count=%{public}s', parsed.dossiers.length.toString());
       return parsed;
     } catch (e) {
       hilog.warn(DOMAIN, TAG, 'readIndex failed: %{public}s', JSON.stringify(e));
