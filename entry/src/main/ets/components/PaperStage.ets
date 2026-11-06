@@ -49,6 +49,8 @@ export struct PaperStage {
   @Prop cursorXVp: number = 28;
   @Prop cursorYVp: number = 0;
   @Prop cursorVisible: boolean = true;
+  /** 纸在容器里的可见底缘 y（相对纸片顶）：柱面渐变与接缝线画在这里。 */
+  @Prop visibleBottomVp: number = 0;
   /** 纸与字车共用的偏移 O（vp，≤0）：纸随 O 左移，与字车同弹簧同帧。 */
   @Prop offsetXVp: number = 0;
 
@@ -158,6 +160,28 @@ export struct PaperStage {
           .commands('M0 0 L8 0 L4 6 Z')
           .fill(this.inkColor)
           .position({ x: this.cursorXVp, y: this.cursorYVp >= 0 ? this.cursorYVp : 0 })
+          .hitTestBehavior(HitTestMode.None)
+      }
+
+      // 纸卷柱面：纸底 34vp 向下渐暗，模拟纸面包着滚筒弯下去
+      if (this.visibleBottomVp > 40) {
+        Column()
+          .width('100%')
+          .height(34)
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [['#00000000', 0.0], ['#2a1d1055', 0.55], ['#1a120b99', 1.0]],
+          })
+          .position({ x: 0, y: this.visibleBottomVp - 34 })
+          .hitTestBehavior(HitTestMode.None)
+
+        // 纸底与滚筒交界的深色接缝线
+        Column()
+          .width('100%')
+          .height(2)
+          .backgroundColor('#1b120a')
+          .opacity(0.85)
+          .position({ x: 0, y: this.visibleBottomVp - 2 })
           .hitTestBehavior(HitTestMode.None)
       }
 

@@ -33,6 +33,10 @@
       "value": "换行"
     },
     {
+      "name": "keyboard_paper",
+      "value": "换纸"
+    },
+    {
       "name": "keyboard_backspace",
       "value": "退格"
     },

@@ -9,9 +9,11 @@ export struct FunctionRow {
   @Prop langLabel: string = '';
   @Prop deleteLabel: string = '';
   @Prop newlineLabel: string = '';
+  @Prop paperLabel: string = '';
   onLang: () => void = (): void => {};
   onDelete: () => void = (): void => {};
   onNewline: () => void = (): void => {};
+  onPaperChange: () => void = (): void => {};
 
   @State pressedKey: string = '';
 
@@ -80,6 +82,15 @@ export struct FunctionRow {
       Column() {
         this.metalKey('nl', this.newlineLabel, true, (): void => {
           this.onNewline();
+        })
+      }
+      .layoutWeight(1)
+      .height('100%')
+
+      // 换纸：一次性手动动作（§2.9 完整规格）
+      Column() {
+        this.metalKey('paper', this.paperLabel, false, (): void => {
+          this.onPaperChange();
         })
       }
       .layoutWeight(1)

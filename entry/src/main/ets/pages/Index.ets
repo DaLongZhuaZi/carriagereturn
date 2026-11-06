@@ -77,6 +77,8 @@ struct Index {
   @State assemblyHeightVp: number = 0;
   /** 模型 B：纸顶 / 落字行 / 字车条 三处 y（相对总成 Stack 顶，vp）。 */
   @State paperTopVp: number = 0;
+  /** 换纸进行中：禁打字。 */
+  @State paperChanging: boolean = false;
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   @State paperTopTargetVp: number = 0;
@@ -787,6 +789,9 @@ struct Index {
   }
 
   private commitChar(ch: string): void {
+    if (this.paperChanging) {
+      return;
+    }
     this.hintText = '';
     // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
     //    raw > limit 与 clampedStrikeXVp 同一判据
@@ -887,16 +892,47 @@ struct Index {
     }
   }
 
+  /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
+  private onPaperChange(): void {
+    if (this.paperChanging) {
+      return;
+    }
+    this.paperChanging = true;
+    const startTop: number = this.paperTopVp;
+    const startBox: number = this.paperContainerVp;
+    // ① 旧纸卷出 300ms：纸顶下移、容器收缩到 0（绕滚筒卷出），滚筒同转
+    this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+      this.paperTopVp = startTop + startBox;
+      this.paperContainerVp = 1;
+      this.knobAngle = this.knobAngle + 180;
+    });
+    setTimeout(() => {
+      // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+        this.recalcPaperHeight();
+        this.knobAngle = this.knobAngle + 180;
+      });
+      hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s', this.knobAngle.toFixed(1));
+      setTimeout(() => {
+        this.paperChanging = false;
+      }, 320);
+    }, 300);
+  }
+
   private onNewline(): void {
-    // 三段编排：t=0 拨杆摆出 + 纸上滑 → t≈200 字车回位 250ms → t≈450 叮声（与到达同帧）
+    // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
+    //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
     this.newlineTick = this.newlineTick + 1;
     this.hintText = '';
     this.docModel.newline();
     this.syncRows();
-    this.animatePaperHeight();
     this.scheduleSave();
-    // 编排自测：0/100/200/300/450ms 四点采样（数字代替录屏验单调性）
-    const marks: number[] = [0, 100, 200, 300, 450];
+    // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
+    setTimeout(() => {
+      this.animatePaperHeight();
+    }, 150);
+    // 编排自测：0/150/350/600 采样（数字代替录屏验单调性）
+    const marks: number[] = [0, 150, 350, 600];
     for (let k = 0; k < marks.length; k++) {
       const ms: number = marks[k];
       setTimeout(() => {
@@ -904,7 +940,7 @@ struct Index {
           ms.toString(), this.carriageOffsetVp.toFixed(2), this.paperTopVp.toFixed(1), this.knobAngle.toFixed(1));
       }, ms);
     }
-    const t0: number = 200;
+    const t0: number = 350;
     setTimeout(() => {
       this.resetCarriageAndGuide();
     }, t0);
@@ -1156,6 +1192,7 @@ struct Index {
                 // 三角 y = 打击行 − 纸顶 − 8vp，且 ≥0（打击行固定）
                 cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
                 cursorVisible: true,
+                visibleBottomVp: this.paperContainerVp,
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
               })
@@ -1246,6 +1283,10 @@ struct Index {
             : this.resolveString($r('app.string.keyboard_lang_en')),
           deleteLabel: this.resolveString($r('app.string.keyboard_delete')),
           newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
+          paperLabel: this.resolveString($r('app.string.keyboard_paper')),
+          onPaperChange: (): void => {
+            this.onPaperChange();
+          },
           onLang: (): void => {
             this.langZh = !this.langZh;
             // 语言切换同步改行高与纸高（中文 fs×30/17、英文 fs×28/17）
