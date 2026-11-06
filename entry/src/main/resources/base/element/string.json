@@ -41,6 +41,14 @@
       "value": "退行"
     },
     {
+      "name": "keyboard_symbols",
+      "value": "字符"
+    },
+    {
+      "name": "keyboard_letters",
+      "value": "字母"
+    },
+    {
       "name": "keyboard_backspace",
       "value": "退格"
     },

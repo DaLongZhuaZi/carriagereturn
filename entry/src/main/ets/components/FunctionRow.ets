@@ -11,11 +11,13 @@ export struct FunctionRow {
   @Prop newlineLabel: string = '';
   @Prop paperLabel: string = '';
   @Prop backLineLabel: string = '';
+  @Prop charLabel: string = '';
   onLang: () => void = (): void => {};
   onDelete: () => void = (): void => {};
   onNewline: () => void = (): void => {};
   onPaperChange: () => void = (): void => {};
   onBackLine: () => void = (): void => {};
+  onSymbols: () => void = (): void => {};
 
   @State pressedKey: string = '';
 
@@ -102,6 +104,15 @@ export struct FunctionRow {
       Column() {
         this.metalKey('backline', this.backLineLabel, false, (): void => {
           this.onBackLine();
+        })
+      }
+      .layoutWeight(1)
+      .height('100%')
+
+      // 字符 / 字母：符号键盘开关（按当前语言切换符号表）
+      Column() {
+        this.metalKey('symbols', this.charLabel, false, (): void => {
+          this.onSymbols();
         })
       }
       .layoutWeight(1)

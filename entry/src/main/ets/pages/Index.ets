@@ -54,6 +54,25 @@ function emptyLayout(): KeymapLayout {
   };
 }
 
+// ---- 字符键盘表（不进 keymap json；按行顺序，与 4 行键位一一对应）----
+const SYM_EN: string[][] = [
+  '! @ # $ % ^ & * ( ) _'.split(' '),
+  '+ - = [ ] { } ; : \''.split(' '),
+  '" , . / < > ? \\ | ~ `'.split(' '),
+  '€ £ ¥ ¢ § © ® ™ ° ±'.split(' '),
+];
+const SYM_ZH: string[][] = [
+  '， 。 ！ ？ ； ： 、 （ ） 《 》'.split(' '),
+  '「 」 『 』 【 】 … — · ￥'.split(' '),
+  '％ ＃ ＠ ～ ＋ － ＝ ＿ ｜ ＼ ／'.split(' '),
+  '＜ ＞ ＂ ＇ ※ ☆ ★ ○ ● ◆'.split(' '),
+];
+/** 数字/标点键的上档映射。 */
+const SHIFT_MAP: Record<string, string> = {
+  '1': '!', '2': '@', '3': '#', '4': '$', '5': '%', '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+  '-': '_', ';': ':', '\'': '"', ',': '<', '.': '>', '/': '?',
+};
+
 @Entry
 @Component
 struct Index {
@@ -173,6 +192,10 @@ struct Index {
   private maxTravelVp: number = 64;
   @State strikeTick: number = 0;
   @State langZh: boolean = false;
+  /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
+  @State shiftActive: boolean = false;
+  /** 底部「字符」键：true = 符号键盘。 */
+  @State symbolMode: boolean = false;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
   /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
   @State useLayers: boolean = false;
@@ -784,6 +807,48 @@ struct Index {
     return n > 6 ? n : 6;
   }
 
+  /** 派生显示布局：keymapLayout(原表) + shiftActive + symbolMode + langZh → 新 layout。 */
+  private displayLayout(): KeymapLayout {
+    const base: KeymapLayout = this.keymapLayout;
+    const sym: string[][] = this.langZh ? SYM_ZH : SYM_EN;
+    const rowIdx: number[] = [0, 0, 0, 0];
+    const caps: CapDef[] = [];
+    for (let i = 0; i < base.caps.length; i++) {
+      const c: CapDef = base.caps[i];
+      const ri: number = c.rowIndex >= 0 && c.rowIndex < 4 ? c.rowIndex : 0;
+      const inRow: number = rowIdx[ri];
+      rowIdx[ri] = inRow + 1;
+      let label: string = c.label;
+      if (this.symbolMode) {
+        // 符号模式：Shift 位保持 'Shift'（布局稳定），其余按行内序号取符号
+        if (c.label !== 'Shift' && !c.isExtra) {
+          const arr: string[] = sym[ri];
+          const k: number = ri === 3 ? inRow - 1 : inRow;
+          if (k >= 0 && k < arr.length) {
+            label = arr[k];
+          }
+        }
+      } else if (this.shiftActive) {
+        // Shift 模式：数字/标点换上档符号；字母帽本来就是大写，不变
+        const up: string | undefined = SHIFT_MAP[c.label];
+        if (up !== undefined) {
+          label = up;
+        }
+      }
+      caps.push({
+        id: c.id, label: label, cx: c.cx, cy: c.cy, rowIndex: c.rowIndex,
+        isExtra: c.isExtra, xRatio: c.xRatio, yRatio: c.yRatio,
+      });
+    }
+    return {
+      machine: base.machine, caps: caps,
+      spaceXMin: base.spaceXMin, spaceXMax: base.spaceXMax,
+      spaceYMin: base.spaceYMin, spaceYMax: base.spaceYMax,
+      hitRadius: base.hitRadius, overlayColor: base.overlayColor,
+      overlayFontSize: base.overlayFontSize, widthVp: base.widthVp, heightVp: base.heightVp,
+    };
+  }
+
   private onCapDown(cap: CapDef): void {
     if (cap.isExtra) {
       return;
@@ -805,11 +870,21 @@ struct Index {
       return;
     }
     if (cap.label === 'Shift') {
+      // 符号模式下 Shift 无动作（保持布局稳定）；字母模式为锁定式字档锁
+      if (!this.symbolMode) {
+        this.shiftActive = !this.shiftActive;
+      }
       return;
     }
     // Down 只给高亮 + 震动；主击打音移到 onArrive（与落字、纸移动同帧）
     this.audioService.vibrate();
-    this.queueChar(cap.label.toLowerCase());
+    if (this.symbolMode) {
+      // 符号模式：直接提交帽上字符，不做大小写转换、不查上档表
+      this.queueChar(cap.label);
+      return;
+    }
+    const ch: string = this.shiftActive ? cap.label : cap.label.toLowerCase();
+    this.queueChar(ch);
   }
 
   private queueChar(ch: string): void {
@@ -908,6 +983,8 @@ struct Index {
     } catch (e) {
       // 量宽失败保留旧值
     }
+    hilog.info(DOMAIN, TAG, 'committed ch=[%{public}s] shift=%{public}s sym=%{public}s', ch,
+      this.shiftActive ? 'on' : 'off', this.symbolMode ? 'on' : 'off');
     hilog.info(DOMAIN, TAG, 'landTrace line=%{public}s col=%{public}s paperTop=%{public}s O=%{public}s',
       this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
       this.paperTopVp.toFixed(1), this.carriageOffsetVp.toFixed(1));
@@ -1500,7 +1577,7 @@ struct Index {
           foldBand: false,
           widthVp: this.photoW(),
           heightVp: this.keybedHeight,
-          layout: this.keymapLayout,
+          layout: this.displayLayout(),
           overlayFontFamily: this.fontFamily,
           commitSeq: this.commitSeq,
           onCapDown: (cap: CapDef): void => {
@@ -1524,6 +1601,11 @@ struct Index {
           newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
           paperLabel: this.resolveString($r('app.string.keyboard_paper')),
           backLineLabel: this.resolveString($r('app.string.keyboard_backline')),
+          charLabel: this.resolveString(this.symbolMode
+            ? $r('app.string.keyboard_letters') : $r('app.string.keyboard_symbols')),
+          onSymbols: (): void => {
+            this.symbolMode = !this.symbolMode;
+          },
           onBackLine: (): void => {
             this.onBackLine();
           },
