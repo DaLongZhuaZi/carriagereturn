@@ -240,7 +240,11 @@ export struct DossierDetailPage {
   }
 
   private charCount(id: string): number {
-    return docStore.readPlainText(id).replace(/\s/g, '').length;
+    const raw: string = docStore.readPlainText(id);
+    const n: number = raw.replace(/\s/g, '').length;
+    hilog.info(0x0000, 'DossierDetail', 'charCount id=%{public}s rawLen=%{public}s n=%{public}s',
+      id, raw.length.toString(), n.toString());
+    return n;
   }
 
   build() {
