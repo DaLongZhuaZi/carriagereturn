@@ -24,6 +24,7 @@ import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/Ke
 import { PaperRow } from '../ui/PaperSheet';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
+import { DossierPage } from '../components/DossierPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -192,6 +193,8 @@ struct Index {
   private maxTravelVp: number = 64;
   @State strikeTick: number = 0;
   @State langZh: boolean = false;
+  /** 卷宗页开合（§5.1）。 */
+  @State dossierOpen: boolean = false;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1376,7 +1379,9 @@ struct Index {
       Column() {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
-        TopBar({ title: this.docTitle, heightVp: this.topBarHeight })
+        TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
+          onOpenLibrary: (): void => { this.dossierOpen = true; },
+          onOpenMenu: (): void => {} })
 
         Column() {
           Column().width('100%').height(this.paperTopGap)
@@ -1655,6 +1660,17 @@ struct Index {
       .width(this.stageWidth)
       .height(this.stageHeight)
       .alignItems(HorizontalAlign.Start)
+
+      // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
+      if (this.dossierOpen) {
+        DossierPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docs: docStore.list(),
+          onBack: (): void => { this.dossierOpen = false; },
+          onOpenDossier: (id: string): void => { this.dossierOpen = false; },
+        })
+      }
     }
     .width('100%')
     .height('100%')

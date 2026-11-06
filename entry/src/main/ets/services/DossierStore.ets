@@ -77,7 +77,10 @@ export class DossierStore {
 
   private writeIndex(index: DossierIndex): void {
     try {
-      fs.writeSync(this.indexPath(), JSON.stringify(index));
+      const file: fs.File = fs.openSync(this.indexPath(),
+        fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+      fs.writeSync(file.fd, JSON.stringify(index));
+      fs.closeSync(file);
     } catch (e) {
       hilog.error(DOMAIN, TAG, 'writeIndex failed: %{public}s', JSON.stringify(e));
     }
