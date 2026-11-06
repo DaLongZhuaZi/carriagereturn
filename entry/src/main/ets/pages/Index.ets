@@ -1050,10 +1050,18 @@ struct Index {
       this.syncRows();
       this.hintText = '';
       this.carriageOffsetVp = 0;
+      // ★改：新纸从滚筒里卷出——动画开始前先把纸顶放到滚筒处藏起来（只露 2vp 纸底缘），
+      // 再让 recalcPaperHeight() 把它推到起打位。纸顶从滚筒处往上长出来，不是从天上掉下来。
+      this.paperTopVp = this.carriageTopVp;
+      this.paperContainerVp = 2;
+      // ★改：opacity 与整张模式都在动画开始前恢复（否则纸在滚筒处透明/中途 clip 突变闪现）
+      this.paperOpacity = 1;
+      this.paperFullSheet = false;
+      // 打点在 animateTo 之前：此时 paperTop 就是「藏在滚筒处」的值（应 ≈ carriageTop）
+      hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s box=%{public}s carriageTop=%{public}s',
+        this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1), this.carriageTopVp.toFixed(1));
       this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
         this.recalcPaperHeight();
-        this.paperOpacity = 1;
-        this.paperFullSheet = false;
         this.knobAngle = this.knobAngle + 180;
         this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
       });
