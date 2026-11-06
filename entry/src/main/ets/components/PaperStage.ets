@@ -57,8 +57,8 @@ export struct PaperStage {
 
   /** 纸底柱面收尾高度：只做轻微视觉收尾，取 min(15vp, 可见高×15%)。 */
   private curlH(): number {
-    const byRatio: number = this.visibleBottomVp * 0.15;
-    return byRatio < 15 ? byRatio : 15;
+    // 纸向下弯进滚筒的卷曲阴影：固定 40vp（不超过可见纸高）
+    return this.visibleBottomVp > 40 ? 40 : this.visibleBottomVp;
   }
 
   /** 页眉带 + 顶边距 = 内容起始 y。 */
@@ -200,7 +200,7 @@ export struct PaperStage {
           .height(this.curlH())
           .linearGradient({
             direction: GradientDirection.Bottom,
-            colors: [['rgba(0,0,0,0)', 0.0], ['rgba(42,29,16,0.26)', 1.0]],
+            colors: [['rgba(0,0,0,0)', 0.0], ['rgba(30,20,12,0.18)', 0.55], ['rgba(30,20,12,0.45)', 1.0]],
           })
           .position({ x: 0, y: this.visibleBottomVp - this.curlH() })
           .hitTestBehavior(HitTestMode.None)

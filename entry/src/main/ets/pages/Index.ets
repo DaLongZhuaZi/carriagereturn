@@ -591,8 +591,8 @@ struct Index {
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
       - this.docModel.getCursor().line * this.lineHeightVp;
     // 纸片容器高 = 纸顶到滚筒
-    // 纸底抬高 8vp：滚筒下半截要从纸底与底座顶之间露满（实测被遮约 10.8vp）
-    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp - 8;
+    // 纸底伸到 carriageTop 下 2vp：纸叠进滚筒 40vp（滚筒顶 = carriageTop − Hc/2），同一张纸
+    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp + 2;
     if (this.paperAnimateNext) {
       // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
       this.paperAnimateNext = false;
