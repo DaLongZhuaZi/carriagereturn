@@ -87,6 +87,8 @@ struct Index {
   @State texOffsetVp: number = 0;
   /** 换行 600ms 编排进行中：落字先排队，编排完成后再落（不丢字、不错位）。 */
   @State newlineBusy: boolean = false;
+  /** 退行动画进行中（纸 200ms + O 250ms）：落字先排队。 */
+  @State backBusy: boolean = false;
   private queuedChars: string[] = [];
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
@@ -862,7 +864,7 @@ struct Index {
       return;
     }
     // 换行编排未完成时排队，完成后统一补落（不丢字）
-    if (this.newlineBusy) {
+    if (this.newlineBusy || this.backBusy) {
       this.queuedChars.push(ch);
       hilog.info(DOMAIN, TAG, 'char queued during newline ch=%{public}s n=%{public}s',
         ch, this.queuedChars.length.toString());
@@ -977,18 +979,33 @@ struct Index {
     if (cur.line <= 0) {
       return;
     }
-    const prevLen: number = this.docModel.getLines()[cur.line - 1].text.length;
+    const prevText: string = this.docModel.getLines()[cur.line - 1].text;
+    const prevLen: number = prevText.length;
+    // O 与落字宽同源：用上一行实际字宽累加（与 currentLineWidthVp 同一算法），不用 travelPerChar×字数
+    let prevW: number = 0;
+    for (let i = 0; i < prevText.length; i++) {
+      prevW += this.charWidthVp(prevText.charAt(i));
+    }
     this.docModel.setCursor({ line: cur.line - 1, offset: prevLen });
     this.syncRows();
     this.hintText = '';
-    const targetO: number = -(this.travelPerChar * prevLen);
+    const targetO: number = -prevW;
     // 纸下移一行高（纸上移的逆操作）200ms；字车 O 滑到上一行文字末尾 250ms
     this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
       this.paperTopVp = this.paperTopVp + this.lineHeightVp;
     });
+    this.backBusy = true;
     this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
       this.carriageOffsetVp = targetO;
     });
+    setTimeout(() => {
+      this.backBusy = false;
+      const q: string[] = this.queuedChars.slice(0);
+      this.queuedChars = [];
+      for (let i = 0; i < q.length; i++) {
+        this.commitChar(q[i]);
+      }
+    }, 270);
     hilog.info(DOMAIN, TAG, 'backLine to line=%{public}s col=%{public}s O=%{public}s paperTop=%{public}s',
       (cur.line - 1).toString(), prevLen.toString(), targetO.toFixed(1), this.paperTopVp.toFixed(1));
   }
@@ -1041,6 +1058,13 @@ struct Index {
   private onNewline(): void {
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
+    // 末行判定：可写行数 = floor((Ph − 内容顶 44 − 底边距 20) / 行高)；光标已在最后一行则换纸
+    const maxRows: number = Math.max(1, Math.floor((this.paperHeightVp - 44 - 20) / this.lineHeightVp));
+    if (this.docModel.getCursor().line >= maxRows - 1) {
+      hilog.info(DOMAIN, TAG, 'newlineAtLastRow -> paperChange maxRows=%{public}s', maxRows.toString());
+      this.onPaperChange();
+      return;
+    }
     this.newlineBusy = true;
     this.newlineTick = this.newlineTick + 1;
     this.hintText = '';

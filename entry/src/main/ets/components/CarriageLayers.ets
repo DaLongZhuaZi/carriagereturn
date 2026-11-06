@@ -217,7 +217,8 @@ export struct CarriageLayers {
             x: this.paperLeftVp,
             // 辊子中心贴滚筒轴线 y = Hc/2
             // 辊子中心落到滚筒下半部 Hc×0.75，贴近纸卷，不再横穿纸面中部
-            y: this.hc() * 0.75 - this.bailW() / 9.6678 / 2,
+            // 杆顶在滚筒底缘之下（y = Hc+2），双滚轮压住纸底，不遮滚筒奶油纸面
+            y: this.hc() + 2,
           })
 
         // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字

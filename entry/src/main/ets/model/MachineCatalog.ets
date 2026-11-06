@@ -166,10 +166,10 @@ export const MACHINES: MachineSpec[] = [
 ];
 
 export const PAPERS: PaperSpec[] = [
-  { kind: PaperKind.LETTER, textureRawfile: 'paper/paper-letter.jpg', hasRuledGrid: false, hasHeader: true, marginH: 28, marginTop: 24, marginBottom: 20 },
-  { kind: PaperKind.MANUSCRIPT, textureRawfile: 'paper/paper-manuscript.jpg', hasRuledGrid: true, hasHeader: true, marginH: 28, marginTop: 24, marginBottom: 20 },
-  { kind: PaperKind.POSTCARD, textureRawfile: 'paper/paper-postcard.jpg', hasRuledGrid: false, hasHeader: false, marginH: 28, marginTop: 24, marginBottom: 20 },
-  { kind: PaperKind.MEMO, textureRawfile: 'paper/paper-memo.jpg', hasRuledGrid: false, hasHeader: false, marginH: 36, marginTop: 24, marginBottom: 20 },
+  { kind: PaperKind.LETTER, textureRawfile: 'paper/paper-letter.jpg', hasRuledGrid: false, hasHeader: true, marginH: 48, marginTop: 24, marginBottom: 20 },
+  { kind: PaperKind.MANUSCRIPT, textureRawfile: 'paper/paper-manuscript.jpg', hasRuledGrid: true, hasHeader: true, marginH: 48, marginTop: 24, marginBottom: 20 },
+  { kind: PaperKind.POSTCARD, textureRawfile: 'paper/paper-postcard.jpg', hasRuledGrid: false, hasHeader: false, marginH: 48, marginTop: 24, marginBottom: 20 },
+  { kind: PaperKind.MEMO, textureRawfile: 'paper/paper-memo.jpg', hasRuledGrid: false, hasHeader: false, marginH: 48, marginTop: 24, marginBottom: 20 },
 ];
 
 export const RIBBONS: RibbonSpec[] = [
