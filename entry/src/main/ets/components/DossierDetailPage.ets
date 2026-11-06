@@ -26,6 +26,9 @@ const PAPER_RAW: Record<string, string> = {
   'MEMO': 'paper/paper-memo.jpg',
 };
 
+/** 飞出动画整体倍率：1 = 正常速度；>1 仅用于抓帧验证（§5.2 录屏/连拍取证）。 */
+const FLY_SCALE: number = 1;
+
 @Component
 export struct DossierDetailPage {
   @Prop widthVp: number = 673.7;
@@ -142,6 +145,7 @@ export struct DossierDetailPage {
   }
 
   private launch(i: number): void {
+    const S: number = FLY_SCALE;
     const cxs: number = this.cardCx(i);
     const cys: number = this.cardCy(i);
     const sx: number = this.openingX();
@@ -174,12 +178,12 @@ export struct DossierDetailPage {
               setTimeout(() => {
                 const s2: number[] = this.flySc.slice(); s2[i] = 1.0; this.flySc = s2;
                 const r2: number[] = this.flyRot.slice(); r2[i] = 0; this.flyRot = r2;
-              }, 120);
+              }, 120 * S);
             }, 0);
           }
-        }, 87 * k);
+        }, 87 * k * S);
       }
-    }, 200 + i * 100);
+    }, (200 + i * 100) * S);
   }
 
   private previewText(id: string): string {
