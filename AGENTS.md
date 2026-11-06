@@ -13,6 +13,16 @@
   根 Stack 加 `expandSafeArea([SYSTEM],[TOP,BOTTOM])`，顶栏/页眉顶距 = topInset、底部内容底距 = bottomInset。
   不许写死固定顶距，不许 `aboutToDisappear` 恢复非沉浸。
 
+## 真机验证前置（2026-11-07 定，血泪教训）
+- 每次自动化点击/取坐标前，**必须先确认 App 在前台**：
+  `input keyevent 3` → `aa start -a EntryAbility -b com.dlzz.carriagereturn` → sleep 6-8s。
+- 然后 dump 一次，**看到 App 自己的文本（如「未命名」「卷宗」「Courier Prime」）才继续**；
+  只看到 `TextClock`／状态栏控件说明最上层是系统 UI，此时任何点击都是点系统层。
+- 顶栏两个按钮的稳定坐标（平板 MLR-AL10，1600×2560）：库/卷宗 **(71,170)**、右菜单/收藏 **(1530,170)**。
+  这套坐标在沉浸式改造后仍成立，不必每次重取。
+- 取证失败时先怀疑「设备前台状态 / 采样时机」，**不要先怀疑产品缺陷**——本仓已因此误判过两次
+  （「持久化漏洞」「TopBar 坏了」均被后续证据推翻）。
+
 ## 语言与编码
 - 文档用中文，文件 UTF-8。
 - ArkTS 代码：显式类型，禁 any/unknown；文案走资源文件，不硬编码在渲染逻辑里。
