@@ -321,7 +321,8 @@ struct Index {
       // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
       // ①纸宽：平板 0.72×stageWidth（MLR 485vp / 72%），手机维持 0.82×stageWidth
-      this.paperWidthVp = (this.isTablet ? 0.72 : 0.82) * this.stageWidth;
+      // 纸卷收窄留边：平板 0.66×stageWidth（左右各留深底空隙），手机维持 0.82
+      this.paperWidthVp = (this.isTablet ? 0.66 : 0.82) * this.stageWidth;
       // ①零件尺寸加顶：Hc 取 min(Pw×0.17, 纸带高×0.67)，使 Hg=1.5Hc 不超纸带、
     // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
     // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。

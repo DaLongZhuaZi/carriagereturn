@@ -40,8 +40,9 @@ export struct CarriageLayers {
   }
 
   /** 压纸卷带长 = 纸宽 + 2×旋钮直径。 */
+  /** 压纸卷横杆与纸卷同宽（左右对齐纸缘），不再加旋钮直径。 */
   private bailW(): number {
-    return this.paperWidthVp + 2 * this.knobD();
+    return this.paperWidthVp;
   }
 
   private canvasW(): number {
@@ -53,15 +54,18 @@ export struct CarriageLayers {
       if (this.part === 'roller') {
         Stack({ alignContent: Alignment.TopStart }) {
           // 滚筒纹理：不旋转。rotate 是屏面内 2D 转动，横滚筒转 59° 会斜、换纸转 360° 等于风车
+          // 滚筒与纸卷同宽、左右对齐纸缘：不再横贯全宽（那是纸后宽暗带的来源）
           Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
-            .width(this.canvasW())
+            .width(this.paperWidthVp)
             .height(this.hc())
             .objectFit(ImageFit.Cover)
+            .position({ x: this.paperLeftVp - this.canvasOffsetVp, y: 0 })
 
           // 柱面感：上亮下暗的纵向明暗，暗示直径 Hc 的圆柱曲面
           Column()
-            .width(this.canvasW())
+            .width(this.paperWidthVp)
             .height(this.hc())
+            .position({ x: this.paperLeftVp - this.canvasOffsetVp, y: 0 })
             .linearGradient({
               direction: GradientDirection.Bottom,
               colors: [
@@ -89,17 +93,18 @@ export struct CarriageLayers {
 
       if (this.part === 'metal') {
         // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
+        // 字杆篮扇面收到纸宽（原 820vp 横贯全宽，是纸后宽暗带的另一半来源）
         Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
-          .width(820)
-          .height(175)
+          .width(this.paperWidthVp)
+          .height(this.paperWidthVp * 0.213)
           .objectFit(ImageFit.Fill)
           .opacity(0.6)
-          .position({ x: this.paperLeftVp + this.paperWidthVp / 2 - 410, y: -16 })
+          .position({ x: this.paperLeftVp, y: -this.paperWidthVp * 0.213 * 0.5 })
           .zIndex(0)
 
         // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
         Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
-          .width(this.paperWidthVp + 2 * this.knobD())
+          .width(this.paperWidthVp)
           .height(83)
           .objectFit(ImageFit.Fill)
           .position({ x: this.paperLeftVp - this.knobD(), y: this.hc() })
@@ -126,21 +131,8 @@ export struct CarriageLayers {
             y: this.strikeYVp - this.hc() * 1.5 * 0.550,
           })
 
-        Image($rawfile('layers/1920s-upright/knob.png'))
-          .width(this.knobD())
-          .height(this.knobD())
-          .objectFit(ImageFit.Contain)
-          // 中心贴纸左缘（半个旋钮压在纸缘上），y = 滚筒中心
-          .position({ x: this.paperLeftVp - this.knobD() / 2, y: this.hc() / 2 - this.knobD() / 2 })
-          .rotate({ angle: this.knobAngleDeg })
-
-        Image($rawfile('layers/1920s-upright/knob.png'))
-          .width(this.knobD())
-          .height(this.knobD())
-          .objectFit(ImageFit.Contain)
-          // 中心贴纸右缘
-          .position({ x: this.paperLeftVp + this.paperWidthVp - this.knobD() / 2, y: this.hc() / 2 - this.knobD() / 2 })
-          .rotate({ angle: this.knobAngleDeg })
+        // 本批撤掉两枚圆形旋钮：真机正面只见旋钮侧面而非整面圆盘，
+        // 现两个大圆盘摆在纸卷两端像轮子。knobAngle 逻辑保留，待按「只露侧面」重设计外观。
       }
     }
     .width(this.stageWidth)

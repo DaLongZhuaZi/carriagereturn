@@ -169,6 +169,30 @@ export struct PaperStage {
           .hitTestBehavior(HitTestMode.None)
       }
 
+      // 纸卷左右两缘暗边：暗示卷的侧面厚度（立体感）
+      if (this.visibleBottomVp > 0) {
+        Row() {
+          Column()
+            .width(3)
+            .height('100%')
+            .linearGradient({
+              direction: GradientDirection.Right,
+              colors: [['rgba(0,0,0,0.22)', 0.0], ['rgba(0,0,0,0)', 1.0]],
+            })
+          Column()
+            .width(3)
+            .height('100%')
+            .linearGradient({
+              direction: GradientDirection.Left,
+              colors: [['rgba(0,0,0,0.22)', 0.0], ['rgba(0,0,0,0)', 1.0]],
+            })
+        }
+        .width('100%')
+        .height(this.visibleBottomVp)
+        .position({ x: 0, y: 0 })
+        .hitTestBehavior(HitTestMode.None)
+      }
+
       // 纸卷柱面：纸底 34vp 向下渐暗，模拟纸面包着滚筒弯下去
       if (this.visibleBottomVp > 40) {
         Column()
