@@ -150,6 +150,8 @@ export struct DossierDetailPage {
     const cys: number = this.cardCy(i);
     const sx: number = this.openingX();
     const sy: number = this.openingY();
+    hilog.info(0x0000, 'DossierDetail', 'flyStart i=%{public}s from=(%{public}s,%{public}s) to=(%{public}s,%{public}s)',
+      i.toString(), sx.toFixed(0), sy.toFixed(0), cxs.toFixed(0), cys.toFixed(0));
     setTimeout(() => {
       const xs: number[] = this.flyX.slice();
       const ys: number[] = this.flyY.slice();
