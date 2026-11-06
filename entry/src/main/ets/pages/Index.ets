@@ -1810,7 +1810,18 @@ struct Index {
         })
       }
 
-      // 收藏详情页（§3）：只对已解锁机器开放
+      // 收藏页（§3）：先渲染，详情页在其后渲染才能盖在它上面
+      if (this.collectionOpen) {
+        CollectionPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          currentMachine: this.machineKind as string,
+          onBack: (): void => { this.collectionOpen = false; },
+          onPick: (kind: string): void => { this.collectionDetailKind = kind; },
+        })
+      }
+
+      // 收藏详情页（§3）：只对已解锁机器开放；必须排在收藏页之后（后者先绘制）
       if (this.collectionOpen && this.collectionDetailKind.length > 0) {
         CollectionDetailPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
@@ -1823,17 +1834,6 @@ struct Index {
             this.collectionOpen = false;
             hilog.info(DOMAIN, TAG, 'collection setCurrent -> %{public}s', kind);
           },
-        })
-      }
-
-      // 收藏页（§3）
-      if (this.collectionOpen) {
-        CollectionPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
-          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          currentMachine: this.machineKind as string,
-          onBack: (): void => { this.collectionOpen = false; },
-          onPick: (kind: string): void => { this.collectionDetailKind = kind; },
         })
       }
 
