@@ -81,6 +81,8 @@ struct Index {
   @State paperChanging: boolean = false;
   /** 换纸时旧纸淡出用。 */
   @State paperOpacity: number = 1;
+  /** 换纸第①步：纸容器切「整张模式」（高=Ph、不裁），整张纸飞出去。 */
+  @State paperFullSheet: boolean = false;
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   @State paperTopTargetVp: number = 0;
@@ -684,7 +686,7 @@ struct Index {
   }
 
   private bracketW(): number {
-    return this.carriageHeight * 1.1;
+    return 60;
   }
 
   private bracketH(): number {
@@ -952,6 +954,9 @@ struct Index {
     this.paperChanging = true;
     const startTop: number = this.paperTopVp;
     hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s', startTop.toFixed(1), this.paperContainerVp.toFixed(1));
+    // ① 整张模式：容器高 = Ph、不裁，整张纸才能整片飞出（不再只露一截）
+    this.paperFullSheet = true;
+    this.paperContainerVp = this.paperHeightVp;
     // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
     this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
       this.paperTopVp = startTop - this.paperHeightVp;
@@ -970,6 +975,7 @@ struct Index {
       this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
         this.recalcPaperHeight();
         this.paperOpacity = 1;
+        this.paperFullSheet = false;
         this.knobAngle = this.knobAngle + 180;
       });
       hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
@@ -1291,7 +1297,8 @@ struct Index {
             .height(this.paperContainerVp)
             // 纸与字同一刚体：容器 x 带 O，纸内不再重复 translate(O)
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
-            .clip(true)
+            // 平时 clip(true) 裁掉纸底；换纸第①步切整张模式时不裁，整片飞出去
+            .clip(!this.paperFullSheet)
             .opacity(this.paperOpacity)
             // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
             .zIndex(2)

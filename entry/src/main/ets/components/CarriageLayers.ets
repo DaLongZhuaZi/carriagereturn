@@ -109,7 +109,6 @@ export struct CarriageLayers {
                 ['rgba(0,0,0,0.55)', 1.0],
               ],
             })
-            .position({ x: 0, y: 0 })
 
           // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
           Row()
@@ -161,13 +160,13 @@ export struct CarriageLayers {
         Column()
           .width(this.grooveW())
           .height(2)
-          .backgroundColor('#ffffff30')
+          .backgroundColor('rgba(255,255,255,0.19)')
           .position({ x: this.grooveLeft(), y: this.grooveTop() })
           .zIndex(2)
         Column()
           .width(this.grooveW())
           .height(2)
-          .backgroundColor('#00000066')
+          .backgroundColor('rgba(0,0,0,0.4)')
           .position({ x: this.grooveLeft(), y: this.grooveTop() + 12 })
           .zIndex(2)
 
