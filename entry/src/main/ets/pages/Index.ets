@@ -26,6 +26,7 @@ import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
 import { DossierPage } from '../components/DossierPage';
 import { DossierDetailPage } from '../components/DossierDetailPage';
+import { DocumentViewPage } from '../components/DocumentViewPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -202,6 +203,8 @@ struct Index {
   @State detailOpen: boolean = false;
   /** 纸列表版本号：卷宗内页每次新建/删除纸后 +1，驱动重算。 */
   @State docsRev: number = 0;
+  /** 文档视图（§5.3）：非空则显示。 */
+  @State openDocId: string = '';
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1707,6 +1710,22 @@ struct Index {
       }
 
       // 卷宗内页（§5.2）
+      // 文档视图（§5.3）
+      if (this.dossierOpen && this.openDocId.length > 0) {
+        DocumentViewPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docId: this.openDocId,
+          onBack: (): void => { this.openDocId = ''; },
+          onEdit: (id: string): void => { this.openDocId = ''; this.dossierOpen = false; this.detailOpen = false; },
+          onDelete: (id: string): void => {
+            docStore.remove(id);
+            this.openDocId = '';
+            this.docsRev = this.docsRev + 1;
+          },
+        })
+      }
+
       if (this.dossierOpen && this.detailOpen) {
         DossierDetailPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
@@ -1714,7 +1733,7 @@ struct Index {
           dossierId: this.openDossierId,
           docs: this.listDocs(),
           onBack: (): void => { this.detailOpen = false; },
-          onOpenPaper: (id: string): void => { this.dossierOpen = false; this.detailOpen = false; },
+          onOpenPaper: (id: string): void => { this.openDocId = id; },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onDeletePaper: (id: string): void => {
             docStore.remove(id);
