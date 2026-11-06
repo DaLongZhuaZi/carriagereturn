@@ -1795,7 +1795,13 @@ struct Index {
           dossierId: this.openDossierId,
           docs: this.listDocs(),
           onBack: (): void => { this.detailOpen = false; },
-          onOpenPaper: (id: string): void => { this.openDocId = id; },
+          onOpenPaper: (id: string): void => {
+            // §5.2：点「打开」直接进主屏打字页编辑这张纸
+            this.dossierOpen = false;
+            this.detailOpen = false;
+            this.openDocId = '';
+            this.loadDocument(id);
+          },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onDeletePaper: (id: string): void => {
             docStore.remove(id);

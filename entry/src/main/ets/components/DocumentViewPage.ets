@@ -145,7 +145,10 @@ export struct DocumentViewPage {
           .height('100%')
           .clip(true).borderRadius(6)
           .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
-          .onClick(() => { this.onEdit(this.docId); })
+          .onClick(() => {
+            hilog.info(0x0000, 'DocumentView', 'body tapped doc=%{public}s', this.docId);
+            this.onEdit(this.docId);
+          })
         }
         .width('100%').layoutWeight(1)
         .padding({ left: 20, right: 20 }).alignItems(VerticalAlign.Top)
