@@ -29,7 +29,7 @@ export struct DossierDetailPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop dossierId: string = '';
-  @Prop docs: DocSummary[] = [];
+  @Prop @Watch('onDocsChanged') docs: DocSummary[] = [];
   @State papers: DocSummary[] = [];
   @State dName: string = '';
   @State dCover: string = 'kraft';
@@ -45,6 +45,11 @@ export struct DossierDetailPage {
   onDeletePaper: (id: string) => void = (): void => {};
 
   aboutToAppear(): void {
+    this.reload();
+  }
+
+  /** docs 变化（新建/删除纸后 Index 递增 docsRev）时重算纸列表。 */
+  onDocsChanged(): void {
     this.reload();
   }
 

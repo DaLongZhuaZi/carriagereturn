@@ -4,6 +4,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { FileUtils, logger, ngfDeviceAdaptationFacade, ngfI18nManagerFacade, ngfPlatformWindowManagerFacade, ngfStarterKernel, ngfThemeManagerFacade, uiContextManager } from 'ngf_framework';
 import { docStore } from '../services/DocStore';
+import { dossierStore } from '../services/DossierStore';
 import { appPreferences } from '../services/AppPreferences';
 
 const TAG: string = 'EntryAbility';
@@ -26,6 +27,7 @@ export default class EntryAbility extends UIAbility {
     uiContextManager.bindAbilityContext(this.context as common.UIAbilityContext);
     FileUtils.setSandboxBaseDir(this.context.filesDir);
     docStore.init(this.context.filesDir);
+    dossierStore.init(this.context.filesDir);
     appPreferences.init(this.context as common.UIAbilityContext);
 
     let bootstrapped: boolean = false;

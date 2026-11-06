@@ -28,6 +28,8 @@ interface DocIndexEntry {
   title: string;
   createdAt: number;
   updatedAt: number;
+  /** 所属卷宗 id；缺省 = 未归档（§5 卷宗系统）。 */
+  dossierId?: string | null;
 }
 
 interface DocIndex {
@@ -92,7 +94,8 @@ export class DocStore {
     // 纯文本与 JSON 成对保存（内容可再编辑，绝不只存图片）。
     this.writeText(this.textPath(docId), this.plainTextOf(data));
 
-    this.upsertIndex(docId, this.titleOf(data, fallbackTitle), data.meta.createdAt, data.meta.updatedAt);
+    this.upsertIndex(docId, this.titleOf(data, fallbackTitle), data.meta.createdAt, data.meta.updatedAt,
+      data.dossierId === undefined ? null : data.dossierId);
     return docId;
   }
 
@@ -142,6 +145,7 @@ export class DocStore {
         updatedAt: entry.updatedAt,
         machine: DEFAULT_MACHINE,
         paper: DEFAULT_PAPER,
+        dossierId: entry.dossierId === undefined ? null : entry.dossierId,
       });
     }
     return out;
@@ -248,19 +252,22 @@ export class DocStore {
     }
   }
 
-  private upsertIndex(id: string, title: string, createdAt: number, updatedAt: number): void {
+  private upsertIndex(id: string, title: string, createdAt: number, updatedAt: number,
+    dossierId: string | null): void {
     const index: DocIndex = this.readIndex();
     let found: boolean = false;
     for (const entry of index.entries) {
       if (entry.id === id) {
         entry.title = title;
         entry.updatedAt = updatedAt;
+        entry.dossierId = dossierId;
         found = true;
         break;
       }
     }
     if (!found) {
-      index.entries.push({ id: id, title: title, createdAt: createdAt, updatedAt: updatedAt });
+      index.entries.push({ id: id, title: title, createdAt: createdAt, updatedAt: updatedAt,
+        dossierId: dossierId });
     }
     index.entries.sort((a: DocIndexEntry, b: DocIndexEntry) => b.updatedAt - a.updatedAt);
     this.writeIndex(index);

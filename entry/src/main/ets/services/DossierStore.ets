@@ -76,6 +76,9 @@ export class DossierStore {
   }
 
   private writeIndex(index: DossierIndex): void {
+    if (!this.initialized) {
+      return;
+    }
     try {
       const file: fs.File = fs.openSync(this.indexPath(),
         fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
@@ -115,7 +118,9 @@ export class DossierStore {
     const index: DossierIndex = this.readIndex();
     index.dossiers.push(d);
     this.writeIndex(index);
-    hilog.info(DOMAIN, TAG, 'dossier created id=%{public}s style=%{public}s', d.id, coverStyle);
+    const back: Dossier[] = this.list();
+    hilog.info(DOMAIN, TAG, 'dossier created id=%{public}s style=%{public}s listCount=%{public}s',
+      d.id, coverStyle, back.length.toString());
     return d;
   }
 

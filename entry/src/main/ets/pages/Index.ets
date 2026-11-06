@@ -200,6 +200,8 @@ struct Index {
   @State openDossierId: string = '';
   /** 卷宗内页是否展开（§5.2）；与 openDossierId 分开，避免空 id 恒真。 */
   @State detailOpen: boolean = false;
+  /** 纸列表版本号：卷宗内页每次新建/删除纸后 +1，驱动重算。 */
+  @State docsRev: number = 0;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1339,6 +1341,33 @@ struct Index {
     this.rows = next;
   }
 
+  /** 卷宗内页用：读一次 docsRev 以建立依赖，再取列表。 */
+  private listDocs(): DocSummary[] {
+    const rev: number = this.docsRev;
+    return rev >= 0 ? docStore.list() : [];
+  }
+
+  /** §5.2 新建纸张：在该卷宗里建一张空白纸（dossierId 记当前卷宗）。 */
+  private newPaperInDossier(): void {
+    const data: DocData = {
+      lines: [{ text: '', ribbon: this.docModel.toDocData().meta.ribbon }],
+      cursor: { line: 0, offset: 0 },
+      meta: {
+        machine: this.machineKind,
+        paper: this.paperKind,
+        ribbon: this.ribbon,
+        font: this.docModel.toDocData().meta.font,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      dossierId: this.openDossierId.length > 0 ? this.openDossierId : null,
+    };
+    const id: string = docStore.save('', data, '未命名');
+    hilog.info(DOMAIN, TAG, 'newPaper in dossier=%{public}s doc=%{public}s',
+      this.openDossierId, id);
+    this.docsRev = this.docsRev + 1;
+  }
+
   private resolveString(res: Resource): string {
     try {
       const ctx = this.getUIContext().getHostContext();
@@ -1683,11 +1712,14 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           dossierId: this.openDossierId,
-          docs: docStore.list(),
+          docs: this.listDocs(),
           onBack: (): void => { this.detailOpen = false; },
           onOpenPaper: (id: string): void => { this.dossierOpen = false; this.detailOpen = false; },
-          onNewPaper: (): void => {},
-          onDeletePaper: (id: string): void => {},
+          onNewPaper: (): void => { this.newPaperInDossier(); },
+          onDeletePaper: (id: string): void => {
+            docStore.remove(id);
+            this.docsRev = this.docsRev + 1;
+          },
         })
       }
     }
