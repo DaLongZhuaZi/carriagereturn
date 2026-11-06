@@ -1851,8 +1851,8 @@ struct Index {
         })
       }
 
-      // 文档视图（§5.3）
-      if (this.dossierOpen && this.openDocId.length > 0) {
+      // 文档视图（§5.3）：占位块（真正的渲染已移到卷宗内页之后，保证盖在内页之上）
+      if (false && this.dossierOpen && this.openDocId.length > 0) {
         DocumentViewPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
@@ -1888,8 +1888,30 @@ struct Index {
           },
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
+          onOpenDoc: (id: string): void => { this.openDocId = id; },
           onDeletePaper: (id: string): void => {
             docStore.remove(id);
+            this.docsRev = this.docsRev + 1;
+          },
+        })
+      }
+
+      // 文档视图（§5.3）：必须排在卷宗内页之后，才能盖在内页之上
+      if (this.dossierOpen && this.openDocId.length > 0) {
+        DocumentViewPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docId: this.openDocId,
+          onBack: (): void => { this.openDocId = ''; },
+          onEdit: (id: string): void => {
+            this.openDocId = '';
+            this.dossierOpen = false;
+            this.detailOpen = false;
+            this.loadDocument(id);
+          },
+          onDelete: (id: string): void => {
+            docStore.remove(id);
+            this.openDocId = '';
             this.docsRev = this.docsRev + 1;
           },
         })

@@ -57,6 +57,8 @@ export struct DossierDetailPage {
   onOpenPaper: (id: string) => void = (): void => {};
   onNewPaper: () => void = (): void => {};
   onDeletePaper: (id: string) => void = (): void => {};
+  /** 点缩略图 → 文档视图（§5.3）。 */
+  onOpenDoc: (id: string) => void = (): void => {};
   /** 删卷宗：mode='unfile' 纸移出（变未归档）｜'purge' 连纸一起删。 */
   onDeleteDossier: (mode: string) => void = (): void => {};
   @State confirmDel: boolean = false;
@@ -298,6 +300,8 @@ export struct DossierDetailPage {
                       .padding(10).width('100%')
                   }
                   .width('100%').height(150).clip(true).borderRadius(12)
+                  // §5.3：点缩略图进「文档视图」（阅读视图）；「打开」文字链仍直接进主屏编辑（§5.2）
+                  .onClick(() => { this.onOpenDoc(p.id); })
 
                   Text(p.title.length > 0 ? p.title : '未命名')
                     .fontSize(17).fontColor('#e8ddc9').margin({ top: 8 }).maxLines(1)
