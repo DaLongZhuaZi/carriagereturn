@@ -79,6 +79,8 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
+  /** 换纸时旧纸淡出用。 */
+  @State paperOpacity: number = 1;
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   @State paperTopTargetVp: number = 0;
@@ -899,11 +901,10 @@ struct Index {
     }
     this.paperChanging = true;
     const startTop: number = this.paperTopVp;
-    const startBox: number = this.paperContainerVp;
-    // ① 旧纸卷出 300ms：纸顶下移、容器收缩到 0（绕滚筒卷出），滚筒同转
+    // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
     this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-      this.paperTopVp = startTop + startBox;
-      this.paperContainerVp = 1;
+      this.paperTopVp = startTop - this.paperHeightVp;
+      this.paperOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
     });
     setTimeout(() => {
@@ -914,6 +915,7 @@ struct Index {
       this.carriageOffsetVp = 0;
       this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
         this.recalcPaperHeight();
+        this.paperOpacity = 1;
         this.knobAngle = this.knobAngle + 180;
       });
       hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s', this.knobAngle.toFixed(1));
@@ -1221,6 +1223,7 @@ struct Index {
             // 纸与字同一刚体：容器 x 带 O，纸内不再重复 translate(O)
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
             .clip(true)
+            .opacity(this.paperOpacity)
             // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
             .zIndex(2)
           }

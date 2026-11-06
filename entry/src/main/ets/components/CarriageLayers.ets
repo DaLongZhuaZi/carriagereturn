@@ -52,20 +52,26 @@ export struct CarriageLayers {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.part === 'roller') {
         Stack({ alignContent: Alignment.TopStart }) {
-          // 字杆篮扇面：字车后方（压暗 0.6），中间被纸与木底座挡住
-          Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
-            .width(820)
-            .height(175)
-            .objectFit(ImageFit.Fill)
-            .opacity(0.6)
-            .position({ x: this.paperLeftVp + this.paperWidthVp / 2 - 410, y: -16 })
-
-          // 滚筒纹理随转角旋转：换行/换纸时与旋钮同角
+          // 滚筒纹理：不旋转。rotate 是屏面内 2D 转动，横滚筒转 59° 会斜、换纸转 360° 等于风车
           Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
             .width(this.canvasW())
             .height(this.hc())
             .objectFit(ImageFit.Cover)
-            .rotate({ angle: this.rollerAngleDeg, centerX: this.canvasW() / 2, centerY: this.hc() / 2 })
+
+          // 柱面感：上亮下暗的纵向明暗，暗示直径 Hc 的圆柱曲面
+          Column()
+            .width(this.canvasW())
+            .height(this.hc())
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [
+                ['rgba(255,246,230,0.22)', 0.0],
+                ['rgba(0,0,0,0)', 0.45],
+                ['rgba(0,0,0,0.30)', 0.82],
+                ['rgba(0,0,0,0.55)', 1.0],
+              ],
+            })
+            .position({ x: 0, y: 0 })
 
           // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
           Row()
@@ -74,13 +80,6 @@ export struct CarriageLayers {
             .backgroundColor('#e8ddc9')
             .opacity(0.85)
             .position({ x: this.paperLeftVp, y: this.hc() - 5 })
-
-          // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
-          Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
-            .width(this.paperWidthVp + 2 * this.knobD())
-            .height(83)
-            .objectFit(ImageFit.Fill)
-            .position({ x: this.paperLeftVp - this.knobD(), y: this.hc() })
         }
         .width(this.stageWidth)
         .height(this.hc())
@@ -89,6 +88,23 @@ export struct CarriageLayers {
       }
 
       if (this.part === 'metal') {
+        // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
+        Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
+          .width(820)
+          .height(175)
+          .objectFit(ImageFit.Fill)
+          .opacity(0.6)
+          .position({ x: this.paperLeftVp + this.paperWidthVp / 2 - 410, y: -16 })
+          .zIndex(0)
+
+        // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
+        Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
+          .width(this.paperWidthVp + 2 * this.knobD())
+          .height(83)
+          .objectFit(ImageFit.Fill)
+          .position({ x: this.paperLeftVp - this.knobD(), y: this.hc() })
+          .zIndex(0)
+
         // 压纸卷：x = 纸屏左 − 旋钮直径
         Image($rawfile('layers/1920s-upright/paper-bail.png'))
           .width(this.bailW())
