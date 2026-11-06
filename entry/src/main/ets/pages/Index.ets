@@ -992,7 +992,9 @@ struct Index {
     this.docModel.setCursor({ line: cur.line - 1, offset: prevLen });
     this.syncRows();
     this.hintText = '';
-    const targetO: number = -prevW;
+    // O 是字车小行程口径（travelPerChar×字数，上限 maxTravelVp）；
+    // 落字位置由 currentLineWidthVp() 全宽管，prevW 不再塞进 O（口径混淆）
+    const targetO: number = Math.max(-this.maxTravelVp, -(prevLen * this.travelPerChar));
     // 纸下移一行高（纸上移的逆操作）200ms；字车 O 滑到上一行文字末尾 250ms
     // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画
     this.paperAnimateNext = true;
