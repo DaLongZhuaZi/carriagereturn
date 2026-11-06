@@ -24,6 +24,7 @@ import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/Ke
 import { PaperRow } from '../ui/PaperSheet';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
+import { dossierStore } from '../services/DossierStore';
 import { DossierPage } from '../components/DossierPage';
 import { DossierDetailPage } from '../components/DossierDetailPage';
 import { DocumentViewPage } from '../components/DocumentViewPage';
@@ -1372,6 +1373,34 @@ struct Index {
       id, this.docModel.getLines().length.toString());
   }
 
+  /** §5.4 删卷宗：mode='unfile' 纸移出变未归档；'purge' 连纸一起删。只删索引，不默认连删。 */
+  private deleteDossier(id: string, mode: string): void {
+    const all: DocSummary[] = docStore.list();
+    let n: number = 0;
+    for (let i = 0; i < all.length; i++) {
+      const did: string | null | undefined = all[i].dossierId;
+      if (did === undefined || did === null || did !== id) {
+        continue;
+      }
+      n = n + 1;
+      if (mode === 'purge') {
+        docStore.remove(all[i].id);
+      } else {
+        const data: DocData | null = docStore.load(all[i].id);
+        if (data !== null) {
+          data.dossierId = null;
+          docStore.save(all[i].id, data, '未命名');
+        }
+      }
+    }
+    dossierStore.removeIndexOnly(id);
+    hilog.info(DOMAIN, TAG, 'deleteDossier id=%{public}s mode=%{public}s papers=%{public}s',
+      id, mode, n.toString());
+    this.detailOpen = false;
+    this.openDossierId = '';
+    this.docsRev = this.docsRev + 1;
+  }
+
   /** 卷宗内页用：读一次 docsRev 以建立依赖，再取列表。 */
   private listDocs(): DocSummary[] {
     const rev: number = this.docsRev;
@@ -1802,6 +1831,7 @@ struct Index {
             this.openDocId = '';
             this.loadDocument(id);
           },
+          onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onDeletePaper: (id: string): void => {
             docStore.remove(id);

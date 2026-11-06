@@ -48,6 +48,9 @@ export struct DossierDetailPage {
   onOpenPaper: (id: string) => void = (): void => {};
   onNewPaper: () => void = (): void => {};
   onDeletePaper: (id: string) => void = (): void => {};
+  /** 删卷宗：mode='unfile' 纸移出（变未归档）｜'purge' 连纸一起删。 */
+  onDeleteDossier: (mode: string) => void = (): void => {};
+  @State confirmDel: boolean = false;
 
   aboutToAppear(): void {
     this.reload();
@@ -219,9 +222,13 @@ export struct DossierDetailPage {
           }
           .alignItems(HorizontalAlign.Start).margin({ left: 14 }).layoutWeight(1)
 
+          Text('⋯').fontSize(20).fontColor('#e8ddc9')
+            .width(36).height(36).textAlign(TextAlign.Center)
+            .onClick(() => { this.confirmDel = true; })
           Text('新建纸张').fontSize(13).fontColor('#e8ddc9')
             .padding({ left: 14, right: 14, top: 7, bottom: 7 })
             .borderRadius(28).backgroundColor('#2e2620')
+            .margin({ left: 8 })
             .onClick(() => { this.onNewPaper(); })
         }
         .width('100%').height(96).padding({ left: 20, right: 20 })
@@ -286,6 +293,30 @@ export struct DossierDetailPage {
       .width(this.widthVp).height(this.heightVp)
       .linearGradient({ direction: GradientDirection.Bottom,
         colors: [['#171310', 0.0], ['#241c16', 1.0]] })
+
+      // 删卷宗：先问「卷宗里的纸怎么办」，不许默认连删
+    if (this.confirmDel) {
+      Column() {
+        Column() {
+          Text('删除「' + this.dName + '」').fontSize(16).fontWeight(FontWeight.Bold)
+            .fontColor('#e8ddc9')
+          Text('卷宗里的 ' + this.papers.length.toString() + ' 张纸怎么办？')
+            .fontSize(13).fontColor('rgba(232,221,201,0.7)').margin({ top: 10 })
+          Text('移出卷宗（纸变未归档）').fontSize(14).fontColor('#c9a45c')
+            .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+            .onClick(() => { this.confirmDel = false; this.onDeleteDossier('unfile'); })
+          Text('连纸一起删').fontSize(14).fontColor('#c06a5a')
+            .width('100%').textAlign(TextAlign.Center).margin({ top: 14 })
+            .onClick(() => { this.confirmDel = false; this.onDeleteDossier('purge'); })
+          Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+            .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+            .onClick(() => { this.confirmDel = false; })
+        }
+        .width(320).padding(20).borderRadius(14).backgroundColor('#211b16')
+      }
+      .width('100%').height('100%').justifyContent(FlexAlign.Center)
+      .backgroundColor('rgba(0,0,0,0.6)')
+      }
     }
     .width(this.widthVp).height(this.heightVp)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
