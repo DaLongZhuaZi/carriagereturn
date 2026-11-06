@@ -19,6 +19,7 @@ import {
   CARRIAGE_PAPER_OVERLAP_VP, DEFAULT_FONT, DEFAULT_MACHINE, DEFAULT_PAPER, DEFAULT_RIBBON,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP, PAPER_TOP_GAP_VP, TOP_BAR_HEIGHT_VP,
   findFont, findMachine, findPaper, findRibbon, fontDisplayName,
+  FONTS,
 } from '../model/MachineCatalog';
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
 import { PaperRow } from '../ui/PaperSheet';
@@ -1686,7 +1687,7 @@ struct Index {
 
         FontBar({
           fontFamily: this.fontFamily,
-          fontLabel: fontDisplayName(DEFAULT_FONT),
+          fontLabel: fontDisplayName(this.docModel.toDocData().meta.font),
           heightVp: this.fontBarHeight,
           onOpenCustomize: (): void => { this.customizeOpen = true; },
         })
@@ -1781,7 +1782,18 @@ struct Index {
           onPickMachine: (k: string): void => { this.machineKind = k as MachineKind; },
           onPickPaper: (k: string): void => { this.paperKind = k as PaperKind; },
           onPickRibbon: (k: string): void => { this.ribbon = k as RibbonKind; },
-          onPickFont: (f: string): void => {},
+          onPickFont: (f: string): void => {
+            // §4 换装即时生效：切换纸面字体（docModel + 渲染族名）
+            for (let i = 0; i < FONTS.length; i++) {
+              if ((FONTS[i].font as string) === f) {
+                this.docModel.setFont(FONTS[i].font);
+                this.fontFamily = FONTS[i].familyName + ', Noto Serif SC';
+                hilog.info(DOMAIN, TAG, 'customize font -> %{public}s family=%{public}s',
+                  f, FONTS[i].familyName);
+                break;
+              }
+            }
+          },
         })
       }
 
