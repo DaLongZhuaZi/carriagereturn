@@ -595,6 +595,12 @@ struct Index {
     const hcByCeil: number = (this.strikeLineVp - this.paperTopTargetVp) / 0.825;
     this.carriageHeight = hcByPw < hcByCeil ? hcByPw : hcByCeil;
     // 拨杆高 = 支点 − 纸顶（平板 1.84×Hc 使顶端与纸顶齐平），手机维持 2.5
+    hilog.info(DOMAIN, TAG,
+      'assembly baseW=%{public}s baseLeft=%{public}s plateLeft=%{public}s grooveTop=%{public}s bracketTop=%{public}s pinX=%{public}s pinY=%{public}s leverW=%{public}s',
+      this.baseW().toFixed(1), this.baseLeftRel().toFixed(1),
+      (this.baseLeftRel() + this.baseW() * 0.32 - 55).toFixed(1),
+      (this.carriageHeight + 8).toFixed(1), this.bracketTopRel().toFixed(1),
+      this.pinXRel().toFixed(1), this.pinYRel().toFixed(1), this.leverW().toFixed(1));
     const lf: number = this.isTablet ? 1.84 : 2.5;
     const leverHActual: number = this.carriageHeight * lf;
     const leverPivotY: number = this.carriageTopVp + this.carriageHeight / 2;
@@ -662,6 +668,49 @@ struct Index {
       return this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp;
     }
     return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
+  }
+
+  // ---- 字车总成 v8/v9 拼装几何（相对金属件顶）----
+  private knobD(): number {
+    return this.carriageHeight * 0.92;
+  }
+
+  private baseW(): number {
+    return this.paperWidthVp + 2 * this.knobD();
+  }
+
+  private baseLeftRel(): number {
+    return (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp - this.knobD();
+  }
+
+  private bracketW(): number {
+    return this.carriageHeight * 1.1;
+  }
+
+  private bracketH(): number {
+    return this.bracketW() / 0.8042;
+  }
+
+  /** 支架底面 = 沟槽底 + 2vp；沟槽底 = Hc + 22（底座顶 Hc+2，槽顶 +6，槽高 14）。 */
+  private bracketTopRel(): number {
+    return this.carriageHeight + 24 - this.bracketH();
+  }
+
+  private bracketLeftRel(): number {
+    return this.baseLeftRel() + this.baseW() - this.bracketW() - 10;
+  }
+
+  /** 销钉孔 (0.503, 0.293) 即拨杆支点。 */
+  private pinXRel(): number {
+    return this.bracketLeftRel() + 0.503 * this.bracketW();
+  }
+
+  private pinYRel(): number {
+    return this.bracketTopRel() + 0.293 * this.bracketH();
+  }
+
+  private leverW(): number {
+    return (this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212;
   }
 
   /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
@@ -1086,7 +1135,8 @@ struct Index {
 
           Stack({ alignContent: Alignment.TopStart }) {
             // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
-            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+            // 字杆本批隐藏（五件拼顺后再按 v5 加回）；开关不动素材、不删文件
+            if (false && this.machineKind === MachineKind.UPRIGHT_1920S) {
               TypebarLayer({
                 layerWidthVp: this.carriageHeight * 2.5,
                 layerHeightVp: this.carriageHeight * 2.5,
@@ -1128,7 +1178,8 @@ struct Index {
             }
 
             // ---- 字杆篮扇面（纸后、滚筒前）：独立层，不放进带 clip 的 roller Stack ----
-            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+            // 篮扇本批隐藏（五件拼顺后再按 v5 加回）；开关不动素材
+            if (false && this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
               CarriageLayers({
                 stageWidth: this.photoW(),
                 joltYVp: this.joltYVp,
@@ -1164,27 +1215,20 @@ struct Index {
 
                 // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
                 Image($rawfile('layers/1920s-upright/lever-pivot-bracket.png'))
-                  .width(this.carriageHeight * 1.2)
-                  .height(this.carriageHeight * 1.2)
-                  .objectFit(ImageFit.Contain)
-                  .position({
-                    x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                      + this.paperWidthVp - this.carriageHeight * 1.2 / 2,
-                    y: this.carriageTopVp + this.carriageHeight / 2 - this.carriageHeight * 1.2 / 2,
-                  })
+                  .width(this.bracketW())
+                  .height(this.bracketH())
+                  .objectFit(ImageFit.Fill)
+                  .position({ x: this.bracketLeftRel(), y: this.bracketTopRel() })
                   .zIndex(8)
 
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
                 LeverLayer({
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
-                  layerSizeVp: (this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212,
+                  layerSizeVp: this.leverW(),
                   newlineTick: this.newlineTick,
-                  // 拨杆：支点 x = 纸右缘 + O，支点 y = carriageTopVp + Hc/2（栈顶坐标）
-                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + this.paperWidthVp - this.carriageHeight * 2.5 * 0.212 / 2,
-                  offsetYVp: this.carriageTopVp + this.carriageHeight / 2
-                    - ((this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212
-                      / (536 / 2522)) * 0.952,
+                  // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
+                  offsetXVp: this.pinXRel() - this.leverW() / 2,
+                  offsetYVp: this.pinYRel() - (this.leverW() / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },

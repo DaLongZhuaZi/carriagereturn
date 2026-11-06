@@ -45,6 +45,40 @@ export struct CarriageLayers {
     return this.paperWidthVp;
   }
 
+  /** 木底座宽 = Pw + 2×knobD（整机最宽，左右各出纸缘一个旋钮直径）。 */
+  private baseW(): number {
+    return this.paperWidthVp + 2 * this.knobD();
+  }
+
+  /** 木底座左缘 = 纸左缘 − knobD。 */
+  private baseLeft(): number {
+    return this.paperLeftVp - this.knobD();
+  }
+
+  /** 木底座顶 = 滚筒中心 + Hc/2 + 2vp（组件顶 = 滚筒顶，故相对 y = Hc + 2）。 */
+  private baseTop(): number {
+    return this.hc() + 2;
+  }
+
+  /** 沟槽左右：底座内缩 10vp。 */
+  private grooveLeft(): number {
+    return this.baseLeft() + 10;
+  }
+
+  private grooveW(): number {
+    return this.baseW() - 20;
+  }
+
+  /** 沟槽顶 = 底座顶面下 6vp。 */
+  private grooveTop(): number {
+    return this.baseTop() + 6;
+  }
+
+  /** 铭牌左 = 底座左缘 + 底座宽×0.32 − 55。 */
+  private plateLeft(): number {
+    return this.baseLeft() + this.baseW() * 0.32 - 55;
+  }
+
   private canvasW(): number {
     return this.stageWidth + 2 * this.hc();
   }
@@ -108,23 +142,64 @@ export struct CarriageLayers {
 
       if (this.part === 'metal') {
         // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
-        // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
+        // 木底座（整机最宽）：宽 = Pw + 2×knobD，左右各出纸缘一个旋钮直径；顶在滚筒中心 + Hc/2 + 2vp
         Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
-          .width(this.paperWidthVp)
-          .height(83)
+          .width(this.baseW())
+          .height(this.baseW() / 7.562)
           .objectFit(ImageFit.Fill)
-          .position({ x: this.paperLeftVp, y: this.hc() })
+          .position({ x: this.baseLeft(), y: this.baseTop() })
           .zIndex(0)
 
+        // 沟槽：高 14vp，槽顶在底座顶面下 6vp；槽内深色 + 上缘高光 + 下缘阴影
+        Column()
+          .width(this.grooveW())
+          .height(14)
+          .backgroundColor('#120d08')
+          .opacity(0.92)
+          .position({ x: this.grooveLeft(), y: this.grooveTop() })
+          .zIndex(1)
+        Column()
+          .width(this.grooveW())
+          .height(2)
+          .backgroundColor('#ffffff30')
+          .position({ x: this.grooveLeft(), y: this.grooveTop() })
+          .zIndex(2)
+        Column()
+          .width(this.grooveW())
+          .height(2)
+          .backgroundColor('#00000066')
+          .position({ x: this.grooveLeft(), y: this.grooveTop() + 12 })
+          .zIndex(2)
+
+        // 铭牌：黄铜小牌 110×26，嵌在沟槽中左（中心 = 底座左缘 + 底座宽×0.32）
+        Column() {
+          Text('1920s')
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#3a2410')
+            .textAlign(TextAlign.Center)
+            .width('100%')
+        }
+        .width(110)
+        .height(26)
+        .borderRadius(4)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#f0d79a', 0.0], ['#c9a45c', 0.55], ['#8a6a2f', 1.0]],
+        })
+        .position({ x: this.plateLeft(), y: this.grooveTop() - 6 })
+        .zIndex(3)
+
         // 压纸卷：x = 纸屏左 − 旋钮直径
-        Image($rawfile('layers/1920s-upright/paper-bail.png'))
+        // 压纸卷 v2（深色钢杆＋两个黑滚轮，素材 2736×283）：杆宽 = 纸宽、对齐纸缘
+        Image($rawfile('layers/1920s-upright/paper-bail-v2.png'))
           .width(this.bailW())
-          .height(this.bailW() / 15.32)
+          .height(this.bailW() / 9.6678)
           .objectFit(ImageFit.Fill)
           .position({
-            x: this.paperLeftVp - this.knobD(),
-            // 压纸卷贴滚筒轴线：辊子中心 y = Hc/2（= 滚筒中心），横杆在当前行下方
-            y: this.hc() / 2 - this.bailW() / 15.32 / 2,
+            x: this.paperLeftVp,
+            // 辊子中心贴滚筒轴线 y = Hc/2
+            y: this.hc() / 2 - this.bailW() / 9.6678 / 2,
           })
 
         // 中央件：x = 打击点 − 宽/2

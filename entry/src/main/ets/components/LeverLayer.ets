@@ -6,6 +6,8 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const LDOMAIN: number = 0x0100;
 const LTAG: string = 'LeverLayer';
+/** 静止外倾 30°（不竖直）；摆幅仍 35° → 摆出到 65°，回 30°。 */
+const REST_DEG: number = 30;
 const SWING_DEG: number = 35;
 /** 层素材 536×2522，宽高比写死，不许方形层套 Contain。 */
 const LEVER_ASPECT: number = 536 / 2522;
@@ -23,7 +25,7 @@ export struct LeverLayer {
   @Prop offsetXVp: number = 0;
   @Prop offsetYVp: number = 0;
 
-  @State angle: number = 0;
+  @State angle: number = REST_DEG;
   private lastTick: number = 0;
 
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
@@ -38,10 +40,10 @@ export struct LeverLayer {
     this.lastTick = this.newlineTick;
     this.onSwingStart();
     this.getUIContext().animateTo({ duration: SWING_MS, curve: Curve.FastOutSlowIn }, () => {
-      this.angle = SWING_DEG;
+      this.angle = REST_DEG + SWING_DEG;
     });
     this.getUIContext().animateTo({ duration: BACK_MS, delay: SWING_MS, curve: Curve.FastOutSlowIn }, () => {
-      this.angle = 0;
+      this.angle = REST_DEG;
     });
     hilog.info(LDOMAIN, LTAG, 'lever swing tick=%{public}s', this.newlineTick.toString());
   }
