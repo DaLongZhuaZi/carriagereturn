@@ -426,17 +426,17 @@ struct Index {
   private resetCarriage(): void {
     // 快速回位：200ms fast-out，末端 2vp 叩击回弹（不用 250ms 弹簧）
     const start: number = this.carriageOffsetVp;
-    this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
       this.carriageOffsetVp = 0;
       this.joltYVp = 2;
     });
-    this.getUIContext().animateTo({ duration: 60, delay: 250, curve: Curve.FastOutSlowIn }, () => {
+    this.getUIContext().animateTo({ duration: 40, delay: 150, curve: Curve.FastOutSlowIn }, () => {
       this.joltYVp = 0;
     });
     // 旋钮走纸期间累计转 21°/行，线性、不回零
     // 转角物理口径：一行行高 ÷ 滚筒周长 × 360（平板约 59°/行），滚筒与旋钮同角
     const perLineDeg: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
-    this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
+    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
       this.knobAngle = this.knobAngle + perLineDeg;
     });
     void start;
@@ -581,12 +581,15 @@ struct Index {
     const rows: number = this.docModel.getLines().length;
     this.carriageTopVp = 0.56 * H;
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
-    this.strikeLineVp = this.carriageTopVp - 20 - this.lineHeightVp / 2;
+    // 平板：打击行上移 15vp（与横杆上移联动，横杆不挡字）；手机走原值
+    const strikeShift: number = this.isTablet ? 15 : 0;
+    this.strikeLineVp = this.carriageTopVp - 20 - this.lineHeightVp / 2 - strikeShift;
     // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
     this.paperHeightVp = this.paperWidthVp * 1.414;
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
     // 纸带基数随字号同步变：20（底边距）+ 行高 + 44（内容顶）
-    const paperBandBase: number = 20 + this.lineHeightVp + 44;
+    const bandShift: number = this.isTablet ? 15 : 0;
+    const paperBandBase: number = 20 + this.lineHeightVp + 44 + bandShift;
     // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
       - this.docModel.getCursor().line * this.lineHeightVp;
@@ -596,7 +599,7 @@ struct Index {
     if (this.paperAnimateNext) {
       // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
       this.paperAnimateNext = false;
-      this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
         this.paperTopVp = this.paperTopTargetVp;
         this.paperContainerVp = this.paperContainerTargetVp;
       });
@@ -1121,7 +1124,7 @@ struct Index {
           ms.toString(), this.carriageOffsetVp.toFixed(2), this.paperTopVp.toFixed(1), this.knobAngle.toFixed(1));
       }, ms);
     }
-    const t0: number = 350;
+    const t0: number = 450;
     setTimeout(() => {
       if (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown) {
         // 「下移一行」分支：字车滑到下一行文字末尾的 O（小行程口径），不回 0
@@ -1351,6 +1354,7 @@ struct Index {
                   canvasOffsetVp: this.carriageOffsetVp,
                   paperLeftFixedVp: this.paperLeftFixed(),
                   texOffsetYVp: this.texOffsetVp,
+                  bailShiftVp: this.isTablet ? -15 : 0,
                     strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
                 })
                   // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht

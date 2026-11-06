@@ -34,6 +34,8 @@ export struct CarriageLayers {
   @Prop paperLeftFixedVp: number = 0;
   /** 滚筒纹理纵向滚动量（vp，负值=向上滚）。 */
   @Prop texOffsetYVp: number = 0;
+  /** 压纸卷竖向偏移（vp）：平板 -15（横杆上移），手机 0。 */
+  @Prop bailShiftVp: number = 0;
 
   private hc(): number {
     return this.paperWidthVp * 0.17;
@@ -231,7 +233,7 @@ export struct CarriageLayers {
           .position({
             x: this.paperLeftVp,
             // 杆身中心落在滚筒**中心** Y = Hc/2（不是底缘 Hc）：图顶 = Hc/2 − bailH/2（平板 37.8−23=14.8vp）
-            y: this.hc() / 2 - this.bailW() / 9.6678 / 2,
+            y: this.hc() / 2 - this.bailW() / 9.6678 / 2 + this.bailShiftVp,
           })
           // 压在底座(0)/沟槽(1,2)/铭牌(3) 之上：杆身不被木底座盖住
           .zIndex(4)
