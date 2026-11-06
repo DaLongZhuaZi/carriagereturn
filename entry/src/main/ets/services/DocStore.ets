@@ -150,6 +150,7 @@ export class DocStore {
         machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
         paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
+        charCount: this.readPlainText(entry.id).replace(/\s/g, '').length,
       });
     }
     return out;

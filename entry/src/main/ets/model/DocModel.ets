@@ -100,4 +100,6 @@ export interface DocSummary {
   paper: PaperKind;
   /** 所属卷宗 id；null/缺省 = 未归档。 */
   dossierId?: string | null;
+  /** 正文字数（去空白），随列表一起算好，避免卡片渲染期读文件。 */
+  charCount?: number;
 }

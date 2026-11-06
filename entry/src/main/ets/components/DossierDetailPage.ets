@@ -309,7 +309,7 @@ export struct DossierDetailPage {
 
                   Text(p.title.length > 0 ? p.title : '未命名')
                     .fontSize(17).fontColor('#e8ddc9').margin({ top: 8 }).maxLines(1)
-                  Text(this.charCount(p.id).toString() + ' 字 · '
+                  Text((p.charCount === undefined ? 0 : p.charCount).toString() + ' 字 · '
                     + (new Date(p.updatedAt).getMonth() + 1).toString() + ' 月 '
                     + new Date(p.updatedAt).getDate().toString() + ' 日')
                     .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
