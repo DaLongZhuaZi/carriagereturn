@@ -143,6 +143,7 @@ export struct DossierPage {
                   .width('100%').height(140).borderRadius(8).objectFit(ImageFit.Cover)
                 Text(d.name).fontSize(15).fontColor('#e8ddc9').margin({ top: 8 })
                   .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .hitTestBehavior(HitTestMode.None)
                 Text(this.paperCount(d.id).toString() + ' 张纸 · 更新于 ' + this.dateText(d.updatedAt))
                   .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
               }
