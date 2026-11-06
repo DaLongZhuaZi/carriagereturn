@@ -126,6 +126,8 @@ export struct PaperStage {
           Text(row.text.length > 0 ? row.text : ' ')
             .width('100%')
             .height(this.lineHeightVp)
+            // 字距就是 advance 本身：显式写 0，防后来人加正值导致落字与渲染脱节
+            .letterSpacing(0)
             .fontSize(this.fontSizeVp)
             .fontColor(this.inkColor)
             .fontFamily(this.fontFamily)

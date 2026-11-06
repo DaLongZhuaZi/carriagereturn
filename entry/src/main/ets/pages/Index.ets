@@ -475,7 +475,8 @@ struct Index {
   private applyPaper(kind: PaperKind): void {
     this.paperKind = kind;
     // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖，避免公式被机器基数冲掉
-    this.fontFamily = findFont(DEFAULT_FONT).familyName;
+    // 回落链：英文走 Courier Prime，中文/符号由系统按字回落到 Noto Serif SC
+    this.fontFamily = findFont(DEFAULT_FONT).familyName + ', Noto Serif SC';
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
   }
@@ -709,12 +710,30 @@ struct Index {
   }
 
   /** 字宽一律用实测 advance；未测到前退回字号（不作长期口径）。 */
+  /** 单字 advance：按 Unicode 范围定全角/半角，不许用 code > 127 一刀切。 */
   private charWidthVp(ch: string): number {
     const code: number = ch.length > 0 ? ch.charCodeAt(0) : 65;
-    if (code > 127) {
+    if (this.isFullWidth(code)) {
       return this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp;
     }
-    return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp;
+    return this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp * 0.6;
+  }
+
+  /** 全角判定：CJK 表意文字、假名、谚文、全角形、CJK 符号标点、em dash、省略号。 */
+  private isFullWidth(code: number): boolean {
+    if (code >= 0x1100 && code <= 0x115F) { return true; }
+    if (code >= 0x2E80 && code <= 0x9FFF) { return true; }
+    if (code >= 0x3000 && code <= 0x303F) { return true; }
+    if (code >= 0x3040 && code <= 0x30FF) { return true; }
+    if (code >= 0x3400 && code <= 0x4DBF) { return true; }
+    if (code >= 0xAC00 && code <= 0xD7AF) { return true; }
+    if (code >= 0xF900 && code <= 0xFAFF) { return true; }
+    if (code >= 0xFE30 && code <= 0xFE4F) { return true; }
+    if (code >= 0xFF00 && code <= 0xFF60) { return true; }
+    if (code >= 0xFFE0 && code <= 0xFFE6) { return true; }
+    if (code >= 0x20000 && code <= 0x2FA1F) { return true; }
+    if (code === 0x2014 || code === 0x2026) { return true; }
+    return false;
   }
 
   // ---- 字车总成 v8/v9 拼装几何（相对金属件顶）----
