@@ -901,12 +901,16 @@ struct Index {
     }
     this.paperChanging = true;
     const startTop: number = this.paperTopVp;
+    hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s', startTop.toFixed(1), this.paperContainerVp.toFixed(1));
     // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
     this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
       this.paperTopVp = startTop - this.paperHeightVp;
       this.paperOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
     });
+    // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
+    hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
+      this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
     setTimeout(() => {
       // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
       this.docModel.clear();
@@ -918,7 +922,10 @@ struct Index {
         this.paperOpacity = 1;
         this.knobAngle = this.knobAngle + 180;
       });
-      hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s', this.knobAngle.toFixed(1));
+      hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
+        this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
+      hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s top=%{public}s',
+        this.knobAngle.toFixed(1), this.paperTopVp.toFixed(1));
       setTimeout(() => {
         this.paperChanging = false;
       }, 320);
