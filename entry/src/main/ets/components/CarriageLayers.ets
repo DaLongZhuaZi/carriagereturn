@@ -251,7 +251,8 @@ export struct CarriageLayers {
             .position({ x: 0, y: 0 })
         }
         .width(this.hc() * 1.5 * 0.848)
-        .height(this.hc() * 1.5 * 0.550 + 10)
+        // 全高：不再裁掉拱下半（旧口径 +10 只留到打击行下 10vp，拱只剩半截）
+        .height(this.hc() * 1.5)
         .clip(true)
         .position({
           x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
