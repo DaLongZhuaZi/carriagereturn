@@ -1350,6 +1350,28 @@ struct Index {
     this.rows = next;
   }
 
+  /** 打开一张纸到主屏编辑（§5.2/§5.3）：加载 JSON 内容并同步机器/纸/色带/字体。 */
+  private loadDocument(id: string): void {
+    const data: DocData | null = docStore.load(id);
+    if (data === null) {
+      hilog.warn(DOMAIN, TAG, 'loadDocument miss id=%{public}s', id);
+      return;
+    }
+    this.docId = id;
+    this.docModel = new DocModel(data);
+    this.machineKind = data.meta.machine;
+    this.paperKind = data.meta.paper;
+    this.ribbon = data.meta.ribbon;
+    this.carriageOffsetVp = 0;
+    this.paperAnimateNext = false;
+    this.syncRows();
+    this.recalcPaperHeight();
+    // 私有 docModel 不是 @State：借 docsRev 触发一次重建，纸面才会换成新文档
+    this.docsRev = this.docsRev + 1;
+    hilog.info(DOMAIN, TAG, 'loadDocument id=%{public}s rows=%{public}s',
+      id, this.docModel.getLines().length.toString());
+  }
+
   /** 卷宗内页用：读一次 docsRev 以建立依赖，再取列表。 */
   private listDocs(): DocSummary[] {
     const rev: number = this.docsRev;
@@ -1752,7 +1774,12 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.openDocId,
           onBack: (): void => { this.openDocId = ''; },
-          onEdit: (id: string): void => { this.openDocId = ''; this.dossierOpen = false; this.detailOpen = false; },
+          onEdit: (id: string): void => {
+            this.openDocId = '';
+            this.dossierOpen = false;
+            this.detailOpen = false;
+            this.loadDocument(id);
+          },
           onDelete: (id: string): void => {
             docStore.remove(id);
             this.openDocId = '';

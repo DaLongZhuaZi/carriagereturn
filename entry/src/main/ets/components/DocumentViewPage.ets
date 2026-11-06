@@ -132,11 +132,13 @@ export struct DocumentViewPage {
           Stack({ alignContent: Alignment.TopStart }) {
             Image($rawfile(PAPER_RAW[this.paperKey]))
               .width('100%').height('100%').objectFit(ImageFit.Cover)
+              .hitTestBehavior(HitTestMode.None)
             Text(this.bodyText())
               .fontSize(15).lineHeight(24).fontColor('#2a2118')
               .fontFamily('CourierPrime, Noto Serif SC')
               .padding(16).width('100%')
               .maxLines(20).textOverflow({ overflow: TextOverflow.Clip })
+              .hitTestBehavior(HitTestMode.None)
           }
           .width((this.widthVp - 56) / 2)
           .layoutWeight(1)
@@ -147,6 +149,7 @@ export struct DocumentViewPage {
         }
         .width('100%').layoutWeight(1)
         .padding({ left: 20, right: 20 }).alignItems(VerticalAlign.Top)
+
 
         // 底栏：加页 / 分享 / 删除，各 1/3
         Row() {
