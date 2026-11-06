@@ -908,6 +908,10 @@ struct Index {
     });
     setTimeout(() => {
       // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
+      this.docModel.clear();
+      this.syncRows();
+      this.hintText = '';
+      this.carriageOffsetVp = 0;
       this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
         this.recalcPaperHeight();
         this.knobAngle = this.knobAngle + 180;

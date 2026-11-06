@@ -60,6 +60,13 @@ export class DocModel {
     return this.lines;
   }
 
+  /** 换纸：清空为一张空白新纸（单空行、光标归零）。 */
+  clear(): void {
+    this.lines = [{ text: '', ribbon: DEFAULT_RIBBON }];
+    this.cursorPos = { line: 0, offset: 0 };
+    this.bellRungLines.clear();
+  }
+
   getCursor(): CursorPos {
     return this.cursorPos;
   }

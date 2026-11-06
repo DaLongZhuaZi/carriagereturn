@@ -63,6 +63,14 @@ export struct CarriageLayers {
             .height(this.hc())
             .objectFit(ImageFit.Cover)
 
+          // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
+          Row()
+            .width(this.paperWidthVp)
+            .height(5)
+            .backgroundColor('#e8ddc9')
+            .opacity(0.85)
+            .position({ x: this.paperLeftVp, y: this.hc() - 5 })
+
           // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
           Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
             .width(this.paperWidthVp + 2 * this.knobD())

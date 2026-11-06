@@ -170,7 +170,7 @@ export struct PaperStage {
           .height(34)
           .linearGradient({
             direction: GradientDirection.Bottom,
-            colors: [['#00000000', 0.0], ['#2a1d1055', 0.55], ['#1a120b99', 1.0]],
+            colors: [['rgba(0,0,0,0)', 0.0], ['rgba(42,29,16,0.33)', 0.55], ['rgba(26,18,11,0.60)', 1.0]],
           })
           .position({ x: 0, y: this.visibleBottomVp - 34 })
           .hitTestBehavior(HitTestMode.None)
