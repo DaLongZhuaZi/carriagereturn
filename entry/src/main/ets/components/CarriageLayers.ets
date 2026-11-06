@@ -116,7 +116,7 @@ export struct CarriageLayers {
             .height(5)
             .backgroundColor('#e8ddc9')
             .opacity(0.85)
-            .position({ x: this.paperLeftVp, y: this.hc() - 5 })
+            .position({ x: this.paperLeftVp, y: this.hc() })
         }
         .width(this.stageWidth)
         .height(this.hc())
@@ -198,7 +198,8 @@ export struct CarriageLayers {
           .position({
             x: this.paperLeftVp,
             // 辊子中心贴滚筒轴线 y = Hc/2
-            y: this.hc() / 2 - this.bailW() / 9.6678 / 2,
+            // 上移到纸底缘之上，避免压住滚筒下半截（下半截须完整可见）
+            y: -this.bailW() / 9.6678,
           })
 
         // 中央件：x = 打击点 − 宽/2
