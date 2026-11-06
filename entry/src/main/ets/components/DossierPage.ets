@@ -8,6 +8,8 @@
 
 import { Dossier, CoverStyle, dossierStore } from '../services/DossierStore';
 import { DocSummary } from '../model/DocModel';
+import { applyImmersive, Insets } from '../services/Immersive';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -26,12 +28,26 @@ export struct DossierPage {
   @State draftName: string = '';
   @State draftCover: string = 'kraft';
   @State revealN: number = 0;
+  /** §2.10 动态安全区（不许写死顶距）。 */
+  @State topInset: number = 28;
+  @State bottomInset: number = 0;
+  @State winW: number = 0;
+  @State winH: number = 0;
   onBack: () => void = (): void => {};
   onOpenDossier: (id: string) => void = (): void => {};
 
   aboutToAppear(): void {
     this.reload();
     this.runReveal();
+    this.applyInsets();
+  }
+
+  private async applyInsets(): Promise<void> {
+    const ins: Insets = await applyImmersive(this.getUIContext());
+    this.topInset = ins.top;
+    this.bottomInset = ins.bottom;
+    hilog.info(0x0000, 'DossierPage', 'insets top=%{public}s bottom=%{public}s',
+      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   private runReveal(): void {
@@ -83,6 +99,8 @@ export struct DossierPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
     Column() {
+      // §2.10：顶栏顶距 = topInset（深底渐变已在根 Stack，伸到状态栏下）
+      Column().width('100%').height(this.topInset)
       Row() {
         Text('卷宗').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
         Blank()
@@ -137,12 +155,25 @@ export struct DossierPage {
         }
         .columnsTemplate(this.colsTemplate())
         .columnsGap(16).rowsGap(16)
-        .width('100%').layoutWeight(1).padding({ left: 20, right: 20 })
+        .width('100%').layoutWeight(1)
+        .padding({ left: 20, right: 20 })
+        // §2.10：网格底距 = bottomInset（最后一行不被导航栏裁）
+        .margin({ bottom: this.bottomInset })
       }
     }
     .width(this.widthVp).height(this.heightVp)
     .linearGradient({ direction: GradientDirection.Bottom,
       colors: [['#171310', 0.0], ['#241c16', 1.0]] })
+    // §2.10：量实际窗口（去抖 <1vp），供列数按可用宽算
+    .onAreaChange((oldA: Area, newA: Area) => {
+      const w: number = newA.width as number;
+      const h: number = newA.height as number;
+      if (Math.abs(w - this.winW) < 1 && Math.abs(h - this.winH) < 1) {
+        return;
+      }
+      this.winW = w;
+      this.winH = h;
+    })
 
     if (this.creating) {
       Column() {
@@ -183,5 +214,6 @@ export struct DossierPage {
     }
     .width(this.widthVp)
     .height(this.heightVp)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

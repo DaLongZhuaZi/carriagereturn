@@ -9,6 +9,8 @@
 import { Dossier, dossierStore } from '../services/DossierStore';
 import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
+import { applyImmersive, Insets } from '../services/Immersive';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -39,6 +41,9 @@ export struct DossierDetailPage {
   @State flyRot: number[] = [];
   @State flyOp: number[] = [];
   @State flySc: number[] = [];
+  /** §2.10 动态安全区。 */
+  @State topInset: number = 28;
+  @State bottomInset: number = 0;
   onBack: () => void = (): void => {};
   onOpenPaper: (id: string) => void = (): void => {};
   onNewPaper: () => void = (): void => {};
@@ -46,6 +51,15 @@ export struct DossierDetailPage {
 
   aboutToAppear(): void {
     this.reload();
+    this.applyInsets();
+  }
+
+  private async applyInsets(): Promise<void> {
+    const ins: Insets = await applyImmersive(this.getUIContext());
+    this.topInset = ins.top;
+    this.bottomInset = ins.bottom;
+    hilog.info(0x0000, 'DossierDetail', 'insets top=%{public}s bottom=%{public}s',
+      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   /** docs 变化（新建/删除纸后 Index 递增 docsRev）时重算纸列表。 */
@@ -184,6 +198,8 @@ export struct DossierDetailPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
+        // §2.10：页眉顶距 = topInset
+        Column().width('100%').height(this.topInset)
         // 页眉
         Row() {
           Text('‹').fontSize(26).fontColor('#e8ddc9')
@@ -261,7 +277,10 @@ export struct DossierDetailPage {
           }
           .columnsTemplate(this.colsTemplate())
           .columnsGap(16).rowsGap(16)
-          .width('100%').layoutWeight(1).padding({ left: 20, right: 20 })
+          .width('100%').layoutWeight(1)
+          .padding({ left: 20, right: 20 })
+          // §2.10：纸网格底距 = bottomInset
+          .margin({ bottom: this.bottomInset })
         }
       }
       .width(this.widthVp).height(this.heightVp)
@@ -269,5 +288,6 @@ export struct DossierDetailPage {
         colors: [['#171310', 0.0], ['#241c16', 1.0]] })
     }
     .width(this.widthVp).height(this.heightVp)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
