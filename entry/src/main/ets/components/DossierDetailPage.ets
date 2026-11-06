@@ -57,6 +57,8 @@ export struct DossierDetailPage {
 
   aboutToAppear(): void {
     this.reload();
+    hilog.info(0x0000, 'DossierDetail', 'aboutToAppear dossier=%{public}s papers=%{public}s',
+      this.dossierId, this.papers.length.toString());
     this.applyInsets();
   }
 
