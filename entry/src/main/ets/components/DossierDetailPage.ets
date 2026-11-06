@@ -11,6 +11,7 @@ import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { componentUtils } from '@kit.ArkUI';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -142,11 +143,39 @@ export struct DossierDetailPage {
       x.push(0); y.push(0); r.push(0); o.push(0); s.push(1);
     }
     this.flyX = x; this.flyY = y; this.flyRot = r; this.flyOp = o; this.flySc = s;
-    // 只对首屏（约 4 张）做飞出动画
-    const anim: number = n > 4 ? 4 : n;
-    for (let i = 0; i < anim; i++) {
-      this.launch(i);
+    // 先等一帧布局，再用 getRectangleById 量每张卡的真实矩形，最后发射
+    setTimeout(() => {
+      this.measureCards();
+      const anim: number = n > 4 ? 4 : n;
+      for (let i = 0; i < anim; i++) {
+        this.launch(i);
+      }
+    }, 32);
+  }
+
+  /** 用 getRectangleById 取每张卡的真实矩形（px→vp），作为飞出落点。 */
+  private measureCards(): void {
+    const ui: UIContext = this.getUIContext();
+    const cx: number[] = [];
+    const cy: number[] = [];
+    for (let i = 0; i < this.papers.length && i < 4; i++) {
+      try {
+        const rect: componentUtils.ComponentInfo =
+          ui.getComponentUtils().getRectangleById('flycard_' + i.toString());
+        const x: number = ui.px2vp(rect.screenOffset.x as number) + ui.px2vp(rect.size.width as number) / 2;
+        const y: number = ui.px2vp(rect.screenOffset.y as number) + ui.px2vp(rect.size.height as number) / 2;
+        cx.push(x);
+        cy.push(y);
+        hilog.info(0x0000, 'DossierDetail', 'cardMeasure i=%{public}s c=(%{public}s,%{public}s)',
+          i.toString(), x.toFixed(0), y.toFixed(0));
+      } catch (e) {
+        cx.push(this.cardCx(i));
+        cy.push(this.cardCy(i));
+        hilog.warn(0x0000, 'DossierDetail', 'cardMeasure fail i=%{public}s', i.toString());
+      }
     }
+    this.measuredCx = cx;
+    this.measuredCy = cy;
   }
 
   private launch(i: number): void {
@@ -284,6 +313,7 @@ export struct DossierDetailPage {
                   }.width('100%').margin({ top: 6 })
                 }
                 .width('100%')
+                .id('flycard_' + idx.toString())
                 .translate({ x: idx < this.flyX.length ? this.flyX[idx] : 0,
                   y: idx < this.flyY.length ? this.flyY[idx] : 0 })
                 // 量每张卡的真实中心（vp，相对页面左上），供飞出动画算起点偏移
