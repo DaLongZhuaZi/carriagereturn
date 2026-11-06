@@ -704,9 +704,11 @@ struct Index {
       return;
     }
     if (cap.label === ' ') {
+      // 空格直通落字：不进 queueChar（那会给 strikeTick+1 触发字杆摆动，导致一声两响）
+      // playSpace 保留在 Down 处，只出一声；stepCarriageLeft 左进一格 + jolt 照常
       this.audioService.playSpace();
       this.audioService.vibrate();
-      this.queueChar(' ');
+      this.commitChar(' ');
       return;
     }
     if (cap.label === 'Backspace') {
