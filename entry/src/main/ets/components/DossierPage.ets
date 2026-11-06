@@ -128,8 +128,10 @@ export struct DossierPage {
             Column() {
               Column().width('100%').height(140).borderRadius(8).backgroundColor('#cfc7b8')
               Text('未归档').fontSize(15).fontColor('#e8ddc9').margin({ top: 8 })
+                .hitTestBehavior(HitTestMode.None)
               Text(this.unfiledCount().toString() + ' 张纸')
                 .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+                .hitTestBehavior(HitTestMode.None)
             }
             .width('100%')
             .opacity(this.revealN > 0 ? 1 : 0)
@@ -146,6 +148,7 @@ export struct DossierPage {
                   .hitTestBehavior(HitTestMode.None)
                 Text(this.paperCount(d.id).toString() + ' 张纸 · 更新于 ' + this.dateText(d.updatedAt))
                   .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+                  .hitTestBehavior(HitTestMode.None)
               }
               .width('100%')
               .opacity(this.revealN > idx + 1 ? 1 : 0)
