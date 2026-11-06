@@ -150,10 +150,19 @@ export class DocStore {
         machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
         paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
-        charCount: this.readPlainText(entry.id).replace(/\s/g, '').length,
+        charCount: this.countChars(entry.id),
       });
     }
     return out;
+  }
+
+  /** 字数（去空白）；把 rawLen 打出来，便于定位「txt 与 JSON 不一致」。 */
+  private countChars(id: string): number {
+    const raw: string = this.readPlainText(id);
+    const n: number = raw.replace(/\s/g, '').length;
+    hilog.info(DOMAIN, TAG, 'list id=%{public}s rawLen=%{public}s n=%{public}s',
+      id, raw.length.toString(), n.toString());
+    return n;
   }
 
   /** 暴露给导出（阶段3）：读某文档的纯文本。 */
