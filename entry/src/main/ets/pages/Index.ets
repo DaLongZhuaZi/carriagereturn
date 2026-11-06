@@ -85,6 +85,9 @@ struct Index {
   @State paperFullSheet: boolean = false;
   /** 滚筒纹理纵向滚动量（vp）：随纸上滑同步，换纸两段各滚半圈。 */
   @State texOffsetVp: number = 0;
+  /** 换行 600ms 编排进行中：落字先排队，编排完成后再落（不丢字、不错位）。 */
+  @State newlineBusy: boolean = false;
+  private queuedChars: string[] = [];
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   @State paperTopTargetVp: number = 0;
@@ -858,6 +861,13 @@ struct Index {
     if (this.paperChanging) {
       return;
     }
+    // 换行编排未完成时排队，完成后统一补落（不丢字）
+    if (this.newlineBusy) {
+      this.queuedChars.push(ch);
+      hilog.info(DOMAIN, TAG, 'char queued during newline ch=%{public}s n=%{public}s',
+        ch, this.queuedChars.length.toString());
+      return;
+    }
     this.hintText = '';
     // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
     //    raw > limit 与 clampedStrikeXVp 同一判据
@@ -886,6 +896,9 @@ struct Index {
     } catch (e) {
       // 量宽失败保留旧值
     }
+    hilog.info(DOMAIN, TAG, 'landTrace line=%{public}s col=%{public}s paperTop=%{public}s O=%{public}s',
+      this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
+      this.paperTopVp.toFixed(1), this.carriageOffsetVp.toFixed(1));
     hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s measW=%{public}s accumW=%{public}s strikeX=%{public}s',
       this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
       this.currentLineWidthVp().toFixed(2), this.clampedStrikeXVp().toFixed(2));
@@ -958,6 +971,28 @@ struct Index {
     }
   }
 
+  /** 退行：回到上一行文字末尾（不删当前行）；已在第一行则无动作。 */
+  private onBackLine(): void {
+    const cur = this.docModel.getCursor();
+    if (cur.line <= 0) {
+      return;
+    }
+    const prevLen: number = this.docModel.getLines()[cur.line - 1].text.length;
+    this.docModel.setCursor({ line: cur.line - 1, offset: prevLen });
+    this.syncRows();
+    this.hintText = '';
+    const targetO: number = -(this.travelPerChar * prevLen);
+    // 纸下移一行高（纸上移的逆操作）200ms；字车 O 滑到上一行文字末尾 250ms
+    this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+      this.paperTopVp = this.paperTopVp + this.lineHeightVp;
+    });
+    this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+      this.carriageOffsetVp = targetO;
+    });
+    hilog.info(DOMAIN, TAG, 'backLine to line=%{public}s col=%{public}s O=%{public}s paperTop=%{public}s',
+      (cur.line - 1).toString(), prevLen.toString(), targetO.toFixed(1), this.paperTopVp.toFixed(1));
+  }
+
   /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
   private onPaperChange(): void {
     if (this.paperChanging) {
@@ -1006,6 +1041,7 @@ struct Index {
   private onNewline(): void {
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
+    this.newlineBusy = true;
     this.newlineTick = this.newlineTick + 1;
     this.hintText = '';
     this.docModel.newline();
@@ -1039,6 +1075,17 @@ struct Index {
       hilog.info(DOMAIN, TAG, 'newline choreo bell at %{public}sms offset=%{public}s paperTop=%{public}s tick=%{public}s',
         (t0 + 250).toString(), this.carriageOffsetVp.toFixed(2),
         this.paperTopVp.toFixed(1), this.newlineTick.toString());
+      // 换行完成定位日志 + 释放排队字
+      hilog.info(DOMAIN, TAG, 'newlineDone rows=%{public}s paperTop=%{public}s line=%{public}s col=%{public}s O=%{public}s',
+        this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
+        this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
+        this.carriageOffsetVp.toFixed(1));
+      this.newlineBusy = false;
+      const q: string[] = this.queuedChars.slice(0);
+      this.queuedChars = [];
+      for (let i = 0; i < q.length; i++) {
+        this.commitChar(q[i]);
+      }
     }, t0 + 250);
   }
 
@@ -1395,6 +1442,10 @@ struct Index {
           deleteLabel: this.resolveString($r('app.string.keyboard_delete')),
           newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
           paperLabel: this.resolveString($r('app.string.keyboard_paper')),
+          backLineLabel: this.resolveString($r('app.string.keyboard_backline')),
+          onBackLine: (): void => {
+            this.onBackLine();
+          },
           onPaperChange: (): void => {
             this.onPaperChange();
           },

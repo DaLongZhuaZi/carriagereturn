@@ -37,6 +37,10 @@
       "value": "换纸"
     },
     {
+      "name": "keyboard_backline",
+      "value": "退行"
+    },
+    {
       "name": "keyboard_backspace",
       "value": "退格"
     },

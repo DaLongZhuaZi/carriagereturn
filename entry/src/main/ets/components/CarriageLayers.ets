@@ -216,19 +216,25 @@ export struct CarriageLayers {
           .position({
             x: this.paperLeftVp,
             // 辊子中心贴滚筒轴线 y = Hc/2
-            // 上移到纸底缘之上，避免压住滚筒下半截（下半截须完整可见）
-            y: -this.bailW() / 9.6678,
+            // 辊子中心落到滚筒下半部 Hc×0.75，贴近纸卷，不再横穿纸面中部
+            y: this.hc() * 0.75 - this.bailW() / 9.6678 / 2,
           })
 
-        // 中央件：x = 打击点 − 宽/2
-        Image($rawfile('layers/1920s-upright/central-guide.png'))
-          .width(this.hc() * 1.5 * 0.848)
-          .height(this.hc() * 1.5)
-          .objectFit(ImageFit.Contain)
-          .position({
-            x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
-            y: this.strikeYVp - this.hc() * 1.5 * 0.550,
-          })
+        // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字
+        Stack({ alignContent: Alignment.TopStart }) {
+          Image($rawfile('layers/1920s-upright/central-guide.png'))
+            .width(this.hc() * 1.5 * 0.848)
+            .height(this.hc() * 1.5)
+            .objectFit(ImageFit.Contain)
+            .position({ x: 0, y: 0 })
+        }
+        .width(this.hc() * 1.5 * 0.848)
+        .height(this.hc() * 1.5 * 0.550 + 10)
+        .clip(true)
+        .position({
+          x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
+          y: this.strikeYVp - this.hc() * 1.5 * 0.550,
+        })
 
         // 本批撤掉两枚圆形旋钮：真机正面只见旋钮侧面而非整面圆盘，
         // 现两个大圆盘摆在纸卷两端像轮子。knobAngle 逻辑保留，待按「只露侧面」重设计外观。

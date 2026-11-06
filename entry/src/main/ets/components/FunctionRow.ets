@@ -10,10 +10,12 @@ export struct FunctionRow {
   @Prop deleteLabel: string = '';
   @Prop newlineLabel: string = '';
   @Prop paperLabel: string = '';
+  @Prop backLineLabel: string = '';
   onLang: () => void = (): void => {};
   onDelete: () => void = (): void => {};
   onNewline: () => void = (): void => {};
   onPaperChange: () => void = (): void => {};
+  onBackLine: () => void = (): void => {};
 
   @State pressedKey: string = '';
 
@@ -91,6 +93,15 @@ export struct FunctionRow {
       Column() {
         this.metalKey('paper', this.paperLabel, false, (): void => {
           this.onPaperChange();
+        })
+      }
+      .layoutWeight(1)
+      .height('100%')
+
+      // 退行：回到上一行文字末尾
+      Column() {
+        this.metalKey('backline', this.backLineLabel, false, (): void => {
+          this.onBackLine();
         })
       }
       .layoutWeight(1)
