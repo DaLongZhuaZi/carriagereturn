@@ -30,6 +30,10 @@ export struct CarriageLayers {
   @Prop strikeYVp: number = 0;
   /** 画布横向偏移（滚筒等宽图件用，一般等于 O）。 */
   @Prop canvasOffsetVp: number = 0;
+  /** 固定左缘（不含 O）：木底座/沟槽/铭牌等机身固定件用它，不跟字车走。 */
+  @Prop paperLeftFixedVp: number = 0;
+  /** 滚筒纹理纵向滚动量（vp，负值=向上滚）。 */
+  @Prop texOffsetYVp: number = 0;
 
   private hc(): number {
     return this.paperWidthVp * 0.17;
@@ -52,7 +56,14 @@ export struct CarriageLayers {
 
   /** 木底座左缘 = 纸左缘 − knobD。 */
   private baseLeft(): number {
-    return this.paperLeftVp - this.knobD();
+    return this.paperLeftFixedVp - this.knobD();
+  }
+
+  /** 纹理滚动量归一化到 [−Hc, 0)，便于无缝拼接。 */
+  private texOff(): number {
+    const h: number = this.hc();
+    const m: number = this.texOffsetYVp % h;
+    return m > 0 ? m - h : m;
   }
 
   /** 木底座顶 = 滚筒中心 + Hc/2 + 2vp（组件顶 = 滚筒顶，故相对 y = Hc + 2）。 */
@@ -87,13 +98,20 @@ export struct CarriageLayers {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.part === 'roller') {
         Stack({ alignContent: Alignment.TopStart }) {
-          // 滚筒纹理：不旋转。rotate 是屏面内 2D 转动，横滚筒转 59° 会斜、换纸转 360° 等于风车
-          // 滚筒与纸卷同宽、左右对齐纸缘：不再横贯全宽（那是纸后宽暗带的来源）
-          Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
-            .width(this.paperWidthVp)
-            .height(this.hc())
-            .objectFit(ImageFit.Cover)
-            .position({ x: this.paperLeftVp - this.canvasOffsetVp, y: 0 })
+          // 滚筒纹理 v2（奶油纸包滚筒、柱面明暗已 baked）：纵向平移滚动，不旋转
+          // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
+          Stack({ alignContent: Alignment.TopStart }) {
+            Image($rawfile('layers/1920s-upright/roller-texture-v2.jpg'))
+              .width(this.paperWidthVp).height(this.hc()).objectFit(ImageFit.Cover)
+              .position({ x: 0, y: this.texOff() })
+            Image($rawfile('layers/1920s-upright/roller-texture-v2.jpg'))
+              .width(this.paperWidthVp).height(this.hc()).objectFit(ImageFit.Cover)
+              .position({ x: 0, y: this.texOff() + this.hc() })
+          }
+          .width(this.paperWidthVp)
+          .height(this.hc())
+          .clip(true)
+          .position({ x: this.paperLeftVp - this.canvasOffsetVp, y: 0 })
 
           // 柱面感：上亮下暗的纵向明暗，暗示直径 Hc 的圆柱曲面
           Column()
@@ -103,10 +121,10 @@ export struct CarriageLayers {
             .linearGradient({
               direction: GradientDirection.Bottom,
               colors: [
-                ['rgba(255,246,230,0.22)', 0.0],
+                ['rgba(255,246,230,0.11)', 0.0],
                 ['rgba(0,0,0,0)', 0.45],
-                ['rgba(0,0,0,0.30)', 0.82],
-                ['rgba(0,0,0,0.55)', 1.0],
+                ['rgba(0,0,0,0.15)', 0.82],
+                ['rgba(0,0,0,0.28)', 1.0],
               ],
             })
 

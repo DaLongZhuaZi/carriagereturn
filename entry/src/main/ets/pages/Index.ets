@@ -83,6 +83,8 @@ struct Index {
   @State paperOpacity: number = 1;
   /** 换纸第①步：纸容器切「整张模式」（高=Ph、不裁），整张纸飞出去。 */
   @State paperFullSheet: boolean = false;
+  /** 滚筒纹理纵向滚动量（vp）：随纸上滑同步，换纸两段各滚半圈。 */
+  @State texOffsetVp: number = 0;
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   @State paperTopTargetVp: number = 0;
@@ -686,8 +688,13 @@ struct Index {
     return this.paperWidthVp + 2 * this.knobD();
   }
 
+  /** 机身固定件左缘（不含 O）：底座/沟槽/铭牌/支架/拨杆都用它，不跟字车走。 */
   private baseLeftRel(): number {
-    return (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp - this.knobD();
+    return (this.stageWidth - this.paperWidthVp) / 2 - this.knobD();
+  }
+
+  private paperLeftFixed(): number {
+    return (this.stageWidth - this.paperWidthVp) / 2;
   }
 
   private bracketW(): number {
@@ -967,6 +974,8 @@ struct Index {
       this.paperTopVp = startTop - this.paperHeightVp;
       this.paperOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
+      // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
+      this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
     });
     // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
     hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
@@ -982,6 +991,7 @@ struct Index {
         this.paperOpacity = 1;
         this.paperFullSheet = false;
         this.knobAngle = this.knobAngle + 180;
+        this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
       });
       hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
         this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
@@ -1004,6 +1014,10 @@ struct Index {
     // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
     setTimeout(() => {
       this.animatePaperHeight();
+      // 纹理纵向滚一行高（纸速=筒面线速度），与纸上滑同步 200ms FastOutSlowIn
+      this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+        this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
+      });
     }, 150);
     // 编排自测：0/150/350/600 采样（数字代替录屏验单调性）
     const marks: number[] = [0, 150, 350, 600];
@@ -1181,6 +1195,8 @@ struct Index {
                 strikeXVp: this.clampedStrikeXVp(),
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
+                paperLeftFixedVp: this.paperLeftFixed(),
+                texOffsetYVp: this.texOffsetVp,
               })
                 // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
                 // 滚筒锚点钉死：offset y = carriageTopVp − Hc/2（纸底 = carriageTopVp + Hc/2）
@@ -1218,6 +1234,8 @@ struct Index {
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                   strikeXVp: this.clampedStrikeXVp(),
                   canvasOffsetVp: this.carriageOffsetVp,
+                  paperLeftFixedVp: this.paperLeftFixed(),
+                  texOffsetYVp: this.texOffsetVp,
                     strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
                 })
                   // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht
