@@ -216,6 +216,8 @@ struct Index {
   @State customizeOpen: boolean = false;
   /** 收藏详情页：非空则显示（已解锁机器）。 */
   @State collectionDetailKind: string = '';
+  /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
+  @State switchFade: number = 1;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -491,9 +493,18 @@ struct Index {
 
   // ---------------- 换装 ----------------
 
+  /** §4：换装 200ms 淡入淡出——只动透明度，不重建编辑器、不丢光标。 */
+  private fadeSwitch(): void {
+    this.switchFade = 0.35;
+    this.getUIContext().animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+      this.switchFade = 1;
+    });
+  }
+
   private applyMachine(kind: MachineKind): void {
     this.machineKind = kind;
     this.docModel.setMachine(kind);
+    this.fadeSwitch();
   }
 
   private applyPaper(kind: PaperKind): void {
@@ -503,12 +514,14 @@ struct Index {
     this.fontFamily = findFont(DEFAULT_FONT).familyName + ', Noto Serif SC';
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
+    this.fadeSwitch();
   }
 
   private applyRibbon(kind: RibbonKind): void {
     this.ribbon = kind;
     this.inkColor = findRibbon(kind).inkColor;
     this.docModel.setRibbon(kind);
+    this.fadeSwitch();
   }
 
   private reloadKeymap(): void {
@@ -1653,7 +1666,8 @@ struct Index {
             .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
             // 平时 clip(true) 裁掉纸底；换纸第①步切整张模式时不裁，整片飞出去
             .clip(!this.paperFullSheet)
-            .opacity(this.paperOpacity)
+            // 纸面不透明度 × 换装淡入淡出（§4：200ms，不重建编辑器）
+            .opacity(this.paperOpacity * this.switchFade)
             // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
             .zIndex(2)
           }
