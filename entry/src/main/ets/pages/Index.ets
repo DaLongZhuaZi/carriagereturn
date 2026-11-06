@@ -27,6 +27,7 @@ import { docStore } from '../services/DocStore';
 import { DossierPage } from '../components/DossierPage';
 import { DossierDetailPage } from '../components/DossierDetailPage';
 import { DocumentViewPage } from '../components/DocumentViewPage';
+import { CollectionPage } from '../components/CollectionPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -205,6 +206,8 @@ struct Index {
   @State docsRev: number = 0;
   /** 文档视图（§5.3）：非空则显示。 */
   @State openDocId: string = '';
+  /** 收藏页（§3）开合。 */
+  @State collectionOpen: boolean = false;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1418,7 +1421,7 @@ struct Index {
         Column().width('100%').height(this.topInset)
         TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
           onOpenLibrary: (): void => { this.dossierOpen = true; },
-          onOpenMenu: (): void => {} })
+          onOpenMenu: (): void => { this.collectionOpen = true; } })
 
         Column() {
           Column().width('100%').height(this.paperTopGap)
@@ -1710,6 +1713,17 @@ struct Index {
       }
 
       // 卷宗内页（§5.2）
+      // 收藏页（§3）
+      if (this.collectionOpen) {
+        CollectionPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          currentMachine: this.machineKind as string,
+          onBack: (): void => { this.collectionOpen = false; },
+          onPick: (kind: string): void => { this.collectionOpen = false; },
+        })
+      }
+
       // 文档视图（§5.3）
       if (this.dossierOpen && this.openDocId.length > 0) {
         DocumentViewPage({
