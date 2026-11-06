@@ -31,6 +31,7 @@ import { DossierDetailPage } from '../components/DossierDetailPage';
 import { DocumentViewPage } from '../components/DocumentViewPage';
 import { CollectionPage } from '../components/CollectionPage';
 import { CustomizePage } from '../components/CustomizePage';
+import { CollectionDetailPage } from '../components/CollectionDetailPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -213,6 +214,8 @@ struct Index {
   @State collectionOpen: boolean = false;
   /** 换装页（§4）开合。 */
   @State customizeOpen: boolean = false;
+  /** 收藏详情页：非空则显示（已解锁机器）。 */
+  @State collectionDetailKind: string = '';
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1807,6 +1810,22 @@ struct Index {
         })
       }
 
+      // 收藏详情页（§3）：只对已解锁机器开放
+      if (this.collectionOpen && this.collectionDetailKind.length > 0) {
+        CollectionDetailPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          machineKind: this.collectionDetailKind,
+          onBack: (): void => { this.collectionDetailKind = ''; },
+          onSetCurrent: (kind: string): void => {
+            this.applyMachine(kind as MachineKind);
+            this.collectionDetailKind = '';
+            this.collectionOpen = false;
+            hilog.info(DOMAIN, TAG, 'collection setCurrent -> %{public}s', kind);
+          },
+        })
+      }
+
       // 收藏页（§3）
       if (this.collectionOpen) {
         CollectionPage({
@@ -1814,7 +1833,7 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
           onBack: (): void => { this.collectionOpen = false; },
-          onPick: (kind: string): void => { this.collectionOpen = false; },
+          onPick: (kind: string): void => { this.collectionDetailKind = kind; },
         })
       }
 
