@@ -92,6 +92,15 @@ export struct CarriageLayers {
     return this.baseLeft() + this.baseW() * 0.32 - 55;
   }
 
+  /** 滚筒总宽：v3 素材里纸卷部分占 95.28% → W = Pw / 0.9528（金属帽各露 (W−Pw)/2）。 */
+  private rollW(): number {
+    return this.paperWidthVp / 0.9528;
+  }
+
+  private rollX(): number {
+    return this.paperLeftVp - (this.rollW() - this.paperWidthVp) / 2;
+  }
+
   private canvasW(): number {
     return this.stageWidth + 2 * this.hc();
   }
@@ -100,58 +109,31 @@ export struct CarriageLayers {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.part === 'roller') {
         Stack({ alignContent: Alignment.TopStart }) {
-          // 滚筒纹理 v2（奶油纸包滚筒、柱面明暗已 baked）：纵向平移滚动，不旋转
-          // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
+          // 滚筒纹理 v3（平光无缝、两端自带旧钢金属帽）：纵向平移滚动，不旋转
           Stack({ alignContent: Alignment.TopStart }) {
-            // 左右各 20vp 金属端（深色金属渐变 + 顶缘淡高光），不画实色黑块
-            Column()
-              .width(20).height(this.hc())
-              .linearGradient({ direction: GradientDirection.Bottom,
-                colors: [['#4a4038', 0.0], ['#2a241f', 1.0]] })
-              .position({ x: 0, y: 0 })
-            Column()
-              .width(20).height(this.hc())
-              .linearGradient({ direction: GradientDirection.Bottom,
-                colors: [['#4a4038', 0.0], ['#2a241f', 1.0]] })
-              .position({ x: this.paperWidthVp + 20, y: 0 })
-            Column().width(this.paperWidthVp + 40).height(1)
+            // 顶缘高光（保留）
+            Column().width(this.rollW()).height(1)
               .backgroundColor('rgba(255,246,230,0.18)').position({ x: 0, y: 0 })
-
-            // 纸卷部分：两份 v2 纹理各宽 Pw，居中贴在 x=20（与纸张同宽同材质）
-            Image($rawfile('layers/1920s-upright/roller-texture-v2.jpg'))
-              .width(this.paperWidthVp).height(this.hc()).objectFit(ImageFit.Cover)
-              .position({ x: 20, y: this.texOff() })
-            Image($rawfile('layers/1920s-upright/roller-texture-v2.jpg'))
-              .width(this.paperWidthVp).height(this.hc()).objectFit(ImageFit.Cover)
-              .position({ x: 20, y: this.texOff() + this.hc() })
+            // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
+            Image($rawfile('layers/1920s-upright/roller-texture-v3.jpg'))
+              .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+              .position({ x: 0, y: this.texOff() })
+            Image($rawfile('layers/1920s-upright/roller-texture-v3.jpg'))
+              .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+              .position({ x: 0, y: this.texOff() + this.hc() })
           }
-          .width(this.paperWidthVp + 40)
+          .width(this.rollW())
           .height(this.hc())
           .clip(true)
-          .position({ x: this.paperLeftVp - 20 - this.canvasOffsetVp, y: 0 })
-
-          // 柱面感：上亮下暗的纵向明暗，暗示直径 Hc 的圆柱曲面
-          Column()
-            .width(this.paperWidthVp + 40)
-            .height(this.hc())
-            .position({ x: this.paperLeftVp - 20 - this.canvasOffsetVp, y: 0 })
-            .linearGradient({
-              direction: GradientDirection.Bottom,
-              colors: [
-                ['rgba(255,246,230,0.11)', 0.0],
-                ['rgba(0,0,0,0)', 0.45],
-                ['rgba(0,0,0,0.15)', 0.82],
-                ['rgba(0,0,0,0.28)', 1.0],
-              ],
-            })
+          .position({ x: this.rollX() - this.canvasOffsetVp, y: 0 })
 
           // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
           Row()
-            .width(this.paperWidthVp + 40)
+            .width(this.rollW())
             .height(5)
             .backgroundColor('#e8ddc9')
             .opacity(0.85)
-            .position({ x: this.paperLeftVp - 20, y: this.hc() })
+            .position({ x: this.rollX(), y: this.hc() })
         }
         .width(this.stageWidth)
         .height(this.hc())
