@@ -27,8 +27,10 @@ const PAPER_RAW: Record<string, string> = {
   'MEMO': 'paper/paper-memo.jpg',
 };
 
-/** 飞出动画整体倍率：1 = 正常速度；>1 仅用于抓帧验证（§5.2 录屏/连拍取证）。 */
-const FLY_SCALE: number = 1;
+/** 起飞延迟倍率：1 = 正常（200 + i×100）；调大只推迟起飞，不改变飞行速度，用于抓「刚起飞」的帧。 */
+const FLY_DELAY_SCALE: number = 1;
+/** 飞行时长倍率：1 = 正常（350ms 采样 / 120ms 弹簧）。 */
+const FLY_DUR_SCALE: number = 1;
 
 @Component
 export struct DossierDetailPage {
@@ -179,7 +181,7 @@ export struct DossierDetailPage {
   }
 
   private launch(i: number): void {
-    const S: number = FLY_SCALE;
+
     // 优先用实测中心；还没量到才退回算术推算（两者差 40-70vp，实测才对得上格子）
     const cxs: number = this.measuredCx.length > i ? this.measuredCx[i] : this.cardCx(i);
     const cys: number = this.measuredCy.length > i ? this.measuredCy[i] : this.cardCy(i);
@@ -215,12 +217,12 @@ export struct DossierDetailPage {
               setTimeout(() => {
                 const s2: number[] = this.flySc.slice(); s2[i] = 1.0; this.flySc = s2;
                 const r2: number[] = this.flyRot.slice(); r2[i] = 0; this.flyRot = r2;
-              }, 120 * S);
+              }, 120 * FLY_DUR_SCALE);
             }, 0);
           }
-        }, 87 * k * S);
+        }, 87 * k * FLY_DUR_SCALE);
       }
-    }, (200 + i * 100) * S);
+    }, (200 + i * 100) * FLY_DELAY_SCALE);
   }
 
   private previewText(id: string): string {
