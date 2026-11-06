@@ -28,6 +28,7 @@ import { DossierPage } from '../components/DossierPage';
 import { DossierDetailPage } from '../components/DossierDetailPage';
 import { DocumentViewPage } from '../components/DocumentViewPage';
 import { CollectionPage } from '../components/CollectionPage';
+import { CustomizePage } from '../components/CustomizePage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -208,6 +209,8 @@ struct Index {
   @State openDocId: string = '';
   /** 收藏页（§3）开合。 */
   @State collectionOpen: boolean = false;
+  /** 换装页（§4）开合。 */
+  @State customizeOpen: boolean = false;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1634,6 +1637,7 @@ struct Index {
           fontFamily: this.fontFamily,
           fontLabel: fontDisplayName(DEFAULT_FONT),
           heightVp: this.fontBarHeight,
+          onOpenCustomize: (): void => { this.customizeOpen = true; },
         })
 
         PhotoKeybed({
@@ -1713,6 +1717,23 @@ struct Index {
       }
 
       // 卷宗内页（§5.2）
+      // 换装页（§4）：换装即时生效（改状态后主屏下一帧即换装，不重建编辑器）
+      if (this.customizeOpen) {
+        CustomizePage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          machineKind: this.machineKind as string,
+          paperKind: this.paperKind as string,
+          ribbonKind: this.ribbon as string,
+          fontKind: this.docModel.toDocData().meta.font as string,
+          onBack: (): void => { this.customizeOpen = false; },
+          onPickMachine: (k: string): void => { this.machineKind = k as MachineKind; },
+          onPickPaper: (k: string): void => { this.paperKind = k as PaperKind; },
+          onPickRibbon: (k: string): void => { this.ribbon = k as RibbonKind; },
+          onPickFont: (f: string): void => {},
+        })
+      }
+
       // 收藏页（§3）
       if (this.collectionOpen) {
         CollectionPage({

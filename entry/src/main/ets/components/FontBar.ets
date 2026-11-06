@@ -7,6 +7,8 @@ export struct FontBar {
   @Prop fontFamily: string = 'CourierPrime';
   @Prop fontLabel: string = '';
   @Prop heightVp: number = 38;
+  /** 点字体条进换装页（§4）；不改布局，只加一个点击入口。 */
+  onOpenCustomize: () => void = (): void => {};
 
   build() {
     Column() {
@@ -24,5 +26,6 @@ export struct FontBar {
     .width('100%')
     .height(this.heightVp)
     .justifyContent(FlexAlign.Center)
+    .onClick(() => { this.onOpenCustomize(); })
   }
 }
