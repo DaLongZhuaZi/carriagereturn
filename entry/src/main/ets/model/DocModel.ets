@@ -86,6 +86,8 @@ export interface DocData {
   lines: DocLine[];
   cursor: CursorPos;
   meta: DocMeta;
+  /** 所属卷宗 id；null/缺省 = 未归档（§5 卷宗系统）。 */
+  dossierId?: string | null;
 }
 
 /** 文档库列表项。 */
@@ -96,4 +98,6 @@ export interface DocSummary {
   updatedAt: number;
   machine: MachineKind;
   paper: PaperKind;
+  /** 所属卷宗 id；null/缺省 = 未归档。 */
+  dossierId?: string | null;
 }
