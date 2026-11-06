@@ -12,10 +12,10 @@ import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const PAPER_RAW: Record<string, string> = {
-  'LETTER': 'paper/paper-letter.jpg',
-  'MANUSCRIPT': 'paper/paper-manuscript.jpg',
-  'POSTCARD': 'paper/paper-postcard.jpg',
-  'MEMO': 'paper/paper-memo.jpg',
+  'letter': 'paper/paper-letter.jpg',
+  'manuscript': 'paper/paper-manuscript.jpg',
+  'postcard': 'paper/paper-postcard.jpg',
+  'memo': 'paper/paper-memo.jpg',
 };
 
 @Component

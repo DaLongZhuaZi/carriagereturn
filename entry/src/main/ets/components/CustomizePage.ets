@@ -18,7 +18,7 @@ const MACHINE_LABEL: Record<string, string> = {
 };
 
 const PAPER_LABEL: Record<string, string> = {
-  'LETTER': '信纸', 'MANUSCRIPT': '稿纸', 'POSTCARD': '明信片', 'MEMO': '便签',
+  'letter': '信纸', 'manuscript': '稿纸', 'postcard': '明信片', 'memo': '便签',
 };
 
 const GROUP_LABEL: Record<string, string> = {
