@@ -25,6 +25,7 @@ import { PaperRow } from '../ui/PaperSheet';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
 import { DossierPage } from '../components/DossierPage';
+import { DossierDetailPage } from '../components/DossierDetailPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -195,6 +196,10 @@ struct Index {
   @State langZh: boolean = false;
   /** 卷宗页开合（§5.1）。 */
   @State dossierOpen: boolean = false;
+  /** 当前打开的卷宗 id（空串＝未归档）。 */
+  @State openDossierId: string = '';
+  /** 卷宗内页是否展开（§5.2）；与 openDossierId 分开，避免空 id 恒真。 */
+  @State detailOpen: boolean = false;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1668,7 +1673,21 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
           onBack: (): void => { this.dossierOpen = false; },
-          onOpenDossier: (id: string): void => { this.dossierOpen = false; },
+          onOpenDossier: (id: string): void => { this.openDossierId = id; this.detailOpen = true; },
+        })
+      }
+
+      // 卷宗内页（§5.2）
+      if (this.dossierOpen && this.detailOpen) {
+        DossierDetailPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          dossierId: this.openDossierId,
+          docs: docStore.list(),
+          onBack: (): void => { this.detailOpen = false; },
+          onOpenPaper: (id: string): void => { this.dossierOpen = false; this.detailOpen = false; },
+          onNewPaper: (): void => {},
+          onDeletePaper: (id: string): void => {},
         })
       }
     }
