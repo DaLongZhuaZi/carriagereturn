@@ -1127,6 +1127,23 @@ struct Index {
                 .zIndex(1)
             }
 
+            // ---- 字杆篮扇面（纸后、滚筒前）：独立层，不放进带 clip 的 roller Stack ----
+            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+              CarriageLayers({
+                stageWidth: this.photoW(),
+                joltYVp: this.joltYVp,
+                knobAngleDeg: this.knobAngle,
+                part: 'basket',
+                paperWidthVp: this.paperWidthVp,
+                paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                strikeXVp: this.clampedStrikeXVp(),
+                canvasOffsetVp: this.carriageOffsetVp,
+                strikeYVp: 0,
+              })
+                .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                .zIndex(1.5)
+            }
+
             // ---- 压纸卷 + 中央件 + 旋钮（纸前）：包在 Stack 里，zIndex 3 盖在纸上 ----
             Stack({ alignContent: Alignment.TopStart }) {
               if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {

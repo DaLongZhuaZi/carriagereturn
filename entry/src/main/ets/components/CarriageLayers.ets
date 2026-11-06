@@ -91,23 +91,29 @@ export struct CarriageLayers {
         .translate({ x: this.canvasOffsetVp })
       }
 
-      if (this.part === 'metal') {
-        // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
-        // 字杆篮扇面收到纸宽（原 820vp 横贯全宽，是纸后宽暗带的另一半来源）
+      if (this.part === 'basket') {
+        // 字杆篮扇面：纸后、滚筒前的独立层。宽度比纸宽（两侧各留 80vp），
+        // 只在纸左右两侧与纸下方露出扇形竖杆，绝不盖纸面。容器不 clip。
         Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
-          .width(this.paperWidthVp)
-          .height(this.paperWidthVp * 0.213)
+          .width(this.paperWidthVp + 160)
+          .height((this.paperWidthVp + 160) * 0.213)
           .objectFit(ImageFit.Fill)
           .opacity(0.6)
-          .position({ x: this.paperLeftVp, y: -this.paperWidthVp * 0.213 * 0.5 })
-          .zIndex(0)
+          .position({
+            x: this.paperLeftVp - 80,
+            // 扇面顶约在 carrTop − 70vp；组件顶 = carrTop − Hc/2，故相对 y = Hc/2 − 70
+            y: this.hc() / 2 - 70,
+          })
+      }
 
+      if (this.part === 'metal') {
+        // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
         // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
         Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
           .width(this.paperWidthVp)
           .height(83)
           .objectFit(ImageFit.Fill)
-          .position({ x: this.paperLeftVp - this.knobD(), y: this.hc() })
+          .position({ x: this.paperLeftVp, y: this.hc() })
           .zIndex(0)
 
         // 压纸卷：x = 纸屏左 − 旋钮直径
