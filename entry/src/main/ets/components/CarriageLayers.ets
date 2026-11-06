@@ -115,10 +115,10 @@ export struct CarriageLayers {
             Column().width(this.rollW()).height(1)
               .backgroundColor('rgba(255,246,230,0.18)').position({ x: 0, y: 0 })
             // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
-            Image($rawfile('layers/1920s-upright/roller-texture-v3.jpg'))
+            Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
               .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
               .position({ x: 0, y: this.texOff() })
-            Image($rawfile('layers/1920s-upright/roller-texture-v3.jpg'))
+            Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
               .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
               .position({ x: 0, y: this.texOff() + this.hc() })
           }
@@ -126,6 +126,24 @@ export struct CarriageLayers {
           .height(this.hc())
           .clip(true)
           .position({ x: this.rollX() - this.canvasOffsetVp, y: 0 })
+
+          // 柱面明暗罩：固定不动、盖在整个滚筒上（纹理转、罩不转）——立体感由它提供
+          Column()
+            .width(this.rollW())
+            .height(this.hc())
+            .position({ x: this.rollX() - this.canvasOffsetVp, y: 0 })
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [
+                ['rgba(255,246,230,0.25)', 0.00],
+                ['rgba(255,246,230,0.12)', 0.10],
+                ['rgba(0,0,0,0)', 0.30],
+                ['rgba(0,0,0,0)', 0.50],
+                ['rgba(0,0,0,0.08)', 0.70],
+                ['rgba(0,0,0,0.22)', 0.85],
+                ['rgba(0,0,0,0.38)', 1.00],
+              ],
+            })
 
           // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
           Row()

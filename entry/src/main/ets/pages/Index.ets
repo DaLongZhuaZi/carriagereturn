@@ -1111,7 +1111,8 @@ struct Index {
     setTimeout(() => {
       this.animatePaperHeight();
       // 纹理纵向滚一行高（纸速=筒面线速度），与纸上滑同步 200ms FastOutSlowIn
-      this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
+      // 纹理滚动与纸上滑同一起点(t=150)、同一时长(300ms)、同一曲线(EaseInOut)
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
         this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
       });
     }, 150);
