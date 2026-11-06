@@ -582,7 +582,9 @@ struct Index {
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
     // 纸带基数随字号同步变：20（底边距）+ 行高 + 44（内容顶）
     const paperBandBase: number = 20 + this.lineHeightVp + 44;
-    this.paperTopTargetVp = this.carriageTopVp - paperBandBase - (rows - 1) * this.lineHeightVp;
+    // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
+    this.paperTopTargetVp = this.carriageTopVp - paperBandBase
+      - this.docModel.getCursor().line * this.lineHeightVp;
     // 纸片容器高 = 纸顶到滚筒
     // 纸底抬高 8vp：滚筒下半截要从纸底与底座顶之间露满（实测被遮约 10.8vp）
     this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp - 8;
@@ -991,9 +993,9 @@ struct Index {
     this.hintText = '';
     const targetO: number = -prevW;
     // 纸下移一行高（纸上移的逆操作）200ms；字车 O 滑到上一行文字末尾 250ms
-    this.getUIContext().animateTo({ duration: 200, curve: Curve.FastOutSlowIn }, () => {
-      this.paperTopVp = this.paperTopVp + this.lineHeightVp;
-    });
+    // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画
+    this.paperAnimateNext = true;
+    this.recalcPaperHeight();
     this.backBusy = true;
     this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
       this.carriageOffsetVp = targetO;
@@ -1060,7 +1062,7 @@ struct Index {
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
     // 末行判定：可写行数 = floor((Ph − 内容顶 44 − 底边距 20) / 行高)；光标已在最后一行则换纸
     const maxRows: number = Math.max(1, Math.floor((this.paperHeightVp - 44 - 20) / this.lineHeightVp));
-    if (this.docModel.getCursor().line >= maxRows - 1) {
+    if (this.docModel.getLines().length >= maxRows) {
       hilog.info(DOMAIN, TAG, 'newlineAtLastRow -> paperChange maxRows=%{public}s', maxRows.toString());
       this.onPaperChange();
       return;

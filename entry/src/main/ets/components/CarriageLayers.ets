@@ -217,9 +217,11 @@ export struct CarriageLayers {
             x: this.paperLeftVp,
             // 辊子中心贴滚筒轴线 y = Hc/2
             // 辊子中心落到滚筒下半部 Hc×0.75，贴近纸卷，不再横穿纸面中部
-            // 杆顶在滚筒底缘之下（y = Hc+2），双滚轮压住纸底，不遮滚筒奶油纸面
-            y: this.hc() + 2,
+            // 杆身中心正好落在滚筒底缘 Y=Hc：图顶 = Hc − bailH/2（平板 75.6−23=52.6vp）
+            y: this.hc() - this.bailW() / 9.6678 / 2,
           })
+          // 压在底座(0)/沟槽(1,2)/铭牌(3) 之上：杆身不被木底座盖住
+          .zIndex(4)
 
         // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字
         Stack({ alignContent: Alignment.TopStart }) {
