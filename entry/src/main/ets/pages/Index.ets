@@ -1779,9 +1779,19 @@ struct Index {
           ribbonKind: this.ribbon as string,
           fontKind: this.docModel.toDocData().meta.font as string,
           onBack: (): void => { this.customizeOpen = false; },
-          onPickMachine: (k: string): void => { this.machineKind = k as MachineKind; },
-          onPickPaper: (k: string): void => { this.paperKind = k as PaperKind; },
-          onPickRibbon: (k: string): void => { this.ribbon = k as RibbonKind; },
+          onPickMachine: (k: string): void => {
+            this.applyMachine(k as MachineKind);
+            hilog.info(DOMAIN, TAG, 'customize machine -> %{public}s', k);
+          },
+          onPickPaper: (k: string): void => {
+            this.applyPaper(k as PaperKind);
+            hilog.info(DOMAIN, TAG, 'customize paper -> %{public}s', k);
+          },
+          onPickRibbon: (k: string): void => {
+            this.applyRibbon(k as RibbonKind);
+            hilog.info(DOMAIN, TAG, 'customize ribbon -> %{public}s ink=%{public}s',
+              k, this.inkColor);
+          },
           onPickFont: (f: string): void => {
             // §4 换装即时生效：切换纸面字体（docModel + 渲染族名）
             for (let i = 0; i < FONTS.length; i++) {
