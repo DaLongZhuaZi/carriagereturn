@@ -23,6 +23,8 @@ export struct CarriageLayers {
   @Prop strikeXVp: number = 102;
   @Prop joltYVp: number = 0;
   @Prop knobAngleDeg: number = 0;
+  /** 滚筒纹理转角（与旋钮同角，纹理须能旋转）。 */
+  @Prop rollerAngleDeg: number = 0;
   @Prop part: string = 'roller';
   /** 中央件窗中心 y（相对金属顶）。 */
   @Prop strikeYVp: number = 0;
@@ -58,10 +60,12 @@ export struct CarriageLayers {
             .opacity(0.6)
             .position({ x: this.paperLeftVp + this.paperWidthVp / 2 - 410, y: -16 })
 
+          // 滚筒纹理随转角旋转：换行/换纸时与旋钮同角
           Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
             .width(this.canvasW())
             .height(this.hc())
             .objectFit(ImageFit.Cover)
+            .rotate({ angle: this.rollerAngleDeg, centerX: this.canvasW() / 2, centerY: this.hc() / 2 })
 
           // 滚筒后进纸边：纸从滚筒后卷入，滚筒下缘露出一截纸边
           Row()

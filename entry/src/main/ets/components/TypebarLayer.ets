@@ -8,6 +8,7 @@
  *          不用 setTimeout 猜时间。快速连打串行排队，一次只跑一个击打周期。
  */
 import { curves } from '@kit.ArkUI';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 // 硬曲线：固定时长，不许用 springMotion 猜结算时间
 // 常速：去程 90ms（60fps 下约 5–6 帧，摆动可见又不显迟钝）、回程 120ms
@@ -80,6 +81,10 @@ export struct TypebarLayer {
       },
     }, () => {
       this.angle = 0;
+      // 杆尖 y = offsetY + 0.115×层高（竖直态），用于与打击行对账
+      hilog.info(0x0100, 'TypebarLayer', 'barTip y=%{public}s (offsetY=%{public}s h=%{public}s)',
+        (this.offsetYVp + 0.115 * this.layerHeightVp).toFixed(1),
+        this.offsetYVp.toFixed(1), this.layerHeightVp.toFixed(1));
     });
   }
 

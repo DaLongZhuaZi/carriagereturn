@@ -1104,6 +1104,7 @@ struct Index {
                 joltYVp: this.joltYVp,
                 knobAngleDeg: this.knobAngle,
                 part: 'roller',
+                rollerAngleDeg: this.knobAngle,
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                 strikeXVp: this.clampedStrikeXVp(),
