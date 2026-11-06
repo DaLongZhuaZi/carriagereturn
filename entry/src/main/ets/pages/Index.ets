@@ -89,6 +89,10 @@ struct Index {
   @State newlineBusy: boolean = false;
   /** 退行动画进行中（纸 200ms + O 250ms）：落字先排队。 */
   @State backBusy: boolean = false;
+  /** 本次换行是否为「下移一行」（下方有内容，不插行）。 */
+  @State newlineMoveDown: boolean = false;
+  /** 「下移」时字车要滑到的 O（小行程口径）。 */
+  @State newlineCarriageTargetO: number = 0;
   private queuedChars: string[] = [];
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
@@ -1064,18 +1068,42 @@ struct Index {
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
     // 末行判定：可写行数 = floor((Ph − 内容顶 44 − 底边距 20) / 行高)；光标已在最后一行则换纸
-    const maxRows: number = Math.max(1, Math.floor((this.paperHeightVp - 44 - 20) / this.lineHeightVp));
-    if (this.docModel.getLines().length >= maxRows) {
-      hilog.info(DOMAIN, TAG, 'newlineAtLastRow -> paperChange maxRows=%{public}s', maxRows.toString());
-      this.onPaperChange();
-      return;
+    const allLines = this.docModel.getLines();
+    const cur = this.docModel.getCursor();
+    const isLastLine: boolean = cur.line >= allLines.length - 1;
+
+    if (!isLastLine) {
+      // 下方有内容：只「下移一行」，不插行、不挤下面。光标落到下一行文字末尾（与退行对称）
+      const nextText: string = allLines[cur.line + 1].text;
+      const nextLen: number = nextText.length;
+      this.newlineMoveDown = true;
+      this.newlineCarriageTargetO = Math.max(-this.maxTravelVp, -(nextLen * this.travelPerChar));
+      this.docModel.setCursor({ line: cur.line + 1, offset: nextLen });
+      this.syncRows();
+      this.scheduleSave();
+      this.newlineBusy = true;
+      this.newlineTick = this.newlineTick + 1;
+      this.hintText = '';
+      hilog.info(DOMAIN, TAG, 'newlineMoveDown to line=%{public}s col=%{public}s O=%{public}s rows=%{public}s',
+        (cur.line + 1).toString(), nextLen.toString(),
+        this.newlineCarriageTargetO.toFixed(1), allLines.length.toString());
+    } else {
+      // 末行：先判行数上限（换纸），否则插一行
+      const maxRows: number = Math.max(1, Math.floor((this.paperHeightVp - 44 - 20) / this.lineHeightVp));
+      if (allLines.length >= maxRows) {
+        hilog.info(DOMAIN, TAG, 'newlineAtLastRow -> paperChange maxRows=%{public}s', maxRows.toString());
+        this.onPaperChange();
+        return;
+      }
+      this.newlineMoveDown = false;
+      this.newlineCarriageTargetO = 0;
+      this.newlineBusy = true;
+      this.newlineTick = this.newlineTick + 1;
+      this.hintText = '';
+      this.docModel.newline();
+      this.syncRows();
+      this.scheduleSave();
     }
-    this.newlineBusy = true;
-    this.newlineTick = this.newlineTick + 1;
-    this.hintText = '';
-    this.docModel.newline();
-    this.syncRows();
-    this.scheduleSave();
     // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
     setTimeout(() => {
       this.animatePaperHeight();
@@ -1095,7 +1123,18 @@ struct Index {
     }
     const t0: number = 350;
     setTimeout(() => {
-      this.resetCarriageAndGuide();
+      if (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown) {
+        // 「下移一行」分支：字车滑到下一行文字末尾的 O（小行程口径），不回 0
+        this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+          this.carriageOffsetVp = this.newlineCarriageTargetO;
+        });
+        const perLineDeg2: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
+        this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
+          this.knobAngle = this.knobAngle + perLineDeg2;
+        });
+      } else {
+        this.resetCarriageAndGuide();
+      }
     }, t0);
     setTimeout(() => {
       // 字车 250ms 回位结束同帧：叮声 + 振动
