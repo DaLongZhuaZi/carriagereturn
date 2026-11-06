@@ -230,10 +230,8 @@ export struct CarriageLayers {
           .objectFit(ImageFit.Fill)
           .position({
             x: this.paperLeftVp,
-            // 辊子中心贴滚筒轴线 y = Hc/2
-            // 辊子中心落到滚筒下半部 Hc×0.75，贴近纸卷，不再横穿纸面中部
-            // 杆身中心正好落在滚筒底缘 Y=Hc：图顶 = Hc − bailH/2（平板 75.6−23=52.6vp）
-            y: this.hc() - this.bailW() / 9.6678 / 2,
+            // 杆身中心落在滚筒**中心** Y = Hc/2（不是底缘 Hc）：图顶 = Hc/2 − bailH/2（平板 37.8−23=14.8vp）
+            y: this.hc() / 2 - this.bailW() / 9.6678 / 2,
           })
           // 压在底座(0)/沟槽(1,2)/铭牌(3) 之上：杆身不被木底座盖住
           .zIndex(4)
