@@ -50,10 +50,25 @@ export struct CarriageLayers {
     Stack({ alignContent: Alignment.TopStart }) {
       if (this.part === 'roller') {
         Stack({ alignContent: Alignment.TopStart }) {
+          // 字杆篮扇面：字车后方（压暗 0.6），中间被纸与木底座挡住
+          Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
+            .width(820)
+            .height(175)
+            .objectFit(ImageFit.Fill)
+            .opacity(0.6)
+            .position({ x: this.paperLeftVp + this.paperWidthVp / 2 - 410, y: -16 })
+
           Image($rawfile('layers/1920s-upright/roller-texture.jpg'))
             .width(this.canvasW())
             .height(this.hc())
             .objectFit(ImageFit.Cover)
+
+          // 木底座：横在滚筒下方，宽 = Pw + 2×旋钮直径，高 83vp
+          Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
+            .width(this.paperWidthVp + 2 * this.knobD())
+            .height(83)
+            .objectFit(ImageFit.Fill)
+            .position({ x: this.paperLeftVp - this.knobD(), y: this.hc() })
         }
         .width(this.stageWidth)
         .height(this.hc())

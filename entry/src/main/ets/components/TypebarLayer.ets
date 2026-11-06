@@ -14,7 +14,8 @@ import { curves } from '@kit.ArkUI';
 const STRIKE_MS: number = 90;
 const RETURN_MS: number = 120;
 /** 静止角：杆收进篮子方向。 */
-const REST_ANGLE: number = -64;
+// 静止后倾 55°（§2.9 完整规格）：去程 90ms 到竖直（杆尖穿扣子槽口），回程 120ms 回 55°
+const REST_ANGLE: number = 55;
 // 去丢队：上限放宽到 20（快打不许丢字）
 const MAX_QUEUE: number = 20;
 
@@ -68,7 +69,7 @@ export struct TypebarLayer {
         // 回程创建必须在此判定之前/之后只选其一：有队列则跳过回程，直接小回退再下一击
         if (this.pending > 0) {
           this.getUIContext().animateTo({ duration: 20 * this.animScale, curve: Curve.Linear }, () => {
-            this.angle = -20;
+            this.angle = 40;
           });
           this.runNext();
         } else {

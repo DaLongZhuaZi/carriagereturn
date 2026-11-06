@@ -415,8 +415,10 @@ struct Index {
       this.joltYVp = 0;
     });
     // 旋钮走纸期间累计转 21°/行，线性、不回零
+    // 转角物理口径：一行行高 ÷ 滚筒周长 × 360（平板约 59°/行），滚筒与旋钮同角
+    const perLineDeg: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
     this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
-      this.knobAngle = this.knobAngle + 21;
+      this.knobAngle = this.knobAngle + perLineDeg;
     });
     void start;
   }
@@ -1092,6 +1094,18 @@ struct Index {
                   // 金属件与滚筒同锚点：旋钮中心 y = 滚筒中心
                   .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
 
+                // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
+                Image($rawfile('layers/1920s-upright/lever-pivot-bracket.png'))
+                  .width(this.carriageHeight * 1.2)
+                  .height(this.carriageHeight * 1.2)
+                  .objectFit(ImageFit.Contain)
+                  .position({
+                    x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                      + this.paperWidthVp - this.carriageHeight * 1.2 / 2,
+                    y: this.carriageTopVp + this.carriageHeight / 2 - this.carriageHeight * 1.2 / 2,
+                  })
+                  .zIndex(8)
+
                 // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
                 LeverLayer({
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
@@ -1101,7 +1115,8 @@ struct Index {
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
                     + this.paperWidthVp - this.carriageHeight * 2.5 * 0.212 / 2,
                   offsetYVp: this.carriageTopVp + this.carriageHeight / 2
-                    - (this.carriageHeight * 2.5 * 0.212 / (536 / 2522)) * 0.952,
+                    - ((this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212
+                      / (536 / 2522)) * 0.952,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
