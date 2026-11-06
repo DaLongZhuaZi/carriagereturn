@@ -128,8 +128,10 @@ export struct CustomizePage {
                   Column() {
                     Image($rawfile(p.textureRawfile))
                       .width('100%').height(74).borderRadius(8).objectFit(ImageFit.Cover)
+                      .hitTestBehavior(HitTestMode.None)
                     Text(PAPER_LABEL[p.kind as string]).fontSize(13).fontColor('#2a2118')
                       .margin({ top: 6 })
+                      .hitTestBehavior(HitTestMode.None)
                   }
                   .layoutWeight(1).height(120)
                   .borderRadius(12)
