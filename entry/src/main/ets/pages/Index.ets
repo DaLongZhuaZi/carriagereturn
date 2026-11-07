@@ -38,6 +38,8 @@ import { CustomizePage } from '../components/CustomizePage';
 import { CollectionDetailPage } from '../components/CollectionDetailPage';
 import { SettingsPage } from '../components/SettingsPage';
 import { ExportPage } from '../components/ExportPage';
+import { HomePage } from '../components/HomePage';
+import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -225,6 +227,10 @@ struct Index {
   /** §6.1／§6.2 设置页与导出页。 */
   @State settingsOpen: boolean = false;
   @State exportOpen: boolean = false;
+  /** §11：冷启动首帧就是主页。 */
+  @State homeOpen: boolean = true;
+  /** D1：汉堡下拉菜单。 */
+  @State menuOpen: boolean = false;
   /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
   @State switchFade: number = 1;
   /** P1-4：注册失败的字体族名（换装页据此标「未加载」）。 */
@@ -1481,6 +1487,11 @@ struct Index {
 
   /** 卷宗内页用：读一次 docsRev 以建立依赖，再取列表。 */
   /** P1-8：带缓存的列表读取——docsRev 不变就复用上一次结果。 */
+  /** 顶栏下沿（菜单浮层锚点）。 */
+  private topInsetValue(): number {
+    return this.topInset + this.topBarHeight;
+  }
+
   private listDocs(): DocSummary[] {
     const rev: number = this.docsRev;
     if (rev !== this.docsCacheRev) {
@@ -1557,10 +1568,8 @@ struct Index {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
         TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
-          onOpenLibrary: (): void => { this.dossierOpen = true; },
-          onOpenMenu: (): void => { this.collectionOpen = true; },
-          onOpenSettings: (): void => { this.settingsOpen = true; },
-          onOpenExport: (): void => { this.exportOpen = true; } })
+          onOpenHome: (): void => { this.homeOpen = true; },
+          onOpenMenu: (): void => { this.menuOpen = true; } })
 
         Column() {
           Column().width('100%').height(this.paperTopGap)
@@ -1920,6 +1929,54 @@ struct Index {
           },
         })
       }
+
+      // §11 主页：冷启动首帧；从任何页返回也回这里
+      if (this.homeOpen) {
+        HomePage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          onContinue: (): void => {
+            const list = docStore.list();
+            if (list.length > 0) {
+              this.homeOpen = false;
+              this.loadDocument(list[0].id);
+            }
+          },
+          onStartTyping: (): void => {
+            this.homeOpen = false;
+            // 新建一张空白纸并进入打字机
+            const meta = this.docModel.toDocData().meta;
+            const fresh: DocData = {
+              lines: [{ text: '', ribbon: this.ribbon }],
+              cursor: { line: 0, offset: 0 },
+              meta: meta,
+            };
+            const nid: string = docStore.save('', fresh, '未命名');
+            this.docsRev = this.docsRev + 1;
+            this.loadDocument(nid);
+          },
+          onOpen: (key: string): void => {
+            this.homeOpen = false;
+            if (key === 'dossier') { this.dossierOpen = true; }
+            if (key === 'collection') { this.collectionOpen = true; }
+            if (key === 'customize') { this.customizeOpen = true; }
+            if (key === 'settings') { this.settingsOpen = true; }
+            if (key === 'export') { this.exportOpen = true; }
+          },
+        })
+      }
+
+      // D1：汉堡下拉菜单（最上层）
+      AppMenu({
+        visible: this.menuOpen,
+        topVp: this.topInsetValue(),
+        onClose: (): void => { this.menuOpen = false; },
+        onPick: (key: string): void => {
+          if (key === 'collection') { this.collectionOpen = true; }
+          if (key === 'settings') { this.settingsOpen = true; }
+          if (key === 'export') { this.exportOpen = true; }
+        },
+      })
 
       // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
       if (this.settingsOpen) {
