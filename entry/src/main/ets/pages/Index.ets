@@ -232,6 +232,8 @@ struct Index {
 
   /** 导航栈（AGENTS「导航」）：栈底永远是 'home'。页内返回与系统返回都走弹栈。 */
   @State navStack: string[] = ['home'];
+  /** 冷启动首帧不做进入动画；第一次页面切换后才启用过渡。 */
+  @State navAnimated: boolean = false;
 
   /** 按栈同步各覆盖层开合（渲染仍读这些布尔量）。 */
   private syncFromStack(): void {
@@ -250,6 +252,11 @@ struct Index {
   }
 
   private pushPage(k: string): void {
+    this.navAnimated = true;
+    // 同 key 已在栈顶时不重复压栈（返回少走一步）
+    if (this.navStack[this.navStack.length - 1] === k) {
+      return;
+    }
     const s: string[] = this.navStack.slice();
     s.push(k);
     this.navStack = s;
@@ -260,6 +267,7 @@ struct Index {
   private popTo(k: string): void {
     const idx: number = this.navStack.indexOf(k);
     if (idx < 0) { return; }
+    this.navAnimated = true;
     const s: string[] = this.navStack.slice(0, idx + 1);
     this.navStack = s;
     this.syncFromStack();
@@ -268,6 +276,7 @@ struct Index {
   /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
   private popPage(): boolean {
     if (this.navStack.length <= 1) { return false; }
+    this.navAnimated = true;
     const s: string[] = this.navStack.slice();
     s.pop();
     this.navStack = s;
@@ -1942,6 +1951,10 @@ struct Index {
             if (key === 'export') { this.pushPage('export'); }
           },
         })
+          // 与另外 8 个分支完全相同的过渡；冷启动首帧不启用
+          .transition(this.navAnimated
+            ? TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut })
+            : TransitionEffect.IDENTITY)
       }
 
       if (this.dossierOpen) {
@@ -2197,6 +2210,7 @@ struct Index {
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
+      if (this.menuOpen) {
       AppMenu({
         visible: this.menuOpen,
         topVp: this.topInsetValue(),
@@ -2207,6 +2221,9 @@ struct Index {
           if (key === 'export') { this.pushPage('export'); }
         },
       })
+          // 关闭淡出 150ms（打开动画在 AppMenu 内部）
+          .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
+      }
     }
     .width('100%')
     .height('100%')
