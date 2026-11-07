@@ -522,6 +522,8 @@ struct Index {
     this.docModel.setMachine(kind);
     // P0-4：机器变了就重解析键位表，不管尺寸变没变
     this.reloadKeymap();
+    // P1-10：换装落盘（有内容才存，空纸不存）
+    this.flushSave();
     this.fadeSwitch();
   }
 
@@ -533,6 +535,8 @@ struct Index {
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
     this.fadeSwitch();
+    // P1-10：换装落盘
+    this.flushSave();
   }
 
   private applyRibbon(kind: RibbonKind): void {
@@ -540,6 +544,8 @@ struct Index {
     this.inkColor = findRibbon(kind).inkColor;
     this.docModel.setRibbon(kind);
     this.fadeSwitch();
+    // P1-10：换装落盘
+    this.flushSave();
   }
 
   private reloadKeymap(): void {
@@ -1844,6 +1850,7 @@ struct Index {
               if ((FONTS[i].font as string) === f) {
                 this.docModel.setFont(FONTS[i].font);
                 this.fontFamily = FONTS[i].familyName + ', Noto Serif SC';
+                this.flushSave();
                 hilog.info(DOMAIN, TAG, 'customize font -> %{public}s family=%{public}s',
                   f, FONTS[i].familyName);
                 break;
