@@ -229,6 +229,8 @@ struct Index {
   @State dictInfo: string = '';
   /** 加词弹窗里可编辑的拼音串（§13 第 5 步 b）。 */
   @State draftPinyin: string = '';
+  /** 上一个已提交字（§13 第 7 步上下文微调用）。 */
+  private lastCommittedChar: string = '';
   @State learnCount: number = 0;
 
   /** 刷新拼音设置页展示数据。 */
@@ -339,8 +341,10 @@ struct Index {
 
   private clearLearn(): void {
     appPreferences.setString(PrefKeys.CN_LEARN, '{}');
+    appPreferences.setString(PrefKeys.CN_BIGRAM, '{}');
     if (this.pinyinEngine !== null) {
       this.pinyinEngine.setLearnData({});
+      this.pinyinEngine.setBigrams({});
     }
     this.refreshPinyinMeta();
     this.hintText = '学习记录已清除';
@@ -403,12 +407,81 @@ struct Index {
       // 套用持久化：模糊音开关、选词学习、我的词库
       this.pinyinEngine.setFuzzy(appPreferences.getBool(PrefKeys.CN_FUZZY, false));
       this.loadLearnAndUserWords();
+      this.ensureBigrams();
       hilog.info(DOMAIN, TAG, 'pinyin engine ready syllables=%{public}s',
         this.pinyinEngine.syllableCount().toString());
     } catch (e) {
       this.pinyinLoadFailed = true;
       hilog.error(DOMAIN, TAG, 'pinyin dict load failed');
     }
+  }
+
+  /**
+   * §13 第 7 步：字符级 bigram（只读本机文档，零遥测）。
+   * 优先用已落盘数据；没有则扫全部文档正文统计相邻字对（上限 5000），并落盘。
+   */
+  private ensureBigrams(): void {
+    if (this.pinyinEngine === null) {
+      return;
+    }
+    try {
+      const saved: string = appPreferences.getString(PrefKeys.CN_BIGRAM, '');
+      if (saved.length > 2) {
+        const data: Record<string, Record<string, number>> =
+          JSON.parse(saved) as Record<string, Record<string, number>>;
+        this.pinyinEngine.setBigrams(data);
+        hilog.info(DOMAIN, TAG, 'bigram loaded pairs=%{public}s',
+          this.pinyinEngine.bigramCount().toString());
+        return;
+      }
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'bigram json bad');
+    }
+    const counts: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
+    let pairs: number = 0;
+    const list: DocSummary[] = docStore.list();
+    for (let i = 0; i < list.length; i++) {
+      const d: DocData | null = docStore.load(list[i].id);
+      if (d === null) {
+        continue;
+      }
+      let prev: string = '';
+      for (let ln = 0; ln < d.lines.length; ln++) {
+        const text: string = d.lines[ln].text;
+        for (let c = 0; c < text.length; c++) {
+          const ch: string = text.charAt(c);
+          if (prev.length > 0) {
+            let m: Map<string, number> | undefined = counts.get(prev);
+            if (m === undefined) {
+              m = new Map<string, number>();
+              counts.set(prev, m);
+            }
+            const cur: number = m.get(ch) === undefined ? 0 : m.get(ch) as number;
+            if (cur === 0) {
+              pairs = pairs + 1;
+            }
+            m.set(ch, cur + 1);
+          }
+          prev = ch;
+        }
+        prev = '';
+      }
+    }
+    const dump: Record<string, Record<string, number>> = {};
+    let kept: number = 0;
+    counts.forEach((m: Map<string, number>, k: string) => {
+      if (kept >= 5000) {
+        return;
+      }
+      const inner: Record<string, number> = {};
+      m.forEach((n: number, w: string) => { inner[w] = n; });
+      dump[k] = inner;
+      kept = kept + m.size;
+    });
+    this.pinyinEngine.setBigrams(dump);
+    appPreferences.setString(PrefKeys.CN_BIGRAM, JSON.stringify(dump));
+    hilog.info(DOMAIN, TAG, 'bigram built pairs=%{public}s from docs=%{public}s',
+      this.pinyinEngine.bigramCount().toString(), list.length.toString());
   }
 
   /** 读学习记录与我的词库（JSON 存 AppPreferences）。 */
@@ -495,6 +568,7 @@ struct Index {
           return;
         }
         const c: string = this.cnQueue.shift() as string;
+        this.lastCommittedChar = c;
         hilog.info(DOMAIN, TAG, 'cn commit ch=%{public}s left=%{public}s docLen=%{public}s',
           c, this.cnQueue.length.toString(), this.docModel.getLines().length.toString());
         this.commitChar(c);
@@ -1502,7 +1576,7 @@ struct Index {
     }
     this.cnPinyin = this.pinyinSession.getBuffer();
     this.cnPreview = this.cnPinyin.length > 0 ? this.pinyinSession.getBuffer() : '';
-    this.candAll = this.pinyinSession.currentCandidates(64);
+    this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
     this.candPage = 0;
     this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
     this.pinyinShown();
@@ -1549,7 +1623,7 @@ struct Index {
     this.cnPinyin = this.pinyinSession.getBuffer();
     this.cnPreview = this.cnPinyin;
     if (this.cnPinyin.length > 0) {
-      this.candAll = this.pinyinSession.currentCandidates(64);
+      this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
       this.candPage = 0;
       this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
       this.pinyinShown();

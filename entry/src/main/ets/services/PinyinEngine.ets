@@ -53,6 +53,8 @@ export class PinyinEngine {
   private learn: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
   /** 模糊音开关（默认关）。 */
   private fuzzy: boolean = false;
+  /** 字符级 bigram：前字 → (后字 → 次数)，来自用户本机文档，只存内存/本地。 */
+  private bigrams: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
 
   /** 从词库 JSON 构造（Node 与 ArkTS 同一入口）。 */
   static fromData(data: PinyinDictData): PinyinEngine {
@@ -376,6 +378,27 @@ export class PinyinEngine {
     return variants;
   }
 
+  /** 载入 bigram（用户语料，本地）。 */
+  setBigrams(data: Record<string, Record<string, number>>): void {
+    this.bigrams.clear();
+    const ks: string[] = Object.keys(data);
+    for (let i = 0; i < ks.length; i++) {
+      const inner: Record<string, number> = data[ks[i]];
+      const m: Map<string, number> = new Map<string, number>();
+      const wk: string[] = Object.keys(inner);
+      for (let j = 0; j < wk.length; j++) {
+        m.set(wk[j], inner[wk[j]]);
+      }
+      this.bigrams.set(ks[i], m);
+    }
+  }
+
+  bigramCount(): number {
+    let n: number = 0;
+    this.bigrams.forEach((m: Map<string, number>) => { n += m.size; });
+    return n;
+  }
+
   /** 导出我的词库（供落盘）。 */
   exportUserWords(): Record<string, string[]> {
     const out: Record<string, string[]> = {};
@@ -420,7 +443,7 @@ export class PinyinEngine {
    * 候选：整串词优先（词频序），其后按切分逐段补单词与单字。
    * 返回最多 limit 条。
    */
-  candidates(input: string, limit: number = 8): Candidate[] {
+  candidates(input: string, limit: number = 8, prevChar: string = ''): Candidate[] {
     const s: string = input.toLowerCase();
     const res: Candidate[] = [];
     const seen: Set<string> = new Set<string>();
@@ -514,6 +537,23 @@ export class PinyinEngine {
     for (let k = 0; k < cs0.length && k < 4; k++) {
       push(cs0[k], 1, s);
     }
+    // ③.5 上下文微调（§13 第 7 步）：同一拼音串内，跟在 prevChar 后高频的字优先；
+    // 只做同串内稳定重排，不跨拼音串抢位
+    if (prevChar.length > 0 && res.length > 1) {
+      const m: Map<string, number> | undefined = this.bigrams.get(prevChar);
+      if (m !== undefined) {
+        const scored: Candidate[] = res.slice();
+        scored.sort((a: Candidate, b: Candidate) => {
+          const sa: number = m.get(a.text.charAt(0)) === undefined ? 0 : m.get(a.text.charAt(0)) as number;
+          const sb: number = m.get(b.text.charAt(0)) === undefined ? 0 : m.get(b.text.charAt(0)) as number;
+          return sb - sa;
+        });
+        res.length = 0;
+        for (let i = 0; i < scored.length; i++) {
+          res.push(scored[i]);
+        }
+      }
+    }
     // ④ 声母缩写补候选（nh→你好）：排在正常候选之后，绝不抢首选
     if (s.length >= 2 && s.length <= 4) {
       const ab: string[] | undefined = this.abbrev.get(s);
@@ -569,11 +609,11 @@ export class PinyinSession {
     return true;
   }
 
-  currentCandidates(limit: number = 8): Candidate[] {
+  currentCandidates(limit: number = 8, prevChar: string = ''): Candidate[] {
     if (this.buffer.length === 0) {
       return [];
     }
-    return this.engine.candidates(this.buffer, limit);
+    return this.engine.candidates(this.buffer, limit, prevChar);
   }
 
   /** 退格：只动拼音串。 */

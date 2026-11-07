@@ -28,6 +28,8 @@ export class PrefKeys {
   static readonly CN_USERWORDS: string = 'cn_userwords';
   /** 模糊拼音开关（默认关）。 */
   static readonly CN_FUZZY: string = 'cn_fuzzy';
+  /** 字符级 bigram（用户本机语料，只存本地）。 */
+  static readonly CN_BIGRAM: string = 'cn_bigram';
 }
 
 /** 偏好读写门面。初始化失败时全部走内存默认值，不阻断主屏。 */

@@ -83,7 +83,7 @@ export struct PinyinSettingsPage {
         Text('学习记录').fontSize(12).fontColor('rgba(232,221,201,0.6)')
           .width('100%').margin({ top: 18, bottom: 6 })
         Row() {
-          Text('清除学习记录').fontSize(15).fontColor('#e8ddc9')
+          Text('清除学习与联想记录').fontSize(15).fontColor('#e8ddc9')
           Blank()
           Text(this.learnCount.toString() + ' 条').fontSize(15).fontColor('rgba(232,221,201,0.6)')
         }

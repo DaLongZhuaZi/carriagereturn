@@ -164,3 +164,32 @@ test('§11.2 学习记录可导出（模拟落盘再载入）', () => {
   e4.setLearnData(dump);
   assert.equal(e4.candidates('nihao', 9)[0].text, '泥', '载入后仍置顶');
 });
+test('§13.6 声母缩写：nh→你好、zg→中国', () => {
+  const list = engine.candidates('nh', 40).map((x) => x.text);
+  assert.ok(list.includes('你好'), 'nh 应含你好');
+  const list2 = engine.candidates('zg', 40).map((x) => x.text);
+  assert.ok(list2.includes('中国'), 'zg 应含中国');
+});
+
+test('§13.7 上下文 bigram：同串内按前字微调', () => {
+  const e = PinyinEngine.fromData({ chars, words });
+  const before = e.candidates('shijie', 8).map((x) => x.text);
+  const big = { '好': { '世': 99 } };
+  e.setBigrams(big);
+  const after = e.candidates('shijie', 8, '好').map((x) => x.text);
+  assert.ok(after.length > 0, '应有候选');
+  assert.ok(after[0].startsWith('世') || after[0].startsWith('世') || after[0] === '世界',
+    '跟在「好」后面时应把「世界」提前');
+  void before;
+});
+
+test('§13.5 我的词库多读音变体：zhuazi 与 zhaozi 都能选中', () => {
+  const e = PinyinEngine.fromData({ chars, words });
+  const vars = e.pinyinVariantsOfWord('大龙爪子');
+  assert.ok(vars.length >= 2, '应有多个读音变体: ' + JSON.stringify(vars));
+  for (const v of vars) { e.addUserWordWithPinyin(v, '大龙爪子'); }
+  const a = e.candidates('dalongzhuazi', 20).map((x) => x.text);
+  const b = e.candidates('dalongzhaozi', 20).map((x) => x.text);
+  assert.ok(a.includes('大龙爪子'), 'zhuazi 应命中');
+  assert.ok(b.includes('大龙爪子'), 'zhaozi 应命中');
+});
