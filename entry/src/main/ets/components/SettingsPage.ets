@@ -13,6 +13,9 @@ export struct SettingsPage {
   @Prop heightVp: number = 720;
   @Prop machineLabel: string = '1920s';
   @Prop paperLabel: string = '信纸';
+  /** 中文输入引擎：'builtin' 内置拼音｜'system' 系统输入法（设计稿 §1）。 */
+  @Prop cnEngine: string = 'builtin';
+  onPickCnEngine: () => void = (): void => {};
   @State volume: number = 70;
   @State newlineSound: boolean = true;
   @State keyVibrate: boolean = true;
@@ -114,6 +117,16 @@ export struct SettingsPage {
           }.width('100%').height(52)
             .onClick(() => {
               this.deleteMode = this.deleteMode === '现代删除' ? 'XXX 覆盖' : '现代删除';
+            })
+          // 中文输入：内置拼音（默认）｜系统输入法。必须落 AppPreferences（设计稿 §1／§7）
+          Row() {
+            Text('中文输入').fontSize(15).fontColor('#e8ddc9')
+            Blank()
+            Text(this.cnEngine === 'builtin' ? '内置拼音' : '系统输入法')
+              .fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          }.width('100%').height(52)
+            .onClick(() => {
+              this.onPickCnEngine();
             })
           this.divider()
         }

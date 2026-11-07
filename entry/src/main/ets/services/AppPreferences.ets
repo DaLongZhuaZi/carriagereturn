@@ -20,6 +20,8 @@ export class PrefKeys {
   static readonly VOLUME: string = 'volume';
   /** 震动开关。 */
   static readonly VIBRATION_ENABLED: string = 'vibration_enabled';
+  /** 中文输入引擎：'builtin'（默认，内置拼音）| 'system'（系统输入法通道）。 */
+  static readonly CN_ENGINE: string = 'cn_engine';
 }
 
 /** 偏好读写门面。初始化失败时全部走内存默认值，不阻断主屏。 */
@@ -79,6 +81,30 @@ export class AppPreferences {
     }
     const raw: string | undefined = this.memory.get(key);
     return raw === undefined ? fallback : Number(raw);
+  }
+
+  getString(key: string, fallback: string): string {
+    if (this.store !== null) {
+      try {
+        return this.store.getSync(key, fallback) as string;
+      } catch (e) {
+        return fallback;
+      }
+    }
+    const raw: string | undefined = this.memory.get(key);
+    return raw === undefined ? fallback : raw;
+  }
+
+  setString(key: string, value: string): void {
+    this.memory.set(key, value);
+    if (this.store !== null) {
+      try {
+        this.store.putSync(key, value);
+        this.store.flush();
+      } catch (e) {
+        // 落盘失败不阻断交互；内存值仍然生效
+      }
+    }
   }
 
   setNumber(key: string, value: number): void {

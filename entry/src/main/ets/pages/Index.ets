@@ -40,6 +40,9 @@ import { SettingsPage } from '../components/SettingsPage';
 import { ExportPage } from '../components/ExportPage';
 import { HomePage } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
+import { PinyinEngine, PinyinSession, Candidate, PickResult } from '../services/PinyinEngine';
+import { CandidateBar } from '../components/CandidateBar';
+import { appPreferences, PrefKeys } from '../services/AppPreferences';
 import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
@@ -218,6 +221,80 @@ struct Index {
   @State cnKbShown: boolean = false;
   /** 锚点 TextInput 已消费的文本（用于算增量，避免重复落字）。 */
   private cnAnchorPrev: string = '';
+
+  // ---------------- 内置拼音（设计稿 §1／§3／§4） ----------------
+  /** 中文引擎：'builtin' 内置拼音（默认）｜'system' 系统输入法通道。 */
+  @State cnEngine: string = 'builtin';
+  /** 候选栏当前页候选（最多 9 个）与页码。 */
+  @State candCurrent: string[] = [];
+  @State candPage: number = 0;
+  @State candPages: number = 1;
+  /** 组词中的拼音串（显示在候选栏左侧，并复用 cnPreview 做预编辑）。 */
+  @State cnPinyin: string = '';
+  @State pinyinReady: boolean = false;
+  @State pinyinLoadFailed: boolean = false;
+  private pinyinEngine: PinyinEngine | null = null;
+  private pinyinSession: PinyinSession | null = null;
+  private candAll: Candidate[] = [];
+
+  /** 读偏好里的引擎（设置页改了就落盘）。 */
+  private readCnEngine(): void {
+    this.cnEngine = appPreferences.getString(PrefKeys.CN_ENGINE, 'builtin');
+  }
+
+  /** 异步加载拼音词库（不许主线程同步解析几 MB）。 */
+  private async ensurePinyinEngine(): Promise<void> {
+    if (this.pinyinEngine !== null || this.pinyinLoadFailed) {
+      return;
+    }
+    try {
+      const rm = this.getUIContext().getHostContext()?.resourceManager;
+      if (rm === undefined || rm === null) {
+        this.pinyinLoadFailed = true;
+        return;
+      }
+      const bytes: Uint8Array = await rm.getRawFileContent('dict/pinyin-chars.json');
+      const charsText: string = this.decodeUtf8(bytes);
+      const wordsBytes: Uint8Array = await rm.getRawFileContent('dict/pinyin-words.json');
+      const wordsText: string = this.decodeUtf8(wordsBytes);
+      const chars: Record<string, string[]> = JSON.parse(charsText) as Record<string, string[]>;
+      const words: Record<string, string[]> = JSON.parse(wordsText) as Record<string, string[]>;
+      this.pinyinEngine = PinyinEngine.fromData({ chars: chars, words: words });
+      this.pinyinSession = new PinyinSession(this.pinyinEngine);
+      this.pinyinReady = true;
+      hilog.info(DOMAIN, TAG, 'pinyin engine ready syllables=%{public}s',
+        this.pinyinEngine.syllableCount().toString());
+    } catch (e) {
+      this.pinyinLoadFailed = true;
+      hilog.error(DOMAIN, TAG, 'pinyin dict load failed');
+    }
+  }
+
+  /** Uint8Array → UTF-8 字符串（与 KeymapModel.readRawTextSync 同口径）。 */
+  private decodeUtf8(bytes: Uint8Array): string {
+    let out: string = '';
+    let i: number = 0;
+    while (i < bytes.length) {
+      const c: number = bytes[i];
+      if (c < 0x80) {
+        out += String.fromCharCode(c);
+        i += 1;
+      } else if (c < 0xE0 && i + 1 < bytes.length) {
+        out += String.fromCharCode(((c & 0x1F) << 6) | (bytes[i + 1] & 0x3F));
+        i += 2;
+      } else if (c < 0xF0 && i + 2 < bytes.length) {
+        out += String.fromCharCode(((c & 0x0F) << 12) | ((bytes[i + 1] & 0x3F) << 6) | (bytes[i + 2] & 0x3F));
+        i += 3;
+      } else if (i + 3 < bytes.length) {
+        const cp: number = ((c & 0x07) << 18) | ((bytes[i + 1] & 0x3F) << 12) | ((bytes[i + 2] & 0x3F) << 6) | (bytes[i + 3] & 0x3F);
+        out += String.fromCodePoint(cp);
+        i += 4;
+      } else {
+        break;
+      }
+    }
+    return out;
+  }
   /** 键盘避让上移量（vp）：键盘弹起时按打击行位置算，收起归零。 */
   @State kbShift: number = 0;
 
@@ -251,6 +328,13 @@ struct Index {
     if (!this.langZh) {
       return;
     }
+    if (this.cnEngine === 'builtin') {
+      // 内置拼音：退出组词先提交首选候选，绝不丢已敲字母
+      this.pinyinCommitTop();
+      this.cnPinyin = '';
+      this.candAll = [];
+      this.candCurrent = [];
+    }
     this.langZh = false;
     this.cnPreview = '';
     chineseInput.detach();
@@ -272,6 +356,17 @@ struct Index {
 
   /** 中/EN 切换：只在这里 attach / detach（换行、换纸、换机都不动）。 */
   private async applyChineseMode(on: boolean): Promise<void> {
+    if (on && this.cnEngine === 'builtin') {
+      // 内置拼音：绝不 attach、绝不 focus 锚点、不弹系统键盘
+      this.cnPreview = '';
+      this.cnPinyin = '';
+      await this.ensurePinyinEngine();
+      if (this.pinyinLoadFailed) {
+        this.hintText = '词库加载失败，仅单字';
+      }
+      hilog.info(DOMAIN, TAG, 'cn builtin mode ready=%{public}s', this.pinyinReady ? 'true' : 'false');
+      return;
+    }
     if (on) {
       // 锚点必须聚焦，否则 attach 报 12800009（input method client detached）
       focusControl.requestFocus('cn_anchor');
@@ -437,6 +532,8 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // 读取持久化的中文引擎（默认内置拼音）
+    this.readCnEngine();
     // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
     try {
       // 用 UIContext 导出的 KeyboardAvoidMode（OFFSET=0 页面上移 / RESIZE=1），避开组件作用域同名枚举
@@ -1154,9 +1251,163 @@ struct Index {
     };
   }
 
+  // ---------------- 内置拼音输入（设计稿 §4） ----------------
+
+  private isBuiltinCn(): boolean {
+    return this.langZh && this.cnEngine === 'builtin';
+  }
+
+  /** 重算候选（page 0），并把拼音串镜像到预编辑显示。 */
+  private pinyinRefresh(): void {
+    if (this.pinyinSession === null) {
+      return;
+    }
+    this.cnPinyin = this.pinyinSession.getBuffer();
+    this.cnPreview = this.cnPinyin.length > 0 ? this.pinyinSession.getBuffer() : '';
+    this.candAll = this.pinyinSession.currentCandidates(64);
+    this.candPage = 0;
+    this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
+    this.pinyinShown();
+  }
+
+  private pinyinShown(): void {
+    const start: number = this.candPage * 9;
+    const out: string[] = [];
+    for (let i = start; i < this.candAll.length && out.length < 9; i++) {
+      out.push(this.candAll[i].text);
+    }
+    this.candCurrent = out;
+  }
+
+  /** 选第 index 个（当前页 0 起）。走 enqueueChinese（40ms 逐字），余量字母继续组词。 */
+  private pinyinPick(index: number): void {
+    if (this.pinyinSession === null) {
+      return;
+    }
+    const abs: number = this.candPage * 9 + index;
+    if (abs < 0 || abs >= this.candAll.length) {
+      return;
+    }
+    const c: Candidate = this.candAll[abs];
+    const r: PickResult = this.pinyinSession.pick(c);
+    this.enqueueChinese(r.text);
+    this.cnPinyin = this.pinyinSession.getBuffer();
+    this.cnPreview = this.cnPinyin;
+    if (this.cnPinyin.length > 0) {
+      this.candAll = this.pinyinSession.currentCandidates(64);
+      this.candPage = 0;
+      this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
+      this.pinyinShown();
+    } else {
+      this.candAll = [];
+      this.candCurrent = [];
+      this.candPage = 0;
+      this.candPages = 1;
+    }
+  }
+
+  /** 退出组词：提交首选候选（换行除外）。 */
+  private pinyinCommitTop(): void {
+    if (this.pinyinSession === null || this.pinyinSession.getBuffer().length === 0) {
+      return;
+    }
+    if (this.candAll.length > 0) {
+      this.pinyinPick(0);
+    } else {
+      // 无候选：按原样上屏拉丁字母（不丢已敲字母）
+      this.enqueueChinese(this.pinyinSession.getBuffer());
+      this.pinyinSession.cancel();
+      this.cnPinyin = '';
+      this.cnPreview = '';
+      this.candAll = [];
+      this.candCurrent = [];
+    }
+  }
+
+  /** 内置中文下的按键语义（设计稿 §4 表）。返回 true 表示已消费。 */
+  private onBuiltinCnCap(cap: CapDef): boolean {
+    const s: PinyinSession | null = this.pinyinSession;
+    if (s === null) {
+      return false;
+    }
+    const label: string = cap.label;
+    const composing: boolean = s.getBuffer().length > 0;
+
+    if (label === 'Shift') {
+      // 先提交首选，再进入大写一次性状态
+      this.pinyinCommitTop();
+      this.shiftActive = true;
+      return true;
+    }
+    if (label === 'Backspace') {
+      if (composing) {
+        s.backspace();
+        this.audioService.playBackspace();
+        this.audioService.vibrate();
+        this.pinyinRefresh();
+        return true;
+      }
+      return false;
+    }
+    if (label === ' ') {
+      if (composing) {
+        this.pinyinPick(0);
+        this.audioService.playSpace();
+        return true;
+      }
+      return false;
+    }
+    if (label === 'Return') {
+      if (composing) {
+        // 先把拼音串按原样上屏（拉丁字母），下一次换行才是真换行
+        this.enqueueChinese(s.getBuffer());
+        s.cancel();
+        this.cnPinyin = '';
+        this.cnPreview = '';
+        this.candAll = [];
+        this.candCurrent = [];
+        return true;
+      }
+      return false;
+    }
+    if (label.length === 1 && label >= '0' && label <= '9') {
+      if (composing && this.candCurrent.length > 0) {
+        const idx: number = label === '0' ? -1 : Number.parseInt(label) - 1;
+        if (idx >= 0 && idx < this.candCurrent.length) {
+          this.pinyinPick(idx);
+          return true;
+        }
+      }
+      return false;
+    }
+    if (label.length === 1 && label.toLowerCase() >= 'a' && label.toLowerCase() <= 'z') {
+      if (this.shiftActive) {
+        // 中文里插英文的逃生口：先提交首选，再按原样打大写
+        this.pinyinCommitTop();
+        this.shiftActive = false;
+        this.queueChar(label);
+        return true;
+      }
+      s.typeLetter(label);
+      this.audioService.vibrate();
+      this.pinyinRefresh();
+      return true;
+    }
+    // 字符键／中 EN 切换／换纸／换机／离页：统一先提交首选（不丢字母）
+    if (composing) {
+      this.pinyinCommitTop();
+    }
+    return false;
+  }
+
   private onCapDown(cap: CapDef): void {
     if (cap.isExtra) {
       return;
+    }
+    if (this.isBuiltinCn()) {
+      if (this.onBuiltinCnCap(cap)) {
+        return;
+      }
     }
     if (cap.label === ' ') {
       // 空格直通落字：不进 queueChar（那会给 strikeTick+1 触发字杆摆动，导致一声两响）
@@ -2026,6 +2277,29 @@ struct Index {
             .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
         }
 
+        // 内置中文常驻候选栏（44vp 占位，不随组词伸缩）：设计稿 §5
+        if (this.isBuiltinCn()) {
+          CandidateBar({
+            candidates: this.candCurrent,
+            pinyin: this.cnPinyin,
+            pages: this.candPages,
+            page: this.candPage,
+            onPick: (i: number): void => { this.pinyinPick(i); },
+            onPrev: (): void => {
+              if (this.candPage > 0) {
+                this.candPage = this.candPage - 1;
+                this.pinyinShown();
+              }
+            },
+            onNext: (): void => {
+              if (this.candPage + 1 < this.candPages) {
+                this.candPage = this.candPage + 1;
+                this.pinyinShown();
+              }
+            },
+          })
+        }
+
         FontBar({
           fontFamily: this.fontFamily,
           fontLabel: fontDisplayName(this.docModel.toDocData().meta.font),
@@ -2235,6 +2509,18 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
+          cnEngine: this.cnEngine,
+          onPickCnEngine: (): void => {
+            const next: string = this.cnEngine === 'builtin' ? 'system' : 'builtin';
+            this.cnEngine = next;
+            appPreferences.setString(PrefKeys.CN_ENGINE, next);
+            // 切换后立即按新引擎重进/退出中文，避免残留状态
+            if (this.langZh) {
+              this.applyChineseMode(false);
+              this.langZh = false;
+            }
+            hilog.info(DOMAIN, TAG, 'cn engine -> %{public}s', next);
+          },
           onBack: (): void => { this.popPage(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
@@ -2411,8 +2697,8 @@ struct Index {
           .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
       }
 
-      // 中文模式：键盘弹起会遮住底部自绘键区，这里给一个始终可点的「切回英文」悬浮键
-      if (this.langZh) {
+      // 悬浮 A 键只在 system 模式出现（设计稿 §1：builtin 没有系统键盘盖住底行，不需要它）
+      if (this.langZh && this.cnEngine === 'system') {
         Text('A')
           .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#171310')
           .width(44).height(44).textAlign(TextAlign.Center)

@@ -15,12 +15,22 @@ export interface PinyinDictData {
 }
 
 /** 会话三态（设计稿 §4）。用常量对象而非 enum —— enum 不是可擦除语法，Node strip-types 跑不了。 */
-export const PinyinState = {
+export interface PinyinStateValues {
+  IDLE: number;
+  COMPOSING: number;
+  RESIDUAL: number;
+}
+export const PinyinState: PinyinStateValues = {
   IDLE: 0,
   COMPOSING: 1,
   RESIDUAL: 2,
 };
-export type PinyinStateValue = number;
+
+/** 选词结果：提交文本 + 余量拼音串。 */
+export interface PickResult {
+  text: string;
+  residual: string;
+}
 
 export interface Candidate {
   text: string;
@@ -38,7 +48,7 @@ export class PinyinEngine {
 
   /** 从词库 JSON 构造（Node 与 ArkTS 同一入口）。 */
   static fromData(data: PinyinDictData): PinyinEngine {
-    const e = new PinyinEngine();
+    const e: PinyinEngine = new PinyinEngine();
     e.load(data);
     return e;
   }
@@ -48,13 +58,13 @@ export class PinyinEngine {
     this.words.clear();
     this.syllables.clear();
     this.maxSylLen = 0;
-    const ck: string[] = Object.keys(data.chars || {});
+    const ck: string[] = Object.keys(data.chars);
     for (let i = 0; i < ck.length; i++) {
       const k: string = ck[i];
       this.chars.set(k, data.chars[k]);
       this.addSyllable(k);
     }
-    const wk: string[] = Object.keys(data.words || {});
+    const wk: string[] = Object.keys(data.words);
     for (let i = 0; i < wk.length; i++) {
       const k: string = wk[i];
       this.words.set(k, data.words[k]);
@@ -186,14 +196,14 @@ export class PinyinSession {
   private engine: PinyinEngine;
   private buffer: string = '';
   private residual: string = '';
-  private state: PinyinState = PinyinState.IDLE;
+  private state: number = PinyinState.IDLE;
   private picked: string[] = [];
 
   constructor(engine: PinyinEngine) {
     this.engine = engine;
   }
 
-  getState(): PinyinState {
+  getState(): number {
     return this.state;
   }
 
@@ -243,7 +253,7 @@ export class PinyinSession {
    * 选词：把选中的词提交，余量字母（若候选拼音短于 buffer）继续组词。
    * 返回 { text, residual }。
    */
-  pick(c: Candidate): { text: string, residual: string } {
+  pick(c: Candidate): PickResult {
     const usedPy: string = c.pinyin;
     let rest: string = '';
     if (this.buffer.length > usedPy.length && this.buffer.indexOf(usedPy) === 0) {
@@ -256,7 +266,8 @@ export class PinyinSession {
     if (this.state === PinyinState.RESIDUAL) {
       this.state = PinyinState.COMPOSING;
     }
-    return { text: c.text, residual: rest };
+    const result: PickResult = { text: c.text, residual: rest };
+    return result;
   }
 
   /** 取消组词（Esc）。 */
