@@ -339,6 +339,43 @@ export class PinyinEngine {
     }
   }
 
+  /**
+   * 一个词的全部拼音变体（每个字的所有读音组合，最多 4 个）：
+   * 让「大龙爪子」同时可按 dalongzhuazi 与 dalongzhaozi 打出来。
+   */
+  pinyinVariantsOfWord(word: string): string[] {
+    const perChar: string[][] = [];
+    this.chars.forEach((arr: string[], syl: string) => {
+      for (let i = 0; i < arr.length; i++) {
+        const idx: number = word.indexOf(arr[i]);
+        if (idx < 0) {
+          continue;
+        }
+        if (perChar[idx] === undefined) {
+          perChar[idx] = [];
+        }
+        if (perChar[idx].indexOf(syl) < 0) {
+          perChar[idx].push(syl);
+        }
+      }
+    });
+    let variants: string[] = [''];
+    for (let i = 0; i < word.length; i++) {
+      const opts: string[] = perChar[i] === undefined ? [] : perChar[i];
+      if (opts.length === 0) {
+        return [];
+      }
+      const next: string[] = [];
+      for (let v = 0; v < variants.length; v++) {
+        for (let o = 0; o < opts.length && next.length < 4; o++) {
+          next.push(variants[v] + opts[o]);
+        }
+      }
+      variants = next;
+    }
+    return variants;
+  }
+
   /** 导出我的词库（供落盘）。 */
   exportUserWords(): Record<string, string[]> {
     const out: Record<string, string[]> = {};

@@ -324,6 +324,19 @@ def main():
     for ch, readings in chars.items():
         syl = readings[0].lower().replace('ü', 'v')
         char_map.setdefault(syl, []).append(ch)
+    # §13 第 5 步：多读音补读表（数据-only，不改引擎逻辑）
+    # 种子：爪→zhua（Unihan 主读音是 zhǎo，口语 zhuǎ 缺失，导致「大龙爪子」推成 dalongzhaozi）
+    EXTRA_READINGS = {
+        '爪': ['zhua'],
+    }
+    for ch_e in EXTRA_READINGS.keys():
+        for s_e in EXTRA_READINGS[ch_e]:
+            if ch_e not in chars:
+                continue
+            lst = char_map.setdefault(s_e, [])
+            if ch_e not in lst:
+                lst.insert(0, ch_e)
+
     for syl in char_map.keys():
         # 主口径＝常用字序（表内按序，表外按 jieba 词频降序排后）
         char_map[syl].sort(key=lambda c: (common_order.get(c, 10 ** 6), -char_freq.get(c, 0)))

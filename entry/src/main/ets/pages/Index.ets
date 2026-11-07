@@ -227,6 +227,8 @@ struct Index {
   @State fuzzyOn: boolean = false;
   @State userWordsFlat: string[] = [];
   @State dictInfo: string = '';
+  /** 加词弹窗里可编辑的拼音串（§13 第 5 步 b）。 */
+  @State draftPinyin: string = '';
   @State learnCount: number = 0;
 
   /** 刷新拼音设置页展示数据。 */
@@ -280,15 +282,31 @@ struct Index {
       this.hintText = '词库未加载，暂时加不了';
       return;
     }
-    const py: string = this.pinyinEngine.pinyinOfWord(w);
+    const py: string = this.pinyinOfWordForAdd(w);
     if (py.length === 0) {
       this.hintText = '这个词里有字库外的字，暂时加不了';
       return;
+    }
+    // 多读音变体一起入库（大龙爪子：zhuazi 与 zhaozi 都能打出来）
+    const vars: string[] = this.pinyinEngine.pinyinVariantsOfWord(w);
+    for (let i = 0; i < vars.length; i++) {
+      this.pinyinEngine.addUserWordWithPinyin(vars[i], w);
     }
     this.pinyinEngine.addUserWordWithPinyin(py, w);
     this.pinyinEngine.rebuildAbbrev();
     this.persistUserWords();
     this.refreshPinyinMeta();
+  }
+
+  /** 加词用的拼音（用户可在弹窗里改；未改则用引擎推导）。 */
+  private pinyinOfWordForAdd(w: string): string {
+    if (this.pinyinEngine === null) {
+      return '';
+    }
+    if (this.draftPinyin.length > 0) {
+      return this.draftPinyin.trim().toLowerCase();
+    }
+    return this.pinyinEngine.pinyinOfWord(w);
   }
 
   private deleteUserWord(w: string): void {
@@ -2954,7 +2972,15 @@ struct Index {
           learnCount: this.learnCount,
           onBack: (): void => { this.popPage(); },
           onToggleFuzzy: (): void => { this.toggleFuzzy(); },
-          onAddWord: (w: string): void => { this.addUserWord(w); },  // async，内部 await 引擎加载
+          addPinyin: this.draftPinyin,
+          onWordChanged: (w: string): void => {
+            this.draftPinyin = this.pinyinEngine === null ? '' : this.pinyinEngine.pinyinOfWord(w);
+          },
+          onPinyinEdited: (p: string): void => { this.draftPinyin = p; },
+          onAddWord: (w: string, py: string): void => {
+            this.draftPinyin = py.trim();
+            this.addUserWord(w);
+          },
           onDeleteWord: (w: string): void => { this.deleteUserWord(w); },
           onClearLearn: (): void => { this.clearLearn(); },
         })

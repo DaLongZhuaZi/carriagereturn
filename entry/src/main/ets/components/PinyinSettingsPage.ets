@@ -24,7 +24,11 @@ export struct PinyinSettingsPage {
   @State pressKey: string = '';
   onBack: () => void = (): void => {};
   onToggleFuzzy: () => void = (): void => {};
-  onAddWord: (w: string) => void = (): void => {};
+  /** 加词弹窗里可编辑的拼音串（§13 第 5 步 b） */
+  @Prop addPinyin: string = '';
+  onWordChanged: (w: string) => void = (): void => {};
+  onPinyinEdited: (p: string) => void = (): void => {};
+  onAddWord: (w: string, py: string) => void = (): void => {};
   onDeleteWord: (w: string) => void = (): void => {};
   onClearLearn: () => void = (): void => {};
 
@@ -131,7 +135,15 @@ export struct PinyinSettingsPage {
       TextInput({ placeholder: '输入中文词组' })
         .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
         .defaultFocus(true)
-        .onChange((v: string) => { this.draftWord = v; })
+        .onChange((v: string) => {
+          this.draftWord = v;
+          this.onWordChanged(v);
+        })
+      Text('拼音（可改）').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+        .width('100%').margin({ top: 10 })
+      TextInput({ placeholder: '如 dalongzhuazi', text: this.addPinyin })
+        .fontSize(15).fontColor('#e8ddc9').margin({ top: 4 })
+        .onChange((v: string) => { this.onPinyinEdited(v); })
       Row() {
         Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
           .onClick(() => { this.adding = false; })
@@ -139,7 +151,7 @@ export struct PinyinSettingsPage {
         Text('添加').fontSize(15).fontColor('#c9a45c')
           .onClick(() => {
             const w: string = this.draftWord.trim();
-            if (w.length > 0) { this.onAddWord(w); }
+            if (w.length > 0) { this.onAddWord(w, this.addPinyin); }
             this.adding = false;
           })
       }.width('100%').margin({ top: 20 })

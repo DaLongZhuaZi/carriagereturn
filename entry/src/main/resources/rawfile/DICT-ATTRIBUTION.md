@@ -1,6 +1,6 @@
 # 拼音词库来源与许可（DICT-ATTRIBUTION）
 
-由 tools/build-pinyin-dict.py 生成，生成时间 2026-11-07。
+由 tools/build-pinyin-dict.py 生成，生成时间 2026-11-08。
 
 | 数据 | 来源 | 许可 | 版本／提交 | SHA-256 |
 |---|---|---|---|---|
@@ -11,5 +11,5 @@
 生成口径：
 - 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接。
 - 只保留 1–4 字、全为汉字的词；按 jieba 词频降序截前 80000 词。
-- 输出：dict/pinyin-words.json（27961 键 / 77069 词 / 1.00 MB）与 dict/pinyin-chars.json（409 音节 / 20924 字 / 125.9 KB）。
+- 输出：dict/pinyin-words.json（27961 键 / 77069 词 / 1.00 MB）与 dict/pinyin-chars.json（409 音节 / 20925 字 / 125.9 KB）。
 - 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL／八股文、CC-CEDICT（v1.5 再说）。
