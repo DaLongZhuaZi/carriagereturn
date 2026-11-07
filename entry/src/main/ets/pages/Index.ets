@@ -218,7 +218,7 @@ struct Index {
   @State cnPreview: string = '';
   /** 中文整词拆单字的 FIFO 队列与出队定时器。 */
   /** 字杆层是否可见（当前 Index 里该层被 `if (false && …)` 隐藏，拼装期；加回时置 true） */
-  private leverEnabled: boolean = false;
+  private leverEnabled: boolean = true;
   /** 非 1920s 机的落字起搏器（§14.3 第 2 条） */
   private pacerTimer: number = -1;
   /** 队首字兜底看门狗（§14.3 第 3 条） */
@@ -1786,12 +1786,17 @@ struct Index {
   }
 
   private queueChar(ch: string): void {
+    const wasEmpty: boolean = this.pendingChars.length === 0;
     this.pendingChars.push(ch);
     // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
     // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
     if (this.leverEnabled && this.machineKind === MachineKind.UPRIGHT_1920S) {
-      // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）
-      this.strikeTick = this.strikeTick + 1;
+      // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
+      // 只有「队列原本为空」才踢第一击——多字同时入队时由 landHead 逐字续踢，
+      // 否则 TypebarLayer 的 pending 只加 1，第二字等不到字杆、会被兜底直落
+      if (wasEmpty) {
+        this.strikeTick = this.strikeTick + 1;
+      }
     } else {
       // 非 1920s：120ms 起搏器（队列非空时起、空时停），同样串行
       this.startPacer();
@@ -1874,6 +1879,11 @@ struct Index {
     }
     this.arriveCount += 1;
     this.flushPending();
+    // 队列还有字：续踢下一击（字杆串行，每字一摆）
+    if (this.leverEnabled && this.machineKind === MachineKind.UPRIGHT_1920S
+      && this.pendingChars.length > 0 && this.pacerTimer < 0) {
+      this.strikeTick = this.strikeTick + 1;
+    }
     const avg: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
     hilog.info(DOMAIN, TAG,
       'land metrics lands=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s sounds=%{public}s ch=%{public}s',
@@ -1892,12 +1902,7 @@ struct Index {
 
   private onStrikeArrive(): void {
     // 字杆到位：音＋落字同帧（音由 landHead 按落地字决定：空格 playSpace，其余主键音）
-    const now: number = Date.now();
-    this.arriveCount += 1;
-    if (this.lastArriveMs > 0) {
-      this.arriveGapSumMs += now - this.lastArriveMs;
-      this.arriveGapCount += 1;
-    }
+    // 计数与间距统一由 landHead 统计（这里不再重复计，避免 arriveCount 双计）
     this.landHead();
     if (this.arriveCount <= 10 || this.arriveCount % 10 === 0) {
       const avgGap: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
@@ -2520,8 +2525,8 @@ struct Index {
 
           Stack({ alignContent: Alignment.TopStart }) {
             // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
-            // 字杆本批隐藏（五件拼顺后再按 v5 加回）；开关不动素材、不删文件
-            if (false && this.machineKind === MachineKind.UPRIGHT_1920S) {
+            // §14：字杆层重新启用——输入法落字要靠它驱动 onArrive（串行、每字一摆）
+            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
               TypebarLayer({
                 layerWidthVp: this.carriageHeight * 2.5,
                 layerHeightVp: this.carriageHeight * 2.5,
