@@ -417,12 +417,8 @@ struct Index {
       this.pinyinReady = true;
       hilog.info(DOMAIN, TAG, 'index ms=%{public}s (lazy)',
         (Date.now() - tLoad).toString());
-      this.pinyinEngine.buildIndexesAsync().then(() => {
-        hilog.info(DOMAIN, TAG, 'abbrev count=%{public}s (built)',
-          this.pinyinEngine === null ? '0' : this.pinyinEngine.abbrevCount().toString());
-      }).catch(() => {
-        hilog.warn(DOMAIN, TAG, 'index build failed');
-      });
+      // §17.3：不再后台预建缩写索引——17 万键在设备上要 27 秒，必触发系统 ANR。
+      // 缩写改「即席有界扫描」（abbrevScan），只在 2–4 字母查询时发生。
       // 套用持久化：模糊音开关、选词学习、我的词库
       this.pinyinEngine.setFuzzy(appPreferences.getBool(PrefKeys.CN_FUZZY, false));
       this.loadLearnAndUserWords();

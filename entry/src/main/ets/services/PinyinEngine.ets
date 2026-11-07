@@ -50,6 +50,10 @@ export class PinyinEngine {
   /** 缩写候选的先后＝首次出现的先后（JSON 键顺序即词频序），不再逐词建 wordRank */
   private abbrevOrder: Map<string, number> = new Map<string, number>();
   private abbrevSeq: number = 0;
+  /** 词频序键数组（JSON 键顺序＝词频序），缩写排序用 */
+  private freqKeys: string[] = [];
+  /** 词 → 所在键的下标（缩写排序用，惰性填充） */
+  private wordKeyCache: Map<string, number> = new Map<string, number>();
   /** 全部拼音键的有序数组（词前缀候选用二分查找，不许每击键全表扫）。 */
   private sortedKeys: string[] = [];
   /** 声母缩写索引：词的拼音按音节取首字母（如 你好→nh），上限 4 字母。 */
@@ -239,6 +243,107 @@ export class PinyinEngine {
       }
     }
     this.buildAbbrev();
+  }
+
+  /**
+   * 缩写即席匹配（§17.3）：不预建索引——预建 17 万键在设备上要 27 秒，必卡死。
+   * 只扫「首字母相同」的有界区间（最多 9000 键），够用且只在 2–4 字母查询时发生。
+   */
+  private abbrevScan(s: string, limit: number): string[] {
+    const res: string[] = [];
+    if (this.sortedKeys.length === 0) {
+      const rk2: string[] = Object.keys(this.rawWords);
+      if (rk2.length > 0) {
+        this.sortedKeys = rk2;
+      } else {
+        const mk2: string[] = [];
+        this.words.forEach((a: string[], k: string) => { mk2.push(k); });
+        this.sortedKeys = mk2;
+      }
+      this.sortedKeys.sort();
+    }
+    const first: string = s.charAt(0);
+    let lo: number = 0;
+    let hi: number = this.sortedKeys.length;
+    while (lo < hi) {
+      const mid: number = (lo + hi) >> 1;
+      if (this.sortedKeys[mid] < first) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    // 2 字母缩写（nh/zg）要把首字母整组扫完，否则「你好」会被同组长尾挡在外面；
+    // 3–4 字母只扫 9000 键即可
+    if (this.freqKeys.length === 0) {
+      // 懒模式用原始对象；非懒模式（fromData，单测走这条）用 words Map 的键序
+      const rk: string[] = Object.keys(this.rawWords);
+      if (rk.length > 0) {
+        this.freqKeys = rk;
+      } else {
+        const mk: string[] = [];
+        this.words.forEach((a: string[], k: string) => { mk.push(k); });
+        this.freqKeys = mk;
+      }
+    }
+    const ranks: number[] = [];
+    const cap: number = s.length === 2 ? 40000 : 9000;
+    let scanned: number = 0;
+    for (let i = lo; i < this.sortedKeys.length && scanned < cap && res.length < 200; i++) {
+      const k: string = this.sortedKeys[i];
+      if (k.charAt(0) !== first) {
+        break;
+      }
+      scanned = scanned + 1;
+      const seg: string[] | null = this.greedySplit(k);
+      if (seg === null || seg.length < 2 || seg.length > 4) {
+        continue;
+      }
+      let ab: string = '';
+      for (let j = 0; j < seg.length; j++) {
+        ab = ab + seg[j].charAt(0);
+      }
+      if (ab !== s) {
+        continue;
+      }
+      const ws: string[] = this.wordsOf(k);
+      const kr: number = this.freqKeys.indexOf(k);
+      for (let j = 0; j < ws.length && res.length < 200; j++) {
+        if (res.indexOf(ws[j]) < 0) {
+          res.push(ws[j]);
+          ranks.push(kr < 0 ? 999999 : kr);
+        }
+      }
+    }
+    // 按词频序（JSON 键顺序）重排：同缩写的「nahan(呐喊)」与「nihao(你好)」靠这个分先后
+    if (res.length > 1) {
+      const idx: number[] = [];
+      for (let i = 0; i < res.length; i++) {
+        idx.push(i);
+      }
+      idx.sort((a: number, b: number) => ranks[a] - ranks[b]);
+      const sorted: string[] = [];
+      for (let i = 0; i < idx.length; i++) {
+        sorted.push(res[idx[i]]);
+      }
+      res.length = 0;
+      for (let i = 0; i < sorted.length; i++) {
+        res.push(sorted[i]);
+      }
+      if (res.length > limit) {
+        res.length = limit;
+      }
+    }
+    return res;
+  }
+
+  /** 词→词频序（缓存键序，只算一次）。 */
+  private freqRankOf(w: string): number {
+    const c: number = this.wordKeyCache.get(w) === undefined ? -1 : this.wordKeyCache.get(w) as number;
+    if (c >= 0) {
+      return c;
+    }
+    return 999999;
   }
 
   /** 词前缀候选（§16）：打半词也能出完整词。二分定位后线性收集。 */
@@ -834,12 +939,10 @@ export class PinyinEngine {
     }
     // ③.3 声母缩写候选（nh→你好）：排在整词/前缀词之后、单字回退之前，
     // 否则会被单字候选挤出候选栏前 9
-    if (s.length >= 2 && s.length <= 4) {
-      const ab: string[] | undefined = this.abbrev.get(s);
-      if (ab !== undefined) {
-        for (let i = 0; i < ab.length && res.length < limit; i++) {
-          push(ab[i], 2, s);
-        }
+    if (s.length >= 2 && s.length <= 4 && res.length < limit) {
+      const ab: string[] = this.abbrevScan(s, 8);
+      for (let i = 0; i < ab.length && res.length < limit; i++) {
+        push(ab[i], 2, s);
       }
     }
     let segs: string[][] = this.segments(s);
