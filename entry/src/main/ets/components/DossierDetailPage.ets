@@ -289,25 +289,13 @@ export struct DossierDetailPage {
     }, (200 + i * 100) * FLY_DELAY_SCALE);
   }
 
-  private previewText(id: string): string {
-    const t: string = docStore.readPlainText(id);
-    const lines: string[] = t.split('\n');
-    let out: string = '';
-    const n: number = lines.length > 3 ? 3 : lines.length;
-    for (let i = 0; i < n; i++) {
-      out += lines[i];
-      if (i < n - 1) { out += '\n'; }
-    }
-    return out.length > 0 ? out : ' ';
+  /** P2-9：正文直接用 DocSummary.preview（list() 里算好），build 期不再读文件。 */
+  private previewText(p: DocSummary): string {
+    const t: string = p.preview === undefined ? '' : p.preview;
+    return t.length > 0 ? t : ' ';
   }
 
-  private charCount(id: string): number {
-    const raw: string = docStore.readPlainText(id);
-    const n: number = raw.replace(/\s/g, '').length;
-    hilog.info(0x0000, 'DossierDetail', 'charCount id=%{public}s rawLen=%{public}s n=%{public}s',
-      id, raw.length.toString(), n.toString());
-    return n;
-  }
+
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -365,7 +353,7 @@ export struct DossierDetailPage {
                   Stack({ alignContent: Alignment.TopStart }) {
                     Image($rawfile(PAPER_RAW[p.paper.toString()]))
                       .width('100%').height(150).borderRadius(12).objectFit(ImageFit.Cover)
-                    Text(this.previewText(p.id))
+                    Text(this.previewText(p))
                       .fontSize(9).fontColor('#2a2118')
                       .fontFamily('CourierPrime, Noto Serif SC')
                       .maxLines(3).textOverflow({ overflow: TextOverflow.Clip })

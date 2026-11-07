@@ -49,6 +49,8 @@ export struct CustomizePage {
 
   aboutToAppear(): void {
     this.applyInsets();
+    // P2-13：先归零再逐区揭示
+    this.revealN = 0;
     for (let i = 0; i < 4; i++) {
       setTimeout(() => { this.revealN = i + 1; }, i * 80);
     }

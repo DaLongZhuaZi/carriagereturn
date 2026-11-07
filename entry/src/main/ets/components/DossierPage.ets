@@ -133,6 +133,11 @@ export struct DossierPage {
         Column() {
           Text('还没有卷宗。新建一个，把纸装进去吧。')
             .fontSize(13).fontColor('rgba(232,221,201,0.55)')
+          // P2-11：索引损坏并已备份时，空状态补一句
+          if (dossierStore.isIndexCorrupted()) {
+            Text('索引损坏，已备份。')
+              .fontSize(12).fontColor('rgba(192,106,90,0.85)').margin({ top: 8 })
+          }
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {

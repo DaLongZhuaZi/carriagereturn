@@ -102,4 +102,6 @@ export interface DocSummary {
   dossierId?: string | null;
   /** 正文字数（去空白），随列表一起算好，避免卡片渲染期读文件。 */
   charCount?: number;
+  /** P2-9：缩略图正文（前 3 行），随列表一次算好，卡片不再 build 期读文件。 */
+  preview?: string;
 }

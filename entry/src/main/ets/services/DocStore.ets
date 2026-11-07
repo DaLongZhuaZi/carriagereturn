@@ -153,6 +153,7 @@ export class DocStore {
         paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
         charCount: this.countCharsFromJson(entry.id),
+        preview: this.previewFromJson(entry.id),
       });
     }
     return out;
@@ -162,6 +163,29 @@ export class DocStore {
    * P1-8：字数**从 JSON 的 lines 现算**，不读 txt。
    * 此前读 txt 会与 JSON 脱节（txt 可能未被写/被覆盖），导致卡片字数停在旧值。
    */
+  /** P2-9：缩略图正文＝前 3 行非空文本，随 list() 一次算好。 */
+  private previewFromJson(id: string): string {
+    try {
+      const text: string = this.readText(this.docPath(id));
+      if (text.length === 0) {
+        return '';
+      }
+      const data: DocData = JSON.parse(text) as DocData;
+      if (data.lines === undefined || data.lines === null) {
+        return '';
+      }
+      const out: string[] = [];
+      for (let i = 0; i < data.lines.length && out.length < 3; i++) {
+        if (data.lines[i].text.length > 0) {
+          out.push(data.lines[i].text);
+        }
+      }
+      return out.join('\n');
+    } catch (e) {
+      return '';
+    }
+  }
+
   private countCharsFromJson(id: string): number {
     try {
       const text: string = this.readText(this.docPath(id));

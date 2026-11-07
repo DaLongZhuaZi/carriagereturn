@@ -74,9 +74,25 @@ export class DossierStore {
       hilog.info(DOMAIN, TAG, 'readIndex ok count=%{public}s', parsed.dossiers.length.toString());
       return parsed;
     } catch (e) {
-      hilog.warn(DOMAIN, TAG, 'readIndex failed: %{public}s', JSON.stringify(e));
+      // P2-11：索引损坏时把文件改名备份，记 hilog，并置「已备份」标记供列表页提示
+      hilog.error(DOMAIN, TAG, 'readIndex failed: %{public}s', JSON.stringify(e));
+      try {
+        const bad: string = this.indexPath() + '.corrupt-' + Date.now().toString();
+        fs.renameSync(this.indexPath(), bad);
+        this.indexCorrupted = true;
+        hilog.error(DOMAIN, TAG, 'readIndex corrupt backup -> %{public}s', bad);
+      } catch (e2) {
+        hilog.error(DOMAIN, TAG, 'readIndex corrupt backup failed');
+      }
       return { version: INDEX_VERSION, dossiers: [] };
     }
+  }
+
+  /** P2-11：本次启动是否发生过「索引损坏并已备份」。 */
+  private indexCorrupted: boolean = false;
+
+  isIndexCorrupted(): boolean {
+    return this.indexCorrupted;
   }
 
   private writeIndex(index: DossierIndex): void {
