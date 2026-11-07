@@ -62,6 +62,11 @@ export struct DossierDetailPage {
   /** 删卷宗：mode='unfile' 纸移出（变未归档）｜'purge' 连纸一起删。 */
   onDeleteDossier: (mode: string) => void = (): void => {};
   @State confirmDel: boolean = false;
+  /** P1-1：待确认删除的纸 id（空＝无）。 */
+  @State pendingDelPaper: string = '';
+  /** P1-2：改名状态与草稿。 */
+  @State renaming: boolean = false;
+  @State draftName: string = '';
 
   aboutToAppear(): void {
     this.reload();
@@ -296,6 +301,11 @@ export struct DossierDetailPage {
           Column() {
             Text(this.dName).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
               .maxLines(1)
+              .onClick(() => {
+                // P1-2：点卷宗名改名（复用新建卷宗的输入框式样）
+                this.draftName = this.dName;
+                this.renaming = true;
+              })
             Text(this.papers.length.toString() + ' 张纸')
               .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
           }
@@ -349,7 +359,7 @@ export struct DossierDetailPage {
                       .onClick(() => { this.onOpenPaper(p.id); })
                     Text('·').fontSize(12).fontColor('rgba(232,221,201,0.4)').margin({ left: 6, right: 6 })
                     Text('删除').fontSize(12).fontColor('rgba(232,221,201,0.55)')
-                      .onClick(() => { this.onDeletePaper(p.id); })
+                      .onClick(() => { this.pendingDelPaper = p.id; })
                   }.width('100%').margin({ top: 6 })
                 }
                 .width('100%')
@@ -412,6 +422,58 @@ export struct DossierDetailPage {
       }
       .width('100%').height('100%').justifyContent(FlexAlign.Center)
       .backgroundColor('rgba(0,0,0,0.6)')
+      }
+
+      // P1-1：删纸确认（与删卷宗同款式样），确认后才删
+      if (this.pendingDelPaper.length > 0) {
+        Column() {
+          Column() {
+            Text('删除这张纸？').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+            Text('删除后不可恢复。').fontSize(13).fontColor('rgba(232,221,201,0.7)')
+              .margin({ top: 10 })
+            Text('删除').fontSize(14).fontColor('#c06a5a')
+              .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+              .onClick(() => {
+                const id: string = this.pendingDelPaper;
+                this.pendingDelPaper = '';
+                this.onDeletePaper(id);
+              })
+            Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+              .onClick(() => { this.pendingDelPaper = ''; })
+          }
+          .width(300).padding(20).borderRadius(14).backgroundColor('#211b16')
+        }
+        .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        .backgroundColor('rgba(0,0,0,0.6)')
+      }
+
+      // P1-2：卷宗改名（复用新建卷宗的输入框式样）
+      if (this.renaming) {
+        Column() {
+          Column() {
+            Text('重命名卷宗').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+            TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
+              .fontSize(14).fontColor('#e8ddc9').margin({ top: 14 })
+              .onChange((v: string) => { this.draftName = v; })
+            Row() {
+              Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+                .onClick(() => { this.renaming = false; })
+              Blank()
+              Text('保存').fontSize(14).fontColor('#c9a45c')
+                .onClick(() => {
+                  const nm: string = this.draftName.length > 0 ? this.draftName : this.dName;
+                  dossierStore.rename(this.dossierId, nm);
+                  this.dName = nm;
+                  this.renaming = false;
+                  hilog.info(0x0000, 'DossierDetail', 'renamed to %{public}s', nm);
+                })
+            }.width('100%').margin({ top: 18 })
+          }
+          .width(320).padding(20).borderRadius(14).backgroundColor('#211b16')
+        }
+        .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        .backgroundColor('rgba(0,0,0,0.6)')
       }
     }
     .width(this.widthVp).height(this.heightVp)
