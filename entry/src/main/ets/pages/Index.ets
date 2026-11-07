@@ -39,6 +39,7 @@ import { CollectionDetailPage } from '../components/CollectionDetailPage';
 import { SettingsPage } from '../components/SettingsPage';
 import { ExportPage } from '../components/ExportPage';
 import { HomePage } from '../components/HomePage';
+import { chineseInput } from '../services/ChineseInput';
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
@@ -208,6 +209,65 @@ struct Index {
   private maxTravelVp: number = 64;
   @State strikeTick: number = 0;
   @State langZh: boolean = false;
+  /** 中文预编辑串（只显示，不进模型）。 */
+  @State cnPreview: string = '';
+  /** 中文整词拆单字的 FIFO 队列与出队定时器。 */
+  private cnQueue: string[] = [];
+  private cnTimer: number = -1;
+  @State cnKbShown: boolean = false;
+
+  /** 中文通道：整词拆单字，40ms 逐字走 commitChar（复用现有落字链）。 */
+  private enqueueChinese(text: string): void {
+    for (let i = 0; i < text.length; i++) {
+      const ch: string = text.charAt(i);
+      if (ch === '\n') {
+        this.onNewline();
+      } else {
+        this.cnQueue.push(ch);
+      }
+    }
+    if (this.cnTimer < 0) {
+      this.cnTimer = setInterval(() => {
+        if (this.cnQueue.length === 0) {
+          clearInterval(this.cnTimer);
+          this.cnTimer = -1;
+          return;
+        }
+        const c: string = this.cnQueue.shift() as string;
+        this.commitChar(c);
+      }, 40);
+    }
+  }
+
+  /** 中/EN 切换：只在这里 attach / detach（换行、换纸、换机都不动）。 */
+  private async applyChineseMode(on: boolean): Promise<void> {
+    if (on) {
+      // 先让隐藏 TextInput 取得焦点（IME 只对已绑定的编辑框 attach）
+      focusControl.requestFocus('cn_anchor');
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(() => { resolve(); }, 150);
+      });
+      const ui = this.getUIContext();
+      const left: number = ui.vp2px((this.stageWidth - this.paperWidthVp) / 2);
+      const top: number = ui.vp2px(this.strikeLineVp);
+      const ok: boolean = await chineseInput.attach({
+        onInsertText: (t: string): void => { this.enqueueChinese(t); },
+        onDeleteLeft: (n: number): void => { for (let i = 0; i < n; i++) { this.onDelete(); } },
+        onDeleteRight: (n: number): void => { for (let i = 0; i < n; i++) { this.onDelete(); } },
+        onMoveCursor: (dir: number): void => {
+          hilog.info(DOMAIN, TAG, 'cn moveCursor dir=%{public}s (append-only)', dir.toString());
+        },
+        onPreview: (t: string): void => { this.cnPreview = t; },
+        onFinishPreview: (): void => { this.cnPreview = ''; },
+        onEnter: (): void => { this.onNewline(); },
+        onKeyboardShown: (s: boolean): void => { this.cnKbShown = s; },
+      }, left, top, ui.vp2px(this.paperWidthVp), ui.vp2px(this.lineHeightVp));
+      hilog.info(DOMAIN, TAG, 'cn attach ok=%{public}s', ok ? 'true' : 'false');
+    } else {
+      this.cnPreview = '';
+      await chineseInput.detach();
+    }
+  }
   /** 卷宗页开合（§5.1）。 */
   @State dossierOpen: boolean = false;
   /** 当前打开的卷宗 id（空串＝未归档）。 */
@@ -1600,6 +1660,12 @@ struct Index {
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
+      // 中文输入锚点：隐藏 TextInput（只做 IME 绑定锚点，不显示、不参与排版）
+      TextInput({ text: '' })
+        .id('cn_anchor')
+        .width(1).height(1).opacity(0.01)
+        .position({ x: 0, y: 0 })
+        .enabled(this.langZh)
       // 隐藏整行 Text：实测纸面真实渲染宽（三角/打击点/扣子走它）
       Row() {
         Text(this.currentLineText())
@@ -1896,6 +1962,7 @@ struct Index {
           },
           onLang: (): void => {
             this.langZh = !this.langZh;
+            this.applyChineseMode(this.langZh);
             // 语言切换同步改行高与纸高（中文 fs×30/17、英文 fs×28/17）
             this.lineHeightVp = this.langZh ? this.fontSizeVp * (30 / 17) : this.fontSizeVp * (28 / 17);
             this.recalcPaperHeight();

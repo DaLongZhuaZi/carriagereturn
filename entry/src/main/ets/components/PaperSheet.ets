@@ -146,14 +146,22 @@ struct PaperRowView {
           .position({ x: 0, y: lineHeightOf(this.spec) - 1 })
       }
 
-      Text(this.row.text)
+      // 正文 + 预编辑串（浅色 + 下划线，只显示、不落墨、不进模型）
+      Text() {
+        Span(this.row.text)
+          .fontColor(inkColorOf(this.row))
+          .opacity(inkOpacityOf(this.row))
+        if (this.row.active && this.previewText.length > 0) {
+          Span(this.previewText)
+            .fontColor('#8a7a64')
+            .decoration({ type: TextDecorationType.Underline, color: '#8a7a64' })
+        }
+      }
         .width('100%')
         .height(lineHeightOf(this.spec))
         .lineHeight(lineHeightOf(this.spec))
         .fontSize(fontSizeOf(this.spec))
         .fontFamily(this.spec.fontFamily)
-        .fontColor(inkColorOf(this.row))
-        .opacity(inkOpacityOf(this.row))
         .textAlign(TextAlign.Start)
         .maxLines(1)
 
@@ -180,6 +188,8 @@ export struct PaperSheet {
   @Prop @Watch('onRowsChanged') rows: PaperRow[] = [];
   /** 常驻引导行（每张新纸一行、输入后消失）。由调用方判定并解析文案，'' 表示不显示。 */
   @Prop hintText: string = '';
+  /** 中文输入法预编辑串：只显示在光标处（浅色+下划线），不发音、不落墨、不进 DocModel。 */
+  @Prop previewText: string = '';
   /** 当前光标所在行下标；变化时把该行滚入可见区（不每敲一字移动整张纸）。 */
   @Prop @Watch('onActiveLineChanged') activeLine: number = 0;
 
