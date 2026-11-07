@@ -184,6 +184,15 @@ export struct DossierDetailPage {
     return [u * u * sx + 2 * u * t * cx + t * t * ex, u * u * sy + 2 * u * t * cy + t * t * ey];
   }
 
+  /** P2-12：二次贝塞尔在 t 处的切线角（度）。控制点 = 两点中点上方 120vp。 */
+  private tangentDeg(sx: number, sy: number, ex: number, ey: number, t: number): number {
+    const mcx: number = (sx + ex) / 2;
+    const mcy: number = (sy + ey) / 2 - 120;
+    const dx: number = 2 * (1 - t) * (mcx - sx) + 2 * t * (ex - mcx);
+    const dy: number = 2 * (1 - t) * (mcy - sy) + 2 * t * (ey - mcy);
+    return Math.atan2(dy, dx) * 180 / Math.PI;
+  }
+
   /** P0-2：首屏格数 = 列数 × 可视行数（按可用高与卡片行距现算，不写死 4）。 */
   private firstScreenCount(): number {
     const cols: number = this.colCount();
@@ -258,9 +267,10 @@ export struct DossierDetailPage {
       const ys: number[] = this.flyY.slice();
       const rs: number[] = this.flyRot.slice();
       const os: number[] = this.flyOp.slice();
-      xs[i] = sx - cxs; ys[i] = sy - cys; rs[i] = -14; os[i] = 0.0;
+      // P2-12：起步旋转 0°（不是 -14°），淡入从 0 起
+      xs[i] = sx - cxs; ys[i] = sy - cys; rs[i] = 0; os[i] = 0.0;
       this.flyX = xs; this.flyY = ys; this.flyRot = rs; this.flyOp = os;
-      // 5 段线性采样近似 350ms 弧线
+      // P2-12：5 段 × 70ms = 350ms
       const steps: number = 5;
       for (let k = 1; k <= steps; k++) {
         setTimeout(() => {
@@ -271,8 +281,10 @@ export struct DossierDetailPage {
           const rs2: number[] = this.flyRot.slice();
           const os2: number[] = this.flyOp.slice();
           xs2[i] = p[0] - cxs; ys2[i] = p[1] - cys;
-          rs2[i] = -14 * (1 - t);
-          os2[i] = 0.35 + 0.65 * t;
+          // P2-12：飞行中按切线方向微旋转（≤15°），落地回 0°
+          rs2[i] = k === steps ? 0 : Math.max(-15, Math.min(15,
+            this.tangentDeg(sx, sy, cxs, cys, t)));
+          os2[i] = t;
           this.flyX = xs2; this.flyY = ys2; this.flyRot = rs2; this.flyOp = os2;
           if (k === steps) {
             // 落位小弹簧：1.05 → 1.0
@@ -284,7 +296,7 @@ export struct DossierDetailPage {
               }, 120 * FLY_DUR_SCALE);
             }, 0);
           }
-        }, 87 * k * FLY_DUR_SCALE);
+        }, 70 * k * FLY_DUR_SCALE);
       }
     }, (200 + i * 100) * FLY_DELAY_SCALE);
   }
