@@ -8,6 +8,7 @@
 import { MachineKind, PaperKind, RibbonKind, PaperFont } from '../model/DocModel';
 import { MACHINES, PAPERS, RIBBONS, FONTS, FontSpec, MachineSpec, PaperSpec, RibbonSpec } from '../model/MachineCatalog';
 import { PageShell } from './PageShell';
+import { AppIcon } from './AppIcon';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const MACHINE_LABEL: Record<string, string> = {
@@ -183,7 +184,7 @@ export struct CustomizePage {
                     if (this.failedFonts.indexOf(f.familyName) >= 0) {
                       Text('未加载').fontSize(12).fontColor('#a33327')
                     } else if (this.fontKind === (f.font as string)) {
-                      Text('✓').fontSize(17).fontColor('#c9a45c')
+                      AppIcon({ kind: 'check', iconSize: 17, color: '#c9a45c' })
                     }
                   }
                   .width('100%').height(52).borderRadius(12)

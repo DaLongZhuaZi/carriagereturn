@@ -2,6 +2,8 @@
  * 顶栏（§2.1）：56vp，左文档库图标 / 中文档标题 / 右汉堡菜单；底色透明、无分割线。
  * 图标全部用 Path 画线形，不用图片、不用文字符号。
  */
+import { AppIcon } from './AppIcon';
+
 @Component
 export struct TopBar {
   @Prop title: string = '';
@@ -13,15 +15,9 @@ export struct TopBar {
 
   build() {
     Row() {
-      // 左：线形文件夹（24vp）
+      // 左：主页（系统 symbol）
       Stack() {
-        Path()
-          .width(24)
-          .height(24)
-          .commands('M3 7 L9 7 L11 9 L21 9 L21 19 L3 19 Z')
-          .fillOpacity(0)
-          .stroke('#beb4a8')
-          .strokeWidth(1.6)
+        AppIcon({ kind: 'folder', iconSize: 24, color: '#dbccb3' })
       }
       .width(44)
       .height(44)
@@ -38,16 +34,12 @@ export struct TopBar {
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
 
-      // 右：汉堡菜单（三条线）—— §2.1 三件套，D1：设置／导出文字钮已撤，入口进下拉菜单
-      Column({ space: 4 }) {
-        Column().width(18).height(1.6).backgroundColor('#beb4a8')
-        Column().width(18).height(1.6).backgroundColor('#beb4a8')
-        Column().width(18).height(1.6).backgroundColor('#beb4a8')
+      // 右：汉堡菜单（系统 symbol）—— §2.1 三件套
+      Stack() {
+        AppIcon({ kind: 'menu', iconSize: 24, color: '#dbccb3' })
       }
       .width(44)
       .height(44)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
       .onClick(() => {
         this.onOpenMenu();
       })
