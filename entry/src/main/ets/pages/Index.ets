@@ -2824,6 +2824,19 @@ struct Index {
             this.onDelete();
           },
           onNewline: (): void => {
+            // §4 表：组词中按换行 = 把拼音串按原样上屏（拉丁字母），下一次才是真换行
+            if (this.isBuiltinCn() && this.pinyinSession !== null
+              && this.pinyinSession.getBuffer().length > 0) {
+              const buf: string = this.pinyinSession.getBuffer();
+              this.enqueueChinese(buf);
+              this.pinyinSession.cancel();
+              this.cnPinyin = '';
+              this.cnPreview = '';
+              this.candAll = [];
+              this.candCurrent = [];
+              hilog.info(DOMAIN, TAG, 'cn newline commits pinyin=%{public}s', buf);
+              return;
+            }
             this.onNewline();
           },
         })

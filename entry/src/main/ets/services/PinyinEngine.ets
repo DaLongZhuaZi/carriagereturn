@@ -45,6 +45,10 @@ export class PinyinEngine {
   private maxSylLen: number = 0;
   private chars: Map<string, string[]> = new Map<string, string[]>();
   private words: Map<string, string[]> = new Map<string, string[]>();
+  /** 词频序（加载顺序即词频序）：缩写候选按它排序，避免被 nanhai 这类同缩写词挤掉你好。 */
+  private wordRank: Map<string, number> = new Map<string, number>();
+  /** 全部拼音键的有序数组（词前缀候选用二分查找，不许每击键全表扫）。 */
+  private sortedKeys: string[] = [];
   /** 声母缩写索引：词的拼音按音节取首字母（如 你好→nh），上限 4 字母。 */
   private abbrev: Map<string, string[]> = new Map<string, string[]>();
   /** 用户自定义词：拼音串 → 词（置顶） */
@@ -79,7 +83,60 @@ export class PinyinEngine {
       const k: string = wk[i];
       this.words.set(k, data.words[k]);
     }
+    this.sortedKeys = wk.slice();
+    this.sortedKeys.sort();
+    // 词频序：JSON 键顺序 = 生成时的词频序；每键内数组也已按频序
+    this.wordRank.clear();
+    let rank: number = 0;
+    for (let i = 0; i < wk.length; i++) {
+      const arr: string[] = data.words[wk[i]];
+      for (let j = 0; j < arr.length; j++) {
+        if (!this.wordRank.has(arr[j])) {
+          this.wordRank.set(arr[j], rank);
+          rank = rank + 1;
+        }
+      }
+    }
     this.buildAbbrev();
+  }
+
+  /** 词前缀候选（§16）：打半词也能出完整词。二分定位后线性收集。 */
+  private prefixWords(s: string, limit: number): string[] {
+    const res: string[] = [];
+    if (s.length < 2 || this.sortedKeys.length === 0) {
+      return res;
+    }
+    let lo: number = 0;
+    let hi: number = this.sortedKeys.length;
+    while (lo < hi) {
+      const mid: number = (lo + hi) >> 1;
+      if (this.sortedKeys[mid] < s) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    // 收集所有以 s 开头的键（最多 200 个），按「键长升序」排序——
+    // 越接近输入的键越先出（否则 weixi 会被 weixiashu 这类长键占满）
+    const keys: string[] = [];
+    for (let i = lo; i < this.sortedKeys.length && keys.length < 200; i++) {
+      const k: string = this.sortedKeys[i];
+      if (!k.startsWith(s)) {
+        break;
+      }
+      if (k === s) {
+        continue;
+      }
+      keys.push(k);
+    }
+    keys.sort((a: string, b: string) => a.length - b.length);
+    // 返回**键**而不是词：调用方要用「键」当拼音串，选词后余量才算得对
+    for (let i = 0; i < keys.length && res.length < limit; i++) {
+      if (res.indexOf(keys[i]) < 0) {
+        res.push(keys[i]);
+      }
+    }
+    return res;
   }
 
   /** 由词表预建声母缩写索引（加载时一次，不许每击键扫全表）。 */
@@ -114,10 +171,20 @@ export class PinyinEngine {
       list = [];
       this.abbrev.set(ab, list);
     }
-    for (let j = 0; j < words.length && list.length < 30; j++) {
+    // 先全收（上限 200），按词频序排序后再截 30——否则高频词在收集阶段就被同缩写的长尾挤掉
+    for (let j = 0; j < words.length && list.length < 200; j++) {
       if (list.indexOf(words[j]) < 0) {
         list.push(words[j]);
       }
+    }
+    // 按词频序重排（加载顺序），高频词（如你好）优先占缩写位
+    list.sort((a: string, b: string) => {
+      const ra: number = this.wordRank.get(a) === undefined ? 999999 : this.wordRank.get(a) as number;
+      const rb: number = this.wordRank.get(b) === undefined ? 999999 : this.wordRank.get(b) as number;
+      return ra - rb;
+    });
+    if (list.length > 30) {
+      list.length = 30;
     }
   }
 
@@ -485,9 +552,35 @@ export class PinyinEngine {
       }
     }
     // ③ 内置整串词
+    // ③ 整串词：先出前 2 个，把第 3 个往后的位置让给「词前缀候选」，
+    // 否则打半词（weixi）时整词会把候选栏占满、看不到完整词（微信）
     const whole: string[] = this.wordsOf(s);
-    for (let i = 0; i < whole.length; i++) {
+    for (let i = 0; i < whole.length && i < 2; i++) {
       push(whole[i], 0, s);
+    }
+    // ③.2 词前缀候选（§16）：打「weixi」也要能看到「微信」。
+    // 候选的拼音串用**命中的键**（weixin），选词后余量才正确
+    // 只在「整串本身是合法拼音」时才做词前缀（weixi ✓）；
+    // 不合法（nih）交给下面「最长合法前缀」回退，避免抢走 ni 的候选与 pinyin 口径
+    const pkeys: string[] = this.segments(s).length > 0 ? this.prefixWords(s, 8) : [];
+    for (let i = 0; i < pkeys.length; i++) {
+      const kw: string[] = this.wordsOf(pkeys[i]);
+      for (let j = 0; j < kw.length && j < 2; j++) {
+        push(kw[j], 0, pkeys[i]);
+      }
+    }
+    for (let i = 2; i < whole.length; i++) {
+      push(whole[i], 0, s);
+    }
+    // ③.3 声母缩写候选（nh→你好）：排在整词/前缀词之后、单字回退之前，
+    // 否则会被单字候选挤出候选栏前 9
+    if (s.length >= 2 && s.length <= 4) {
+      const ab: string[] | undefined = this.abbrev.get(s);
+      if (ab !== undefined) {
+        for (let i = 0; i < ab.length && res.length < limit; i++) {
+          push(ab[i], 2, s);
+        }
+      }
     }
     let segs: string[][] = this.segments(s);
     if (segs.length === 0 && s.length > 1) {
@@ -559,15 +652,6 @@ export class PinyinEngine {
         res.length = 0;
         for (let i = 0; i < scored.length; i++) {
           res.push(scored[i]);
-        }
-      }
-    }
-    // ④ 声母缩写补候选（nh→你好）：排在正常候选之后，绝不抢首选
-    if (s.length >= 2 && s.length <= 4) {
-      const ab: string[] | undefined = this.abbrev.get(s);
-      if (ab !== undefined) {
-        for (let i = 0; i < ab.length && res.length < limit; i++) {
-          push(ab[i], 2, s);
         }
       }
     }
