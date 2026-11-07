@@ -40,6 +40,7 @@ import { SettingsPage } from '../components/SettingsPage';
 import { ExportPage } from '../components/ExportPage';
 import { HomePage } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
+import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
@@ -215,6 +216,8 @@ struct Index {
   private cnQueue: string[] = [];
   private cnTimer: number = -1;
   @State cnKbShown: boolean = false;
+  /** 键盘避让上移量（vp）：键盘弹起时按打击行位置算，收起归零。 */
+  @State kbShift: number = 0;
 
   /** 中文通道：整词拆单字，40ms 逐字走 commitChar（复用现有落字链）。 */
   private enqueueChinese(text: string): void {
@@ -374,6 +377,27 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
+    try {
+      // 用 UIContext 导出的 KeyboardAvoidMode（OFFSET=0 页面上移 / RESIZE=1），避开组件作用域同名枚举
+      this.getUIContext().setKeyboardAvoidMode(UcKeyboardAvoidMode.OFFSET);
+      // 监听键盘高度：按「打击行 vs 键盘顶」差值上移舞台，保打击行可见
+      window.getLastWindow(this.getUIContext().getHostContext() as common.Context)
+        .then((win: window.Window) => {
+          win.on('keyboardHeightChange', (h: number) => {
+            const kbVp: number = this.getUIContext().px2vp(h);
+            const top: number = this.stageHeight - kbVp;
+            this.kbShift = h > 0 ? Math.max(0, this.strikeLineVp + 40 - top) : 0;
+            hilog.info(DOMAIN, TAG, 'kb height=%{public}s shift=%{public}s',
+              h.toString(), this.kbShift.toFixed(1));
+          });
+        })
+        .catch((e: BusinessError) => {
+          hilog.warn(DOMAIN, TAG, 'keyboard listener failed code=%{public}s', e.code.toString());
+        });
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'setKeyboardAvoidMode failed');
+    }
     // 字体注册放在页面（UIContext 已就绪）而不是 Ability.onCreate：
     // 上一轮实测 onCreate 里注册两次都打 ok 但 i/m 仍比例字体
     // P1-4：按 MachineCatalog.FONTS 表逐一注册 17 款字体（原来只注册了 CourierPrime，
@@ -1982,6 +2006,8 @@ struct Index {
       .width(this.stageWidth)
       .height(this.stageHeight)
       .alignItems(HorizontalAlign.Start)
+      // 键盘避让：整体上移保打击行可见；收起归零，不留空区
+      .translate({ y: -this.kbShift })
 
       // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
       // §11 主页：冷启动首帧；从任何页返回也回这里
