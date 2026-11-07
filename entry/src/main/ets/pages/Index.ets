@@ -229,6 +229,61 @@ struct Index {
   @State exportOpen: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
+
+  /** 导航栈（AGENTS「导航」）：栈底永远是 'home'。页内返回与系统返回都走弹栈。 */
+  @State navStack: string[] = ['home'];
+
+  /** 按栈同步各覆盖层开合（渲染仍读这些布尔量）。 */
+  private syncFromStack(): void {
+    const has = (k: string): boolean => this.navStack.indexOf(k) >= 0;
+    this.homeOpen = this.navStack.length === 1;
+    this.dossierOpen = has('dossier') || has('detail') || has('docview');
+    this.detailOpen = has('detail') || has('docview');
+    if (!has('docview')) { this.openDocId = ''; }
+    this.collectionOpen = has('collection') || has('collectiondetail');
+    if (!has('collectiondetail')) { this.collectionDetailKind = ''; }
+    this.customizeOpen = has('customize');
+    this.settingsOpen = has('settings');
+    this.exportOpen = has('export');
+    hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
+      this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
+  }
+
+  private pushPage(k: string): void {
+    const s: string[] = this.navStack.slice();
+    s.push(k);
+    this.navStack = s;
+    this.syncFromStack();
+  }
+
+  /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
+  private popTo(k: string): void {
+    const idx: number = this.navStack.indexOf(k);
+    if (idx < 0) { return; }
+    const s: string[] = this.navStack.slice(0, idx + 1);
+    this.navStack = s;
+    this.syncFromStack();
+  }
+
+  /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
+  private popPage(): boolean {
+    if (this.navStack.length <= 1) { return false; }
+    const s: string[] = this.navStack.slice();
+    s.pop();
+    this.navStack = s;
+    this.syncFromStack();
+    return true;
+  }
+
+  /** 系统返回：先关菜单，再弹栈；栈底主页时返回 false。 */
+  onBackPress(): boolean {
+    hilog.info(DOMAIN, TAG, 'onBackPress depth=%{public}s', this.navStack.length.toString());
+    if (this.menuOpen) {
+      this.menuOpen = false;
+      return true;
+    }
+    return this.popPage();
+  }
   /** D1：汉堡下拉菜单。 */
   @State menuOpen: boolean = false;
   /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
@@ -1568,7 +1623,7 @@ struct Index {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
         TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
-          onOpenHome: (): void => { this.homeOpen = true; },
+          onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; } })
 
         Column() {
@@ -1783,7 +1838,7 @@ struct Index {
           fontFamily: this.fontFamily,
           fontLabel: fontDisplayName(this.docModel.toDocData().meta.font),
           heightVp: this.fontBarHeight,
-          onOpenCustomize: (): void => { this.customizeOpen = true; },
+          onOpenCustomize: (): void => { this.pushPage('customize'); },
         })
 
         PhotoKeybed({
@@ -1857,8 +1912,8 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
-          onBack: (): void => { this.dossierOpen = false; this.homeOpen = true; },
-          onOpenDossier: (id: string): void => { this.openDossierId = id; this.detailOpen = true; },
+          onBack: (): void => { this.popPage(); },
+          onOpenDossier: (id: string): void => { this.openDossierId = id; this.pushPage('detail'); },
         })
       }
 
@@ -1873,7 +1928,7 @@ struct Index {
           ribbonKind: this.ribbon as string,
           fontKind: this.docModel.toDocData().meta.font as string,
           failedFonts: this.fontLoadFailed,
-          onBack: (): void => { this.customizeOpen = false; this.homeOpen = true; },
+          onBack: (): void => { this.popPage(); },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
             hilog.info(DOMAIN, TAG, 'customize machine -> %{public}s', k);
@@ -1909,8 +1964,8 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
-          onBack: (): void => { this.collectionOpen = false; this.homeOpen = true; },
-          onPick: (kind: string): void => { this.collectionDetailKind = kind; },
+          onBack: (): void => { this.popPage(); },
+          onPick: (kind: string): void => { this.collectionDetailKind = kind; this.pushPage('collectiondetail'); },
         })
       }
 
@@ -1920,7 +1975,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineKind: this.collectionDetailKind,
-          onBack: (): void => { this.collectionDetailKind = ''; },
+          onBack: (): void => { this.popPage(); },
           onSetCurrent: (kind: string): void => {
             this.applyMachine(kind as MachineKind);
             this.collectionDetailKind = '';
@@ -1938,12 +1993,11 @@ struct Index {
           onContinue: (): void => {
             const list = docStore.list();
             if (list.length > 0) {
-              this.homeOpen = false;
               this.loadDocument(list[0].id);
+              this.pushPage('typewriter');
             }
           },
           onStartTyping: (): void => {
-            this.homeOpen = false;
             // 新建一张空白纸并进入打字机
             const meta = this.docModel.toDocData().meta;
             const fresh: DocData = {
@@ -1954,14 +2008,14 @@ struct Index {
             const nid: string = docStore.save('', fresh, '未命名');
             this.docsRev = this.docsRev + 1;
             this.loadDocument(nid);
+            this.pushPage('typewriter');
           },
           onOpen: (key: string): void => {
-            this.homeOpen = false;
-            if (key === 'dossier') { this.dossierOpen = true; }
-            if (key === 'collection') { this.collectionOpen = true; }
-            if (key === 'customize') { this.customizeOpen = true; }
-            if (key === 'settings') { this.settingsOpen = true; }
-            if (key === 'export') { this.exportOpen = true; }
+            if (key === 'dossier') { this.pushPage('dossier'); }
+            if (key === 'collection') { this.pushPage('collection'); }
+            if (key === 'customize') { this.pushPage('customize'); }
+            if (key === 'settings') { this.pushPage('settings'); }
+            if (key === 'export') { this.pushPage('export'); }
           },
         })
       }
@@ -1972,9 +2026,9 @@ struct Index {
         topVp: this.topInsetValue(),
         onClose: (): void => { this.menuOpen = false; },
         onPick: (key: string): void => {
-          if (key === 'collection') { this.collectionOpen = true; }
-          if (key === 'settings') { this.settingsOpen = true; }
-          if (key === 'export') { this.exportOpen = true; }
+          if (key === 'collection') { this.pushPage('collection'); }
+          if (key === 'settings') { this.pushPage('settings'); }
+          if (key === 'export') { this.pushPage('export'); }
         },
       })
 
@@ -1985,7 +2039,7 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
-          onBack: (): void => { this.settingsOpen = false; this.homeOpen = true; },
+          onBack: (): void => { this.popPage(); },
         })
       }
 
@@ -1995,7 +2049,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.docId,
-          onBack: (): void => { this.exportOpen = false; this.homeOpen = true; },
+          onBack: (): void => { this.popPage(); },
           onShare: (format: string): void => {
             // P1-6：三种格式。当前实现纯文本（.txt 可再编辑）；图片/PDF 走占位并明确记录
             hilog.info(DOMAIN, TAG, 'export share format=%{public}s', format);
@@ -2088,17 +2142,15 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           dossierId: this.openDossierId,
           docs: this.listDocs(),
-          onBack: (): void => { this.detailOpen = false; },
+          onBack: (): void => { this.popPage(); },
           onOpenPaper: (id: string): void => {
-            // §5.2：点「打开」直接进主屏打字页编辑这张纸
-            this.dossierOpen = false;
-            this.detailOpen = false;
-            this.openDocId = '';
+            // §5.2：点「打开」进打字页——栈退到 typewriter 层再载入
             this.loadDocument(id);
+            this.popTo('typewriter');
           },
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
-          onOpenDoc: (id: string): void => { this.openDocId = id; },
+          onOpenDoc: (id: string): void => { this.openDocId = id; this.pushPage('docview'); },
           onRenamed: (): void => {
             this.docsRev = this.docsRev + 1;
             hilog.info(DOMAIN, TAG, 'renamed rev=%{public}s (list will refresh)', this.docsRev.toString());
@@ -2118,12 +2170,11 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.openDocId,
-          onBack: (): void => { this.openDocId = ''; },
+          onBack: (): void => { this.popPage(); },
           onEdit: (id: string): void => {
-            this.openDocId = '';
-            this.dossierOpen = false;
-            this.detailOpen = false;
+            // 点正文页进打字机：栈退到 typewriter 层
             this.loadDocument(id);
+            this.popTo('typewriter');
           },
           onDelete: (id: string): void => {
             docStore.remove(id);
