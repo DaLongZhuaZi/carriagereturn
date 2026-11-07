@@ -22,7 +22,8 @@ const COVER_RAW: Record<string, string> = {
 export struct DossierPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
-  @Prop docs: DocSummary[] = [];
+  /** P1-3：docs 变化（删卷宗/删纸后 Index 递增 docsRev）时刷新列表。 */
+  @Prop @Watch('onDocsChanged') docs: DocSummary[] = [];
   @State dossiers: Dossier[] = [];
   @State creating: boolean = false;
   @State draftName: string = '';
@@ -58,6 +59,10 @@ export struct DossierPage {
         this.revealN = i + 1;
       }, i * 60);
     }
+  }
+
+  onDocsChanged(): void {
+    this.reload();
   }
 
   private reload(): void {

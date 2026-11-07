@@ -79,11 +79,17 @@ export struct DossierDetailPage {
   }
 
   /** docs 变化（新建/删除纸后 Index 递增 docsRev）时重算纸列表。 */
+  /** P1-11：docs 变化只重算列表，**不重播飞出动画**（新纸/删纸都应直接在位）。 */
   onDocsChanged(): void {
-    this.reload();
+    this.reloadList(false);
   }
 
   private reload(): void {
+    this.reloadList(true);
+  }
+
+  /** replay=true 仅 aboutToAppear 首次进入时用；之后一律 false。 */
+  private reloadList(replay: boolean): void {
     const d: Dossier | null = this.dossierId.length > 0 ? dossierStore.find(this.dossierId) : null;
     this.dName = d === null ? '未归档' : d.name;
     this.dCover = d === null ? '' : d.coverStyle;
@@ -97,7 +103,16 @@ export struct DossierDetailPage {
     }
     list.sort((a: DocSummary, b: DocSummary) => b.updatedAt - a.updatedAt);
     this.papers = list;
-    this.initFly();
+    if (replay) {
+      this.initFly();
+    } else {
+      // 不重播：所有纸直接就位（透明度 1、无偏移）
+      const ops: number[] = [];
+      for (let i = 0; i < list.length; i++) {
+        ops.push(1);
+      }
+      this.flyOp = ops;
+    }
   }
 
   private colsTemplate(): string {
