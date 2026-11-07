@@ -237,8 +237,8 @@ struct Index {
           return;
         }
         const c: string = this.cnQueue.shift() as string;
-        hilog.info(DOMAIN, TAG, 'cn commit ch=%{public}s left=%{public}s',
-          c, this.cnQueue.length.toString());
+        hilog.info(DOMAIN, TAG, 'cn commit ch=%{public}s left=%{public}s docLen=%{public}s',
+          c, this.cnQueue.length.toString(), this.docModel.getLines().length.toString());
         this.commitChar(c);
       }, 40);
     }
@@ -282,6 +282,11 @@ struct Index {
       const ok: boolean = await chineseInput.attach({
         onInsertText: (t: string): void => { this.enqueueChinese(t); },
         onDeleteLeft: (n: number): void => {
+          if (this.cnPreview.length > 0) {
+            // 拼音未上屏：退格只属于预编辑，等 setPreviewText 缩短预编辑串，不许删已提交字符
+            hilog.info(DOMAIN, TAG, 'cn deleteLeft n=%{public}s preview locked', n.toString());
+            return;
+          }
           hilog.info(DOMAIN, TAG, 'cn deleteLeft n=%{public}s', n.toString());
           for (let i = 0; i < n; i++) { this.onDelete(); }
         },
@@ -1349,6 +1354,8 @@ struct Index {
         this.syncRows();
         this.animateGuide();
         this.stepCarriageRight();
+        // 删除后推一次光标矩形，候选窗跟上
+        this.pushCnCursor();
       }
       return;
     }
@@ -1357,6 +1364,8 @@ struct Index {
       this.syncRows();
       this.animateGuide();
       this.stepCarriageRight();
+      // 删除后推一次光标矩形，候选窗跟上
+      this.pushCnCursor();
     }
   }
 

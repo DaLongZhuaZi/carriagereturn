@@ -26,7 +26,12 @@ export interface CnHandlers {
 export class ChineseInput {
   private controller: inputMethod.InputMethodController | null = null;
   private attached: boolean = false;
+  /** attach 进行中守卫（await 之前就置位）。 */
+  private attaching: boolean = false;
   private handlers: CnHandlers | null = null;
+  /** 诊断：attach 代数与 insertText 到达序号。 */
+  private gen: number = 0;
+  private seq: number = 0;
 
   isAttached(): boolean {
     return this.attached;
@@ -37,6 +42,12 @@ export class ChineseInput {
     if (this.attached) {
       return true;
     }
+    // 同步守卫：await 之前就置位，防并发重复订阅
+    if (this.attaching) {
+      hilog.warn(0x0000, 'CnInput', 'attach skipped: already attaching');
+      return false;
+    }
+    this.attaching = true;
     this.handlers = h;
     try {
       this.controller = inputMethod.getController();
@@ -52,10 +63,14 @@ export class ChineseInput {
         if (this.handlers !== null) { this.handlers.onFinishPreview(); }
       });
       c.on('insertText', (text: string) => {
-        hilog.info(0x0000, 'CnInput', 'insertText len=%{public}s', text.length.toString());
+        this.seq = this.seq + 1;
+        hilog.info(0x0000, 'CnInput', 'cn evt insertText seq=%{public}s gen=%{public}s len=%{public}s',
+          this.seq.toString(), this.gen.toString(), text.length.toString());
         if (this.handlers !== null) { this.handlers.onInsertText(text); }
       });
       c.on('deleteLeft', (len: number) => {
+        hilog.info(0x0000, 'CnInput', 'cn evt deleteLeft n=%{public}s gen=%{public}s',
+          len.toString(), this.gen.toString());
         if (this.handlers !== null) { this.handlers.onDeleteLeft(len); }
       });
       c.on('deleteRight', (len: number) => {
@@ -85,13 +100,16 @@ export class ChineseInput {
         newEditBox: true,
       };
       await c.attach(true, cfg);
+      this.attaching = false;
       this.attached = true;
-      hilog.info(0x0000, 'CnInput', 'attached ok');
+      this.gen = this.gen + 1;
+      hilog.info(0x0000, 'CnInput', 'attached ok gen=%{public}s', this.gen.toString());
       return true;
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(0x0000, 'CnInput', 'attach failed code=%{public}s msg=%{public}s',
         err.code.toString(), err.message);
+      this.attaching = false;
       this.attached = false;
       return false;
     }
@@ -125,6 +143,21 @@ export class ChineseInput {
       return;
     }
     try {
+      // 先 off 全部订阅，再 detach（否则每次 attach 都会累积一份监听 → 多重输入）
+      const c: inputMethod.InputMethodController = this.controller;
+      let offs: number = 0;
+      const offOne = (name: string, fn: () => void): void => {
+        try { fn(); offs = offs + 1; } catch (e) { hilog.warn(0x0000, 'CnInput', 'off %{public}s failed', name); }
+      };
+      offOne('insertText', () => { c.off('insertText'); });
+      offOne('deleteLeft', () => { c.off('deleteLeft'); });
+      offOne('deleteRight', () => { c.off('deleteRight'); });
+      offOne('moveCursor', () => { c.off('moveCursor'); });
+      offOne('setPreviewText', () => { c.off('setPreviewText'); });
+      offOne('finishTextPreview', () => { c.off('finishTextPreview'); });
+      offOne('sendFunctionKey', () => { c.off('sendFunctionKey'); });
+      offOne('sendKeyboardStatus', () => { c.off('sendKeyboardStatus'); });
+      hilog.info(0x0000, 'CnInput', 'cn off events=%{public}s', offs.toString());
       await this.controller.detach();
       hilog.info(0x0000, 'CnInput', 'detached');
     } catch (e) {
