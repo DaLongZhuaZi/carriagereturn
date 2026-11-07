@@ -237,6 +237,8 @@ struct Index {
           return;
         }
         const c: string = this.cnQueue.shift() as string;
+        hilog.info(DOMAIN, TAG, 'cn commit ch=%{public}s left=%{public}s',
+          c, this.cnQueue.length.toString());
         this.commitChar(c);
       }, 40);
     }
@@ -255,14 +257,29 @@ struct Index {
       const top: number = ui.vp2px(this.strikeLineVp);
       const ok: boolean = await chineseInput.attach({
         onInsertText: (t: string): void => { this.enqueueChinese(t); },
-        onDeleteLeft: (n: number): void => { for (let i = 0; i < n; i++) { this.onDelete(); } },
-        onDeleteRight: (n: number): void => { for (let i = 0; i < n; i++) { this.onDelete(); } },
+        onDeleteLeft: (n: number): void => {
+          hilog.info(DOMAIN, TAG, 'cn deleteLeft n=%{public}s', n.toString());
+          for (let i = 0; i < n; i++) { this.onDelete(); }
+        },
+        onDeleteRight: (n: number): void => {
+          hilog.info(DOMAIN, TAG, 'cn deleteRight n=%{public}s', n.toString());
+          for (let i = 0; i < n; i++) { this.onDelete(); }
+        },
         onMoveCursor: (dir: number): void => {
           hilog.info(DOMAIN, TAG, 'cn moveCursor dir=%{public}s (append-only)', dir.toString());
         },
-        onPreview: (t: string): void => { this.cnPreview = t; },
-        onFinishPreview: (): void => { this.cnPreview = ''; },
-        onEnter: (): void => { this.onNewline(); },
+        onPreview: (t: string): void => {
+          hilog.info(DOMAIN, TAG, 'cn preview len=%{public}s', t.length.toString());
+          this.cnPreview = t;
+        },
+        onFinishPreview: (): void => {
+          hilog.info(DOMAIN, TAG, 'cn finishPreview');
+          this.cnPreview = '';
+        },
+        onEnter: (): void => {
+          hilog.info(DOMAIN, TAG, 'cn enter');
+          this.onNewline();
+        },
         onKeyboardShown: (s: boolean): void => { this.cnKbShown = s; },
       }, left, top, ui.vp2px(this.paperWidthVp), ui.vp2px(this.lineHeightVp));
       hilog.info(DOMAIN, TAG, 'cn attach ok=%{public}s', ok ? 'true' : 'false');
