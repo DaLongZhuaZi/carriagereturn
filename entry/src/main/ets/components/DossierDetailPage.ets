@@ -135,8 +135,33 @@ export struct DossierDetailPage {
   }
 
   /** 开口点：卷宗封面顶部纸露出处（页眉小封面右上）。 */
-  private openingX(): number { return 150; }
-  private openingY(): number { return 96; }
+  /** P1-7：开口点＝页眉小封面的**实测矩形**顶部中央（左缘＋55vp，封面上缘）。
+   *  若尚未测到则回退到布局公式：左 47+12+44+55=158、顶 topInset+6+4=topInset+10。 */
+  @State openMeasured: boolean = false;
+  @State openXVp: number = 158;
+  @State openYVp: number = 38;
+
+  private openingX(): number { return this.openXVp; }
+  private openingY(): number { return this.openYVp; }
+
+  /** 量页眉小封面：getRectangleById 取 screenOffset/size，px2vp 后算「顶部中央」。 */
+  private measureOpening(ui: UIContext): void {
+    try {
+      const rect: componentUtils.ComponentInfo =
+        ui.getComponentUtils().getRectangleById('hdr_cover');
+      const left: number = ui.px2vp(rect.screenOffset.x as number);
+      const top: number = ui.px2vp(rect.screenOffset.y as number);
+      const w: number = ui.px2vp(rect.size.width as number);
+      this.openXVp = left + w / 2;
+      this.openYVp = top;
+      this.openMeasured = true;
+      hilog.info(0x0000, 'DossierDetail', 'opening measured left=%{public}s top=%{public}s w=%{public}s -> (%{public}s,%{public}s)',
+        left.toFixed(1), top.toFixed(1), w.toFixed(1),
+        this.openXVp.toFixed(1), this.openYVp.toFixed(1));
+    } catch (e) {
+      hilog.warn(0x0000, 'DossierDetail', 'opening measure failed, fallback formula');
+    }
+  }
 
   /** 卡片中心（按网格推算）。 */
   private cardCx(i: number): number {
@@ -178,6 +203,8 @@ export struct DossierDetailPage {
     this.flyX = x; this.flyY = y; this.flyRot = r; this.flyOp = o; this.flySc = s;
     // 先等一帧布局，再用 getRectangleById 量每张卡的真实矩形，最后发射
     setTimeout(() => {
+      // P1-7：先量页眉小封面，得到真实「开口点」（不再用写死常量）
+      this.measureOpening(this.getUIContext());
       this.measureCards();
       // P0-2：只有「首屏」的纸做飞出动画；屏外纸直接可见（flyOp=1），不许写死 4
       const anim: number = this.firstScreenCount();
@@ -294,9 +321,10 @@ export struct DossierDetailPage {
             .onClick(() => { this.onBack(); })
           if (this.dCover.length > 0) {
             Image($rawfile(COVER_RAW[this.dCover]))
+              .id('hdr_cover')
               .width(110).height(74).borderRadius(8).objectFit(ImageFit.Cover)
           } else {
-            Column().width(110).height(74).borderRadius(8).backgroundColor('#cfc7b8')
+            Column().id('hdr_cover').width(110).height(74).borderRadius(8).backgroundColor('#cfc7b8')
           }
           Column() {
             Text(this.dName).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
