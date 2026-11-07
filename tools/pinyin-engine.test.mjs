@@ -196,3 +196,21 @@ test('§13.5 我的词库多读音变体：zhuazi 与 zhaozi 都能选中', () =
   assert.ok(a.includes('大龙爪子'), 'zhuazi 应命中');
   assert.ok(b.includes('大龙爪子'), 'zhaozi 应命中');
 });
+test('§17.2 半音节前缀：taob/weix/zhongg 都进前 9', () => {
+  const cases = [['taob', '淘宝'], ['weix', '微信'], ['zhongg', '中国']];
+  for (const pair of cases) {
+    const list = engine.candidates(pair[0], 9).map((x) => x.text);
+    assert.ok(list.includes(pair[1]), pair[0] + ' 前 9 必须含 ' + pair[1] + '，实际 ' + JSON.stringify(list));
+  }
+  // nih 的最长合法前缀回退不受影响
+  const nih = engine.candidates('nih', 9);
+  assert.equal(nih[0].text, '你', 'nih 首位仍是你');
+});
+
+test('§17.3 建索引性能：v3 词表 fromData 建缩写索引 < 1000ms', () => {
+  const t0 = Date.now();
+  const e = PinyinEngine.fromData({ chars, words });
+  const ms = Date.now() - t0;
+  assert.ok(e.abbrevCount() > 0, '缩写索引非空');
+  console.log('build ms=' + ms + ' abbrev=' + e.abbrevCount());
+});

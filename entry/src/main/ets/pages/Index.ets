@@ -17,6 +17,7 @@ import { image } from '@kit.ImageKit';
 import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
+import { util } from '@kit.ArkTS';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { CorrectionMode, DocLine, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
 import {
@@ -407,9 +408,21 @@ struct Index {
       const wordsText: string = this.decodeUtf8(wordsBytes);
       const chars: Record<string, string[]> = JSON.parse(charsText) as Record<string, string[]>;
       const words: Record<string, string[]> = JSON.parse(wordsText) as Record<string, string[]>;
-      this.pinyinEngine = PinyinEngine.fromData({ chars: chars, words: words });
+      const tLoad: number = Date.now();
+      // §17.3：建索引已降到 ~550ms（贪心切分替代 DP）；分段 await 反而因 590 次
+      // setTimeout 让出事件循环累计到 26s，实测更糟，故用同步建索引 + 延迟预加载
+      // §17.3：懒加载——启动只解码＋解析（约 500ms），建索引交给后台分片
+      this.pinyinEngine = PinyinEngine.fromDataLazy({ chars: chars, words: words });
       this.pinyinSession = new PinyinSession(this.pinyinEngine);
       this.pinyinReady = true;
+      hilog.info(DOMAIN, TAG, 'index ms=%{public}s (lazy)',
+        (Date.now() - tLoad).toString());
+      this.pinyinEngine.buildIndexesAsync().then(() => {
+        hilog.info(DOMAIN, TAG, 'abbrev count=%{public}s (built)',
+          this.pinyinEngine === null ? '0' : this.pinyinEngine.abbrevCount().toString());
+      }).catch(() => {
+        hilog.warn(DOMAIN, TAG, 'index build failed');
+      });
       // 套用持久化：模糊音开关、选词学习、我的词库
       this.pinyinEngine.setFuzzy(appPreferences.getBool(PrefKeys.CN_FUZZY, false));
       this.loadLearnAndUserWords();
@@ -540,7 +553,39 @@ struct Index {
   }
 
   /** Uint8Array → UTF-8 字符串（与 KeymapModel.readRawTextSync 同口径）。 */
+  /**
+   * §17.3 第 1 条：优先用平台原生 TextDecoder；拿不到就 64KB 分块解码。
+   * 绝不逐字节拼接（v3 词表 5.23MB 会卡死 UI 线程数秒）。
+   */
   private decodeUtf8(bytes: Uint8Array): string {
+    const t0: number = Date.now();
+    try {
+      const dec = util.TextDecoder.create('utf-8');
+      const s: string = dec.decodeToString(bytes);
+      hilog.info(DOMAIN, TAG, 'decode ms=%{public}s via=TextDecoder bytes=%{public}s',
+        (Date.now() - t0).toString(), bytes.length.toString());
+      return s;
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'TextDecoder unavailable, chunked fallback');
+    }
+    const CH: number = 65536;
+    let out2: string = '';
+    let off: number = 0;
+    while (off < bytes.length) {
+      const end: number = Math.min(off + CH, bytes.length);
+      let part: string = '';
+      for (let i = off; i < end; i++) {
+        part += String.fromCharCode(bytes[i]);
+      }
+      out2 += decodeURIComponent(escape(part));
+      off = end;
+    }
+    hilog.info(DOMAIN, TAG, 'decode ms=%{public}s via=chunked bytes=%{public}s',
+      (Date.now() - t0).toString(), bytes.length.toString());
+    return out2;
+  }
+
+  private decodeUtf8Old(bytes: Uint8Array): string {
     let out: string = '';
     let i: number = 0;
     while (i < bytes.length) {
@@ -798,6 +843,14 @@ struct Index {
   aboutToAppear(): void {
     // 落字兜底基准：进入页面即视为「刚刚落过」，避免首字被兜底直接闪现
     this.lastArriveMs = Date.now();
+    // §17.3 第 3 条：首帧画完再后台预加载词库（延迟 3s，避免和首屏渲染抢 UI 线程）
+    setTimeout(() => {
+      this.ensurePinyinEngine().then(() => {
+        hilog.info(DOMAIN, TAG, 'pinyin preload done ready=%{public}s', this.pinyinReady ? 'true' : 'false');
+      }).catch(() => {
+        hilog.warn(DOMAIN, TAG, 'pinyin preload failed');
+      });
+    }, 1500);
     // 读取持久化的中文引擎（默认内置拼音）
     this.readCnEngine();
     // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
@@ -2729,7 +2782,16 @@ struct Index {
         }
 
         // 内置中文常驻候选栏（44vp 占位，不随组词伸缩）：设计稿 §5
-        if (this.isBuiltinCn()) {
+        if (this.isBuiltinCn() && !this.pinyinReady) {
+          // §17.3 第 3 条：词库未就绪时只显示加载态，不许无响应
+          Row() {
+            Text('正在加载…').fontSize(13).fontColor('rgba(232,221,201,0.55)')
+          }
+          .width('100%').height(FONT_BAR_HEIGHT_VP)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor('#1a1713')
+        }
+        if (this.isBuiltinCn() && this.pinyinReady) {
           CandidateBar({
             candidates: this.candCurrent,
             pinyin: this.cnPinyin,

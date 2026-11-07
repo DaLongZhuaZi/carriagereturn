@@ -61,10 +61,134 @@ export class PinyinEngine {
   private bigrams: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
 
   /** 从词库 JSON 构造（Node 与 ArkTS 同一入口）。 */
+  /** 懒加载模式：直接持有原始 JSON 对象，不建 Map／索引（启动不卡 UI）。 */
+  private rawWords: Record<string, string[]> = {};
+  private rawChars: Record<string, string[]> = {};
+  private lazyMode: boolean = false;
+  private indexesReady: boolean = false;
+
+  /**
+   * §17.3 懒加载工厂：只做「引用赋值＋音节表」，建 Map／缩写索引全部延后。
+   * 启动耗时 ≈ decode + JSON.parse，与词表大小基本无关。
+   */
+  static fromDataLazy(data: PinyinDictData): PinyinEngine {
+    const e: PinyinEngine = new PinyinEngine();
+    e.lazyMode = true;
+    e.rawChars = data.chars;
+    e.rawWords = data.words;
+    const ck: string[] = Object.keys(data.chars);
+    for (let i = 0; i < ck.length; i++) {
+      e.syllables.add(ck[i]);
+    }
+    return e;
+  }
+
+  /** 后台分片建索引（缩写 + 词频序）：每 300 键让出一次事件循环。 */
+  async buildIndexesAsync(): Promise<void> {
+    if (!this.lazyMode || this.indexesReady) {
+      return;
+    }
+    const keys: string[] = Object.keys(this.rawWords);
+    const SEG: number = 300;
+    for (let i = 0; i < keys.length; i++) {
+      const k: string = keys[i];
+      const arr: string[] = this.rawWords[k];
+      this.words.set(k, arr);
+      this.addAbbrevFor(k, arr);
+      if (i > 0 && i % SEG === 0) {
+        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 0); });
+      }
+    }
+    this.finishAbbrev();
+    this.sortedKeys = keys.slice();
+    this.sortedKeys.sort();
+    this.indexesReady = true;
+  }
+
+  indexesAreReady(): boolean {
+    return this.indexesReady || !this.lazyMode;
+  }
+
   static fromData(data: PinyinDictData): PinyinEngine {
     const e: PinyinEngine = new PinyinEngine();
     e.load(data);
     return e;
+  }
+
+  /**
+   * 异步版（§17.3 第 4 条）：建索引分段让出事件循环，UI 全程可响应。
+   * 词表已就绪前 candidates() 返回空，调用方须先看 isReady()。
+   */
+  static async fromDataAsync(data: PinyinDictData): Promise<PinyinEngine> {
+    const e: PinyinEngine = new PinyinEngine();
+    await e.loadBasicsAsync(data);
+    await e.buildAbbrevAsync();
+    e.ready = true;
+    return e;
+  }
+
+  /** 词库是否已建好索引（异步加载期间为 false）。 */
+  private ready: boolean = true;
+
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  /** 只做轻量部分：音节表、字表、词表、有序键、词频序（不含缩写索引）。 */
+  private async loadBasicsAsync(data: PinyinDictData): Promise<void> {
+    const ck: string[] = Object.keys(data.chars);
+    for (let i = 0; i < ck.length; i++) {
+      this.syllables.add(ck[i]);
+      this.chars.set(ck[i], data.chars[ck[i]]);
+    }
+    const wk: string[] = Object.keys(data.words);
+    for (let i = 0; i < wk.length; i++) {
+      this.words.set(wk[i], data.words[wk[i]]);
+      if (i > 0 && i % 2000 === 0) {
+        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 0); });
+      }
+    }
+    this.sortedKeys = wk.slice();
+    this.sortedKeys.sort();
+    this.wordRank.clear();
+    let rank: number = 0;
+    for (let i = 0; i < wk.length; i++) {
+      const arr: string[] = data.words[wk[i]];
+      for (let j = 0; j < arr.length; j++) {
+        if (!this.wordRank.has(arr[j])) {
+          this.wordRank.set(arr[j], rank);
+          rank = rank + 1;
+        }
+      }
+      if (i > 0 && i % 2000 === 0) {
+        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 0); });
+      }
+    }
+  }
+
+  private loadBasics(data: PinyinDictData): void {
+    const ck: string[] = Object.keys(data.chars);
+    for (let i = 0; i < ck.length; i++) {
+      this.syllables.add(ck[i]);
+      this.chars.set(ck[i], data.chars[ck[i]]);
+    }
+    const wk: string[] = Object.keys(data.words);
+    for (let i = 0; i < wk.length; i++) {
+      this.words.set(wk[i], data.words[wk[i]]);
+    }
+    this.sortedKeys = wk.slice();
+    this.sortedKeys.sort();
+    this.wordRank.clear();
+    let rank: number = 0;
+    for (let i = 0; i < wk.length; i++) {
+      const arr: string[] = data.words[wk[i]];
+      for (let j = 0; j < arr.length; j++) {
+        if (!this.wordRank.has(arr[j])) {
+          this.wordRank.set(arr[j], rank);
+          rank = rank + 1;
+        }
+      }
+    }
   }
 
   load(data: PinyinDictData): void {
@@ -129,7 +253,20 @@ export class PinyinEngine {
       }
       keys.push(k);
     }
-    keys.sort((a: string, b: string) => a.length - b.length);
+    // 排序：键长升序（越接近输入越先），同长度按首词词频（wordfreq 序）——
+    // 这样 zhongg 能先看到中国所在的 zhongguo，而不是被一堆同长度的生僻键占满
+    keys.sort((a: string, b: string) => {
+      if (a.length !== b.length) {
+        return a.length - b.length;
+      }
+      const wa: string[] = this.wordsOf(a);
+      const wb: string[] = this.wordsOf(b);
+      const ra: number = wa.length > 0 && this.wordRank.get(wa[0]) !== undefined
+        ? this.wordRank.get(wa[0]) as number : 999999;
+      const rb: number = wb.length > 0 && this.wordRank.get(wb[0]) !== undefined
+        ? this.wordRank.get(wb[0]) as number : 999999;
+      return ra - rb;
+    });
     // 返回**键**而不是词：调用方要用「键」当拼音串，选词后余量才算得对
     for (let i = 0; i < keys.length && res.length < limit; i++) {
       if (res.indexOf(keys[i]) < 0) {
@@ -137,6 +274,25 @@ export class PinyinEngine {
       }
     }
     return res;
+  }
+
+  /**
+   * 半音节前缀键（§17.2）：整串不是合法拼音、但去掉末字母后合法时，
+   * 用**原串**去匹配完整键（taob→taobao、weix→weixin、zhongg→zhongguo）。
+   */
+  private halfPrefixKeys(s: string): string[] {
+    if (s.length < 3) {
+      return [];
+    }
+    if (this.segments(s).length > 0) {
+      return [];
+    }
+    const head: string = s.substring(0, s.length - 1);
+    if (this.segments(head).length === 0) {
+      return [];
+    }
+    // 多取几个键（半音节时键名长短不一，微信在 weixin、中国在 zhongguo）
+    return this.prefixWords(s, 14);
   }
 
   /** 由词表预建声母缩写索引（加载时一次，不许每击键扫全表）。 */
@@ -148,14 +304,78 @@ export class PinyinEngine {
     this.userWords.forEach((arr2: string[], py2: string) => {
       this.addAbbrevFor(py2, arr2);
     });
+    this.finishAbbrev();
+  }
+
+  /** 缩写收口：每个缩写列表只排一次序、截 30（§17.3）。 */
+  private finishAbbrev(): void {
+    this.abbrev.forEach((list: string[]) => {
+      list.sort((a: string, b: string) => {
+        const ra: number = this.wordRank.get(a) === undefined ? 999999 : this.wordRank.get(a) as number;
+        const rb: number = this.wordRank.get(b) === undefined ? 999999 : this.wordRank.get(b) as number;
+        return ra - rb;
+      });
+      if (list.length > 30) {
+        list.length = 30;
+      }
+    });
+  }
+
+  /** 分段建缩写索引（§17.3 第 4 条）：每 SEG 个键让出一次事件循环，UI 不卡死。 */
+  private async buildAbbrevAsync(): Promise<void> {
+    this.abbrev.clear();
+    const keys: string[] = [];
+    this.words.forEach((arr: string[], py: string) => { keys.push(py); });
+    this.userWords.forEach((arr2: string[], py2: string) => { keys.push(py2); });
+    // 每 300 键让出一次事件循环：单段 300 次 DP 切分约 10–30ms，不会堵死一帧以上
+    const SEG: number = 300;
+    for (let i = 0; i < keys.length; i++) {
+      const k: string = keys[i];
+      const arr: string[] | undefined = this.words.get(k) === undefined
+        ? this.userWords.get(k) : this.words.get(k);
+      if (arr !== undefined) {
+        this.addAbbrevFor(k, arr);
+      }
+      if (i > 0 && i % SEG === 0) {
+        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 0); });
+      }
+    }
+    this.finishAbbrev();
+  }
+
+  /**
+   * 贪心切分（缩写索引用）：不做 DP，最长匹配音节，一趟扫完。
+   * 比 segments() 快一个量级——17 万键全量建索引必须用它。
+   */
+  private greedySplit(py: string): string[] | null {
+    const res: string[] = [];
+    let i: number = 0;
+    while (i < py.length) {
+      let matched: string = '';
+      for (let len = 6; len >= 1; len--) {
+        if (i + len > py.length) {
+          continue;
+        }
+        const cand: string = py.substring(i, i + len);
+        if (this.syllables.has(cand)) {
+          matched = cand;
+          break;
+        }
+      }
+      if (matched.length === 0) {
+        return null;
+      }
+      res.push(matched);
+      i += matched.length;
+    }
+    return res;
   }
 
   private addAbbrevFor(py: string, words: string[]): void {
-    const segs: string[][] = this.segments(py);
-    if (segs.length === 0) {
+    const seg: string[] | null = this.greedySplit(py);
+    if (seg === null || seg.length < 2 || seg.length > 4) {
       return;
     }
-    const seg: string[] = segs[0];
     if (seg.length < 2 || seg.length > 4) {
       return;
     }
@@ -177,15 +397,8 @@ export class PinyinEngine {
         list.push(words[j]);
       }
     }
-    // 按词频序重排（加载顺序），高频词（如你好）优先占缩写位
-    list.sort((a: string, b: string) => {
-      const ra: number = this.wordRank.get(a) === undefined ? 999999 : this.wordRank.get(a) as number;
-      const rb: number = this.wordRank.get(b) === undefined ? 999999 : this.wordRank.get(b) as number;
-      return ra - rb;
-    });
-    if (list.length > 30) {
-      list.length = 30;
-    }
+    // §17.3：这里不许排序——每键排一次会让 17 万个键各排一遍。
+    // 只收集（上限 200），全部键跑完后由 finishAbbrev() 统一排一次并截 30。
   }
 
   /** 重建缩写索引（我的词库变更后调用）。 */
@@ -296,7 +509,14 @@ export class PinyinEngine {
   /** 词条总数（供设置页显示真实数字，不再手写）。 */
   wordCount(): number {
     let n: number = 0;
-    this.words.forEach((arr: string[]) => { n += arr.length; });
+    if (this.lazyMode) {
+      const ks: string[] = Object.keys(this.rawWords);
+      for (let i = 0; i < ks.length; i++) {
+        n += this.rawWords[ks[i]].length;
+      }
+    } else {
+      this.words.forEach((arr: string[]) => { n += arr.length; });
+    }
     this.userWords.forEach((arr2: string[]) => { n += arr2.length; });
     return n;
   }
@@ -308,11 +528,19 @@ export class PinyinEngine {
 
   /** 单音节查字（候选用）。 */
   charsOf(syl: string): string[] {
+    if (this.lazyMode) {
+      const r: string[] | undefined = this.rawChars[syl];
+      return r === undefined ? [] : r;
+    }
     const v = this.chars.get(syl);
     return v === undefined ? [] : v;
   }
 
   wordsOf(py: string): string[] {
+    if (this.lazyMode) {
+      const r: string[] | undefined = this.rawWords[py];
+      return r === undefined ? [] : r;
+    }
     const v = this.words.get(py);
     return v === undefined ? [] : v;
   }
@@ -563,6 +791,9 @@ export class PinyinEngine {
     // 只在「整串本身是合法拼音」时才做词前缀（weixi ✓）；
     // 不合法（nih）交给下面「最长合法前缀」回退，避免抢走 ni 的候选与 pinyin 口径
     const pkeys: string[] = this.segments(s).length > 0 ? this.prefixWords(s, 8) : [];
+    // ③.4 半音节前缀（§17.2）：taob / weix / zhongg —— 末尾音节没打完也要能出完整词。
+    // 这些候选排在正常候选之后，不抢首选（nih 仍按 ni 出候选）
+    const halfKeys: string[] = this.halfPrefixKeys(s);
     for (let i = 0; i < pkeys.length; i++) {
       const kw: string[] = this.wordsOf(pkeys[i]);
       for (let j = 0; j < kw.length && j < 2; j++) {
@@ -653,6 +884,34 @@ export class PinyinEngine {
         for (let i = 0; i < scored.length; i++) {
           res.push(scored[i]);
         }
+      }
+    }
+    // ③.4 半音节前缀：插在第 3 位之后（能看见、不抢首选；nih 仍按 ni 出候选）
+    if (halfKeys.length > 0) {
+      const halfWords: Candidate[] = [];
+      // 每个键只取首词、多覆盖几个键（否则 4 个名额会被同长度的邻近键吃光）
+      for (let i = 0; i < halfKeys.length && halfWords.length < 6; i++) {
+        const kw: string[] = this.wordsOf(halfKeys[i]);
+        for (let j = 0; j < kw.length && j < 1 && halfWords.length < 6; j++) {
+          halfWords.push({ text: kw[j], pinyin: halfKeys[i], kind: 1 });
+        }
+      }
+      const at: number = res.length > 3 ? 3 : res.length;
+      for (let i = 0; i < halfWords.length; i++) {
+        let dup: boolean = false;
+        for (let k = 0; k < res.length; k++) {
+          if (res[k].text === halfWords[i].text) {
+            dup = true;
+            break;
+          }
+        }
+        if (!dup) {
+          res.splice(at + i, 0, halfWords[i]);
+        }
+      }
+      // 插完可能超出 limit，截回
+      while (res.length > limit) {
+        res.pop();
       }
     }
     return res;
