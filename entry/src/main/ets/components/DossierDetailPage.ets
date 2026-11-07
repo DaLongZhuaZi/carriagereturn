@@ -139,6 +139,15 @@ export struct DossierDetailPage {
     return [u * u * sx + 2 * u * t * cx + t * t * ex, u * u * sy + 2 * u * t * cy + t * t * ey];
   }
 
+  /** P0-2：首屏格数 = 列数 × 可视行数（按可用高与卡片行距现算，不写死 4）。 */
+  private firstScreenCount(): number {
+    const cols: number = this.colCount();
+    const headH: number = 96 + this.topInset;
+    const rowH: number = 246; // 卡片高约 230vp + 行距 16vp（实测 229vp 行距）
+    const rows: number = Math.max(1, Math.floor((this.heightVp - headH) / rowH));
+    return cols * rows;
+  }
+
   private initFly(): void {
     const n: number = this.papers.length;
     const x: number[] = []; const y: number[] = []; const r: number[] = [];
@@ -150,7 +159,13 @@ export struct DossierDetailPage {
     // 先等一帧布局，再用 getRectangleById 量每张卡的真实矩形，最后发射
     setTimeout(() => {
       this.measureCards();
-      const anim: number = n > 4 ? 4 : n;
+      // P0-2：只有「首屏」的纸做飞出动画；屏外纸直接可见（flyOp=1），不许写死 4
+      const anim: number = this.firstScreenCount();
+      const ops: number[] = [];
+      for (let i = 0; i < n; i++) {
+        ops.push(i < anim ? 0 : 1);
+      }
+      this.flyOp = ops;
       for (let i = 0; i < anim; i++) {
         this.launch(i);
       }
