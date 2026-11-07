@@ -263,17 +263,22 @@ export class PinyinEngine {
 
   /** 由中文词组推导拼音：逐字取字表首位读音。 */
   pinyinOfWord(word: string): string {
-    const inv: Map<string, string> = new Map<string, string>();
+    // 多读音字：取「该字在音节表里排得最靠前」的读音（chars 已按常用度排序，越靠前越常用）
+    const best: Map<string, number> = new Map<string, number>();
+    const bestSyl: Map<string, string> = new Map<string, string>();
     this.chars.forEach((arr: string[], syl: string) => {
       for (let i = 0; i < arr.length; i++) {
-        if (!inv.has(arr[i])) {
-          inv.set(arr[i], syl);
+        const ch: string = arr[i];
+        const cur: number | undefined = best.get(ch);
+        if (cur === undefined || i < cur) {
+          best.set(ch, i);
+          bestSyl.set(ch, syl);
         }
       }
     });
     let py: string = '';
     for (let i = 0; i < word.length; i++) {
-      const s: string | undefined = inv.get(word.charAt(i));
+      const s: string | undefined = bestSyl.get(word.charAt(i));
       if (s === undefined) {
         return '';
       }
