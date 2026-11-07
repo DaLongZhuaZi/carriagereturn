@@ -42,6 +42,7 @@ import { HomePage } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
 import { PinyinEngine, PinyinSession, Candidate, PickResult } from '../services/PinyinEngine';
 import { CandidateBar } from '../components/CandidateBar';
+import { PinyinSettingsPage } from '../components/PinyinSettingsPage';
 import { appPreferences, PrefKeys } from '../services/AppPreferences';
 import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
@@ -221,6 +222,117 @@ struct Index {
   @State cnKbShown: boolean = false;
   /** 锚点 TextInput 已消费的文本（用于算增量，避免重复落字）。 */
   private cnAnchorPrev: string = '';
+  /** 本轮已选词次数（节流落盘用）。 */
+  private cnPickCount: number = 0;
+  @State fuzzyOn: boolean = false;
+  @State userWordsFlat: string[] = [];
+  @State dictInfo: string = '';
+  @State learnCount: number = 0;
+
+  /** 刷新拼音设置页展示数据。 */
+  private refreshPinyinMeta(): void {
+    this.fuzzyOn = appPreferences.getBool(PrefKeys.CN_FUZZY, false);
+    try {
+      const flat: string[] = [];
+      if (this.pinyinEngine !== null) {
+        const ex: Record<string, string[]> = this.pinyinEngine.exportUserWords();
+        const ks: string[] = Object.keys(ex);
+        for (let i = 0; i < ks.length; i++) {
+          const arr: string[] = ex[ks[i]];
+          for (let j = 0; j < arr.length; j++) { flat.push(arr[j]); }
+        }
+      }
+      this.userWordsFlat = flat;
+    } catch (e) {
+      this.userWordsFlat = [];
+    }
+    this.dictInfo = '内置拼音词库 409 音节 / 8 万词 / 生成于 2026-11-07';
+    let lc: number = 0;
+    if (this.pinyinEngine !== null) {
+      const ex: Record<string, Record<string, number>> = this.pinyinEngine.exportLearn();
+      const ks2: string[] = Object.keys(ex);
+      for (let i = 0; i < ks2.length; i++) { lc += Object.keys(ex[ks2[i]]).length; }
+    }
+    this.learnCount = lc;
+  }
+
+  private toggleFuzzy(): void {
+    const next: boolean = !this.fuzzyOn;
+    this.fuzzyOn = next;
+    appPreferences.setBool(PrefKeys.CN_FUZZY, next);
+    if (this.pinyinEngine !== null) {
+      this.pinyinEngine.setFuzzy(next);
+    }
+    this.pinyinRefresh();
+  }
+
+  private async addUserWord(w: string): Promise<void> {
+    // 设置页里引擎可能还没加载（引擎原本只在进中文模式时加载）
+    await this.ensurePinyinEngine();
+    if (this.pinyinEngine === null) {
+      this.hintText = '词库未加载，暂时加不了';
+      return;
+    }
+    const py: string = this.pinyinEngine.pinyinOfWord(w);
+    if (py.length === 0) {
+      this.hintText = '这个词里有字库外的字，暂时加不了';
+      return;
+    }
+    this.pinyinEngine.addUserWordWithPinyin(py, w);
+    this.persistUserWords();
+    this.refreshPinyinMeta();
+  }
+
+  private deleteUserWord(w: string): void {
+    if (this.pinyinEngine === null) {
+      return;
+    }
+    try {
+      const uj: string = appPreferences.getString(PrefKeys.CN_USERWORDS, '');
+      if (uj.length > 2) {
+        const data: Record<string, string[]> = JSON.parse(uj) as Record<string, string[]>;
+        const ks: string[] = Object.keys(data);
+        for (let i = 0; i < ks.length; i++) {
+          const arr: string[] = data[ks[i]];
+          const idx: number = arr.indexOf(w);
+          if (idx >= 0) {
+            arr.splice(idx, 1);
+          }
+          if (arr.length === 0) {
+            data[ks[i]] = [];
+          }
+        }
+        appPreferences.setString(PrefKeys.CN_USERWORDS, JSON.stringify(data));
+        this.pinyinEngine.setUserWords(data);
+      }
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'delete user word failed');
+    }
+    this.refreshPinyinMeta();
+  }
+
+  private clearLearn(): void {
+    appPreferences.setString(PrefKeys.CN_LEARN, '{}');
+    if (this.pinyinEngine !== null) {
+      this.pinyinEngine.setLearnData({});
+    }
+    this.refreshPinyinMeta();
+    this.hintText = '学习记录已清除';
+  }
+
+  /** 落我的词库：直接取引擎当前状态（含刚加入的词），不用过期的展示列表。 */
+  private persistUserWords(): void {
+    if (this.pinyinEngine === null) {
+      return;
+    }
+    try {
+      const dump: Record<string, string[]> = this.pinyinEngine.exportUserWords();
+      appPreferences.setString(PrefKeys.CN_USERWORDS, JSON.stringify(dump));
+      hilog.info(DOMAIN, TAG, 'userwords saved keys=%{public}s', Object.keys(dump).length.toString());
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'persist user words failed');
+    }
+  }
 
   // ---------------- 内置拼音（设计稿 §1／§3／§4） ----------------
   /** 中文引擎：'builtin' 内置拼音（默认）｜'system' 系统输入法通道。 */
@@ -262,11 +374,52 @@ struct Index {
       this.pinyinEngine = PinyinEngine.fromData({ chars: chars, words: words });
       this.pinyinSession = new PinyinSession(this.pinyinEngine);
       this.pinyinReady = true;
+      // 套用持久化：模糊音开关、选词学习、我的词库
+      this.pinyinEngine.setFuzzy(appPreferences.getBool(PrefKeys.CN_FUZZY, false));
+      this.loadLearnAndUserWords();
       hilog.info(DOMAIN, TAG, 'pinyin engine ready syllables=%{public}s',
         this.pinyinEngine.syllableCount().toString());
     } catch (e) {
       this.pinyinLoadFailed = true;
       hilog.error(DOMAIN, TAG, 'pinyin dict load failed');
+    }
+  }
+
+  /** 读学习记录与我的词库（JSON 存 AppPreferences）。 */
+  private loadLearnAndUserWords(): void {
+    if (this.pinyinEngine === null) {
+      return;
+    }
+    try {
+      const lj: string = appPreferences.getString(PrefKeys.CN_LEARN, '');
+      if (lj.length > 2) {
+        const data: Record<string, Record<string, number>> = JSON.parse(lj) as Record<string, Record<string, number>>;
+        this.pinyinEngine.setLearnData(data);
+      }
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'learn json bad');
+    }
+    try {
+      const uj: string = appPreferences.getString(PrefKeys.CN_USERWORDS, '');
+      if (uj.length > 2) {
+        const data2: Record<string, string[]> = JSON.parse(uj) as Record<string, string[]>;
+        this.pinyinEngine.setUserWords(data2);
+      }
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'userwords json bad');
+    }
+  }
+
+  /** 落学习记录（节流：离开中文模式时 + 每 10 次选词）。 */
+  private saveLearn(): void {
+    if (this.pinyinEngine === null) {
+      return;
+    }
+    try {
+      const data: Record<string, Record<string, number>> = this.pinyinEngine.exportLearn();
+      appPreferences.setString(PrefKeys.CN_LEARN, JSON.stringify(data));
+    } catch (e) {
+      hilog.warn(DOMAIN, TAG, 'save learn failed');
     }
   }
 
@@ -329,8 +482,9 @@ struct Index {
       return;
     }
     if (this.cnEngine === 'builtin') {
-      // 内置拼音：退出组词先提交首选候选，绝不丢已敲字母
+      // 内置拼音：退出组词先提交首选候选，绝不丢已敲字母；并把学习记录落盘
       this.pinyinCommitTop();
+      this.saveLearn();
       this.cnPinyin = '';
       this.candAll = [];
       this.candCurrent = [];
@@ -441,6 +595,7 @@ struct Index {
   @State collectionDetailKind: string = '';
   /** §6.1／§6.2 设置页与导出页。 */
   @State settingsOpen: boolean = false;
+  @State pinyinSettingsOpen: boolean = false;
   @State exportOpen: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
@@ -460,7 +615,8 @@ struct Index {
     this.collectionOpen = has('collection') || has('collectiondetail');
     if (!has('collectiondetail')) { this.collectionDetailKind = ''; }
     this.customizeOpen = has('customize');
-    this.settingsOpen = has('settings');
+    this.settingsOpen = has('settings') || has('pinyinsettings');
+    this.pinyinSettingsOpen = has('pinyinsettings');
     this.exportOpen = has('export');
     hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
       this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
@@ -1352,6 +1508,15 @@ struct Index {
     }
     const c: Candidate = this.candAll[abs];
     const r: PickResult = this.pinyinSession.pick(c);
+    // §11.2 学习：记 (拼音串, 词, 次数)，节流落盘（每 10 次）
+    if (this.pinyinEngine !== null && r.text.length > 0) {
+      this.pinyinEngine.learnWord(c.pinyin, r.text);
+      this.cnPickCount = this.cnPickCount + 1;
+      if (this.cnPickCount % 10 === 0) {
+        this.saveLearn();
+        hilog.info(DOMAIN, TAG, 'learn saved picks=%{public}s', this.cnPickCount.toString());
+      }
+    }
     this.enqueueChinese(r.text);
     this.cnPinyin = this.pinyinSession.getBuffer();
     this.cnPreview = this.cnPinyin;
@@ -2589,6 +2754,14 @@ struct Index {
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
           cnEngine: this.cnEngine,
+          onOpenPinyinSettings: (): void => {
+            this.refreshPinyinMeta();
+            this.pushPage('pinyinsettings');
+            // 设置页要用引擎（加词／学习计数），先异步加载
+            this.ensurePinyinEngine().then(() => {
+              this.refreshPinyinMeta();
+            });
+          },
           onPickCnEngine: (): void => {
             const next: string = this.cnEngine === 'builtin' ? 'system' : 'builtin';
             this.cnEngine = next;
@@ -2759,6 +2932,25 @@ struct Index {
           },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      if (this.pinyinSettingsOpen) {
+        PinyinSettingsPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          fuzzyOn: this.fuzzyOn,
+          userWords: this.userWordsFlat,
+          dictInfo: this.dictInfo,
+          learnCount: this.learnCount,
+          onBack: (): void => { this.popPage(); },
+          onToggleFuzzy: (): void => { this.toggleFuzzy(); },
+          onAddWord: (w: string): void => { this.addUserWord(w); },  // async，内部 await 引擎加载
+          onDeleteWord: (w: string): void => { this.deleteUserWord(w); },
+          onClearLearn: (): void => { this.clearLearn(); },
+        })
+          .transition(this.navAnimated
+            ? TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut })
+            : TransitionEffect.IDENTITY)
       }
 
       if (this.menuOpen) {

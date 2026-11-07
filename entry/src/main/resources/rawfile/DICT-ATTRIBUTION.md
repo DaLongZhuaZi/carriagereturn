@@ -11,5 +11,5 @@
 生成口径：
 - 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接。
 - 只保留 1–4 字、全为汉字的词；按 jieba 词频降序截前 80000 词。
-- 输出：dict/pinyin-words.json（27958 键 / 80000 词 / 1.02 MB）与 dict/pinyin-chars.json（409 音节 / 20924 字 / 125.9 KB）。
+- 输出：dict/pinyin-words.json（27942 键 / 51243 词 / 0.78 MB）与 dict/pinyin-chars.json（409 音节 / 20924 字 / 125.9 KB）。
 - 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL／八股文、CC-CEDICT（v1.5 再说）。

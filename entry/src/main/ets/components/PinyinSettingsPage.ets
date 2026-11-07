@@ -1,0 +1,181 @@
+/**
+ * 回车 · 拼音设置页（设计稿 §11.6）
+ *
+ * 模糊拼音开关 / 我的词库（添加＋管理）/ 清除学习记录 / 词库信息。
+ * 走 PageShell（§2.10 沉浸式）；进出走 Index 导航栈。
+ */
+
+import { PageShell } from './PageShell';
+import { AppDialog } from './AppDialog';
+import { AppIcon } from './AppIcon';
+
+@Component
+export struct PinyinSettingsPage {
+  @Prop widthVp: number = 673.7;
+  @Prop heightVp: number = 720;
+  @Prop fuzzyOn: boolean = false;
+  @Prop userWords: string[] = [];
+  @Prop dictInfo: string = '';
+  @Prop learnCount: number = 0;
+  @State managing: boolean = false;
+  @State adding: boolean = false;
+  @State draftWord: string = '';
+  @State revealN: number = 0;
+  @State pressKey: string = '';
+  onBack: () => void = (): void => {};
+  onToggleFuzzy: () => void = (): void => {};
+  onAddWord: (w: string) => void = (): void => {};
+  onDeleteWord: (w: string) => void = (): void => {};
+  onClearLearn: () => void = (): void => {};
+
+  aboutToAppear(): void {
+    this.revealN = 0;
+    setTimeout(() => { this.revealN = 1; }, 60);
+  }
+
+  @Builder
+  body() {
+    Scroll() {
+      Column() {
+        Text('模糊拼音').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ top: 18, bottom: 6 })
+        Row() {
+          Text('模糊拼音').fontSize(15).fontColor('#e8ddc9')
+          Blank()
+          Text(this.fuzzyOn ? '开' : '关').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        }
+        .width('100%').height(52)
+        .scale({ x: this.pressKey === 'fuzzy' ? 0.97 : 1, y: this.pressKey === 'fuzzy' ? 0.97 : 1 })
+        .animation({ duration: 120, curve: Curve.EaseOut })
+        .onClick(() => {
+          this.pressKey = 'fuzzy';
+          setTimeout(() => { this.pressKey = ''; }, 120);
+          this.onToggleFuzzy();
+        })
+        Text('zh↔z、ch↔c、sh↔s、in↔ing、en↔eng、an↔ang、n↔l、f↔h')
+          .fontSize(12).fontColor('rgba(232,221,201,0.4)').width('100%')
+        Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+          .margin({ top: 6 })
+
+        Text('我的词库').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ top: 18, bottom: 6 })
+        Row() {
+          Text('添加词组').fontSize(15).fontColor('#e8ddc9')
+          Blank()
+          AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
+        }
+        .width('100%').height(52)
+        .onClick(() => { this.draftWord = ''; this.adding = true; })
+        Row() {
+          Text('管理我的词库').fontSize(15).fontColor('#e8ddc9')
+          Blank()
+          Text(this.userWords.length.toString() + ' 条').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' }).margin({ left: 6 })
+        }
+        .width('100%').height(52)
+        .onClick(() => { this.managing = true; })
+        Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+
+        Text('学习记录').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ top: 18, bottom: 6 })
+        Row() {
+          Text('清除学习记录').fontSize(15).fontColor('#e8ddc9')
+          Blank()
+          Text(this.learnCount.toString() + ' 条').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        }
+        .width('100%').height(52)
+        .onClick(() => { this.onClearLearn(); })
+        Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+
+        Text('词库信息').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ top: 18, bottom: 6 })
+        Text(this.dictInfo).fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ bottom: 24 })
+      }
+      .width('100%').padding({ left: 20, right: 20 })
+      .opacity(this.revealN > 0 ? 1 : 0)
+      .animation({ duration: 180, curve: Curve.EaseOut })
+    }
+    .layoutWeight(1).width('100%').scrollBar(BarState.Off)
+  }
+
+  build() {
+    Stack() {
+      PageShell({
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        title: '拼音设置',
+        onBack: (): void => { this.onBack(); },
+        content: (): void => { this.body() },
+      })
+
+      AppDialog({
+        visible: this.adding, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: (): void => { this.adding = false; },
+        content: (): void => { this.addDialog() },
+      })
+
+      AppDialog({
+        visible: this.managing, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: (): void => { this.managing = false; },
+        content: (): void => { this.manageDialog() },
+      })
+    }
+    .width(this.widthVp).height(this.heightVp)
+  }
+
+  @Builder
+  addDialog() {
+    Column() {
+      Text('添加词组').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+      TextInput({ placeholder: '输入中文词组' })
+        .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
+        .defaultFocus(true)
+        .onChange((v: string) => { this.draftWord = v; })
+      Row() {
+        Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          .onClick(() => { this.adding = false; })
+        Blank()
+        Text('添加').fontSize(15).fontColor('#c9a45c')
+          .onClick(() => {
+            const w: string = this.draftWord.trim();
+            if (w.length > 0) { this.onAddWord(w); }
+            this.adding = false;
+          })
+      }.width('100%').margin({ top: 20 })
+    }.width('100%')
+  }
+
+  @Builder
+  manageDialog() {
+    Column() {
+      Text('我的词库').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+      if (this.userWords.length === 0) {
+        Text('还没有自定义词组').fontSize(15).fontColor('rgba(232,221,201,0.4)')
+          .margin({ top: 16 })
+      } else {
+        Scroll() {
+          Column() {
+            ForEach(this.userWords, (w: string) => {
+              Row() {
+                Text(w).fontSize(15).fontColor('#e8ddc9')
+                Blank()
+                AppIcon({ kind: 'delete', iconSize: 18, color: '#a33327' })
+              }
+              .width('100%').height(44)
+              .onClick(() => { this.onDeleteWord(w); })
+            }, (w: string) => w)
+          }.width('100%')
+        }
+        .height(this.userWords.length > 6 ? 240 : this.userWords.length * 44)
+        .scrollBar(BarState.Off)
+        .margin({ top: 10 })
+      }
+      Row() {
+        Blank()
+        Text('完成').fontSize(15).fontColor('#c9a45c')
+          .onClick(() => { this.managing = false; })
+      }.width('100%').margin({ top: 16 })
+    }.width('100%')
+  }
+}

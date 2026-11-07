@@ -45,6 +45,12 @@ export class PinyinEngine {
   private maxSylLen: number = 0;
   private chars: Map<string, string[]> = new Map<string, string[]>();
   private words: Map<string, string[]> = new Map<string, string[]>();
+  /** 用户自定义词：拼音串 → 词（置顶） */
+  private userWords: Map<string, string[]> = new Map<string, string[]>();
+  /** 选词学习：拼音串 → (词 → 次数)。次数越高越靠前。 */
+  private learn: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
+  /** 模糊音开关（默认关）。 */
+  private fuzzy: boolean = false;
 
   /** 从词库 JSON 构造（Node 与 ArkTS 同一入口）。 */
   static fromData(data: PinyinDictData): PinyinEngine {
@@ -69,6 +75,65 @@ export class PinyinEngine {
       const k: string = wk[i];
       this.words.set(k, data.words[k]);
     }
+  }
+
+  /** §11.3 模糊表：8 组（双向）。键为规范形，值为等价形列表。 */
+  private static readonly FUZZY_PAIRS: string[][] = [
+    ['zh', 'z'], ['ch', 'c'], ['sh', 's'],
+    ['in', 'ing'], ['en', 'eng'], ['an', 'ang'],
+    ['n', 'l'], ['f', 'h'],
+  ];
+
+  setFuzzy(on: boolean): void {
+    this.fuzzy = on;
+  }
+
+  isFuzzy(): boolean {
+    return this.fuzzy;
+  }
+
+  /** 把音节按模糊表展开成等价集合（含自身）。 */
+  private fuzzyVariants(syl: string): string[] {
+    if (!this.fuzzy) {
+      return [syl];
+    }
+    let forms: string[] = [syl];
+    for (let p = 0; p < PinyinEngine.FUZZY_PAIRS.length; p++) {
+      const a: string = PinyinEngine.FUZZY_PAIRS[p][0];
+      const b: string = PinyinEngine.FUZZY_PAIRS[p][1];
+      const next: string[] = [];
+      for (let i = 0; i < forms.length; i++) {
+        const f: string = forms[i];
+        next.push(f);
+        if (f.startsWith(a)) {
+          const v: string = b + f.substring(a.length);
+          if (next.indexOf(v) < 0) { next.push(v); }
+        }
+        if (f.startsWith(b)) {
+          const v2: string = a + f.substring(b.length);
+          if (next.indexOf(v2) < 0) { next.push(v2); }
+        }
+      }
+      forms = next;
+    }
+    return forms;
+  }
+
+  /** 判断某字母片段是否可由音节（或其模糊等价形）覆盖。 */
+  private matchSyllable(piece: string): string[] {
+    const hits: string[] = [];
+    if (this.syllables.has(piece)) {
+      hits.push(piece);
+    }
+    if (this.fuzzy) {
+      const forms: string[] = this.fuzzyVariants(piece);
+      for (let i = 0; i < forms.length; i++) {
+        if (forms[i] !== piece && this.syllables.has(forms[i])) {
+          hits.push(forms[i]);
+        }
+      }
+    }
+    return hits;
   }
 
   private addSyllable(s: string): void {
@@ -119,8 +184,9 @@ export class PinyinEngine {
       const maxLen: number = Math.min(this.maxSylLen, n - pos);
       for (let len = maxLen; len >= 1; len--) {
         const piece: string = s.substring(pos, pos + len);
-        if (this.syllables.has(piece)) {
-          acc.push(piece);
+        const hits: string[] = this.matchSyllable(piece);
+        for (let h = 0; h < hits.length; h++) {
+          acc.push(hits[h]);
           walk(pos + len, acc);
           acc.pop();
         }
@@ -128,6 +194,92 @@ export class PinyinEngine {
     };
     walk(0, []);
     return out;
+  }
+
+  /** 我的词库：拼音串 → 词（置顶）。 */
+  setUserWords(data: Record<string, string[]>): void {
+    this.userWords.clear();
+    const keys: string[] = Object.keys(data);
+    for (let i = 0; i < keys.length; i++) {
+      this.userWords.set(keys[i], data[keys[i]]);
+    }
+  }
+
+  /** 选词学习：拼音串 → (词 → 次数)。 */
+  setLearnData(data: Record<string, Record<string, number>>): void {
+    this.learn.clear();
+    const keys: string[] = Object.keys(data);
+    for (let i = 0; i < keys.length; i++) {
+      const inner: Record<string, number> = data[keys[i]];
+      const m: Map<string, number> = new Map<string, number>();
+      const wk: string[] = Object.keys(inner);
+      for (let j = 0; j < wk.length; j++) {
+        m.set(wk[j], inner[wk[j]]);
+      }
+      this.learn.set(keys[i], m);
+    }
+  }
+
+  learnWord(py: string, word: string): void {
+    let m: Map<string, number> | undefined = this.learn.get(py);
+    if (m === undefined) {
+      m = new Map<string, number>();
+      this.learn.set(py, m);
+    }
+    m.set(word, (m.get(word) === undefined ? 0 : m.get(word) as number) + 1);
+  }
+
+  /** 导出学习记录（供落盘）。 */
+  exportLearn(): Record<string, Record<string, number>> {
+    const out: Record<string, Record<string, number>> = {};
+    this.learn.forEach((m: Map<string, number>, py: string) => {
+      const inner: Record<string, number> = {};
+      m.forEach((n: number, w: string) => { inner[w] = n; });
+      out[py] = inner;
+    });
+    return out;
+  }
+
+  /** 我的词库入库：拼音串 + 词（置顶）。 */
+  addUserWordWithPinyin(py: string, word: string): void {
+    let arr: string[] | undefined = this.userWords.get(py);
+    if (arr === undefined) {
+      arr = [];
+      this.userWords.set(py, arr);
+    }
+    if (arr.indexOf(word) < 0) {
+      arr.unshift(word);
+    }
+  }
+
+  /** 导出我的词库（供落盘）。 */
+  exportUserWords(): Record<string, string[]> {
+    const out: Record<string, string[]> = {};
+    this.userWords.forEach((arr: string[], py: string) => {
+      out[py] = arr;
+    });
+    return out;
+  }
+
+  /** 由中文词组推导拼音：逐字取字表首位读音。 */
+  pinyinOfWord(word: string): string {
+    const inv: Map<string, string> = new Map<string, string>();
+    this.chars.forEach((arr: string[], syl: string) => {
+      for (let i = 0; i < arr.length; i++) {
+        if (!inv.has(arr[i])) {
+          inv.set(arr[i], syl);
+        }
+      }
+    });
+    let py: string = '';
+    for (let i = 0; i < word.length; i++) {
+      const s: string | undefined = inv.get(word.charAt(i));
+      if (s === undefined) {
+        return '';
+      }
+      py = py + s;
+    }
+    return py;
   }
 
   /** 该串是否为合法拼音（能被音节表完整覆盖）。 */
@@ -150,11 +302,60 @@ export class PinyinEngine {
       seen.add(text);
       res.push({ text: text, kind: kind, pinyin: py });
     };
+    // ① 我的词库（置顶）
+    const mine: string[] = this.userWords.get(s) === undefined ? [] : this.userWords.get(s) as string[];
+    for (let i = 0; i < mine.length; i++) {
+      push(mine[i], 0, s);
+    }
+    // ② 学习记录（同拼音串内按次数降序置顶）
+    const learned: Map<string, number> | undefined = this.learn.get(s);
+    if (learned !== undefined) {
+      const lw: string[] = [];
+      learned.forEach((n: number, w: string) => {
+        for (let k = 0; k < n && lw.length < 8; k++) {
+          lw.push(w);
+        }
+      });
+      const seenL: Set<string> = new Set<string>();
+      for (let i = 0; i < lw.length; i++) {
+        if (!seenL.has(lw[i])) {
+          seenL.add(lw[i]);
+          push(lw[i], 0, s);
+        }
+      }
+    }
+    // ③ 内置整串词
     const whole: string[] = this.wordsOf(s);
     for (let i = 0; i < whole.length; i++) {
       push(whole[i], 0, s);
     }
-    const segs: string[][] = this.segments(s);
+    let segs: string[][] = this.segments(s);
+    if (segs.length === 0 && s.length > 1) {
+      // §11.1：整串无合法切分 → 退到最长合法前缀出候选（nih → 按 ni 出候选）
+      let best: string = '';
+      let bestSegs: string[][] = [];
+      for (let len = s.length - 1; len >= 1; len--) {
+        const pre: string = s.substring(0, len);
+        const ps: string[][] = this.segments(pre);
+        if (ps.length > 0) {
+          best = pre;
+          bestSegs = ps;
+          break;
+        }
+      }
+      if (best.length > 0) {
+        // 前缀本身若是整词，也放进候选
+        const pw: string[] = this.wordsOf(best);
+        for (let i = 0; i < pw.length; i++) {
+          push(pw[i], 0, best);
+        }
+        const pm: string[] = this.userWords.get(best) === undefined ? [] : this.userWords.get(best) as string[];
+        for (let i = 0; i < pm.length; i++) {
+          push(pm[i], 0, best);
+        }
+        segs = bestSegs;
+      }
+    }
     for (let i = 0; i < segs.length; i++) {
       const seg: string[] = segs[i];
       for (let j = 0; j < seg.length; j++) {

@@ -198,6 +198,34 @@ def main():
         if len(word) == 1:
             char_freq[word] = max(char_freq.get(word, 0), freq)
 
+    # §11.5 词表质量过滤：整词全是生僻字（单字词频 < 50）或词频 < 10 的去掉
+    common_chars = set()
+    for ch0, f0 in char_freq.items():
+        if f0 >= 50:
+            common_chars.add(ch0)
+    word_freq_map = {}
+    for word0, freq0 in entries:
+        word_freq_map[word0] = freq0
+    filtered = {}
+    dropped_rare = 0
+    dropped_floor = 0
+    for py in list(trimmed.keys()):
+        keep = []
+        for w in trimmed[py]:
+            if all(c not in common_chars for c in w):
+                dropped_rare += 1
+                continue
+            if word_freq_map.get(w, 0) < 10:
+                dropped_floor += 1
+                continue
+            keep.append(w)
+        if keep:
+            filtered[py] = keep
+    trimmed = filtered
+    words_json = json.dumps(trimmed, ensure_ascii=False, separators=(',', ':'))
+    words_bytes = words_json.encode('utf-8')
+    print('过滤：去生僻 %d 词 / 去低频 %d 词' % (dropped_rare, dropped_floor))
+
     char_map = {}
     for ch, readings in chars.items():
         syl = readings[0].lower().replace('ü', 'v')

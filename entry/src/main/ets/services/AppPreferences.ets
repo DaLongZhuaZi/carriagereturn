@@ -22,6 +22,12 @@ export class PrefKeys {
   static readonly VIBRATION_ENABLED: string = 'vibration_enabled';
   /** 中文输入引擎：'builtin'（默认，内置拼音）| 'system'（系统输入法通道）。 */
   static readonly CN_ENGINE: string = 'cn_engine';
+  /** 选词学习记录 JSON：{拼音串: {词: 次数}}。 */
+  static readonly CN_LEARN: string = 'cn_learn';
+  /** 我的词库 JSON：{拼音串: [词]}。 */
+  static readonly CN_USERWORDS: string = 'cn_userwords';
+  /** 模糊拼音开关（默认关）。 */
+  static readonly CN_FUZZY: string = 'cn_fuzzy';
 }
 
 /** 偏好读写门面。初始化失败时全部走内存默认值，不阻断主屏。 */

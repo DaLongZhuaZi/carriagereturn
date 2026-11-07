@@ -6,6 +6,7 @@
  */
 
 import { PageShell } from './PageShell';
+import { AppIcon } from './AppIcon';
 
 @Component
 export struct SettingsPage {
@@ -16,6 +17,8 @@ export struct SettingsPage {
   /** 中文输入引擎：'builtin' 内置拼音｜'system' 系统输入法（设计稿 §1）。 */
   @Prop cnEngine: string = 'builtin';
   onPickCnEngine: () => void = (): void => {};
+  /** §11.6：拼音设置页入口 */
+  onOpenPinyinSettings: () => void = (): void => {};
   @State volume: number = 70;
   @State newlineSound: boolean = true;
   @State keyVibrate: boolean = true;
@@ -127,6 +130,15 @@ export struct SettingsPage {
           }.width('100%').height(52)
             .onClick(() => {
               this.onPickCnEngine();
+            })
+          // 拼音设置（模糊音／我的词库／学习记录／词库信息）：设计稿 §11.6
+          Row() {
+            Text('拼音设置').fontSize(15).fontColor('#e8ddc9')
+            Blank()
+            AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
+          }.width('100%').height(52)
+            .onClick(() => {
+              this.onOpenPinyinSettings();
             })
           this.divider()
         }
