@@ -87,18 +87,15 @@ export struct CollectionPage {
       Stack({ alignContent: Alignment.Center }) {
         Column().width('100%').height(200)
           .backgroundColor(this.unlocked(kind) ? '#2b241f' : '#241f1b')
-        // 纸片剪影
-        Column()
-          .width(96).height(70).borderRadius(2)
-          .backgroundColor(this.unlocked(kind) ? '#efe2c9' : '#4a423a')
-          .position({ x: '50%', y: 52 })
-          .translate({ x: -48 })
-        // 底座简影
-        Column()
-          .width(132).height(14).borderRadius(3)
-          .backgroundColor(this.unlocked(kind) ? '#4a3a2c' : '#332c26')
-          .position({ x: '50%', y: 128 })
-          .translate({ x: -66 })
+        // P2-4：剪影改用 *-front.jpg 裁切——只露纸＋滚筒/底座轮廓（不许整图展示）
+        Image($rawfile('machine/' + kind + '-front.jpg'))
+          .width('100%').height(200).objectFit(ImageFit.Cover)
+          .opacity(this.unlocked(kind) ? 0.92 : 0.35)
+          .clip(true)
+        // 未解锁：深色罩
+        if (!this.unlocked(kind)) {
+          Column().width('100%').height(200).backgroundColor('rgba(20,17,14,0.55)')
+        }
         if (!this.unlocked(kind)) {
           this.lockIcon()
         }
