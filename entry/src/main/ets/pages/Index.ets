@@ -244,6 +244,19 @@ struct Index {
     }
   }
 
+  /** 把当前光标矩形推给输入法（候选窗跟随光标）。与 attach 同一口径：vp → px。 */
+  private pushCnCursor(): void {
+    if (!this.langZh) {
+      return;
+    }
+    const ui = this.getUIContext();
+    chineseInput.updateCursorRect(
+      ui.vp2px((this.stageWidth - this.paperWidthVp) / 2),
+      ui.vp2px(this.strikeLineVp),
+      ui.vp2px(this.paperWidthVp),
+      ui.vp2px(this.lineHeightVp));
+  }
+
   /** 中/EN 切换：只在这里 attach / detach（换行、换纸、换机都不动）。 */
   private async applyChineseMode(on: boolean): Promise<void> {
     if (on) {
@@ -262,8 +275,8 @@ struct Index {
           for (let i = 0; i < n; i++) { this.onDelete(); }
         },
         onDeleteRight: (n: number): void => {
-          hilog.info(DOMAIN, TAG, 'cn deleteRight n=%{public}s', n.toString());
-          for (let i = 0; i < n; i++) { this.onDelete(); }
+          // 光标恒在行尾、右侧无字 → 无操作（走 onDelete 会误删最后一个字）
+          hilog.info(DOMAIN, TAG, 'cn deleteRight n=%{public}s ignored', n.toString());
         },
         onMoveCursor: (dir: number): void => {
           hilog.info(DOMAIN, TAG, 'cn moveCursor dir=%{public}s (append-only)', dir.toString());
@@ -279,6 +292,8 @@ struct Index {
         onEnter: (): void => {
           hilog.info(DOMAIN, TAG, 'cn enter');
           this.onNewline();
+          // 换行编排有动画，稍等再推一次光标矩形
+          setTimeout(() => { this.pushCnCursor(); }, 300);
         },
         onKeyboardShown: (s: boolean): void => { this.cnKbShown = s; },
       }, left, top, ui.vp2px(this.paperWidthVp), ui.vp2px(this.lineHeightVp));
@@ -1259,6 +1274,8 @@ struct Index {
     if (this.docModel.getCursor().offset >= this.charsPerLine()) {
       this.onNewline();
     }
+    // 每次落字后把光标矩形推给输入法，候选窗跟着走
+    this.pushCnCursor();
   }
 
   /**
@@ -2342,7 +2359,8 @@ struct Index {
           .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#171310')
           .width(44).height(44).textAlign(TextAlign.Center)
           .borderRadius(28).backgroundColor('#c9a45c')
-          .position({ x: this.stageWidth - 56, y: this.topInset + 8 })
+          // 顶栏下方、纸面区右缘内侧（避开顶栏汉堡/文件夹与底部功能行）
+          .position({ x: this.stageWidth - 56, y: this.topInset + this.topBarHeight + 16 })
           .onClick(() => {
             this.langZh = false;
             this.applyChineseMode(false);

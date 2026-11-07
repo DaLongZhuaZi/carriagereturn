@@ -65,9 +65,11 @@ export class ChineseInput {
         if (this.handlers !== null) { this.handlers.onMoveCursor(dir as number); }
       });
       c.on('sendFunctionKey', (fk: inputMethod.FunctionKey) => {
-        // 回车：输入法可能走 sendFunctionKey 而不是 insertText('\n')
-        hilog.info(0x0000, 'CnInput', 'functionKey enter=%{public}s', fk.enterKeyType.toString());
-        if (this.handlers !== null) { this.handlers.onEnter(); }
+        // 只有「换行类」键型才走换行；GO/SEARCH/SEND/DONE 等其他键型只记日志
+        const isNewline: boolean = fk.enterKeyType === inputMethod.EnterKeyType.NEWLINE;
+        hilog.info(0x0000, 'CnInput', 'functionKey enter=%{public}s newline=%{public}s',
+          fk.enterKeyType.toString(), isNewline ? 'true' : 'false');
+        if (isNewline && this.handlers !== null) { this.handlers.onEnter(); }
       });
       c.on('sendKeyboardStatus', (st: inputMethod.KeyboardStatus) => {
         const shown: boolean = st === inputMethod.KeyboardStatus.SHOW;
@@ -97,6 +99,9 @@ export class ChineseInput {
 
   /** 光标矩形变化时同步给输入法（候选窗跟随光标）。 */
   updateCursorRect(left: number, top: number, width: number, height: number): void {
+    hilog.info(0x0000, 'CnInput', 'updateCursorRect (%{public}s,%{public}s %{public}sx%{public}s) attached=%{public}s',
+      left.toFixed(0), top.toFixed(0), width.toFixed(0), height.toFixed(0),
+      this.attached ? 'true' : 'false');
     if (!this.attached || this.controller === null) {
       return;
     }
