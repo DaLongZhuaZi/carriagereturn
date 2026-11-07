@@ -218,6 +218,8 @@ struct Index {
   @State collectionDetailKind: string = '';
   /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
   @State switchFade: number = 1;
+  /** P1-4：注册失败的字体族名（换装页据此标「未加载」）。 */
+  @State fontLoadFailed: string[] = [];
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -232,15 +234,26 @@ struct Index {
   aboutToAppear(): void {
     // 字体注册放在页面（UIContext 已就绪）而不是 Ability.onCreate：
     // 上一轮实测 onCreate 里注册两次都打 ok 但 i/m 仍比例字体
-    try {
-      this.getUIContext().getFont().registerFont({
-        familyName: 'CourierPrime',
-        familySrc: $rawfile('font/CourierPrime-Regular.ttf'),
-      });
-      hilog.info(DOMAIN, TAG, 'registerFont(page) CourierPrime ok');
-    } catch (e) {
-      hilog.error(DOMAIN, TAG, 'registerFont(page) failed');
+    // P1-4：按 MachineCatalog.FONTS 表逐一注册 17 款字体（原来只注册了 CourierPrime，
+    // 其余 16 款在换装页会静默回落到系统字体 → 17 行试写分不出差别）
+    const failed: string[] = [];
+    for (let i = 0; i < FONTS.length; i++) {
+      try {
+        this.getUIContext().getFont().registerFont({
+          familyName: FONTS[i].familyName,
+          familySrc: $rawfile(FONTS[i].rawfile),
+        });
+        hilog.info(DOMAIN, TAG, 'registerFont ok %{public}s <- %{public}s',
+          FONTS[i].familyName, FONTS[i].rawfile);
+      } catch (e) {
+        failed.push(FONTS[i].familyName);
+        hilog.error(DOMAIN, TAG, 'registerFont FAILED %{public}s <- %{public}s',
+          FONTS[i].familyName, FONTS[i].rawfile);
+      }
     }
+    this.fontLoadFailed = failed;
+    hilog.info(DOMAIN, TAG, 'registerFont total=%{public}s failed=%{public}s',
+      FONTS.length.toString(), failed.length.toString());
 
     const host = this.getUIContext().getHostContext();
     if (host !== undefined && host !== null) {
@@ -1802,6 +1815,7 @@ struct Index {
           paperKind: this.paperKind as string,
           ribbonKind: this.ribbon as string,
           fontKind: this.docModel.toDocData().meta.font as string,
+          failedFonts: this.fontLoadFailed,
           onBack: (): void => { this.customizeOpen = false; },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);

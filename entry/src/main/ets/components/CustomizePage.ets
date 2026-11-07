@@ -36,6 +36,8 @@ export struct CustomizePage {
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   @State revealN: number = 0;
+  /** P1-4：注册失败的字体族名（行上标「未加载」，不许静默回落）。 */
+  @Prop failedFonts: string[] = [];
   onBack: () => void = (): void => {};
   onPickMachine: (k: string) => void = (): void => {};
   onPickPaper: (k: string) => void = (): void => {};
@@ -179,7 +181,9 @@ export struct CustomizePage {
                       .width(56)
                     Text(f.familyName).fontSize(15).fontColor('rgba(232,221,201,0.75)')
                     Blank()
-                    if (this.fontKind === (f.font as string)) {
+                    if (this.failedFonts.indexOf(f.familyName) >= 0) {
+                      Text('未加载').fontSize(12).fontColor('#c06a5a')
+                    } else if (this.fontKind === (f.font as string)) {
                       Text('✓').fontSize(17).fontColor('#c9a45c')
                     }
                   }
