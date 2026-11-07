@@ -114,7 +114,6 @@ export struct DocumentViewPage {
     .opacity(this.revealN > 0 ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .backgroundColor('#eee4ce').borderRadius(8)
-    .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
   }
 
   @Builder
@@ -142,7 +141,6 @@ export struct DocumentViewPage {
           .opacity(this.revealN > 1 ? 1 : 0)
           .animation({ duration: 180, curve: Curve.EaseOut })
           .clip(true).borderRadius(8)
-          .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
           .onClick(() => {
             hilog.info(0x0000, 'DocumentView', 'body tapped doc=%{public}s', this.docId);
             this.onEdit(this.docId);
@@ -153,19 +151,24 @@ export struct DocumentViewPage {
 
 
         // 底栏：加页 / 分享 / 删除，各 1/3
+        // D13：三段文字钮改为深色按钮（与其余页底部主操作同重量）
         Row() {
-          Text('加页').fontSize(15).fontColor('#c9a45c')
+          Text('加页').fontSize(15).fontColor('#e8ddc9')
             .id('dv_addpage')
-            .layoutWeight(1).textAlign(TextAlign.Center)
+            .layoutWeight(1).height(44).textAlign(TextAlign.Center)
+            .borderRadius(28).backgroundColor('#2e2620')
+            .margin({ right: 8 })
             .onClick(() => { this.onAddPage(this.docId); })
-          // P1-5：分享当批做不了 → 置灰 + 标注「待实现」，不留可点无反应的按钮
-          Text('分享·待实现').fontSize(12).fontColor('rgba(232,221,201,0.4)')
-            .layoutWeight(1).textAlign(TextAlign.Center)
+          Text('分享·待实现').fontSize(15).fontColor('rgba(232,221,201,0.4)')
+            .layoutWeight(1).height(44).textAlign(TextAlign.Center)
+            .borderRadius(28).backgroundColor('#241c16')
+            .margin({ right: 8 })
           Text('删除').fontSize(15).fontColor('rgba(232,221,201,0.6)')
-            .layoutWeight(1).textAlign(TextAlign.Center)
+            .layoutWeight(1).height(44).textAlign(TextAlign.Center)
+            .borderRadius(28).backgroundColor('#241c16')
             .onClick(() => { this.onDelete(this.docId); })
         }
-        .width('100%').height(56)
+        .width('100%').height(56).padding({ left: 20, right: 20 })
     }
     .width('100%').height('100%')
   }

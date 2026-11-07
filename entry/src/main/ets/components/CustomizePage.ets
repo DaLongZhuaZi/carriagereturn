@@ -151,7 +151,8 @@ export struct CustomizePage {
               this.sectionTitle('色带')
               Row() {
                 ForEach(RIBBONS, (r: RibbonSpec) => {
-                  Text('')
+                  Text(r.kind === 'black' ? '黑' : (r.kind === 'blue' ? '蓝' : '红'))
+                    .fontSize(15).fontColor('#eee4ce').textAlign(TextAlign.Center)
                     .layoutWeight(1).height(48)
                     .borderRadius(28)
                     .backgroundColor(r.inkColor)

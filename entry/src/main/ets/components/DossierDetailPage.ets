@@ -12,6 +12,7 @@ import { docStore } from '../services/DocStore';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
 import { AppIcon } from './AppIcon';
+import { AppMenu } from './AppMenu';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { componentUtils } from '@kit.ArkUI';
 
@@ -69,6 +70,8 @@ export struct DossierDetailPage {
   @State pendingDelPaper: string = '';
   /** P1-2：改名状态与草稿。 */
   @State renaming: boolean = false;
+  /** D13：⋯ 改真菜单（改名／新建纸张／删除卷宗）。 */
+  @State moreOpen: boolean = false;
   @State draftName: string = '';
 
   aboutToAppear(): void {
@@ -312,12 +315,18 @@ export struct DossierDetailPage {
           }
           .width(44).height(44)
           .onClick(() => { this.onBack(); })
+          // D13：手机端页眉重算——小封面缩小到 72×50（362vp 宽内不许挤爆换行）
           if (this.dCover.length > 0) {
             Image($rawfile(COVER_RAW[this.dCover]))
               .id('hdr_cover')
-              .width(110).height(74).borderRadius(8).objectFit(ImageFit.Cover)
+              .width(this.widthVp < 600 ? 72 : 110)
+              .height(this.widthVp < 600 ? 50 : 74)
+              .borderRadius(8).objectFit(ImageFit.Cover)
           } else {
-            Column().id('hdr_cover').width(110).height(74).borderRadius(8).backgroundColor('#eee4ce')
+            Column().id('hdr_cover')
+              .width(this.widthVp < 600 ? 72 : 110)
+              .height(this.widthVp < 600 ? 50 : 74)
+              .borderRadius(8).backgroundColor('#eee4ce')
           }
           Column() {
             Text(this.dName).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
@@ -336,12 +345,15 @@ export struct DossierDetailPage {
             AppIcon({ kind: 'more', iconSize: 22, color: '#e8ddc9' })
           }
           .width(36).height(36)
-          .onClick(() => { this.confirmDel = true; })
-          Text('新建纸张').fontSize(12).fontColor('#e8ddc9')
-            .padding({ left: 14, right: 14, top: 7, bottom: 7 })
-            .borderRadius(28).backgroundColor('#2e2620')
-            .margin({ left: 8 })
-            .onClick(() => { this.onNewPaper(); })
+          .onClick(() => { this.moreOpen = true; })
+          // D13：手机端「新建纸张」收进 ⋯ 菜单，不再挤页眉
+          if (this.widthVp >= 600) {
+            Text('新建纸张').fontSize(12).fontColor('#e8ddc9')
+              .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+              .borderRadius(28).backgroundColor('#2e2620')
+              .margin({ left: 8 })
+              .onClick(() => { this.onNewPaper(); })
+          }
         }
         .width('100%').height(96).padding({ left: 20, right: 20 })
   }
@@ -496,6 +508,21 @@ export struct DossierDetailPage {
         onBack: () => { this.onBack(); },
         content: (): void => { this.body() },
         header: (): void => { this.hdrRow() },
+      })
+      // D13：⋯ 真菜单（改名／新建纸张／删除卷宗）
+      AppMenu({
+        visible: this.moreOpen,
+        topVp: 56,
+        items: [['改名', 'rename'], ['新建纸张', 'newpaper'], ['删除卷宗', 'delete']],
+        onClose: () => { this.moreOpen = false; },
+        onPick: (key: string): void => {
+          if (key === 'rename') {
+            this.draftName = this.dName;
+            this.renaming = true;
+          }
+          if (key === 'newpaper') { this.onNewPaper(); }
+          if (key === 'delete') { this.confirmDel = true; }
+        },
       })
       AppDialog({
         visible: this.confirmDel, widthVp: this.widthVp, heightVp: this.heightVp,

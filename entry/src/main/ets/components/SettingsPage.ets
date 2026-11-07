@@ -110,7 +110,7 @@ export struct SettingsPage {
           Row() {
             Text('删除方式').fontSize(15).fontColor('#e8ddc9')
             Blank()
-            Text(this.deleteMode + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+            Text(this.deleteMode).fontSize(15).fontColor('rgba(232,221,201,0.6)')
           }.width('100%').height(52)
             .onClick(() => {
               this.deleteMode = this.deleteMode === '现代删除' ? 'XXX 覆盖' : '现代删除';
@@ -127,13 +127,13 @@ export struct SettingsPage {
           Row() {
             Text('默认机器').fontSize(15).fontColor('#e8ddc9')
             Blank()
-            Text(this.machineLabel + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+            Text(this.machineLabel).fontSize(15).fontColor('rgba(232,221,201,0.6)')
           }.width('100%').height(52)
           this.divider()
           Row() {
             Text('默认纸张').fontSize(15).fontColor('#e8ddc9')
             Blank()
-            Text(this.paperLabel + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+            Text(this.paperLabel).fontSize(15).fontColor('rgba(232,221,201,0.6)')
           }.width('100%').height(52)
         }
         .width('100%')
@@ -146,7 +146,7 @@ export struct SettingsPage {
           Row() {
             Text('音效致谢').fontSize(15).fontColor('#e8ddc9')
             Blank()
-            Text('›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+            Text('—').fontSize(15).fontColor('rgba(232,221,201,0.4)')
           }.width('100%').height(52)
           this.divider()
           Row() {

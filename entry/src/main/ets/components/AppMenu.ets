@@ -8,6 +8,8 @@
 export struct AppMenu {
   @Prop visible: boolean = false;
   @Prop topVp: number = 56;
+  /** 菜单项（[label, key] 两元组）；默认顶栏三项。 */
+  @Prop items: string[][] = [['收藏', 'collection'], ['设置', 'settings'], ['导出', 'export']];
   @State op: number = 0;
   onClose: () => void = (): void => {};
   onPick: (key: string) => void = (): void => {};
@@ -31,9 +33,9 @@ export struct AppMenu {
           .backgroundColor('rgba(0,0,0,0.35)')
           .onClick(() => { this.onClose(); })
         Column() {
-          this.item('收藏', 'collection')
-          this.item('设置', 'settings')
-          this.item('导出', 'export')
+          ForEach(this.items, (it: string[]) => {
+            this.item(it[0], it[1])
+          }, (it: string[]) => it[1])
         }
         .width(160)
         .padding({ top: 6, bottom: 6 })

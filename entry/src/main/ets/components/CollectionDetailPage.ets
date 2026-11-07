@@ -72,7 +72,7 @@ export struct CollectionDetailPage {
         // 底部「设为当前机器」（底距交给 PageShell）
         Text('设为当前机器')
           .fontSize(17).fontColor('#e8ddc9')
-          .width('100%').height(48).textAlign(TextAlign.Center)
+          .width('100%').height(56).textAlign(TextAlign.Center)
           .borderRadius(28).backgroundColor('#2e2620')
           .margin({ left: 20, right: 20, bottom: 8 })
           .onClick(() => { this.onSetCurrent(this.machineKind); })

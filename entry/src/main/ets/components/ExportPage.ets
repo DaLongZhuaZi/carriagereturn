@@ -102,11 +102,17 @@ export struct ExportPage {
         }
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
 
+        // §2.10 第 7 条：小字在按钮上方；分享按钮底距 = bottomInset（PageShell 的内容区 padding 承担）
+        Text('导出不加水印。')
+          .fontSize(12).fontColor('rgba(232,221,201,0.4)')
+          .width('100%').textAlign(TextAlign.Center)
+          .margin({ top: 10, bottom: 8 })
+
         Text('分享')
-          .fontSize(17).fontColor('#e8ddc9')
-          .width('100%').height(80).textAlign(TextAlign.Center)
+          .fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+          .width('100%').height(56).textAlign(TextAlign.Center)
           .borderRadius(28).backgroundColor('#2e2620')
-          .margin({ left: 20, right: 20, top: 10 })
+          .margin({ left: 20, right: 20, bottom: 8 })
           .scale({ x: this.btnScale, y: this.btnScale })
           .animation({ duration: 120 })
           .onClick(() => {
@@ -115,11 +121,6 @@ export struct ExportPage {
             const f: string = this.picked < 0 ? '图片' : FORMATS[this.picked][0];
             this.onShare(f);
           })
-
-        Text('导出不加水印。')
-          .fontSize(12).fontColor('rgba(232,221,201,0.4)')
-          .width('100%').textAlign(TextAlign.Center)
-          .margin({ top: 8, bottom: 8 })
     }
     .width('100%').height('100%')
   }

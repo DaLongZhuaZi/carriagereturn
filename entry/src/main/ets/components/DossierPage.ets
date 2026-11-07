@@ -121,7 +121,10 @@ export struct DossierPage {
           if (this.unfiledCount() > 0 || this.dossiers.length === 0) {
             GridItem() {
               Column() {
-                Column().width('100%').height(140).borderRadius(8).backgroundColor('#eee4ce')
+                // §5.4：浅灰纸纹（不再用纯色块）
+                Image($rawfile('paper/paper-letter.jpg'))
+                  .width('100%').height(140).borderRadius(8).objectFit(ImageFit.Cover)
+                  .opacity(0.45)
                 Text('未归档').fontSize(15).fontColor('#e8ddc9').margin({ top: 8 })
                   .hitTestBehavior(HitTestMode.None)
                 Text(this.unfiledCount().toString() + ' 张纸')

@@ -1857,7 +1857,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
-          onBack: (): void => { this.dossierOpen = false; },
+          onBack: (): void => { this.dossierOpen = false; this.homeOpen = true; },
           onOpenDossier: (id: string): void => { this.openDossierId = id; this.detailOpen = true; },
         })
       }
@@ -1873,7 +1873,7 @@ struct Index {
           ribbonKind: this.ribbon as string,
           fontKind: this.docModel.toDocData().meta.font as string,
           failedFonts: this.fontLoadFailed,
-          onBack: (): void => { this.customizeOpen = false; },
+          onBack: (): void => { this.customizeOpen = false; this.homeOpen = true; },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
             hilog.info(DOMAIN, TAG, 'customize machine -> %{public}s', k);
@@ -1909,7 +1909,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
-          onBack: (): void => { this.collectionOpen = false; },
+          onBack: (): void => { this.collectionOpen = false; this.homeOpen = true; },
           onPick: (kind: string): void => { this.collectionDetailKind = kind; },
         })
       }
@@ -1985,7 +1985,7 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
-          onBack: (): void => { this.settingsOpen = false; },
+          onBack: (): void => { this.settingsOpen = false; this.homeOpen = true; },
         })
       }
 
@@ -1995,7 +1995,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.docId,
-          onBack: (): void => { this.exportOpen = false; },
+          onBack: (): void => { this.exportOpen = false; this.homeOpen = true; },
           onShare: (format: string): void => {
             // P1-6：三种格式。当前实现纯文本（.txt 可再编辑）；图片/PDF 走占位并明确记录
             hilog.info(DOMAIN, TAG, 'export share format=%{public}s', format);
