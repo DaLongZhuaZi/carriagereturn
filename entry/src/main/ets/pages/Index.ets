@@ -11,7 +11,8 @@
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
-import { fileIo as fs } from '@kit.CoreFileKit';
+import { fileIo as fs, fileUri } from '@kit.CoreFileKit';
+import { systemShare } from '@kit.ShareKit';
 import { image } from '@kit.ImageKit';
 import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
@@ -1355,6 +1356,29 @@ struct Index {
     }, 800);
   }
 
+  /** §6.2：把刚导出的文件交给系统分享面板。失败只记日志，不影响已落盘的文件。 */
+  private shareFile(path: string, utd: string): void {
+    try {
+      const host = this.getUIContext().getHostContext();
+      if (host === undefined || host === null) {
+        return;
+      }
+      const uri: string = fileUri.getUriFromPath(path);
+      const data: systemShare.SharedData = new systemShare.SharedData({
+        utd: utd,
+        uri: uri,
+      });
+      const controller: systemShare.ShareController = new systemShare.ShareController(data);
+      const opts: systemShare.ShareControllerOptions = {};
+      controller.show(host as common.UIAbilityContext, opts)
+        .then(() => { hilog.info(DOMAIN, TAG, 'share panel shown'); })
+        .catch(() => { hilog.error(DOMAIN, TAG, 'share panel failed'); });
+      hilog.info(DOMAIN, TAG, 'share shown uri=%{public}s', uri);
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'share failed: %{public}s', JSON.stringify(e));
+    }
+  }
+
   private flushSave(): void {
     if (!docStore.isReady() || this.docModel.isEmpty()) {
       return;
@@ -1930,6 +1954,7 @@ struct Index {
                   fs.writeSync(f.fd, docStore.readPlainText(this.docId));
                   fs.closeSync(f);
                   hilog.info(DOMAIN, TAG, 'export txt ok path=%{public}s', p);
+                  this.shareFile(p, 'general.plain-text');
                 }
               } catch (e) {
                 hilog.error(DOMAIN, TAG, 'export txt failed');
@@ -1956,6 +1981,7 @@ struct Index {
                         } catch (e2) {
                           hilog.error(DOMAIN, TAG, 'export png write failed');
                         }
+                        this.shareFile(p, 'general.png');
                       })
                       .catch(() => { hilog.error(DOMAIN, TAG, 'export png pack failed'); });
                   })
@@ -1985,6 +2011,7 @@ struct Index {
                   pdf.releaseDocument();
                   hilog.info(DOMAIN, TAG, 'export pdf ok=%{public}s path=%{public}s',
                     ok ? 'true' : 'false', p);
+                  this.shareFile(p, 'general.pdf');
                 } else {
                   hilog.error(DOMAIN, TAG, 'export pdf createDocument failed');
                 }
