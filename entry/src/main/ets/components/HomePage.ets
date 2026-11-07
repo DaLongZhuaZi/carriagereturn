@@ -28,7 +28,8 @@ export struct HomePage {
   aboutToAppear(): void {
     this.applyInsets();
     this.refresh();
-    setTimeout(() => { this.op = 1; }, 30);
+    // AGENTS 页面切换：主页不许每次回都重播淡入
+    this.op = 1;
   }
 
   private async applyInsets(): Promise<void> {

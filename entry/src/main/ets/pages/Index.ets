@@ -1915,6 +1915,7 @@ struct Index {
           onBack: (): void => { this.popPage(); },
           onOpenDossier: (id: string): void => { this.openDossierId = id; this.pushPage('detail'); },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // 卷宗内页（§5.2）
@@ -1956,6 +1957,7 @@ struct Index {
             }
           },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // 收藏页（§3）：先渲染，详情页在其后渲染才能盖在它上面
@@ -1967,6 +1969,7 @@ struct Index {
           onBack: (): void => { this.popPage(); },
           onPick: (kind: string): void => { this.collectionDetailKind = kind; this.pushPage('collectiondetail'); },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // 收藏详情页（§3）：只对已解锁机器开放；必须排在收藏页之后（后者先绘制）
@@ -1983,10 +1986,11 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'collection setCurrent -> %{public}s', kind);
           },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // §11 主页：冷启动首帧；从任何页返回也回这里
-      if (this.homeOpen) {
+      if (this.navStack.indexOf('home') >= 0) {
         HomePage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
@@ -2041,6 +2045,7 @@ struct Index {
           paperLabel: this.paperKind as string,
           onBack: (): void => { this.popPage(); },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // §6.2 导出页
@@ -2134,6 +2139,7 @@ struct Index {
             }
           },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       if (this.dossierOpen && this.detailOpen) {
@@ -2162,6 +2168,7 @@ struct Index {
               id, this.docsRev.toString());
           },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
       // 文档视图（§5.3）：必须排在卷宗内页之后，才能盖在内页之上
@@ -2194,6 +2201,7 @@ struct Index {
             }
           },
         })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
     }
     .width('100%')

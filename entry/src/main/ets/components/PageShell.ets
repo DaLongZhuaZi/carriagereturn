@@ -84,6 +84,6 @@ export struct PageShell {
       colors: [['#171310', 0.0], ['#241c16', 1.0]] })
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     // D5：页面进出统一 200ms 淡入淡出（与换装 fadeSwitch 同值同曲线）
-    .transition(TransitionEffect.OPACITY.animation({ duration: 200, curve: Curve.EaseInOut }))
+
   }
 }
