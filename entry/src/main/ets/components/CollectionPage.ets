@@ -1,7 +1,7 @@
 /**
  * 回车 · 收藏页（§3）+ 沉浸式（§2.10）
  *
- * 两列网格（大屏更多列）；卡片＝深色底 #342c26 + 剪影区 200vp + 名字 + 状态 + 条件行。
+ * 两列网格（大屏更多列）；卡片＝深色底 #241c16 + 剪影区 200vp + 名字 + 状态 + 条件行。
  * 锁定态铁律：未解锁只给深色占位 + 灰色纸片剪影 + 线形锁，不许放完整机器图。
  */
 
@@ -78,10 +78,10 @@ export struct CollectionPage {
     Column() {
       Column()
         .width(18).height(9)
-        .border({ width: 2, color: 'rgba(232,221,201,0.55)', radius: { topLeft: 9, topRight: 9 } })
+        .border({ width: 2, color: 'rgba(232,221,201,0.6)', radius: { topLeft: 9, topRight: 9 } })
       Column()
-        .width(24).height(18).borderRadius(3)
-        .border({ width: 2, color: 'rgba(232,221,201,0.55)' })
+        .width(24).height(18).borderRadius(8)
+        .border({ width: 2, color: 'rgba(232,221,201,0.6)' })
     }.alignItems(HorizontalAlign.Center)
   }
 
@@ -91,7 +91,7 @@ export struct CollectionPage {
       // 剪影区 200vp
       Stack({ alignContent: Alignment.Center }) {
         Column().width('100%').height(200)
-          .backgroundColor(this.unlocked(kind) ? '#2b241f' : '#241f1b')
+          .backgroundColor(this.unlocked(kind) ? '#241c16' : '#241c16')
         // P2-4：剪影改用 *-front.jpg 裁切——只露纸＋滚筒/底座轮廓（不许整图展示）
         Image($rawfile('machine/' + kind + '-front.jpg'))
           .width('100%').height(200).objectFit(ImageFit.Cover)
@@ -110,16 +110,16 @@ export struct CollectionPage {
       Text(M_NAME[kind]).fontSize(17).fontColor('#e8ddc9').margin({ top: 10 })
         .maxLines(1)
       Text(this.unlocked(kind) ? '已拥有' : '未解锁')
-        .fontSize(13)
-        .fontColor(this.unlocked(kind) ? '#c9a45c' : 'rgba(232,221,201,0.45)')
+        .fontSize(12)
+        .fontColor(this.unlocked(kind) ? '#c9a45c' : 'rgba(232,221,201,0.4)')
         .margin({ top: 4 })
-      Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.5)')
+      Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.6)')
         .margin({ top: 4 }).maxLines(1)
     }
     .width('100%')
     .padding({ bottom: 12 })
     .borderRadius(10)
-    .backgroundColor('#342c26')
+    .backgroundColor('#241c16')
     .clip(true)
     .scale({ x: this.pressedIdx === idx ? 0.97 : 1, y: this.pressedIdx === idx ? 0.97 : 1 })
     .animation({ duration: 120, curve: Curve.EaseOut })
@@ -176,7 +176,7 @@ export struct CollectionPage {
       if (this.hintText !== null) {
         Row() {
           // P1-9：提示条专属 id，便于与卡片条件行区分（两者文案相同）
-          Text(this.hintText).fontSize(13).fontColor('#e8ddc9')
+          Text(this.hintText).fontSize(12).fontColor('#e8ddc9')
         }
         .id('lock_hint')
         .padding({ left: 18, right: 18, top: 12, bottom: 12 })

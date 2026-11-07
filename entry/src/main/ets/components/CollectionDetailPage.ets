@@ -67,7 +67,7 @@ export struct CollectionDetailPage {
 
             // 史实文字
             Text(M_INFO[this.machineKind])
-              .fontSize(15).lineHeight(24).fontColor('rgba(232,221,201,0.82)')
+              .fontSize(15).lineHeight(24).fontColor('rgba(232,221,201,0.75)')
               .width('100%').margin({ top: 16 })
 
             Column().width('100%').height(this.bottomInset)
@@ -80,7 +80,7 @@ export struct CollectionDetailPage {
         Text('设为当前机器')
           .fontSize(15).fontColor('#e8ddc9')
           .width('100%').height(48).textAlign(TextAlign.Center)
-          .borderRadius(24).backgroundColor('#2e2620')
+          .borderRadius(28).backgroundColor('#2e2620')
           .margin({ left: 20, right: 20, bottom: this.bottomInset })
           .onClick(() => { this.onSetCurrent(this.machineKind); })
       }

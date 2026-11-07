@@ -78,7 +78,7 @@ export struct ExportPage {
             Stack({ alignContent: Alignment.TopStart }) {
               Image($rawfile('paper/paper-letter.jpg'))
                 .width('100%').height(480).objectFit(ImageFit.Cover).borderRadius(12)
-              Text(this.bodyText()).fontSize(13).lineHeight(22).fontColor('#2a2118')
+              Text(this.bodyText()).fontSize(12).lineHeight(22).fontColor('#1a1a1a')
                 .width('100%').padding({ left: 22, right: 22, top: 26 })
                 .maxLines(16).textOverflow({ overflow: TextOverflow.Clip })
             }
@@ -93,9 +93,9 @@ export struct ExportPage {
               Row() {
                 Column() {
                   Text(f[0]).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-                  Text(f[1]).fontSize(13).fontColor('rgba(232,221,201,0.55)').margin({ top: 4 })
+                  Text(f[1]).fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 4 })
                 }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-                Text('›').fontSize(16).fontColor('rgba(232,221,201,0.5)')
+                Text('›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
               }
               .width('100%').height(110).padding({ left: 16, right: 16 })
               .backgroundColor(this.picked === idx ? '#2e2620' : '#241c16')
@@ -112,7 +112,7 @@ export struct ExportPage {
         Text('分享')
           .fontSize(17).fontColor('#e8ddc9')
           .width('100%').height(80).textAlign(TextAlign.Center)
-          .borderRadius(16).backgroundColor('#2e2620')
+          .borderRadius(28).backgroundColor('#2e2620')
           .margin({ left: 20, right: 20, top: 10 })
           .scale({ x: this.btnScale, y: this.btnScale })
           .animation({ duration: 120 })

@@ -2,7 +2,7 @@
  * 回车 · 设置页（§6.1）+ 沉浸式（§2.10）
  *
  * 5 组分组列表（声音 / 触感 / 修正方式 / 默认 / 关于），组标题 12vp 灰，
- * 行高 52vp、1vp 分割线 #3c342c、左右 20vp，整页可滚动；
+ * 行高 52vp、1vp 分割线 rgba(232,221,201,0.4)、左右 20vp，整页可滚动；
  * 底部常驻「完全离线…」12vp 灰。
  */
 
@@ -40,13 +40,13 @@ export struct SettingsPage {
 
   @Builder
   groupTitle(t: string) {
-    Text(t).fontSize(12).fontColor('rgba(232,221,201,0.45)')
+    Text(t).fontSize(12).fontColor('rgba(232,221,201,0.4)')
       .width('100%').margin({ top: 24, bottom: 6 })
   }
 
   @Builder
   divider() {
-    Column().width('100%').height(1).backgroundColor('#3c342c')
+    Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.4)')
   }
 
   build() {
@@ -75,7 +75,7 @@ export struct SettingsPage {
             Row() {
               Text('换行叮声').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text(this.newlineSound ? '开' : '关').fontSize(14).fontColor('#c9a45c')
+              Text(this.newlineSound ? '开' : '关').fontSize(15).fontColor('#c9a45c')
                 .animation({ duration: 150 })
                 .onClick(() => { this.newlineSound = !this.newlineSound; })
             }.width('100%').height(52)
@@ -84,7 +84,7 @@ export struct SettingsPage {
             Row() {
               Text('按键震动').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text(this.keyVibrate ? '开' : '关').fontSize(14).fontColor('#c9a45c')
+              Text(this.keyVibrate ? '开' : '关').fontSize(15).fontColor('#c9a45c')
                 .animation({ duration: 150 })
                 .onClick(() => { this.keyVibrate = !this.keyVibrate; })
             }.width('100%').height(52)
@@ -93,7 +93,7 @@ export struct SettingsPage {
             Row() {
               Text('删除方式').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text(this.deleteMode + ' ›').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              Text(this.deleteMode + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             }.width('100%').height(52)
               .onClick(() => {
                 this.deleteMode = this.deleteMode === '现代删除' ? 'XXX 覆盖' : '现代删除';
@@ -104,26 +104,26 @@ export struct SettingsPage {
             Row() {
               Text('默认机器').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text(this.machineLabel + ' ›').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              Text(this.machineLabel + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             }.width('100%').height(52)
             this.divider()
             Row() {
               Text('默认纸张').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text(this.paperLabel + ' ›').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              Text(this.paperLabel + ' ›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             }.width('100%').height(52)
 
             this.groupTitle('关于')
             Row() {
               Text('音效致谢').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text('›').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              Text('›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             }.width('100%').height(52)
             this.divider()
             Row() {
               Text('版本').fontSize(15).fontColor('#e8ddc9')
               Blank()
-              Text('1.0.0').fontSize(14).fontColor('rgba(232,221,201,0.4)')
+              Text('1.0.0').fontSize(15).fontColor('rgba(232,221,201,0.4)')
             }.width('100%').height(52)
 
             Column().width('100%').height(24)

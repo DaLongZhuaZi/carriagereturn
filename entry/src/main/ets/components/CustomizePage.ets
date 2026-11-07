@@ -107,14 +107,14 @@ export struct CustomizePage {
               Row() {
                 ForEach(MACHINES, (m: MachineSpec) => {
                   Text(MACHINE_LABEL[m.kind as string])
-                    .fontSize(14)
+                    .fontSize(15)
                     .fontColor(this.machineKind === (m.kind as string) ? '#241c16' : '#e8ddc9')
                     .textAlign(TextAlign.Center)
                     .layoutWeight(1).height(48)
-                    .borderRadius(24)
+                    .borderRadius(28)
                     .backgroundColor(this.machineKind === (m.kind as string)
-                      ? '#bea05a'
-                      : (this.unlockedMachine(m.kind as string) ? '#3c3026' : '#2a241f'))
+                      ? '#c9a45c'
+                      : (this.unlockedMachine(m.kind as string) ? '#2e2620' : '#241c16'))
                     .opacity(this.unlockedMachine(m.kind as string) ? 1 : 0.55)
                     .scale({ x: this.pressedKey === (m.kind as string) ? 0.95 : 1,
                       y: this.pressedKey === (m.kind as string) ? 0.95 : 1 })
@@ -149,13 +149,13 @@ export struct CustomizePage {
                     Image($rawfile(p.textureRawfile))
                       .width('100%').height(74).borderRadius(8).objectFit(ImageFit.Cover)
                       .hitTestBehavior(HitTestMode.None)
-                    Text(PAPER_LABEL[p.kind as string]).fontSize(13).fontColor('#2a2118')
+                    Text(PAPER_LABEL[p.kind as string]).fontSize(12).fontColor('#1a1a1a')
                       .margin({ top: 6 })
                       .hitTestBehavior(HitTestMode.None)
                   }
                   .layoutWeight(1).height(120)
                   .borderRadius(12)
-                  .backgroundColor('#efe2c9')
+                  .backgroundColor('#eee4ce')
                   .border({ width: this.paperKind === (p.kind as string) ? 2 : 0, color: '#c9a45c' })
                   .margin({ right: 10 })
                   .onClick(() => { this.onPickPaper(p.kind as string); })
@@ -173,7 +173,7 @@ export struct CustomizePage {
                 ForEach(RIBBONS, (r: RibbonSpec) => {
                   Text('')
                     .layoutWeight(1).height(48)
-                    .borderRadius(24)
+                    .borderRadius(28)
                     .backgroundColor(r.inkColor)
                     .border({ width: this.ribbonKind === (r.kind as string) ? 2 : 0, color: '#c9a45c' })
                     .margin({ right: 10 })
@@ -189,7 +189,7 @@ export struct CustomizePage {
             Column() {
               this.sectionTitle('字体')
               ForEach(this.groups(), (g: string) => {
-                Text(GROUP_LABEL[g]).fontSize(12).fontColor('rgba(232,221,201,0.5)')
+                Text(GROUP_LABEL[g]).fontSize(12).fontColor('rgba(232,221,201,0.6)')
                   .width('100%').margin({ top: 12, bottom: 6 })
                 ForEach(this.fontsOf(g), (f: FontSpec) => {
                   Row() {
@@ -200,14 +200,14 @@ export struct CustomizePage {
                     Text(f.familyName).fontSize(15).fontColor('rgba(232,221,201,0.75)')
                     Blank()
                     if (this.failedFonts.indexOf(f.familyName) >= 0) {
-                      Text('未加载').fontSize(12).fontColor('#c06a5a')
+                      Text('未加载').fontSize(12).fontColor('#a33327')
                     } else if (this.fontKind === (f.font as string)) {
                       Text('✓').fontSize(17).fontColor('#c9a45c')
                     }
                   }
                   .width('100%').height(52).borderRadius(12)
                   .padding({ left: 14, right: 14 })
-                  .backgroundColor(this.fontKind === (f.font as string) ? '#3c3026' : '#2a241f')
+                  .backgroundColor(this.fontKind === (f.font as string) ? '#2e2620' : '#241c16')
                   .margin({ bottom: 6 })
                   .onClick(() => { this.onPickFont(f.font as string); })
                 }, (f: FontSpec) => f.font as string)

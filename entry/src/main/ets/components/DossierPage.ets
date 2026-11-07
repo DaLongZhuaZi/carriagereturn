@@ -117,7 +117,7 @@ export struct DossierPage {
           .onClick(() => { this.onBack(); })
         Text('卷宗').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
         Blank()
-        Text('新建卷宗').fontSize(13).fontColor('#e8ddc9')
+        Text('新建卷宗').fontSize(12).fontColor('#e8ddc9')
           .padding({ left: 14, right: 14, top: 7, bottom: 7 })
           .borderRadius(28)
           .backgroundColor('#2e2620')
@@ -132,7 +132,7 @@ export struct DossierPage {
       if (this.dossiers.length === 0 && this.unfiledCount() === 0) {
         Column() {
           Text('还没有卷宗。新建一个，把纸装进去吧。')
-            .fontSize(13).fontColor('rgba(232,221,201,0.55)')
+            .fontSize(12).fontColor('rgba(232,221,201,0.6)')
           // P2-11：索引损坏并已备份时，空状态补一句
           if (dossierStore.isIndexCorrupted()) {
             Text('索引损坏，已备份。')
@@ -146,11 +146,11 @@ export struct DossierPage {
           if (this.unfiledCount() > 0 || this.dossiers.length === 0) {
           GridItem() {
             Column() {
-              Column().width('100%').height(140).borderRadius(8).backgroundColor('#cfc7b8')
+              Column().width('100%').height(140).borderRadius(8).backgroundColor('#eee4ce')
               Text('未归档').fontSize(15).fontColor('#e8ddc9').margin({ top: 8 })
                 .hitTestBehavior(HitTestMode.None)
               Text(this.unfiledCount().toString() + ' 张纸')
-                .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+                .fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 2 })
                 .hitTestBehavior(HitTestMode.None)
             }
             .width('100%')
@@ -168,7 +168,7 @@ export struct DossierPage {
                   .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                   .hitTestBehavior(HitTestMode.None)
                 Text(this.paperCount(d.id).toString() + ' 张纸 · 更新于 ' + this.dateText(d.updatedAt))
-                  .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+                  .fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 2 })
                   .hitTestBehavior(HitTestMode.None)
               }
               .width('100%')
@@ -205,22 +205,22 @@ export struct DossierPage {
         Column() {
           Text('新建卷宗').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
           TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
-            .fontSize(14).fontColor('#e8ddc9').margin({ top: 14 })
+            .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
             .onChange((v: string) => { this.draftName = v; })
           Row() {
             ForEach(['kraft', 'leather', 'manila', 'cloth'], (s: string) => {
               Image($rawfile(COVER_RAW[s]))
-                .width(60).height(40).borderRadius(6).objectFit(ImageFit.Cover)
+                .width(60).height(40).borderRadius(8).objectFit(ImageFit.Cover)
                 .border({ width: this.draftCover === s ? 2 : 0, color: '#c9a45c' })
                 .margin({ right: 10 })
                 .onClick(() => { this.draftCover = s; })
             }, (s: string) => s)
           }.margin({ top: 16 })
           Row() {
-            Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+            Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
               .onClick(() => { this.creating = false; })
             Blank()
-            Text('创建').fontSize(14).fontColor('#c9a45c')
+            Text('创建').fontSize(15).fontColor('#c9a45c')
               .onClick(() => {
                 const nm: string = this.draftName.length > 0 ? this.draftName : '未命名卷宗';
                 const d: Dossier = dossierStore.create(nm, this.draftCover as CoverStyle);
@@ -230,7 +230,7 @@ export struct DossierPage {
               })
           }.width('100%').margin({ top: 18 })
         }
-        .width(320).padding(20).borderRadius(14).backgroundColor('#211b16')
+        .width(320).padding(20).borderRadius(12).backgroundColor('#211b16')
       }
       .width('100%').height('100%')
       .justifyContent(FlexAlign.Center)

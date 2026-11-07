@@ -326,7 +326,7 @@ export struct DossierDetailPage {
               .id('hdr_cover')
               .width(110).height(74).borderRadius(8).objectFit(ImageFit.Cover)
           } else {
-            Column().id('hdr_cover').width(110).height(74).borderRadius(8).backgroundColor('#cfc7b8')
+            Column().id('hdr_cover').width(110).height(74).borderRadius(8).backgroundColor('#eee4ce')
           }
           Column() {
             Text(this.dName).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
@@ -337,14 +337,14 @@ export struct DossierDetailPage {
                 this.renaming = true;
               })
             Text(this.papers.length.toString() + ' 张纸')
-              .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+              .fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start).margin({ left: 14 }).layoutWeight(1)
 
-          Text('⋯').fontSize(20).fontColor('#e8ddc9')
+          Text('⋯').fontSize(18).fontColor('#e8ddc9')
             .width(36).height(36).textAlign(TextAlign.Center)
             .onClick(() => { this.confirmDel = true; })
-          Text('新建纸张').fontSize(13).fontColor('#e8ddc9')
+          Text('新建纸张').fontSize(12).fontColor('#e8ddc9')
             .padding({ left: 14, right: 14, top: 7, bottom: 7 })
             .borderRadius(28).backgroundColor('#2e2620')
             .margin({ left: 8 })
@@ -355,7 +355,7 @@ export struct DossierDetailPage {
         if (this.papers.length === 0) {
           Column() {
             Text('这里还没有纸。点右上角「新建纸张」放一张进来。')
-              .fontSize(13).fontColor('rgba(232,221,201,0.55)')
+              .fontSize(12).fontColor('rgba(232,221,201,0.6)')
           }
           .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
         } else {
@@ -368,7 +368,7 @@ export struct DossierDetailPage {
                     Image($rawfile(PAPER_RAW[p.paper.toString()]))
                       .width('100%').height(150).borderRadius(12).objectFit(ImageFit.Cover)
                     Text(this.previewText(p))
-                      .fontSize(9).fontColor('#2a2118')
+                      .fontSize(12).fontColor('#1a1a1a')
                       .fontFamily('CourierPrime, Noto Serif SC')
                       .maxLines(3).textOverflow({ overflow: TextOverflow.Clip })
                       .padding(10).width('100%')
@@ -382,14 +382,14 @@ export struct DossierDetailPage {
                   Text((p.charCount === undefined ? 0 : p.charCount).toString() + ' 字 · '
                     + (new Date(p.updatedAt).getMonth() + 1).toString() + ' 月 '
                     + new Date(p.updatedAt).getDate().toString() + ' 日')
-                    .fontSize(12).fontColor('rgba(232,221,201,0.55)').margin({ top: 2 })
+                    .fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 2 })
                   Row() {
                     Blank()
                     Text('打开').fontSize(12).fontColor('#c9a45c')
                       .id('open_' + p.id)
                       .onClick(() => { this.onOpenPaper(p.id); })
                     Text('·').fontSize(12).fontColor('rgba(232,221,201,0.4)').margin({ left: 6, right: 6 })
-                    Text('删除').fontSize(12).fontColor('rgba(232,221,201,0.55)')
+                    Text('删除').fontSize(12).fontColor('rgba(232,221,201,0.6)')
                       .id('del_' + p.id)
                       .onClick(() => { this.pendingDelPaper = p.id; })
                   }.width('100%').margin({ top: 6 })
@@ -436,21 +436,21 @@ export struct DossierDetailPage {
     if (this.confirmDel) {
       Column() {
         Column() {
-          Text('删除「' + this.dName + '」').fontSize(16).fontWeight(FontWeight.Bold)
+          Text('删除「' + this.dName + '」').fontSize(15).fontWeight(FontWeight.Bold)
             .fontColor('#e8ddc9')
           Text('卷宗里的 ' + this.papers.length.toString() + ' 张纸怎么办？')
-            .fontSize(13).fontColor('rgba(232,221,201,0.7)').margin({ top: 10 })
-          Text('移出卷宗（纸变未归档）').fontSize(14).fontColor('#c9a45c')
+            .fontSize(12).fontColor('rgba(232,221,201,0.75)').margin({ top: 10 })
+          Text('移出卷宗（纸变未归档）').fontSize(15).fontColor('#c9a45c')
             .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
             .onClick(() => { this.confirmDel = false; this.onDeleteDossier('unfile'); })
-          Text('连纸一起删').fontSize(14).fontColor('#c06a5a')
+          Text('连纸一起删').fontSize(15).fontColor('#a33327')
             .width('100%').textAlign(TextAlign.Center).margin({ top: 14 })
             .onClick(() => { this.confirmDel = false; this.onDeleteDossier('purge'); })
-          Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+          Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
             .onClick(() => { this.confirmDel = false; })
         }
-        .width(320).padding(20).borderRadius(14).backgroundColor('#211b16')
+        .width(320).padding(20).borderRadius(12).backgroundColor('#211b16')
       }
       .width('100%').height('100%').justifyContent(FlexAlign.Center)
       .backgroundColor('rgba(0,0,0,0.6)')
@@ -460,10 +460,10 @@ export struct DossierDetailPage {
       if (this.pendingDelPaper.length > 0) {
         Column() {
           Column() {
-            Text('删除这张纸？').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            Text('删除后不可恢复。').fontSize(13).fontColor('rgba(232,221,201,0.7)')
+            Text('删除这张纸？').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+            Text('删除后不可恢复。').fontSize(12).fontColor('rgba(232,221,201,0.75)')
               .margin({ top: 10 })
-            Text('删除').fontSize(14).fontColor('#c06a5a')
+            Text('删除').fontSize(15).fontColor('#a33327')
               .id('dlg_del')
               .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
               .onClick(() => {
@@ -471,12 +471,12 @@ export struct DossierDetailPage {
                 this.pendingDelPaper = '';
                 this.onDeletePaper(id);
               })
-            Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+            Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
               .id('dlg_cancel')
               .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
               .onClick(() => { this.pendingDelPaper = ''; })
           }
-          .width(300).padding(20).borderRadius(14).backgroundColor('#211b16')
+          .width(300).padding(20).borderRadius(12).backgroundColor('#211b16')
         }
         .width('100%').height('100%').justifyContent(FlexAlign.Center)
         .backgroundColor('rgba(0,0,0,0.6)')
@@ -486,15 +486,15 @@ export struct DossierDetailPage {
       if (this.renaming) {
         Column() {
           Column() {
-            Text('重命名卷宗').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+            Text('重命名卷宗').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
             TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
-              .fontSize(14).fontColor('#e8ddc9').margin({ top: 14 })
+              .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
               .onChange((v: string) => { this.draftName = v; })
             Row() {
-              Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
                 .onClick(() => { this.renaming = false; })
               Blank()
-              Text('保存').fontSize(14).fontColor('#c9a45c').id('rename_ok')
+              Text('保存').fontSize(15).fontColor('#c9a45c').id('rename_ok')
                 .onClick(() => {
                   const nm: string = this.draftName.length > 0 ? this.draftName : this.dName;
                   dossierStore.rename(this.dossierId, nm);
@@ -505,7 +505,7 @@ export struct DossierDetailPage {
                 })
             }.width('100%').margin({ top: 18 })
           }
-          .width(320).padding(20).borderRadius(14).backgroundColor('#211b16')
+          .width(320).padding(20).borderRadius(12).backgroundColor('#211b16')
         }
         .width('100%').height('100%').justifyContent(FlexAlign.Center)
         .backgroundColor('rgba(0,0,0,0.6)')
