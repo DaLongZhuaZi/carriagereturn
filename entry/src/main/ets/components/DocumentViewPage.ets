@@ -28,7 +28,8 @@ export struct DocumentViewPage {
   @State title: string = '';
   @State lines: string[] = [];
   @State dossierName: string = '';
-  @State paperKey: string = 'LETTER';
+  /** P2-7：默认值改 'letter'（PAPER_RAW 的键是小写，'LETTER' 查不到会回落成空图） */
+  @State paperKey: string = 'letter';
   @State dateText: string = '';
   onBack: () => void = (): void => {};
   onEdit: (id: string) => void = (): void => {};
@@ -55,7 +56,7 @@ export struct DocumentViewPage {
     this.lines = arr;
     this.title = arr.length > 0 && arr[0].length > 0 ? arr[0] : '未命名';
     const sum: DocSummary | null = this.findSummary();
-    this.paperKey = sum === null ? 'LETTER' : (sum.paper as string);
+    this.paperKey = sum === null ? 'letter' : (sum.paper as string);
     const ts: number = sum === null ? Date.now() : sum.updatedAt;
     const d: Date = new Date(ts);
     this.dateText = '写于 ' + (d.getMonth() + 1).toString() + ' 月 ' + d.getDate().toString() + ' 日';

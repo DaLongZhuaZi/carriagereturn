@@ -70,8 +70,11 @@ export struct DossierPage {
   }
 
   private colsTemplate(): string {
-    const usable: number = this.widthVp - 40;
-    const n: number = Math.floor((usable + 16) / 236);
+    // P2-16：三页列数除数统一为 260（卡片最小宽 260vp；236 会让三列在平板上挤成 3×窄卡）
+    // winW 是 onAreaChange 实测到的可用宽，优先用它；未测到（0）时回退 widthVp
+    const w: number = this.winW > 0 ? this.winW : this.widthVp;
+    const usable: number = w - 40;
+    const n: number = Math.floor((usable + 16) / 260);
     const c: number = n < 2 ? 2 : (n > 4 ? 4 : n);
     if (c === 2) { return '1fr 1fr'; }
     if (c === 3) { return '1fr 1fr 1fr'; }
@@ -134,6 +137,8 @@ export struct DossierPage {
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
         Grid() {
+          // P2-15：没有未归档纸且已有卷宗时不渲染「未归档」格
+          if (this.unfiledCount() > 0 || this.dossiers.length === 0) {
           GridItem() {
             Column() {
               Column().width('100%').height(140).borderRadius(8).backgroundColor('#cfc7b8')
@@ -147,6 +152,7 @@ export struct DossierPage {
             .opacity(this.revealN > 0 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })
             .onClick(() => { this.onOpenDossier(''); })
+          }
           }
           ForEach(this.dossiers, (d: Dossier, idx: number) => {
             GridItem() {

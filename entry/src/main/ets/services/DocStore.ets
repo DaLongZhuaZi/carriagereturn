@@ -91,7 +91,9 @@ export class DocStore {
       return id;
     }
     this.ensureDirs();
-    const docId: string = id.length > 0 ? id : 'doc-' + Date.now();
+    // P2-10：新 id 加随机后缀，避免同一毫秒内连续新建撞号（同 DossierStore 的做法）
+    const docId: string = id.length > 0 ? id
+      : 'doc-' + Date.now().toString() + '-' + Math.floor(Math.random() * 100000).toString();
     this.writeText(this.docPath(docId), JSON.stringify(data));
 
     // 纯文本与 JSON 成对保存（内容可再编辑，绝不只存图片）。

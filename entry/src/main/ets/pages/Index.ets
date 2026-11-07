@@ -1894,38 +1894,6 @@ struct Index {
         })
       }
 
-      // 文档视图（§5.3）：占位块（真正的渲染已移到卷宗内页之后，保证盖在内页之上）
-      if (false && this.dossierOpen && this.openDocId.length > 0) {
-        DocumentViewPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
-          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          docId: this.openDocId,
-          onBack: (): void => { this.openDocId = ''; },
-          onEdit: (id: string): void => {
-            this.openDocId = '';
-            this.dossierOpen = false;
-            this.detailOpen = false;
-            this.loadDocument(id);
-          },
-          onDelete: (id: string): void => {
-            docStore.remove(id);
-            this.openDocId = '';
-            this.docsRev = this.docsRev + 1;
-          },
-          onAddPage: (id: string): void => {
-            // P1-5：文档末尾加一行并落盘
-            const data: DocData | null = docStore.load(id);
-            if (data !== null) {
-              data.lines.push({ text: '', ribbon: this.ribbon });
-              docStore.save(id, data, '未命名');
-              this.docsRev = this.docsRev + 1;
-              hilog.info(DOMAIN, TAG, 'addPage id=%{public}s lines=%{public}s',
-                id, data.lines.length.toString());
-            }
-          },
-        })
-      }
-
       // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
       if (this.settingsOpen) {
         SettingsPage({
