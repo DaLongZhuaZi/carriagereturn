@@ -1921,6 +1921,8 @@ struct Index {
           onDeletePaper: (id: string): void => {
             docStore.remove(id);
             this.docsRev = this.docsRev + 1;
+            hilog.info(DOMAIN, TAG, 'paperDeleted id=%{public}s rev=%{public}s',
+              id, this.docsRev.toString());
           },
         })
       }

@@ -356,9 +356,11 @@ export struct DossierDetailPage {
                   Row() {
                     Blank()
                     Text('打开').fontSize(12).fontColor('#c9a45c')
+                      .id('open_' + p.id)
                       .onClick(() => { this.onOpenPaper(p.id); })
                     Text('·').fontSize(12).fontColor('rgba(232,221,201,0.4)').margin({ left: 6, right: 6 })
                     Text('删除').fontSize(12).fontColor('rgba(232,221,201,0.55)')
+                      .id('del_' + p.id)
                       .onClick(() => { this.pendingDelPaper = p.id; })
                   }.width('100%').margin({ top: 6 })
                 }
