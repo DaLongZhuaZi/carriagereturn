@@ -18,9 +18,9 @@ const M_NAME: Record<string, string> = {
 
 const M_COND: Record<string, string> = {
   '1920s-upright': '默认机器',
-  '1930s-portable': '连续 7 天 + 分享 3 次',
-  '1950s-streamlined': '累计 5,000 字',
-  '1960s-electric': '换过字体与色带',
+  '1930s-portable': '换过字体与色带 + 半开折叠打字 1 次',
+  '1950s-streamlined': '累计 5,000 字 + 用过 2 种纸',
+  '1960s-electric': '连续 7 天 + 导出分享 3 次',
 };
 
 @Component
@@ -31,6 +31,8 @@ export struct CollectionPage {
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   @State revealN: number = 0;
+  /** P1-9：锁定态提示文案（空＝不显示）。 */
+  @State hintText: string = '';
   onBack: () => void = (): void => {};
   onPick: (kind: string) => void = (): void => {};
 
@@ -120,8 +122,12 @@ export struct CollectionPage {
     .opacity(this.revealN > idx ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .onClick(() => {
+      // P1-9：锁定态弹条件提示（文案就是卡片上那行）；已解锁才进详情
       if (this.unlocked(kind)) {
         this.onPick(kind);
+      } else {
+        const c: string | undefined = M_COND[kind];
+        this.hintText = c === undefined ? '' : c;
       }
     })
   }
@@ -154,6 +160,17 @@ export struct CollectionPage {
         .margin({ bottom: this.bottomInset })
       }
       .width('100%').height('100%')
+
+      // P1-9：锁定提示条（与解锁提示条同样式），点一下即消失
+      if (this.hintText.length > 0) {
+        Row() {
+          Text(this.hintText).fontSize(13).fontColor('#e8ddc9')
+        }
+        .padding({ left: 18, right: 18, top: 12, bottom: 12 })
+        .borderRadius(10).backgroundColor('rgba(46,38,32,0.96)')
+        .position({ x: 20, y: this.heightVp - this.bottomInset - 76 })
+        .onClick(() => { this.hintText = ''; })
+      }
     }
     .width(this.widthVp).height(this.heightVp)
     .linearGradient({ direction: GradientDirection.Bottom,
