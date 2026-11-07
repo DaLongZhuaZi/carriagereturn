@@ -82,6 +82,7 @@ export struct ExportPage {
                 .width('100%').padding({ left: 22, right: 22, top: 26 })
                 .maxLines(16).textOverflow({ overflow: TextOverflow.Clip })
             }
+            .id('export_preview')
             .width('100%').height(480).clip(true).borderRadius(12)
             .opacity(this.previewOp)
             .animation({ duration: 200, curve: Curve.EaseOut })

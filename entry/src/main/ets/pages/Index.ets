@@ -12,6 +12,7 @@ import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
 import { fileIo as fs } from '@kit.CoreFileKit';
+import { image } from '@kit.ImageKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
@@ -1932,7 +1933,34 @@ struct Index {
               } catch (e) {
                 hilog.error(DOMAIN, TAG, 'export txt failed');
               }
-            } else if (format === '版本' || format === 'PDF') {
+            } else if (format === '图片') {
+              // §6.2：图片＝所见即所得离屏渲染（点击时抓，不在构建期）
+              const host = this.getUIContext().getHostContext();
+              const dir: string = host === undefined || host === null ? ''
+                : (host as common.Context).filesDir;
+              if (dir.length > 0) {
+                const p: string = dir + '/export-' + Date.now().toString() + '.png';
+                this.getUIContext().getComponentSnapshot().get('export_preview')
+                  .then((pm: image.PixelMap) => {
+                    const packer: image.ImagePacker = image.createImagePacker();
+                    packer.packToData(pm, { format: 'image/png', quality: 100 })
+                      .then((buf: ArrayBuffer) => {
+                        try {
+                          const f: fs.File = fs.openSync(p,
+                            fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+                          fs.writeSync(f.fd, buf);
+                          fs.closeSync(f);
+                          hilog.info(DOMAIN, TAG, 'export png ok path=%{public}s bytes=%{public}s',
+                            p, buf.byteLength.toString());
+                        } catch (e2) {
+                          hilog.error(DOMAIN, TAG, 'export png write failed');
+                        }
+                      })
+                      .catch(() => { hilog.error(DOMAIN, TAG, 'export png pack failed'); });
+                  })
+                  .catch(() => { hilog.error(DOMAIN, TAG, 'export png snapshot failed'); });
+              }
+            } else {
               hilog.warn(DOMAIN, TAG, 'export %{public}s not implemented yet', format);
             }
           },
