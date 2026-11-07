@@ -9,15 +9,12 @@
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
-const M_INFO: Record<string, string> = {
-  '1920s-upright': '1920 年代直立式打字机：字杆篮在纸前扇形展开，每击一次抬起一根字杆，' +
-    '经色带撞纸落墨。机身以木座承重，滚筒横置于纸后，换行时整条滚轮随字车滑回。',
-  '1930s-portable': '1930 年代便携式：机身收进手提箱，字杆与键位被压缩到更紧凑的布局，' +
-    '是记者与旅行作家随身的写作工具。',
-  '1950s-streamlined': '1950 年代流线型：外壳改用一体成型的圆润金属，色彩取代了此前的黑与灰，' +
-    '把打字机从办公器具变成了客厅里的物件。',
-  '1960s-electric': '1960 年代电动式：以电机驱动字杆与滚筒，击键只需触发电路，' +
-    '手感由机械阻力变为轻盈的回弹，是打字机时代最后的形态。',
+// P2-5：史实文字走 string.json
+const M_INFO: Record<string, Resource> = {
+  '1920s-upright': $r('app.string.machine_info_1920s'),
+  '1930s-portable': $r('app.string.machine_info_1930s'),
+  '1950s-streamlined': $r('app.string.machine_info_1950s'),
+  '1960s-electric': $r('app.string.machine_info_1960s'),
 };
 
 @Component

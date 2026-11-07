@@ -9,18 +9,19 @@ import { MachineKind } from '../model/DocModel';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
-const M_NAME: Record<string, string> = {
-  '1920s-upright': '1920s 直立式',
-  '1930s-portable': '1930s 便携式',
-  '1950s-streamlined': '1950s 流线型',
-  '1960s-electric': '1960s 电动式',
+// P2-5：文案全部走 resources/base/element/string.json，代码只读资源
+const M_NAME: Record<string, Resource> = {
+  '1920s-upright': $r('app.string.machine_name_1920s'),
+  '1930s-portable': $r('app.string.machine_name_1930s'),
+  '1950s-streamlined': $r('app.string.machine_name_1950s'),
+  '1960s-electric': $r('app.string.machine_name_1960s'),
 };
 
-const M_COND: Record<string, string> = {
-  '1920s-upright': '默认机器',
-  '1930s-portable': '换过字体与色带 + 半开折叠打字 1 次',
-  '1950s-streamlined': '累计 5,000 字 + 用过 2 种纸',
-  '1960s-electric': '连续 7 天 + 导出分享 3 次',
+const M_COND: Record<string, Resource> = {
+  '1920s-upright': $r('app.string.machine_cond_1920s'),
+  '1930s-portable': $r('app.string.machine_cond_1930s'),
+  '1950s-streamlined': $r('app.string.machine_cond_1950s'),
+  '1960s-electric': $r('app.string.machine_cond_1960s'),
 };
 
 @Component
@@ -32,7 +33,7 @@ export struct CollectionPage {
   @State bottomInset: number = 0;
   @State revealN: number = 0;
   /** P1-9：锁定态提示文案（空＝不显示）。 */
-  @State hintText: string = '';
+  @State hintText: Resource | null = null;
   onBack: () => void = (): void => {};
   onPick: (kind: string) => void = (): void => {};
 
@@ -123,8 +124,8 @@ export struct CollectionPage {
       if (this.unlocked(kind)) {
         this.onPick(kind);
       } else {
-        const c: string | undefined = M_COND[kind];
-        this.hintText = c === undefined ? '' : c;
+        const c: Resource | undefined = M_COND[kind];
+        this.hintText = c === undefined ? null : c;
       }
     })
   }
@@ -159,14 +160,14 @@ export struct CollectionPage {
       .width('100%').height('100%')
 
       // P1-9：锁定提示条（与解锁提示条同样式），点一下即消失
-      if (this.hintText.length > 0) {
+      if (this.hintText !== null) {
         Row() {
           Text(this.hintText).fontSize(13).fontColor('#e8ddc9')
         }
         .padding({ left: 18, right: 18, top: 12, bottom: 12 })
         .borderRadius(10).backgroundColor('rgba(46,38,32,0.96)')
         .position({ x: 20, y: this.heightVp - this.bottomInset - 76 })
-        .onClick(() => { this.hintText = ''; })
+        .onClick(() => { this.hintText = null; })
       }
     }
     .width(this.widthVp).height(this.heightVp)

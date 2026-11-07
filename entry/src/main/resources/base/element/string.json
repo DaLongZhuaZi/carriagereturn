@@ -83,6 +83,66 @@
     {
       "name": "paper_memo",
       "value": "便签"
+    },
+    {
+      "name": "machine_name_1920s",
+      "value": "1920s 直立式"
+    },
+    {
+      "name": "machine_name_1930s",
+      "value": "1930s 便携式"
+    },
+    {
+      "name": "machine_name_1950s",
+      "value": "1950s 流线型"
+    },
+    {
+      "name": "machine_name_1960s",
+      "value": "1960s 电动式"
+    },
+    {
+      "name": "machine_cond_1920s",
+      "value": "默认机器"
+    },
+    {
+      "name": "machine_cond_1930s",
+      "value": "换过字体与色带 + 半开折叠打字 1 次"
+    },
+    {
+      "name": "machine_cond_1950s",
+      "value": "累计 5,000 字 + 用过 2 种纸"
+    },
+    {
+      "name": "machine_cond_1960s",
+      "value": "连续 7 天 + 导出分享 3 次"
+    },
+    {
+      "name": "machine_info_1920s",
+      "value": "1920 年代直立式打字机：字杆篮在纸前扇形展开，每击一次抬起一根字杆，经色带撞纸落墨。机身以木座承重，滚筒横置于纸后，换行时整条滚轮随字车滑回。"
+    },
+    {
+      "name": "machine_info_1930s",
+      "value": "1930 年代便携式：机身收进手提箱，字杆与键位被压缩到更紧凑的布局，是记者与旅行作家随身的写作工具。"
+    },
+    {
+      "name": "machine_info_1950s",
+      "value": "1950 年代流线型：外壳改用一体成型的圆润金属，色彩取代了此前的黑与灰，把打字机从办公器具变成了客厅里的物件。"
+    },
+    {
+      "name": "machine_info_1960s",
+      "value": "1960 年代电动式：以电机驱动字杆与滚筒，击键只需触发电路，手感由机械阻力变为轻盈的回弹，是打字机时代最后的形态。"
+    },
+    {
+      "name": "font_group_english",
+      "value": "英文打字机体"
+    },
+    {
+      "name": "font_group_chinese",
+      "value": "中文宋体／楷体／仿宋"
+    },
+    {
+      "name": "font_group_handwriting",
+      "value": "手写体"
     }
   ]
 }

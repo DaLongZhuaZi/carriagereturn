@@ -21,8 +21,11 @@ const PAPER_LABEL: Record<string, string> = {
   'letter': '信纸', 'manuscript': '稿纸', 'postcard': '明信片', 'memo': '便签',
 };
 
-const GROUP_LABEL: Record<string, string> = {
-  'english': '英文打字机体', 'chinese': '中文 宋体 / 楷体 / 仿宋', 'handwriting': '手写体',
+// P2-5：分组标题走 string.json
+const GROUP_LABEL: Record<string, Resource> = {
+  'english': $r('app.string.font_group_english'),
+  'chinese': $r('app.string.font_group_chinese'),
+  'handwriting': $r('app.string.font_group_handwriting'),
 };
 
 @Component
