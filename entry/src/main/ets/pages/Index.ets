@@ -217,6 +217,8 @@ struct Index {
   /** 中文预编辑串（只显示，不进模型）。 */
   @State cnPreview: string = '';
   /** 中文整词拆单字的 FIFO 队列与出队定时器。 */
+  /** 字杆层是否可见（当前 Index 里该层被 `if (false && …)` 隐藏，拼装期；加回时置 true） */
+  private leverEnabled: boolean = false;
   /** 非 1920s 机的落字起搏器（§14.3 第 2 条） */
   private pacerTimer: number = -1;
   /** 队首字兜底看门狗（§14.3 第 3 条） */
@@ -1785,7 +1787,9 @@ struct Index {
 
   private queueChar(ch: string): void {
     this.pendingChars.push(ch);
-    if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+    // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
+    // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
+    if (this.leverEnabled && this.machineKind === MachineKind.UPRIGHT_1920S) {
       // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）
       this.strikeTick = this.strikeTick + 1;
     } else {
@@ -1862,8 +1866,19 @@ struct Index {
       this.fastCount += fast ? 1 : 0;
     }
     this.soundCount += 1;
+    const prevMs: number = this.lastArriveMs;
     this.lastArriveMs = Date.now();
+    if (prevMs > 0) {
+      this.arriveGapSumMs += this.lastArriveMs - prevMs;
+      this.arriveGapCount += 1;
+    }
+    this.arriveCount += 1;
     this.flushPending();
+    const avg: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
+    hilog.info(DOMAIN, TAG,
+      'land metrics lands=%{public}s avgGap=%{public}sms queue=%{public}s dropped=%{public}s sounds=%{public}s ch=%{public}s',
+      this.arriveCount.toString(), avg.toFixed(1), this.pendingChars.length.toString(),
+      this.droppedTicks.toString(), this.soundCount.toString(), head);
   }
 
   private flushPending(): void {
