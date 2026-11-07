@@ -18,7 +18,7 @@ import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { CorrectionMode, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
+import { CorrectionMode, DocLine, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
 import {
   CARRIAGE_PAPER_OVERLAP_VP, DEFAULT_FONT, DEFAULT_MACHINE, DEFAULT_PAPER, DEFAULT_RIBBON,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP, PAPER_TOP_GAP_VP, TOP_BAR_HEIGHT_VP,
@@ -1201,11 +1201,67 @@ struct Index {
     return w;
   }
 
+  /**
+   * §12.2 第 2 条：删后若某逻辑行超纸宽，按纸宽断成多行，恢复不变量「逻辑行不超纸宽」。
+   * 光标落到合并点所在那一段的末尾。宽度口径与 commitChar 的位置触发同源（charWidthVp）。
+   */
+  private rewrapOverwideLines(lineIdx: number, mergeAt: number): boolean {
+    const lines: DocLine[] = this.docModel.getLines();
+    if (lineIdx < 0 || lineIdx >= lines.length) {
+      return false;
+    }
+    const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
+    let idx: number = lineIdx;
+    let cursorLine: number = this.docModel.getCursor().line;
+    let cursorOffset: number = this.docModel.getCursor().offset;
+    let changed: boolean = false;
+    let guard: number = 0;
+    while (guard < 64 && idx < lines.length) {
+      const cur: DocLine = lines[idx];
+      let acc: number = 0;
+      let cut: number = -1;
+      for (let i = 0; i < cur.text.length; i++) {
+        const w: number = this.charWidthVp(cur.text.charAt(i));
+        if (acc + w > usable + 0.5) {
+          cut = i;
+          break;
+        }
+        acc += w;
+      }
+      if (cut < 0) {
+        break;
+      }
+      const tail: string = cur.text.substring(cut);
+      cur.text = cur.text.substring(0, cut);
+      const created: DocLine = { text: tail, ribbon: cur.ribbon };
+      lines.splice(idx + 1, 0, created);
+      changed = true;
+      if (cursorLine === idx && cursorOffset > cut) {
+        cursorLine = idx + 1;
+        cursorOffset = cursorOffset - cut;
+      } else if (cursorLine > idx) {
+        cursorLine = cursorLine + 1;
+      }
+      idx = idx + 1;
+      guard = guard + 1;
+    }
+    if (changed) {
+      this.docModel.setCursor({ line: cursorLine, offset: cursorOffset });
+      hilog.info(DOMAIN, TAG, 'rewrap from line=%{public}s mergeAt=%{public}s -> cursor=%{public}s/%{public}s',
+        lineIdx.toString(), mergeAt.toString(), cursorLine.toString(), cursorOffset.toString());
+    }
+    return changed;
+  }
+
   /** 行宽只认舞台宽（§2.5）。 */
   private charsPerLine(): number {
     // 可用行宽 = 纸宽 − 2×28vp（不用舞台宽）
     const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
-    const n: number = Math.floor(usable / (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp));
+    // §12.2 第 3 条：中文按 CJK 字宽算（约 16 字/行），英文按英文字宽（约 26 字/行）
+    const unit: number = this.langZh
+      ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
+      : (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp);
+    const n: number = Math.floor(usable / unit);
     return n > 6 ? n : 6;
   }
 
@@ -1607,6 +1663,11 @@ struct Index {
   private onDelete(): void {
     this.audioService.playBackspace();
     this.audioService.vibrate();
+    // 诊断：删除前后的光标行／总行数／纸顶
+    const c0 = this.docModel.getCursor();
+    const linesBefore: number = this.docModel.getLines().length;
+    hilog.info(DOMAIN, TAG, 'del before line=%{public}s lines=%{public}s paperTop=%{public}s',
+      c0.line.toString(), linesBefore.toString(), this.paperTopVp.toFixed(1));
     if (this.correctionMode === CorrectionMode.OVERWRITE) {
       const o2 = this.docModel.overwriteBack();
       if (o2.changed) {
@@ -1625,6 +1686,18 @@ struct Index {
       this.stepCarriageRight();
       // 删除后推一次光标矩形，候选窗跟上
       this.pushCnCursor();
+      // §12.2 第 2／3 条：行数变了 → 合并行重排 + 纸顶重算（与 onBackLine 同口径，纸滑不跳变）
+      if (this.docModel.getLines().length !== linesBefore) {
+        const cm = this.docModel.getCursor();
+        if (this.rewrapOverwideLines(cm.line, cm.offset)) {
+          this.syncRows();
+        }
+        this.paperAnimateNext = true;
+        this.recalcPaperHeight();
+      }
+      const c1 = this.docModel.getCursor();
+      hilog.info(DOMAIN, TAG, 'del after line=%{public}s lines=%{public}s paperTop=%{public}s',
+        c1.line.toString(), this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1));
     }
   }
 
