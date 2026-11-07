@@ -504,6 +504,8 @@ struct Index {
   private applyMachine(kind: MachineKind): void {
     this.machineKind = kind;
     this.docModel.setMachine(kind);
+    // P0-4：机器变了就重解析键位表，不管尺寸变没变
+    this.reloadKeymap();
     this.fadeSwitch();
   }
 
@@ -1386,6 +1388,11 @@ struct Index {
     this.recalcPaperHeight();
     // 私有 docModel 不是 @State：借 docsRev 触发一次重建，纸面才会换成新文档
     this.docsRev = this.docsRev + 1;
+    // P0-4：纸张记录的机器可能与本机不同，加载后必须重解析键位表
+    this.reloadKeymap();
+    // P0-3 断言：加载后归属必须还在（否则下一次保存会把它变未归档）
+    hilog.info(DOMAIN, TAG, 'dossierAssert load id=%{public}s dossierId=%{public}s',
+      id, this.docModel.getDossierId() === null ? 'null' : this.docModel.getDossierId());
     hilog.info(DOMAIN, TAG, 'loadDocument id=%{public}s rows=%{public}s',
       id, this.docModel.getLines().length.toString());
   }

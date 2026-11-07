@@ -47,13 +47,24 @@ export class DocModel {
   private meta: DocMeta = emptyDoc().meta;
   /** 已响过预告铃的行号，避免同一行反复响。 */
   private bellRungLines: Set<number> = new Set<number>();
+  /** P0-3：所属卷宗 id（null＝未归档）。构造接住、toDocData 带回，否则存盘时丢归属。 */
+  private dossierId: string | null = null;
 
   constructor(data?: DocData) {
     if (data !== undefined) {
       this.lines = data.lines.length > 0 ? data.lines : [{ text: '', ribbon: DEFAULT_RIBBON }];
       this.cursorPos = this.clampCursor(data.cursor);
       this.meta = data.meta;
+      this.dossierId = data.dossierId === undefined ? null : data.dossierId;
     }
+  }
+
+  getDossierId(): string | null {
+    return this.dossierId;
+  }
+
+  setDossierId(id: string | null): void {
+    this.dossierId = id;
   }
 
   getLines(): DocLine[] {
@@ -205,7 +216,7 @@ export class DocModel {
 
   /** 导出为可落盘 DocData。 */
   toDocData(): DocData {
-    return { lines: this.lines, cursor: this.cursorPos, meta: this.meta };
+    return { lines: this.lines, cursor: this.cursorPos, meta: this.meta, dossierId: this.dossierId };
   }
 
   /** 纯文本视图：行与行用换行相连，末尾补一个换行。 */
