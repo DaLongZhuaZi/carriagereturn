@@ -5,7 +5,7 @@
  * 底部全宽「分享」按钮（高 80vp、圆角 16、底距 = bottomInset）；底部小字「导出不加水印。」
  */
 
-import { applyImmersive, Insets } from '../services/Immersive';
+import { PageShell } from './PageShell';
 import { DocData } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { hilog } from '@kit.PerformanceAnalysisKit';
@@ -21,8 +21,7 @@ export struct ExportPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop docId: string = '';
-  @State topInset: number = 28;
-  @State bottomInset: number = 0;
+
   @State picked: number = -1;
   @State previewOp: number = 0;
   @State rowN: number = 0;
@@ -31,21 +30,13 @@ export struct ExportPage {
   onShare: (format: string) => void = (): void => {};
 
   aboutToAppear(): void {
-    this.applyInsets();
+    // insets 交给 PageShell；入场按 D6：预览 200ms，三行间隔 60ms
     this.previewOp = 0;
     this.rowN = 0;
     setTimeout(() => { this.previewOp = 1; }, 30);
     for (let i = 0; i < 3; i++) {
-      setTimeout(() => { this.rowN = i + 1; }, 200 + i * 80);
+      setTimeout(() => { this.rowN = i + 1; }, 200 + i * 60);
     }
-  }
-
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'Export', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   private bodyText(): string {
@@ -60,18 +51,9 @@ export struct ExportPage {
     return parts.join('\n');
   }
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        Column().width('100%').height(this.topInset)
-        Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
-          Text('导出').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            .margin({ left: 4 })
-        }.width('100%').padding({ left: 12, top: 6, bottom: 6 })
-
+  @Builder
+  body() {
+    Column() {
         Scroll() {
           Column() {
             // 纸面预览：当前文档第一页（不可点、不可编辑）
@@ -126,13 +108,18 @@ export struct ExportPage {
         Text('导出不加水印。')
           .fontSize(12).fontColor('rgba(232,221,201,0.4)')
           .width('100%').textAlign(TextAlign.Center)
-          .margin({ top: 8, bottom: this.bottomInset + 8 })
-      }
-      .width('100%').height('100%')
+          .margin({ top: 8, bottom: 8 })
     }
-    .width(this.widthVp).height(this.heightVp)
-    .linearGradient({ direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]] })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .width('100%').height('100%')
+  }
+
+  build() {
+    PageShell({
+      widthVp: this.widthVp,
+      heightVp: this.heightVp,
+      title: '导出',
+      onBack: () => { this.onBack(); },
+      content: (): void => { this.body() },
+    })
   }
 }

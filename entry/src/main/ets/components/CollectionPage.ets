@@ -6,7 +6,8 @@
  */
 
 import { MachineKind } from '../model/DocModel';
-import { applyImmersive, Insets } from '../services/Immersive';
+import { PageShell } from './PageShell';
+import { HintBar } from './HintBar';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 // P2-5：文案全部走 resources/base/element/string.json，代码只读资源
@@ -29,11 +30,12 @@ export struct CollectionPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop currentMachine: string = '1920s-upright';
-  @State topInset: number = 28;
-  @State bottomInset: number = 0;
+
   @State revealN: number = 0;
   /** P1-9：锁定态提示文案（空＝不显示）。 */
   @State hintText: Resource | null = null;
+  /** D3：提示条触发计数（每次 +1 让 HintBar 重新下滑）。 */
+  @State hintNonce: number = 0;
   /** P2-14：点按缩放反馈（0.97／120ms）。 */
   @State pressedIdx: number = -1;
   onBack: () => void = (): void => {};
@@ -42,20 +44,11 @@ export struct CollectionPage {
   private readonly kinds: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric'];
 
   aboutToAppear(): void {
-    this.applyInsets();
-    // P2-13：先归零再逐格揭示（同 DossierPage.runReveal），避免二次进入时不重播
+    // insets 交给 PageShell；D6：60ms 逐格揭示
     this.revealN = 0;
     for (let i = 0; i < this.kinds.length; i++) {
       setTimeout(() => { this.revealN = i + 1; }, i * 60);
     }
-  }
-
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'Collection', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   /** 解锁判定：目前只有 1920s 默认解锁（其余解锁条件未实现，按锁定渲染）。 */
@@ -139,23 +132,13 @@ export struct CollectionPage {
       } else {
         const c: Resource | undefined = M_COND[kind];
         this.hintText = c === undefined ? null : c;
+        this.hintNonce = this.hintNonce + 1;
       }
     })
   }
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        // §2.10：顶栏顶距 = topInset
-        Column().width('100%').height(this.topInset)
-        Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
-          Text('收藏').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            .margin({ left: 4 })
-        }.width('100%').padding({ left: 12, top: 6, bottom: 6 })
-
+  @Builder
+  body() {
         Grid() {
           ForEach(this.kinds, (k: string, idx: number) => {
             GridItem() {
@@ -167,27 +150,25 @@ export struct CollectionPage {
         .columnsGap(16).rowsGap(16)
         .width('100%').layoutWeight(1)
         .padding({ left: 20, right: 20 })
-        // §2.10：网格底距 = bottomInset
-        .margin({ bottom: this.bottomInset })
-      }
-      .width('100%').height('100%')
+  }
 
-      // P1-9：锁定提示条（与解锁提示条同样式），点一下即消失
-      if (this.hintText !== null) {
-        Row() {
-          // P1-9：提示条专属 id，便于与卡片条件行区分（两者文案相同）
-          Text(this.hintText).fontSize(12).fontColor('#e8ddc9')
-        }
-        .id('lock_hint')
-        .padding({ left: 18, right: 18, top: 12, bottom: 12 })
-        .borderRadius(10).backgroundColor('rgba(46,38,32,0.96)')
-        .position({ x: 20, y: this.heightVp - this.bottomInset - 76 })
-        .onClick(() => { this.hintText = null; })
-      }
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      PageShell({
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        title: '收藏',
+        onBack: () => { this.onBack(); },
+        content: (): void => { this.body() },
+      })
+      // D3：锁定提示改顶部下滑条（3 秒自动消失、点按关闭）
+      HintBar({
+        text: this.hintText === null ? '' : this.hintText,
+        nonce: this.hintNonce,
+        topInset: 44,
+        onDismiss: () => { this.hintText = null; },
+      })
     }
     .width(this.widthVp).height(this.heightVp)
-    .linearGradient({ direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]] })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

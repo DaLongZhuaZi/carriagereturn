@@ -6,7 +6,8 @@
 
 @Component
 export struct HintBar {
-  @Prop text: string = '';
+  @Prop @Watch('onNonce') text: ResourceStr = '';
+  @Prop @Watch('onNonce') nonce: number = 0;
   @Prop topInset: number = 28;
   @State shown: boolean = false;
   @State ty: number = -60;
@@ -14,7 +15,13 @@ export struct HintBar {
   private timer: number = -1;
 
   aboutToAppear(): void {
-    if (this.text.length > 0) {
+    if (this.nonce > 0) {
+      this.play();
+    }
+  }
+
+  onNonce(): void {
+    if (this.nonce > 0) {
       this.play();
     }
   }
