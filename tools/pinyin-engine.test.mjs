@@ -140,3 +140,25 @@ test('§11.4 我的词库：推导拼音 + 置顶 + 可查', () => {
   const c = engine.candidates(py, 5);
   assert.equal(c[0].text, '大龙爪子');
 });
+test('§11.2 学习：按用户打的整串置顶（模拟 pinyinPick 路径）', () => {
+  const e2 = PinyinEngine.fromData({ chars, words });
+  const s2 = new PinyinSession(e2);
+  for (const ch of 'nihao') s2.typeLetter(ch);
+  const typed = s2.getBuffer();
+  const c0 = s2.currentCandidates(9);
+  assert.equal(c0[0].text, '你好');
+  const pick = c0[1];
+  e2.learnWord(typed, pick.text);
+  const c1 = e2.candidates('nihao', 9);
+  assert.equal(c1[0].text, pick.text, '选过的词应置顶');
+});
+
+test('§11.2 学习记录可导出（模拟落盘再载入）', () => {
+  const e3 = PinyinEngine.fromData({ chars, words });
+  e3.learnWord('nihao', '泥');
+  const dump = e3.exportLearn();
+  assert.equal(dump['nihao']['泥'], 1);
+  const e4 = PinyinEngine.fromData({ chars, words });
+  e4.setLearnData(dump);
+  assert.equal(e4.candidates('nihao', 9)[0].text, '泥', '载入后仍置顶');
+});

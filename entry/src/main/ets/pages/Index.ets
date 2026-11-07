@@ -1507,10 +1507,12 @@ struct Index {
       return;
     }
     const c: Candidate = this.candAll[abs];
+    // 学习键＝用户此刻打的整串（不是候选消费的短前缀），这样「再打同一拼音」能命中
+    const typedBuf: string = this.pinyinSession.getBuffer();
     const r: PickResult = this.pinyinSession.pick(c);
     // §11.2 学习：记 (拼音串, 词, 次数)，节流落盘（每 10 次）
     if (this.pinyinEngine !== null && r.text.length > 0) {
-      this.pinyinEngine.learnWord(c.pinyin, r.text);
+      this.pinyinEngine.learnWord(typedBuf.length > 0 ? typedBuf : c.pinyin, r.text);
       this.cnPickCount = this.cnPickCount + 1;
       if (this.cnPickCount % 10 === 0) {
         this.saveLearn();
