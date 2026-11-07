@@ -41,6 +41,8 @@ export struct CustomizePage {
   @State revealN: number = 0;
   /** P1-4：注册失败的字体族名（行上标「未加载」，不许静默回落）。 */
   @Prop failedFonts: string[] = [];
+  /** P2-14：点按缩放反馈（0.95／100ms）。 */
+  @State pressedKey: string = '';
   onBack: () => void = (): void => {};
   onPickMachine: (k: string) => void = (): void => {};
   onPickPaper: (k: string) => void = (): void => {};
@@ -114,6 +116,17 @@ export struct CustomizePage {
                       ? '#bea05a'
                       : (this.unlockedMachine(m.kind as string) ? '#3c3026' : '#2a241f'))
                     .opacity(this.unlockedMachine(m.kind as string) ? 1 : 0.55)
+                    .scale({ x: this.pressedKey === (m.kind as string) ? 0.95 : 1,
+                      y: this.pressedKey === (m.kind as string) ? 0.95 : 1 })
+                    .animation({ duration: 100, curve: Curve.EaseOut })
+                    .onTouch((e: TouchEvent) => {
+                      const k: string = m.kind as string;
+                      if (e.type === TouchType.Down) {
+                        this.pressedKey = k;
+                      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+                        this.pressedKey = '';
+                      }
+                    })
                     .margin({ right: 10 })
                     .onClick(() => {
                       if (this.unlockedMachine(m.kind as string)) {
