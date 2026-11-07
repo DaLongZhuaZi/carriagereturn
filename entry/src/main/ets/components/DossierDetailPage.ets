@@ -72,7 +72,8 @@ export struct DossierDetailPage {
   @State renaming: boolean = false;
   /** D13：⋯ 改真菜单（改名／新建纸张／删除卷宗）。 */
   @State moreOpen: boolean = false;
-  @State draftName: string = '';
+  /** 非受控输入（同新建卷宗）：普通字段，打字不重建对话框。 */
+  private draftName: string = '';
 
   aboutToAppear(): void {
     this.reload();
@@ -478,8 +479,9 @@ export struct DossierDetailPage {
   renameBody() {
     Column() {
       Text('重命名卷宗').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-      TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
+      TextInput({ placeholder: '给卷宗起个名字' })
         .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
+        .defaultFocus(true)
         .onChange((v: string) => { this.draftName = v; })
       Row() {
         Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')

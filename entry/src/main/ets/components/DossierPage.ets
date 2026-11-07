@@ -26,7 +26,8 @@ export struct DossierPage {
   @Prop @Watch('onDocsChanged') docs: DocSummary[] = [];
   @State dossiers: Dossier[] = [];
   @State creating: boolean = false;
-  @State draftName: string = '';
+  /** 非受控输入：普通字段，打字不触发重建（@State 会让每次按键重建对话框、丢焦点丢字）。 */
+  private draftName: string = '';
   @State draftCover: string = 'kraft';
   @State revealN: number = 0;
   /** D4：按压统一 0.97 / 120ms。 */
@@ -179,8 +180,9 @@ export struct DossierPage {
   dialogBody() {
     Column() {
       Text('新建卷宗').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-      TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
+      TextInput({ placeholder: '给卷宗起个名字' })
         .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
+        .defaultFocus(true)
         .onChange((v: string) => { this.draftName = v; })
       Row() {
         ForEach(['kraft', 'leather', 'manila', 'cloth'], (s: string) => {
