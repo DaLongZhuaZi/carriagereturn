@@ -244,6 +244,17 @@ struct Index {
     }
   }
 
+  /** 中文模式下要离页：先退回英文（键盘是独立窗口，不会跟着收）。防重入由 detach 自身保证。 */
+  private leaveChinese(): void {
+    if (!this.langZh) {
+      return;
+    }
+    this.langZh = false;
+    this.cnPreview = '';
+    chineseInput.detach();
+    hilog.info(DOMAIN, TAG, 'cn leave page -> back to EN');
+  }
+
   /** 把当前光标矩形推给输入法（候选窗跟随光标）。与 attach 同一口径：vp → px。 */
   private pushCnCursor(): void {
     if (!this.langZh) {
@@ -298,6 +309,13 @@ struct Index {
         onKeyboardShown: (s: boolean): void => { this.cnKbShown = s; },
       }, left, top, ui.vp2px(this.paperWidthVp), ui.vp2px(this.lineHeightVp));
       hilog.info(DOMAIN, TAG, 'cn attach ok=%{public}s', ok ? 'true' : 'false');
+      if (!ok) {
+        // 兜底：不许静默死在「中文模式但没键盘」
+        this.langZh = false;
+        this.cnPreview = '';
+        this.hintText = '输入法连接失败，已切回英文';
+        hilog.error(DOMAIN, TAG, 'cn attach failed -> fallback to EN');
+      }
     } else {
       this.cnPreview = '';
       await chineseInput.detach();
@@ -347,6 +365,7 @@ struct Index {
   }
 
   private pushPage(k: string): void {
+    this.leaveChinese();
     this.navAnimated = true;
     // 同 key 已在栈顶时不重复压栈（返回少走一步）
     if (this.navStack[this.navStack.length - 1] === k) {
@@ -362,6 +381,7 @@ struct Index {
   private popTo(k: string): void {
     const idx: number = this.navStack.indexOf(k);
     if (idx < 0) { return; }
+    this.leaveChinese();
     this.navAnimated = true;
     const s: string[] = this.navStack.slice(0, idx + 1);
     this.navStack = s;
@@ -371,6 +391,7 @@ struct Index {
   /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
   private popPage(): boolean {
     if (this.navStack.length <= 1) { return false; }
+    this.leaveChinese();
     this.navAnimated = true;
     const s: string[] = this.navStack.slice();
     s.pop();
@@ -713,6 +734,8 @@ struct Index {
   }
 
   private applyMachine(kind: MachineKind): void {
+    // 换机时防御性清空预编辑串
+    this.cnPreview = '';
     this.machineKind = kind;
     this.docModel.setMachine(kind);
     // P0-4：机器变了就重解析键位表，不管尺寸变没变
@@ -1378,6 +1401,8 @@ struct Index {
 
   /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
   private onPaperChange(): void {
+    // 换纸时防御性清空预编辑串
+    this.cnPreview = '';
     if (this.paperChanging) {
       return;
     }
@@ -1430,6 +1455,8 @@ struct Index {
   }
 
   private onNewline(): void {
+    // 第三方输入法可能不发 finishTextPreview，换行时防御性清空预编辑串
+    this.cnPreview = '';
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
     // 末行判定：可写行数 = floor((Ph − 内容顶 44 − 底边距 20) / 行高)；光标已在最后一行则换纸
