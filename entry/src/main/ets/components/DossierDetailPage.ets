@@ -9,7 +9,9 @@
 import { Dossier, dossierStore } from '../services/DossierStore';
 import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
-import { applyImmersive, Insets } from '../services/Immersive';
+import { PageShell } from './PageShell';
+import { AppDialog } from './AppDialog';
+import { AppIcon } from './AppIcon';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { componentUtils } from '@kit.ArkUI';
 
@@ -51,8 +53,7 @@ export struct DossierDetailPage {
   private measuredCx: number[] = [];
   private measuredCy: number[] = [];
   /** §2.10 动态安全区。 */
-  @State topInset: number = 28;
-  @State bottomInset: number = 0;
+
   onBack: () => void = (): void => {};
   onOpenPaper: (id: string) => void = (): void => {};
   onNewPaper: () => void = (): void => {};
@@ -74,15 +75,6 @@ export struct DossierDetailPage {
     this.reload();
     hilog.info(0x0000, 'DossierDetail', 'aboutToAppear dossier=%{public}s papers=%{public}s',
       this.dossierId, this.papers.length.toString());
-    this.applyInsets();
-  }
-
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'DossierDetail', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   /** docs 变化（新建/删除纸后 Index 递增 docsRev）时重算纸列表。 */
@@ -198,7 +190,8 @@ export struct DossierDetailPage {
   /** P0-2：首屏格数 = 列数 × 可视行数（按可用高与卡片行距现算，不写死 4）。 */
   private firstScreenCount(): number {
     const cols: number = this.colCount();
-    const headH: number = 96 + this.topInset;
+    // topInset 现由 PageShell 承担（平板/手机实测 43.8/43.9），页眉高 96
+    const headH: number = 96 + 44;
     const rowH: number = 246; // 卡片高约 230vp + 行距 16vp（实测 229vp 行距）
     const rows: number = Math.max(1, Math.floor((this.heightVp - headH) / rowH));
     return cols * rows;
@@ -311,16 +304,14 @@ export struct DossierDetailPage {
 
 
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        // §2.10：页眉顶距 = topInset
-        Column().width('100%').height(this.topInset)
-        // 页眉
+  @Builder
+  hdrRow() {
         Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
+          Stack() {
+            AppIcon({ kind: 'back', iconSize: 24, color: '#e8ddc9' })
+          }
+          .width(44).height(44)
+          .onClick(() => { this.onBack(); })
           if (this.dCover.length > 0) {
             Image($rawfile(COVER_RAW[this.dCover]))
               .id('hdr_cover')
@@ -341,9 +332,11 @@ export struct DossierDetailPage {
           }
           .alignItems(HorizontalAlign.Start).margin({ left: 14 }).layoutWeight(1)
 
-          Text('⋯').fontSize(18).fontColor('#e8ddc9')
-            .width(36).height(36).textAlign(TextAlign.Center)
-            .onClick(() => { this.confirmDel = true; })
+          Stack() {
+            AppIcon({ kind: 'more', iconSize: 22, color: '#e8ddc9' })
+          }
+          .width(36).height(36)
+          .onClick(() => { this.confirmDel = true; })
           Text('新建纸张').fontSize(12).fontColor('#e8ddc9')
             .padding({ left: 14, right: 14, top: 7, bottom: 7 })
             .borderRadius(28).backgroundColor('#2e2620')
@@ -351,7 +344,10 @@ export struct DossierDetailPage {
             .onClick(() => { this.onNewPaper(); })
         }
         .width('100%').height(96).padding({ left: 20, right: 20 })
+  }
 
+  @Builder
+  body() {
         if (this.papers.length === 0) {
           Column() {
             Text('这里还没有纸。点右上角「新建纸张」放一张进来。')
@@ -424,94 +420,99 @@ export struct DossierDetailPage {
           .columnsGap(16).rowsGap(16)
           .width('100%').layoutWeight(1)
           .padding({ left: 20, right: 20 })
-          // §2.10：纸网格底距 = bottomInset
-          .margin({ bottom: this.bottomInset })
         }
-      }
-      .width(this.widthVp).height(this.heightVp)
-      .linearGradient({ direction: GradientDirection.Bottom,
-        colors: [['#171310', 0.0], ['#241c16', 1.0]] })
+  }
+  @Builder
+  delDossierBody() {
+    Column() {
+      Text('删除「' + this.dName + '」').fontSize(17).fontWeight(FontWeight.Bold)
+        .fontColor('#e8ddc9')
+      Text('卷宗里的 ' + this.papers.length.toString() + ' 张纸怎么办？')
+        .fontSize(12).fontColor('rgba(232,221,201,0.75)').margin({ top: 10 })
+      Text('移出卷宗（纸变未归档）').fontSize(15).fontColor('#c9a45c')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+        .onClick(() => { this.confirmDel = false; this.onDeleteDossier('unfile'); })
+      Text('连纸一起删').fontSize(15).fontColor('#a33327')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 14 })
+        .onClick(() => { this.confirmDel = false; this.onDeleteDossier('purge'); })
+      Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => { this.confirmDel = false; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
 
-      // 删卷宗：先问「卷宗里的纸怎么办」，不许默认连删
-    if (this.confirmDel) {
-      Column() {
-        Column() {
-          Text('删除「' + this.dName + '」').fontSize(15).fontWeight(FontWeight.Bold)
-            .fontColor('#e8ddc9')
-          Text('卷宗里的 ' + this.papers.length.toString() + ' 张纸怎么办？')
-            .fontSize(12).fontColor('rgba(232,221,201,0.75)').margin({ top: 10 })
-          Text('移出卷宗（纸变未归档）').fontSize(15).fontColor('#c9a45c')
-            .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
-            .onClick(() => { this.confirmDel = false; this.onDeleteDossier('unfile'); })
-          Text('连纸一起删').fontSize(15).fontColor('#a33327')
-            .width('100%').textAlign(TextAlign.Center).margin({ top: 14 })
-            .onClick(() => { this.confirmDel = false; this.onDeleteDossier('purge'); })
-          Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
-            .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
-            .onClick(() => { this.confirmDel = false; })
-        }
-        .width(320).padding(20).borderRadius(12).backgroundColor('#211b16')
-      }
-      .width('100%').height('100%').justifyContent(FlexAlign.Center)
-      .backgroundColor('rgba(0,0,0,0.6)')
-      }
+  @Builder
+  delPaperBody() {
+    Column() {
+      Text('删除这张纸？').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+      Text('删除后不可恢复。').fontSize(12).fontColor('rgba(232,221,201,0.75)')
+        .margin({ top: 10 })
+      Text('删除').fontSize(15).fontColor('#a33327')
+        .id('dlg_del')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+        .onClick(() => {
+          const id: string = this.pendingDelPaper;
+          this.pendingDelPaper = '';
+          this.onDeletePaper(id);
+        })
+      Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        .id('dlg_cancel')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => { this.pendingDelPaper = ''; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
 
-      // P1-1：删纸确认（与删卷宗同款式样），确认后才删
-      if (this.pendingDelPaper.length > 0) {
-        Column() {
-          Column() {
-            Text('删除这张纸？').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            Text('删除后不可恢复。').fontSize(12).fontColor('rgba(232,221,201,0.75)')
-              .margin({ top: 10 })
-            Text('删除').fontSize(15).fontColor('#a33327')
-              .id('dlg_del')
-              .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
-              .onClick(() => {
-                const id: string = this.pendingDelPaper;
-                this.pendingDelPaper = '';
-                this.onDeletePaper(id);
-              })
-            Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
-              .id('dlg_cancel')
-              .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
-              .onClick(() => { this.pendingDelPaper = ''; })
-          }
-          .width(300).padding(20).borderRadius(12).backgroundColor('#211b16')
-        }
-        .width('100%').height('100%').justifyContent(FlexAlign.Center)
-        .backgroundColor('rgba(0,0,0,0.6)')
-      }
+  @Builder
+  renameBody() {
+    Column() {
+      Text('重命名卷宗').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+      TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
+        .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
+        .onChange((v: string) => { this.draftName = v; })
+      Row() {
+        Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          .onClick(() => { this.renaming = false; })
+        Blank()
+        Text('保存').fontSize(15).fontColor('#c9a45c').id('rename_ok')
+          .onClick(() => {
+            const nm: string = this.draftName.length > 0 ? this.draftName : this.dName;
+            dossierStore.rename(this.dossierId, nm);
+            this.dName = nm;
+            this.renaming = false;
+            this.onRenamed();
+            hilog.info(0x0000, 'DossierDetail', 'renamed to %{public}s', nm);
+          })
+      }.width('100%').margin({ top: 18 })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
 
-      // P1-2：卷宗改名（复用新建卷宗的输入框式样）
-      if (this.renaming) {
-        Column() {
-          Column() {
-            Text('重命名卷宗').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            TextInput({ placeholder: '给卷宗起个名字', text: this.draftName })
-              .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
-              .onChange((v: string) => { this.draftName = v; })
-            Row() {
-              Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
-                .onClick(() => { this.renaming = false; })
-              Blank()
-              Text('保存').fontSize(15).fontColor('#c9a45c').id('rename_ok')
-                .onClick(() => {
-                  const nm: string = this.draftName.length > 0 ? this.draftName : this.dName;
-                  dossierStore.rename(this.dossierId, nm);
-                  this.dName = nm;
-                  this.renaming = false;
-                  this.onRenamed();
-                  hilog.info(0x0000, 'DossierDetail', 'renamed to %{public}s', nm);
-                })
-            }.width('100%').margin({ top: 18 })
-          }
-          .width(320).padding(20).borderRadius(12).backgroundColor('#211b16')
-        }
-        .width('100%').height('100%').justifyContent(FlexAlign.Center)
-        .backgroundColor('rgba(0,0,0,0.6)')
-      }
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      PageShell({
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        title: '',
+        customHeader: true,
+        onBack: () => { this.onBack(); },
+        content: (): void => { this.body() },
+        header: (): void => { this.hdrRow() },
+      })
+      AppDialog({
+        visible: this.confirmDel, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: () => { this.confirmDel = false; },
+        content: (): void => { this.delDossierBody() },
+      })
+      AppDialog({
+        visible: this.pendingDelPaper.length > 0, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: () => { this.pendingDelPaper = ''; },
+        content: (): void => { this.delPaperBody() },
+      })
+      AppDialog({
+        visible: this.renaming, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: () => { this.renaming = false; },
+        content: (): void => { this.renameBody() },
+      })
     }
     .width(this.widthVp).height(this.heightVp)
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

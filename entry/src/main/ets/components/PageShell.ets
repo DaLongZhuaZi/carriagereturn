@@ -21,8 +21,11 @@ export struct PageShell {
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   onBack: () => void = (): void => {};
+  /** 自定义页眉（卷宗内页需要小封面+名字+⋯，用这个槽替换默认返回+标题行）。 */
+  @Prop customHeader: boolean = false;
   @BuilderParam content: () => void;
   @BuilderParam trailing: () => void = this.emptyTrailing;
+  @BuilderParam header: () => void = this.emptyTrailing;
 
   @Builder
   emptyTrailing() {
@@ -46,22 +49,26 @@ export struct PageShell {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         Column().width('100%').height(this.topInset)
-        Row() {
-          if (this.showBack) {
-            Stack() {
-              AppIcon({ kind: 'back', iconSize: 24, color: '#e8ddc9' })
+        if (this.customHeader) {
+          this.header()
+        } else {
+          Row() {
+            if (this.showBack) {
+              Stack() {
+                AppIcon({ kind: 'back', iconSize: 24, color: '#e8ddc9' })
+              }
+              .width(44).height(44)
+              .onClick(() => { this.onBack(); })
             }
-            .width(44).height(44)
-            .onClick(() => { this.onBack(); })
-          }
-          Text(this.title).fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            .margin({ left: this.showBack ? 4 : 12 })
-            .maxLines(1)
-          Blank()
-          if (this.showTrailing) {
-            this.trailing()
-          }
-        }.width('100%').height(56).padding({ left: 12, right: 12 })
+            Text(this.title).fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+              .margin({ left: this.showBack ? 4 : 12 })
+              .maxLines(1)
+            Blank()
+            if (this.showTrailing) {
+              this.trailing()
+            }
+          }.width('100%').height(56).padding({ left: 12, right: 12 })
+        }
 
         Column() {
           this.content()
