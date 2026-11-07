@@ -6,8 +6,7 @@
  * 锁定态铁律：本页只对已解锁机器开放（入口在 CollectionPage 已拦）。
  */
 
-import { applyImmersive, Insets } from '../services/Immersive';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { PageShell } from './PageShell';
 
 // P2-5：史实文字走 string.json
 const M_INFO: Record<string, Resource> = {
@@ -27,34 +26,26 @@ export struct CollectionDetailPage {
   onBack: () => void = (): void => {};
   onSetCurrent: (kind: string) => void = (): void => {};
 
+  @State revealN: number = 0;
+
   aboutToAppear(): void {
-    this.applyInsets();
+    // D6：收藏详情补入场动画（60ms 逐块）
+    this.revealN = 0;
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => { this.revealN = i + 1; }, i * 60);
+    }
   }
 
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'CollectionDetail', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
-  }
-
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        // §2.10：顶部 side 大图顶距 = topInset
-        Column().width('100%').height(this.topInset)
-        Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
-        }.width('100%').padding({ left: 12, top: 4, bottom: 4 })
-
+  @Builder
+  body() {
+    Column() {
         Scroll() {
           Column() {
             // 顶部 side 大图
             Image($rawfile('machine/' + this.machineKind + '-side.jpg'))
               .width('100%').height(260).objectFit(ImageFit.Cover).borderRadius(12)
+              .opacity(this.revealN > 0 ? 1 : 0)
+              .animation({ duration: 180, curve: Curve.EaseOut })
 
             // 中部两张特写并排
             Row() {
@@ -64,31 +55,38 @@ export struct CollectionDetailPage {
               Image($rawfile('machine/' + this.machineKind + '-carriage.jpg'))
                 .layoutWeight(1).height(150).objectFit(ImageFit.Cover).borderRadius(10)
             }.width('100%').margin({ top: 12 })
+            .opacity(this.revealN > 1 ? 1 : 0)
+            .animation({ duration: 180, curve: Curve.EaseOut })
 
             // 史实文字
             Text(M_INFO[this.machineKind])
               .fontSize(15).lineHeight(24).fontColor('rgba(232,221,201,0.75)')
               .width('100%').margin({ top: 16 })
-
-            Column().width('100%').height(this.bottomInset)
+              .opacity(this.revealN > 2 ? 1 : 0)
+              .animation({ duration: 180, curve: Curve.EaseOut })
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
 
-        // 底部「设为当前机器」（全宽 48vp，底距 = bottomInset）
+        // 底部「设为当前机器」（底距交给 PageShell）
         Text('设为当前机器')
-          .fontSize(15).fontColor('#e8ddc9')
+          .fontSize(17).fontColor('#e8ddc9')
           .width('100%').height(48).textAlign(TextAlign.Center)
           .borderRadius(28).backgroundColor('#2e2620')
-          .margin({ left: 20, right: 20, bottom: this.bottomInset })
+          .margin({ left: 20, right: 20, bottom: 8 })
           .onClick(() => { this.onSetCurrent(this.machineKind); })
-      }
-      .width('100%').height('100%')
     }
-    .width(this.widthVp).height(this.heightVp)
-    .linearGradient({ direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]] })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .width('100%').height('100%')
+  }
+
+  build() {
+    PageShell({
+      widthVp: this.widthVp,
+      heightVp: this.heightVp,
+      title: '收藏',
+      onBack: () => { this.onBack(); },
+      content: (): void => { this.body() },
+    })
   }
 }
