@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-回车 CarriageReturn —— 内置拼音词库构建脚本（v1）
+回车 CarriageReturn —— 内置拼音词库构建脚本（v2）
 
-三源（钉版本，SHA-256 记入 DICT-ATTRIBUTION.md）：
-  1) jieba dict.txt（MIT）—— 词表 + 词频，排序燃料
+四源（钉版本，SHA-256 记入 DICT-ATTRIBUTION.md）：
+  1) jieba dict.txt（MIT）—— 词表 + 词频，排序燃料（截前 80000 词，2013 年语料，缺现代词）
   2) pypinyin（MIT，pip 安装）—— 词组读音覆盖层（纠多音字：重庆/音乐/银行）
   3) pinyin-data 的 Unihan kMandarin（Unicode License v3）—— 单字读音表
+  4) CC-CEDICT（CC BY-SA 4.0）—— 现代词补全（微信/抖音/淘宝等，jieba 缺的 7.2 万词），
+     无词频：排在 jieba 词之后；高频现代词另由 HOT 置顶表提至各键首位
 
 用法：python tools/build-pinyin-dict.py
 """
@@ -25,10 +27,32 @@ DICT_DIR = os.path.join(RAW, 'dict')
 JIEBA_URL = 'https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/dict.txt'
 UNIHAN_FREQ_URL = 'https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip'
 PINYIN_DATA_URL = 'https://raw.githubusercontent.com/mozillazg/pinyin-data/master/pinyin.txt'
+CEDICT_URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz'
 
 MAX_WORDS = 80000
-WORD_BUDGET = 2500 * 1024
+WORD_BUDGET = 3072 * 1024
 CHAR_BUDGET = 400 * 1024
+
+# CC-CEDICT 也没有的词（品牌名／新词／常见人名）：人工维护，补进来。
+# 读音由 pypinyin 推导；进词库后同样参与 HOT 置顶。
+SUPPLEMENT = [
+    '美团', '饿了么', '共享单车', '手机支付', '共享充电宝', '拔草', '柠檬精',
+    '李华', '王小明', '张伟', '李伟', '王伟', '张敏', '王磊', '李静',
+    '张杰', '王涛', '李明', '张强', '王刚',
+]
+
+# 高频现代词置顶表：这些词在 jieba 里或排在同音旧词之后、或只在 CC-CEDICT 里（排在队尾），
+# 首次输入就应排首位（之后由学习排序接管）。人工维护，只放日常高频词，不放生僻词。
+HOT = [
+    '微信', '抖音', '淘宝', '支付宝', '美团', '外卖', '京东', '拼多多', '快手',
+    '直播', '短视频', '点赞', '红包', '高铁', '地铁', '共享单车', '二维码',
+    '公众号', '朋友圈', '早安', '打卡', '内卷', '躺平', '扫码', '秒杀',
+    '种草', '滴滴', '饿了么', '手机支付', '张三', '李华', '王小明',
+    '共享', '快递', '打车', '上网', '游戏', '视频', '手机', '电脑',
+    '互联网', '工作', '学习', '老师', '学生', '朋友', '家人', '孩子',
+    '谢谢', '不好意思', '没关系', '吃饭', '睡觉', '喜欢', '时间', '永远',
+    '感谢', '精彩', '模糊', '经典',
+]
 
 
 def fetch(url):
@@ -127,6 +151,43 @@ def load_chars(pinyin_txt):
     return chars
 
 
+def cedict_key(py):
+    """CC-CEDICT 读音转引擎键：'Wei1 xin4' -> 'weixin'；'nu:3' -> 'nv'；去声调。"""
+    import re as _re
+    py = py.replace('u:', 'v').replace('ü', 'v')
+    py = _re.sub(r'\d', '', py)
+    py = py.replace(' ', '').lower()
+    return py
+
+
+def load_cedict(data):
+    """解析 CC-CEDICT（gzip 解压后的文本），返回 [(简体词, 读音键)]（2–4 字、全汉字）。
+    只收 2 字以上：单字已由字表（pinyin-chars.json，Unihan 全量）覆盖，CC-CEDICT 的单字
+    条目多为生僻字，进词表只会把候选列表撑满、把常用模糊候选（只）挤出前 60。"""
+    import gzip as _gzip
+    import io as _io
+    import re as _re
+    try:
+        text = _gzip.decompress(data).decode('utf-8', 'ignore')
+    except Exception:
+        text = data.decode('utf-8', 'ignore')
+    out = []
+    for line in text.splitlines():
+        if not line or line.startswith('#'):
+            continue
+        m = _re.match(r'(\S+) (\S+) \[([^\]]+)\] /', line)
+        if not m:
+            continue
+        simp = m.group(2)
+        key = cedict_key(m.group(3))
+        if not (2 <= len(simp) <= 4) or not all(is_hanzi(c) for c in simp):
+            continue
+        if not key or not key.isalpha():
+            continue
+        out.append((simp, key))
+    return out
+
+
 def main():
     os.makedirs(DICT_DIR, exist_ok=True)
     t0 = time.time()
@@ -141,6 +202,11 @@ def main():
     pd_txt = pd_data.decode('utf-8', 'ignore')
     chars = load_chars(pd_txt)
     print('  单字读音 %d' % len(chars))
+
+    print('下载 CC-CEDICT ...')
+    cedict_data = fetch(CEDICT_URL)
+    cedict_entries = load_cedict(cedict_data)
+    print('  %.1f MB sha=%s 条目=%d' % (len(cedict_data) / 1048576.0, sha256(cedict_data)[:16], len(cedict_entries)))
 
     try:
         from pypinyin import lazy_pinyin, Style
@@ -292,6 +358,71 @@ def main():
     words_bytes = words_json.encode('utf-8')
     print('过滤：双条件删除 %d 词（全生僻且低频）' % dropped_both)
 
+    # v2：CC-CEDICT 合并（在质量过滤之后——它是编纂词典不是语料噪声，不受 jieba 词频过滤；
+    # 排在 jieba 词之后，不扰动现有排序；HOT 表再把高频现代词提至各键首位）
+    n_before = sum(len(v) for v in trimmed.values())
+    n_cedict_new = 0
+    for w_c, k_c in cedict_entries:
+        lst_c = trimmed.setdefault(k_c, [])
+        if w_c not in lst_c:
+            lst_c.append(w_c)
+            n_cedict_new += 1
+    print('CC-CEDICT 新增 %d 词（去重后）' % n_cedict_new)
+    # 补录表（CC-CEDICT 也没有的品牌名／新词／常见人名）：读音走 pypinyin，插到该键首位
+    n_supp = 0
+    for w_s in SUPPLEMENT:
+        if has_pypinyin:
+            seq = lazy_pinyin(w_s, style=Style.NORMAL, errors='ignore')
+            if len(seq) != len(w_s):
+                print('  补录跳过（读音推导失败）：%s' % w_s)
+                continue
+            py_s = ''.join(seq).lower().replace('ü', 'v')
+        else:
+            buf = []
+            ok = True
+            for ch in w_s:
+                r = chars.get(ch)
+                if not r:
+                    ok = False
+                    break
+                buf.append(r[0])
+            if not ok:
+                print('  补录跳过（读音推导失败）：%s' % w_s)
+                continue
+            py_s = ''.join(buf)
+        lst_s = trimmed.setdefault(py_s, [])
+        if w_s not in lst_s:
+            lst_s.insert(0, w_s)
+            n_supp += 1
+    print('补录表新增 %d 词' % n_supp)
+    # HOT 置顶：高频现代词提到各键首位（已在首位的不动）
+    n_hot = 0
+    for w_h in HOT:
+        for k_h, lst_h in trimmed.items():
+            if w_h in lst_h and lst_h[0] != w_h:
+                lst_h.remove(w_h)
+                lst_h.insert(0, w_h)
+                n_hot += 1
+                break
+    print('HOT 置顶 %d 词' % n_hot)
+    words_json = json.dumps(trimmed, ensure_ascii=False, separators=(',', ':'))
+    words_bytes = words_json.encode('utf-8')
+    if len(words_bytes) > WORD_BUDGET:
+        order = sorted(trimmed.keys(), key=lambda k: len(trimmed[k]))
+        drop = set()
+        acc = len(words_bytes)
+        for k in order:
+            if acc <= WORD_BUDGET:
+                break
+            acc -= len(trimmed[k]) * 3 + 8
+            drop.add(k)
+        trimmed = {k: v for k, v in trimmed.items() if k not in drop}
+        words_json = json.dumps(trimmed, ensure_ascii=False, separators=(',', ':'))
+        words_bytes = words_json.encode('utf-8')
+        print('超预算，丢弃 %d 个最小键' % len(drop))
+    print('合并后词数 %d（jieba %d + CEDICT %d + 补录 %d）' % (
+        sum(len(v) for v in trimmed.values()), n_before, n_cedict_new, n_supp))
+
     # 常用字序：优先 Unihan kFrequency（1 最常用 … 5 最生僻），同档内按 jieba 单字词频降序；
     # 无 kFrequency 的字沉底。官方《通用规范汉字表》无公开机器可读版，用 Unihan 发布数据替代（出处见 DICT-ATTRIBUTION）。
     # 字频信号＝该字在最终词表里出现的词数（比 jieba 单字词频更贴近真实用字：
@@ -350,6 +481,7 @@ def main():
 
     jieba_sha = sha256(jieba_data)
     pd_sha = sha256(pd_data)
+    cedict_sha = sha256(cedict_data)
     jieba_commit = commit_sha('fxsjy/jieba', 'jieba/dict.txt')
     pd_commit = commit_sha('mozillazg/pinyin-data', 'pinyin.txt')
 
@@ -369,12 +501,15 @@ def main():
         '| 词表＋词频 | fxsjy/jieba jieba/dict.txt | MIT | ' + jieba_commit + ' | ' + jieba_sha + ' |',
         '| 词组读音 | mozillazg/python-pinyin | MIT | pypinyin ' + pp_ver + ' | —— |',
         '| 单字读音 | mozillazg/pinyin-data pinyin.txt（Unihan kMandarin） | Unicode License v3 | ' + pd_commit + ' | ' + pd_sha + ' |',
+        '| 现代词补全 | CC-CEDICT（MDBG 发布） | CC BY-SA 4.0 | —— | ' + cedict_sha + ' |',
+        '| 补录表＋HOT 置顶表 | 本项目人工维护（见 tools/build-pinyin-dict.py 的 SUPPLEMENT／HOT） | 与本项目同许可（MIT） | —— | —— |',
         '',
         '生成口径：',
-        '- 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接。',
-        '- 只保留 1–4 字、全为汉字的词；按 jieba 词频降序截前 ' + str(MAX_WORDS) + ' 词。',
+        '- 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接；CC-CEDICT 词用其自带读音（去声调，u:→v）。',
+        '- 只保留 1–4 字、全为汉字的词；jieba 按词频降序截前 ' + str(MAX_WORDS) + ' 词；CC-CEDICT 全量并入（去重，排在 jieba 词之后）。',
+        '- HOT 置顶表：高频现代词提到各键首位（首次输入即排首位，之后由学习排序接管）。',
         '- 输出：dict/pinyin-words.json（' + str(len(trimmed)) + ' 键 / ' + str(n_words) + ' 词 / ' + ('%.2f' % (len(words_bytes) / 1048576.0)) + ' MB）与 dict/pinyin-chars.json（' + str(len(char_map)) + ' 音节 / ' + str(n_chars) + ' 字 / ' + ('%.1f' % (len(chars_bytes) / 1024.0)) + ' KB）。',
-        '- 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL／八股文、CC-CEDICT（v1.5 再说）。',
+        '- 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL／八股文。',
     ]
     with open(os.path.join(RAW, 'DICT-ATTRIBUTION.md'), 'w', encoding='utf-8') as f:
         f.write(chr(10).join(attr) + chr(10))
