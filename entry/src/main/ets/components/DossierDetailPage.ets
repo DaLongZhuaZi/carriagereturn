@@ -434,6 +434,7 @@ export struct DossierDetailPage {
             Text('删除后不可恢复。').fontSize(13).fontColor('rgba(232,221,201,0.7)')
               .margin({ top: 10 })
             Text('删除').fontSize(14).fontColor('#c06a5a')
+              .id('dlg_del')
               .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
               .onClick(() => {
                 const id: string = this.pendingDelPaper;
@@ -441,6 +442,7 @@ export struct DossierDetailPage {
                 this.onDeletePaper(id);
               })
             Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
+              .id('dlg_cancel')
               .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
               .onClick(() => { this.pendingDelPaper = ''; })
           }
@@ -462,7 +464,7 @@ export struct DossierDetailPage {
               Text('取消').fontSize(14).fontColor('rgba(232,221,201,0.6)')
                 .onClick(() => { this.renaming = false; })
               Blank()
-              Text('保存').fontSize(14).fontColor('#c9a45c')
+              Text('保存').fontSize(14).fontColor('#c9a45c').id('rename_ok')
                 .onClick(() => {
                   const nm: string = this.draftName.length > 0 ? this.draftName : this.dName;
                   dossierStore.rename(this.dossierId, nm);
