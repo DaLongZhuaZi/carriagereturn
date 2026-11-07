@@ -224,6 +224,8 @@ struct Index {
   private cnAnchorPrev: string = '';
   /** 本轮已选词次数（节流落盘用）。 */
   private cnPickCount: number = 0;
+  /** 学习记录防抖落盘定时器。 */
+  private learnSaveTimer: number = -1;
   @State fuzzyOn: boolean = false;
   @State userWordsFlat: string[] = [];
   @State dictInfo: string = '';
@@ -1614,10 +1616,15 @@ struct Index {
     if (this.pinyinEngine !== null && r.text.length > 0) {
       this.pinyinEngine.learnWord(typedBuf.length > 0 ? typedBuf : c.pinyin, r.text);
       this.cnPickCount = this.cnPickCount + 1;
-      if (this.cnPickCount % 10 === 0) {
+      // 防抖落盘：选词后 1.5s 存一次（不是每击键，也不会因杀进程丢记录）
+      if (this.learnSaveTimer >= 0) {
+        clearTimeout(this.learnSaveTimer);
+      }
+      this.learnSaveTimer = setTimeout(() => {
+        this.learnSaveTimer = -1;
         this.saveLearn();
         hilog.info(DOMAIN, TAG, 'learn saved picks=%{public}s', this.cnPickCount.toString());
-      }
+      }, 1500);
     }
     this.enqueueChinese(r.text);
     this.cnPinyin = this.pinyinSession.getBuffer();
@@ -2705,6 +2712,17 @@ struct Index {
             this.recalcPaperHeight();
           },
           onDelete: (): void => {
+            // §13 第 9 步：组词中按删除只删拼音字母，不许删文档字符
+            if (this.isBuiltinCn() && this.pinyinSession !== null
+              && this.pinyinSession.getBuffer().length > 0) {
+              this.pinyinSession.backspace();
+              this.audioService.playBackspace();
+              this.audioService.vibrate();
+              this.pinyinRefresh();
+              hilog.info(DOMAIN, TAG, 'cn backspace in compose buf=%{public}s',
+                this.pinyinSession.getBuffer());
+              return;
+            }
             this.onDelete();
           },
           onNewline: (): void => {
