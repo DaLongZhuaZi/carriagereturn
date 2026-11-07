@@ -13,6 +13,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { image } from '@kit.ImageKit';
+import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
@@ -1959,6 +1960,36 @@ struct Index {
                       .catch(() => { hilog.error(DOMAIN, TAG, 'export png pack failed'); });
                   })
                   .catch(() => { hilog.error(DOMAIN, TAG, 'export png snapshot failed'); });
+              }
+            } else if (format === 'PDF') {
+              // §6.2：PDF＝PDF Kit 文本路径
+              try {
+                const host = this.getUIContext().getHostContext();
+                const dir: string = host === undefined || host === null ? ''
+                  : (host as common.Context).filesDir;
+                const p: string = dir + '/export-' + Date.now().toString() + '.pdf';
+                const pdf: pdfService.PdfDocument = new pdfService.PdfDocument();
+                if (pdf.createDocument(595, 842)) {
+                  const page: pdfService.PdfPage = pdf.getPage(0);
+                  const style: pdfService.TextStyle = new pdfService.TextStyle();
+                  style.textSize = 11;
+                  const lines: string[] = docStore.readPlainText(this.docId).split('\n');
+                  let y: number = 800;
+                  for (let i = 0; i < lines.length && y > 40; i++) {
+                    if (lines[i].length > 0) {
+                      page.addTextObject(lines[i], 48, y, style);
+                    }
+                    y -= 16;
+                  }
+                  const ok: boolean = pdf.saveDocument(p);
+                  pdf.releaseDocument();
+                  hilog.info(DOMAIN, TAG, 'export pdf ok=%{public}s path=%{public}s',
+                    ok ? 'true' : 'false', p);
+                } else {
+                  hilog.error(DOMAIN, TAG, 'export pdf createDocument failed');
+                }
+              } catch (e) {
+                hilog.error(DOMAIN, TAG, 'export pdf failed: %{public}s', JSON.stringify(e));
               }
             } else {
               hilog.warn(DOMAIN, TAG, 'export %{public}s not implemented yet', format);
