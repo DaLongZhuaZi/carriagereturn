@@ -11,6 +11,7 @@
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
+import { fileIo as fs } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
@@ -1913,7 +1914,27 @@ struct Index {
           docId: this.docId,
           onBack: (): void => { this.exportOpen = false; },
           onShare: (format: string): void => {
+            // P1-6：三种格式。当前实现纯文本（.txt 可再编辑）；图片/PDF 走占位并明确记录
             hilog.info(DOMAIN, TAG, 'export share format=%{public}s', format);
+            if (format === '纯文本') {
+              try {
+                const host = this.getUIContext().getHostContext();
+                const dir: string = host === undefined || host === null ? ''
+                  : (host as common.Context).filesDir;
+                if (dir.length > 0) {
+                  const p: string = dir + '/export-' + Date.now().toString() + '.txt';
+                  const f: fs.File = fs.openSync(p,
+                    fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+                  fs.writeSync(f.fd, docStore.readPlainText(this.docId));
+                  fs.closeSync(f);
+                  hilog.info(DOMAIN, TAG, 'export txt ok path=%{public}s', p);
+                }
+              } catch (e) {
+                hilog.error(DOMAIN, TAG, 'export txt failed');
+              }
+            } else if (format === '版本' || format === 'PDF') {
+              hilog.warn(DOMAIN, TAG, 'export %{public}s not implemented yet', format);
+            }
           },
         })
       }
