@@ -8,7 +8,7 @@
 import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { dossierStore, Dossier } from '../services/DossierStore';
-import { applyImmersive, Insets } from '../services/Immersive';
+import { PageShell } from './PageShell';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const PAPER_RAW: Record<string, string> = {
@@ -23,8 +23,8 @@ export struct DocumentViewPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop docId: string = '';
-  @State topInset: number = 28;
-  @State bottomInset: number = 0;
+  /** D6：入场 stagger 计数。 */
+  @State revealN: number = 0;
   @State title: string = '';
   @State lines: string[] = [];
   @State dossierName: string = '';
@@ -39,15 +39,11 @@ export struct DocumentViewPage {
 
   aboutToAppear(): void {
     this.load();
-    this.applyInsets();
-  }
-
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'DocumentView', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
+    // insets 交给 PageShell；D6：两纸 60ms 逐块淡入
+    this.revealN = 0;
+    for (let i = 0; i < 2; i++) {
+      setTimeout(() => { this.revealN = i + 1; }, i * 60);
+    }
   }
 
   private load(): void {
@@ -115,23 +111,15 @@ export struct DocumentViewPage {
       .justifyContent(FlexAlign.End)
     }
     .width(w).height('100%')
+    .opacity(this.revealN > 0 ? 1 : 0)
+    .animation({ duration: 180, curve: Curve.EaseOut })
     .backgroundColor('#eee4ce').borderRadius(8)
     .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
   }
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        // §2.10：两纸顶距 = topInset
-        Column().width('100%').height(this.topInset)
-
-        // 返回
-        Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
-        }.width('100%').padding({ left: 12 })
-
+  @Builder
+  body() {
+    Column() {
         // P2-6：平板并排、手机上下排（标题页在上、正文页在下）
         Flex({ direction: this.widthVp < 600 ? FlexDirection.Column : FlexDirection.Row }) {
           this.titleSheet(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
@@ -151,6 +139,8 @@ export struct DocumentViewPage {
           .width(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
           .layoutWeight(1)
           .height(this.widthVp < 600 ? 360 : '100%')
+          .opacity(this.revealN > 1 ? 1 : 0)
+          .animation({ duration: 180, curve: Curve.EaseOut })
           .clip(true).borderRadius(8)
           .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
           .onClick(() => {
@@ -176,15 +166,18 @@ export struct DocumentViewPage {
             .onClick(() => { this.onDelete(this.docId); })
         }
         .width('100%').height(56)
-        // §2.10：底栏底距 = bottomInset
-        .margin({ bottom: this.bottomInset })
-      }
-      .width('100%').height('100%')
     }
-    .width(this.widthVp).height(this.heightVp)
-    .backgroundColor('#171310')
-    .linearGradient({ direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]] })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .width('100%').height('100%')
+  }
+
+  build() {
+    // D2：根节点多余的 backgroundColor('#171310') 已删（渐变由 PageShell 统一给）
+    PageShell({
+      widthVp: this.widthVp,
+      heightVp: this.heightVp,
+      title: '文档',
+      onBack: () => { this.onBack(); },
+      content: (): void => { this.body() },
+    })
   }
 }
