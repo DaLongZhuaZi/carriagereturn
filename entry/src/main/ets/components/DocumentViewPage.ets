@@ -95,19 +95,24 @@ export struct DocumentViewPage {
       }
       .width('100%').height('100%').padding({ top: 28, left: 18, right: 18 })
 
-      // 右上角斜贴照片位
+      // P2-8：照片位先置灰并标注「待实现」（系统相册选图本批未接）
       Column() {
-        Text('照片').fontSize(11).fontColor('#8a7a64')
+        Text('照片').fontSize(11).fontColor('rgba(138,122,100,0.55)')
+        Text('待实现').fontSize(9).fontColor('rgba(138,122,100,0.45)').margin({ top: 2 })
       }
       .width(120).height(120).backgroundColor('#d8cfc0').borderRadius(3)
       .justifyContent(FlexAlign.Center)
       .rotate({ angle: 6 })
       .position({ x: w - 130, y: 96 })
 
-      Text('题注').fontSize(12).fontColor('#8a7a64')
-        .position({ x: w - 126, y: 230 })
-      Text(this.dateText).fontSize(12).fontColor('#8a7a64')
-        .position({ x: 18, y: 470 })
+      // P2-8：题注先留空（无题注不显示「题注」二字）；日期改相对布局，不用绝对 y
+      Column() {
+        Blank()
+        Text(this.dateText).fontSize(12).fontColor('#8a7a64')
+          .width('100%').textAlign(TextAlign.Start).margin({ bottom: 24 })
+      }
+      .width('100%').height('100%').padding({ left: 18, right: 18 })
+      .justifyContent(FlexAlign.End)
     }
     .width(w).height('100%')
     .backgroundColor('#f3e9d6').borderRadius(6)
@@ -127,10 +132,10 @@ export struct DocumentViewPage {
             .onClick(() => { this.onBack(); })
         }.width('100%').padding({ left: 12 })
 
-        // 两张纸并排
-        Row() {
-          this.titleSheet((this.widthVp - 56) / 2)
-          Column().width(16)
+        // P2-6：平板并排、手机上下排（标题页在上、正文页在下）
+        Flex({ direction: this.widthVp < 600 ? FlexDirection.Column : FlexDirection.Row }) {
+          this.titleSheet(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
+          Column().width(16).height(this.widthVp < 600 ? 12 : 16)
           // 正文页：纸纹 + 正文，超出裁掉不滚动；点它进主屏编辑
           Stack({ alignContent: Alignment.TopStart }) {
             Image($rawfile(PAPER_RAW[this.paperKey]))
@@ -143,9 +148,9 @@ export struct DocumentViewPage {
               .maxLines(20).textOverflow({ overflow: TextOverflow.Clip })
               .hitTestBehavior(HitTestMode.None)
           }
-          .width((this.widthVp - 56) / 2)
+          .width(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
           .layoutWeight(1)
-          .height('100%')
+          .height(this.widthVp < 600 ? 360 : '100%')
           .clip(true).borderRadius(6)
           .shadow({ radius: 8, color: 'rgba(0,0,0,0.35)', offsetX: 0, offsetY: 3 })
           .onClick(() => {
@@ -154,7 +159,7 @@ export struct DocumentViewPage {
           })
         }
         .width('100%').layoutWeight(1)
-        .padding({ left: 20, right: 20 }).alignItems(VerticalAlign.Top)
+        .padding({ left: 20, right: 20 })
 
 
         // 底栏：加页 / 分享 / 删除，各 1/3

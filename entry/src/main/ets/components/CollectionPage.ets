@@ -34,6 +34,8 @@ export struct CollectionPage {
   @State revealN: number = 0;
   /** P1-9：锁定态提示文案（空＝不显示）。 */
   @State hintText: Resource | null = null;
+  /** P2-14：点按缩放反馈（0.97／120ms）。 */
+  @State pressedIdx: number = -1;
   onBack: () => void = (): void => {};
   onPick: (kind: string) => void = (): void => {};
 
@@ -119,6 +121,15 @@ export struct CollectionPage {
     .borderRadius(10)
     .backgroundColor('#342c26')
     .clip(true)
+    .scale({ x: this.pressedIdx === idx ? 0.97 : 1, y: this.pressedIdx === idx ? 0.97 : 1 })
+    .animation({ duration: 120, curve: Curve.EaseOut })
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.pressedIdx = idx;
+      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+        this.pressedIdx = -1;
+      }
+    })
     .opacity(this.revealN > idx ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .onClick(() => {
