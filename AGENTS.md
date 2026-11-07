@@ -81,6 +81,7 @@
 - attach 之前先订阅 setPreviewText（API 17+，与 finishTextPreview 成对）；预编辑串只显示（浅色＋下划线，在光标处），不发音、不落墨、不进文档模型。
 - insertText 到达后整词拆单字、30–50ms 间隔逐字落字，每字走正常落字链（音＋字杆＋导件）；deleteLeft/deleteRight/moveCursor 接管到现有删除/光标路径。
 - 中/EN 切换在底行；系统键盘弹起时纸面避让保打击行可见，收起后不许留残影；折叠切换不 detach/re-attach。
+- 悬浮按钮不许盖住顶栏/功能行现有操作区（中文模式 A 键曾盖住汉堡菜单）；updateCursorRect 须在每次落字/换行后调用，候选窗跟随光标，不许只在 attach 时传一次。
 
 ## 覆盖层层级（2026-11-07 实发教训）
 - Index 的 Stack 里后渲染的盖先渲染的。常驻底层页（主页）必须放在所有页面之前
