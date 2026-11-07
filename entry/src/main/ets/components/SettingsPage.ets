@@ -176,7 +176,7 @@ export struct SettingsPage {
     PageShell({
       widthVp: this.widthVp,
       heightVp: this.heightVp,
-      title: '设置',
+      title: $r('app.string.page_settings'),
       onBack: () => { this.onBack(); },
       content: (): void => { this.body() },
     })

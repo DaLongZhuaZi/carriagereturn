@@ -213,7 +213,7 @@ export struct DossierPage {
       PageShell({
         widthVp: this.widthVp,
         heightVp: this.heightVp,
-        title: '卷宗',
+        title: $r('app.string.page_dossier'),
         showTrailing: true,
         onBack: () => { this.onBack(); },
         content: (): void => { this.body() },

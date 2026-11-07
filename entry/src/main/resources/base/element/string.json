@@ -143,6 +143,34 @@
     {
       "name": "font_group_handwriting",
       "value": "手写体"
+    },
+    {
+      "name": "page_dossier",
+      "value": "卷宗"
+    },
+    {
+      "name": "page_collection",
+      "value": "收藏"
+    },
+    {
+      "name": "page_customize",
+      "value": "换装"
+    },
+    {
+      "name": "page_settings",
+      "value": "设置"
+    },
+    {
+      "name": "page_export",
+      "value": "导出"
+    },
+    {
+      "name": "page_document",
+      "value": "文档"
+    },
+    {
+      "name": "page_home",
+      "value": "主页"
     }
   ]
 }

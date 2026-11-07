@@ -14,7 +14,7 @@ import { AppIcon } from './AppIcon';
 export struct PageShell {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
-  @Prop title: string = '';
+  @Prop title: ResourceStr = '';
   @Prop showBack: boolean = true;
   /** 标题右侧的自定义区（如「新建卷宗」胶囊）。 */
   @Prop showTrailing: boolean = false;

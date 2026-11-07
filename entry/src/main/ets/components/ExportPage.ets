@@ -130,7 +130,7 @@ export struct ExportPage {
     PageShell({
       widthVp: this.widthVp,
       heightVp: this.heightVp,
-      title: '导出',
+      title: $r('app.string.page_export'),
       onBack: () => { this.onBack(); },
       content: (): void => { this.body() },
     })

@@ -178,7 +178,7 @@ export struct DocumentViewPage {
     PageShell({
       widthVp: this.widthVp,
       heightVp: this.heightVp,
-      title: '文档',
+      title: $r('app.string.page_document'),
       onBack: () => { this.onBack(); },
       content: (): void => { this.body() },
     })

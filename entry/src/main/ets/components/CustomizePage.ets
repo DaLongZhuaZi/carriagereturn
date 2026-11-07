@@ -209,7 +209,7 @@ export struct CustomizePage {
     PageShell({
       widthVp: this.widthVp,
       heightVp: this.heightVp,
-      title: '换装',
+      title: $r('app.string.page_customize'),
       onBack: () => { this.onBack(); },
       content: (): void => { this.body() },
     })

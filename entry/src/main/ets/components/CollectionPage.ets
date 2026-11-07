@@ -157,7 +157,7 @@ export struct CollectionPage {
       PageShell({
         widthVp: this.widthVp,
         heightVp: this.heightVp,
-        title: '收藏',
+        title: $r('app.string.page_collection'),
         onBack: () => { this.onBack(); },
         content: (): void => { this.body() },
       })
