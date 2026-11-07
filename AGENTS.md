@@ -80,6 +80,7 @@
 - 双线共存，默认内置拼音：`cnEngine: 'builtin' | 'system'`（AppPreferences 持久化，默认 `'builtin'`）；系统输入法通道保留为 fallback。内置线事实源 `docs/内置拼音输入法设计.md`。
 - **“禁自建拼音候选行”一句自设计稿起作废**（仅适用于系统通道时代）；其余本节规则继续约束系统通道，内置线按设计稿 §4–§5 走。
 - 双通道互斥：英文走自绘键区，中文系统通道走 IME Kit attach；builtin 下绝不 attach、绝不 focus `cn_anchor`。
+- 内置拼音 v1.5（设计稿 §11–§12）：前缀候选（未打完也有候选）、选词学习持久化、模糊音开关、我的词库、词表质量过滤、拼音设置页；**删除铁律：逻辑行不许超纸宽——行首退格合并行后必须重排＋重算纸顶（`rewrapOverwideLines`＋`recalcPaperHeight`），否则打击行与光标行错开整行**。
 - attach 之前先订阅 setPreviewText（API 17+，与 finishTextPreview 成对）；预编辑串只显示（浅色＋下划线，在光标处），不发音、不落墨、不进文档模型。
 - insertText 到达后整词拆单字、30–50ms 间隔逐字落字，每字走正常落字链（音＋字杆＋导件）；deleteLeft/deleteRight/moveCursor 接管到现有删除/光标路径。
 - 中/EN 切换在底行；系统键盘弹起时纸面避让保打击行可见，收起后不许留残影；折叠切换不 detach/re-attach。
