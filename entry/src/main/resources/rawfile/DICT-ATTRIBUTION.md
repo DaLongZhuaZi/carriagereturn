@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | 词表＋词频 | fxsjy/jieba jieba/dict.txt | MIT | dafc73425e61 | 7197c3211ddd98962b036cdf40324d1ea2bfaa12bd028e68faa70111a88e12a8 |
 | 词组读音 | mozillazg/python-pinyin | MIT | pypinyin 0.55.0 | —— |
-| 单字读音 | mozillazg/pinyin-data pinyin.txt（Unihan kMandarin） | Unicode License v3 | unknown(URLError) | 2342a6f98c85dbc3c8d26aef31744876a36326c6466e51e9a0f16898c36c2011 |
+| 单字读音 | mozillazg/pinyin-data pinyin.txt（Unihan kMandarin） | Unicode License v3 | fe29ad32bdf3 | 2342a6f98c85dbc3c8d26aef31744876a36326c6466e51e9a0f16898c36c2011 |
 
 生成口径：
 - 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接。

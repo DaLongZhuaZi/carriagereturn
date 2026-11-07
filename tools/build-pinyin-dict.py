@@ -192,10 +192,18 @@ def main():
         words_json = json.dumps(trimmed, ensure_ascii=False, separators=(',', ':'))
         words_bytes = words_json.encode('utf-8')
 
+    # 单字词频（jieba 里有单字条目）：字表按常用度排序，常用字在前、生僻字沉底
+    char_freq = {}
+    for word, freq in entries:
+        if len(word) == 1:
+            char_freq[word] = max(char_freq.get(word, 0), freq)
+
     char_map = {}
     for ch, readings in chars.items():
         syl = readings[0].lower().replace('ü', 'v')
         char_map.setdefault(syl, []).append(ch)
+    for syl in char_map.keys():
+        char_map[syl].sort(key=lambda c: -char_freq.get(c, 0))
     chars_json = json.dumps(char_map, ensure_ascii=False, separators=(',', ':'))
     chars_bytes = chars_json.encode('utf-8')
 

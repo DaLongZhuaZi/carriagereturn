@@ -1268,6 +1268,10 @@ struct Index {
     this.candPage = 0;
     this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
     this.pinyinShown();
+    // 打点：buffer / 候选数 / 当前页候选
+    const cur: string = this.candCurrent.join(',');
+    hilog.info(DOMAIN, TAG, 'cn pinyin buf=%{public}s candAll=%{public}s candCur=%{public}s',
+      this.cnPinyin, this.candAll.length.toString(), cur);
   }
 
   private pinyinShown(): void {
@@ -1281,6 +1285,8 @@ struct Index {
 
   /** 选第 index 个（当前页 0 起）。走 enqueueChinese（40ms 逐字），余量字母继续组词。 */
   private pinyinPick(index: number): void {
+    hilog.info(DOMAIN, TAG, 'cn pick idx=%{public}s candCur=%{public}s',
+      index.toString(), this.candCurrent.join(','));
     if (this.pinyinSession === null) {
       return;
     }
