@@ -47,6 +47,9 @@ export class PinyinEngine {
   private words: Map<string, string[]> = new Map<string, string[]>();
   /** 词频序（加载顺序即词频序）：缩写候选按它排序，避免被 nanhai 这类同缩写词挤掉你好。 */
   private wordRank: Map<string, number> = new Map<string, number>();
+  /** 缩写候选的先后＝首次出现的先后（JSON 键顺序即词频序），不再逐词建 wordRank */
+  private abbrevOrder: Map<string, number> = new Map<string, number>();
+  private abbrevSeq: number = 0;
   /** 全部拼音键的有序数组（词前缀候选用二分查找，不许每击键全表扫）。 */
   private sortedKeys: string[] = [];
   /** 声母缩写索引：词的拼音按音节取首字母（如 你好→nh），上限 4 字母。 */
@@ -66,6 +69,8 @@ export class PinyinEngine {
   private rawChars: Record<string, string[]> = {};
   private lazyMode: boolean = false;
   private indexesReady: boolean = false;
+  /** 表结构已就绪、只差缩写索引 */
+  private pendingAbbrev: boolean = false;
 
   /**
    * §17.3 懒加载工厂：只做「引用赋值＋音节表」，建 Map／缩写索引全部延后。
@@ -76,37 +81,47 @@ export class PinyinEngine {
     e.lazyMode = true;
     e.rawChars = data.chars;
     e.rawWords = data.words;
+    // 设备实测：ArkTS 里 42 万次 Map.set 要 27 秒（debug/release 一样慢），
+    // 所以**不建 Map**——直接持有原始对象，按需用原生属性查找。
+    // 必须建的是音节表（409 项，走 addSyllable 维护 maxSylLen，否则 segments() 失效）。
+    e.rawChars = data.chars;
+    e.rawWords = data.words;
     const ck: string[] = Object.keys(data.chars);
     for (let i = 0; i < ck.length; i++) {
-      e.syllables.add(ck[i]);
+      e.addSyllable(ck[i]);
+      e.chars.set(ck[i], data.chars[ck[i]]);
     }
+    e.lazyMode = true;
+    e.pendingAbbrev = true;
     return e;
   }
 
   /** 后台分片建索引（缩写 + 词频序）：每 300 键让出一次事件循环。 */
   async buildIndexesAsync(): Promise<void> {
-    if (!this.lazyMode || this.indexesReady) {
+    if (!this.pendingAbbrev || this.indexesReady) {
       return;
     }
     const keys: string[] = Object.keys(this.rawWords);
-    const SEG: number = 300;
+    if (this.sortedKeys.length === 0) {
+      this.sortedKeys = keys.slice();
+      this.sortedKeys.sort();
+    }
+    // 每 25 键让出 24ms：设备上 300 键/片会把 UI 线程占满导致系统判无响应
+    const SEG: number = 25;
     for (let i = 0; i < keys.length; i++) {
       const k: string = keys[i];
-      const arr: string[] = this.rawWords[k];
-      this.words.set(k, arr);
-      this.addAbbrevFor(k, arr);
+      this.addAbbrevFor(k, this.rawWords[k]);
       if (i > 0 && i % SEG === 0) {
-        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 0); });
+        await new Promise<void>((resolve: () => void) => { setTimeout(resolve, 24); });
       }
     }
     this.finishAbbrev();
-    this.sortedKeys = keys.slice();
-    this.sortedKeys.sort();
     this.indexesReady = true;
+    this.pendingAbbrev = false;
   }
 
   indexesAreReady(): boolean {
-    return this.indexesReady || !this.lazyMode;
+    return this.indexesReady || !this.pendingAbbrev;
   }
 
   static fromData(data: PinyinDictData): PinyinEngine {
@@ -138,7 +153,8 @@ export class PinyinEngine {
   private async loadBasicsAsync(data: PinyinDictData): Promise<void> {
     const ck: string[] = Object.keys(data.chars);
     for (let i = 0; i < ck.length; i++) {
-      this.syllables.add(ck[i]);
+      // 必须走 addSyllable()：它顺带维护 maxSylLen，segments() 的 DP 上界靠它
+      this.addSyllable(ck[i]);
       this.chars.set(ck[i], data.chars[ck[i]]);
     }
     const wk: string[] = Object.keys(data.words);
@@ -169,7 +185,8 @@ export class PinyinEngine {
   private loadBasics(data: PinyinDictData): void {
     const ck: string[] = Object.keys(data.chars);
     for (let i = 0; i < ck.length; i++) {
-      this.syllables.add(ck[i]);
+      // 必须走 addSyllable()：它顺带维护 maxSylLen，segments() 的 DP 上界靠它
+      this.addSyllable(ck[i]);
       this.chars.set(ck[i], data.chars[ck[i]]);
     }
     const wk: string[] = Object.keys(data.words);
@@ -227,7 +244,15 @@ export class PinyinEngine {
   /** 词前缀候选（§16）：打半词也能出完整词。二分定位后线性收集。 */
   private prefixWords(s: string, limit: number): string[] {
     const res: string[] = [];
-    if (s.length < 2 || this.sortedKeys.length === 0) {
+    if (s.length < 2) {
+      return res;
+    }
+    if (this.sortedKeys.length === 0) {
+      // 懒模式：首次用到前缀时再建有序键（一次排序，之后常驻）
+      this.sortedKeys = Object.keys(this.rawWords);
+      this.sortedKeys.sort();
+    }
+    if (this.sortedKeys.length === 0) {
       return res;
     }
     let lo: number = 0;
@@ -311,8 +336,8 @@ export class PinyinEngine {
   private finishAbbrev(): void {
     this.abbrev.forEach((list: string[]) => {
       list.sort((a: string, b: string) => {
-        const ra: number = this.wordRank.get(a) === undefined ? 999999 : this.wordRank.get(a) as number;
-        const rb: number = this.wordRank.get(b) === undefined ? 999999 : this.wordRank.get(b) as number;
+        const ra: number = this.abbrevOrder.get(a) === undefined ? 999999 : this.abbrevOrder.get(a) as number;
+        const rb: number = this.abbrevOrder.get(b) === undefined ? 999999 : this.abbrevOrder.get(b) as number;
         return ra - rb;
       });
       if (list.length > 30) {
@@ -395,6 +420,10 @@ export class PinyinEngine {
     for (let j = 0; j < words.length && list.length < 200; j++) {
       if (list.indexOf(words[j]) < 0) {
         list.push(words[j]);
+        if (!this.abbrevOrder.has(words[j])) {
+          this.abbrevOrder.set(words[j], this.abbrevSeq);
+          this.abbrevSeq = this.abbrevSeq + 1;
+        }
       }
     }
     // §17.3：这里不许排序——每键排一次会让 17 万个键各排一遍。
