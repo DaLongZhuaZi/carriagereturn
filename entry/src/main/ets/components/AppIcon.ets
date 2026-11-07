@@ -24,6 +24,9 @@ export struct AppIcon {
     if (this.kind === 'more') {
       return 'M5 12 L5.01 12 M12 12 L12.01 12 M19 12 L19.01 12';
     }
+    if (this.kind === 'chevron') {
+      return 'M9 6 L15 12 L9 18';
+    }
     if (this.kind === 'check') {
       return 'M5 13 L10 18 L19 6';
     }

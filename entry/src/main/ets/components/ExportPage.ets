@@ -6,6 +6,7 @@
  */
 
 import { PageShell } from './PageShell';
+import { AppIcon } from './AppIcon';
 import { DocData } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { hilog } from '@kit.PerformanceAnalysisKit';
@@ -79,7 +80,7 @@ export struct ExportPage {
                   Text(f[0]).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
                   Text(f[1]).fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 4 })
                 }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-                Text('›').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+                AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
               }
               .width('100%').height(110).padding({ left: 16, right: 16 })
               .backgroundColor(this.picked === idx ? '#2e2620' : '#241c16')
