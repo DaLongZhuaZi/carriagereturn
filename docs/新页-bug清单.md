@@ -336,3 +336,26 @@ bug 集中在导航、数据归属、飞出动画、换装联动四处。P0 共 
 - 某项证据抓不到时用替代证据继续做，并在提交里写明不符点、原因、替代证据；不许以“未判读”“量测不可用”交差。
 - 只有编译不过、设备离线、包装不上才可报阻塞，报时附试过的方法、每种方法的原文错误、还差什么。
 - 本清单里的“根因”都是读码结论；桌面端落实后若实测推翻某条，以实测为准，回来改本清单，不要硬撑。
+
+---
+
+## 验证记录（2026-11-07，平板 MLR-AL10 + 手机 Nova ADA-AL00U）
+
+| 项 | 实测证据 | 结论 |
+|---|---|---|
+| P0-1 卷宗页返回 | 点 ‹(99,180) → LIST→MAIN，Courier Prime 仍在 | 通过 |
+| P0-2 第 5 张不可见 | 建 8 张纸 → CARDS=8（改前 4） | 通过 |
+| P0-3 dossierId 丢失 | dossierAssert load id=doc-… dossierId=d1794…（改前必为 null） | 通过 |
+| P0-4 键位表重载 | 切 1930s → reloadKeymap called: path=keymap/1930s-portable-keymap.json | 通过（临时解锁验证后已撤回） |
+| P1-1 删纸确认 | paperDeleted id=… rev=4 + CARDS 3→2；取消后不变 | 通过 |
+| P1-3 删卷宗刷新 | ⋯ → 移出卷宗 → 返回列表 tiles 1→0 | 通过 |
+| P1-4 字体注册 | registerFont total=17 failed=0 | 通过 |
+| P1-5 加页 | addPage enter → addPage ok lines=2 | 通过（根因：onAddPage 曾加在死代码块里） |
+| P1-6 纯文本导出 | export txt ok path=…/export-<ts>.txt | 通过（图片/PDF 未实现） |
+| P1-7 起点实测化 | flyStart from=(119,55)（改前恒为写死 150,96） | 通过 |
+| P1-8 字数 | 卡片 METAS=['3 字 · 11 月 7 日']；DocStore list 日志 0 条 | 通过 |
+| P1-9 锁定提示 | LOCK_HINT=(48,2314,634,2406) 且 STATE=COLLECTION | 通过 |
+| P1-10 换装落盘 | 切色带 → saved doc id=… | 通过 |
+| P2-15 未归档格 | UNFILED_RENDERED=False | 通过 |
+
+未通过/未验：P1-2（改名输入注入失败，代码路径有日志）、P1-6 图片/PDF、手机端多数页。
