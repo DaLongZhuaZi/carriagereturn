@@ -78,10 +78,13 @@ export class PinyinEngine {
   }
 
   /** §11.3 模糊表：8 组（双向）。键为规范形，值为等价形列表。 */
-  private static readonly FUZZY_PAIRS: string[][] = [
-    ['zh', 'z'], ['ch', 'c'], ['sh', 's'],
+  /** 声母对：前缀替换（zh/z、ch/c、sh/s、n/l、f/h） */
+  private static readonly FUZZY_INITIALS: string[][] = [
+    ['zh', 'z'], ['ch', 'c'], ['sh', 's'], ['n', 'l'], ['f', 'h'],
+  ];
+  /** 韵母对：后缀替换（in/ing、en/eng、an/ang）。韵母只在音节尾部，前缀替换永远匹配不到。 */
+  private static readonly FUZZY_FINALS: string[][] = [
     ['in', 'ing'], ['en', 'eng'], ['an', 'ang'],
-    ['n', 'l'], ['f', 'h'],
   ];
 
   setFuzzy(on: boolean): void {
@@ -98,23 +101,43 @@ export class PinyinEngine {
       return [syl];
     }
     let forms: string[] = [syl];
-    for (let p = 0; p < PinyinEngine.FUZZY_PAIRS.length; p++) {
-      const a: string = PinyinEngine.FUZZY_PAIRS[p][0];
-      const b: string = PinyinEngine.FUZZY_PAIRS[p][1];
+    // ① 声母对：只在音节开头替换
+    for (let p = 0; p < PinyinEngine.FUZZY_INITIALS.length; p++) {
+      const a: string = PinyinEngine.FUZZY_INITIALS[p][0];
+      const b: string = PinyinEngine.FUZZY_INITIALS[p][1];
       const next: string[] = [];
       for (let i = 0; i < forms.length; i++) {
         const f: string = forms[i];
-        next.push(f);
-        if (f.startsWith(a)) {
+        if (next.indexOf(f) < 0) { next.push(f); }
+        if (f.length > a.length && f.startsWith(a)) {
           const v: string = b + f.substring(a.length);
           if (next.indexOf(v) < 0) { next.push(v); }
         }
-        if (f.startsWith(b)) {
+        if (f.length > b.length && f.startsWith(b)) {
           const v2: string = a + f.substring(b.length);
           if (next.indexOf(v2) < 0) { next.push(v2); }
         }
       }
       forms = next;
+    }
+    // ② 韵母对：只在音节尾部替换（nin→ning、ban→bang、chen→cheng，反向亦然）
+    for (let q = 0; q < PinyinEngine.FUZZY_FINALS.length; q++) {
+      const c: string = PinyinEngine.FUZZY_FINALS[q][0];
+      const d: string = PinyinEngine.FUZZY_FINALS[q][1];
+      const next2: string[] = [];
+      for (let i = 0; i < forms.length; i++) {
+        const f: string = forms[i];
+        if (next2.indexOf(f) < 0) { next2.push(f); }
+        if (f.endsWith(c)) {
+          const v: string = f.substring(0, f.length - c.length) + d;
+          if (next2.indexOf(v) < 0) { next2.push(v); }
+        }
+        if (f.endsWith(d)) {
+          const v2: string = f.substring(0, f.length - d.length) + c;
+          if (next2.indexOf(v2) < 0) { next2.push(v2); }
+        }
+      }
+      forms = next2;
     }
     return forms;
   }

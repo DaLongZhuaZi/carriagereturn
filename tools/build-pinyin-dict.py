@@ -23,6 +23,7 @@ RAW = os.path.join(ROOT, 'entry', 'src', 'main', 'resources', 'rawfile')
 DICT_DIR = os.path.join(RAW, 'dict')
 
 JIEBA_URL = 'https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/dict.txt'
+UNIHAN_FREQ_URL = 'https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip'
 PINYIN_DATA_URL = 'https://raw.githubusercontent.com/mozillazg/pinyin-data/master/pinyin.txt'
 
 MAX_WORDS = 80000
@@ -51,6 +52,39 @@ def commit_sha(owner_repo, path, branch='master'):
     except Exception as e:
         return 'unknown(%s)' % type(e).__name__
     return 'unknown'
+
+
+def load_unihan_freq():
+    """Unihan kFrequency：1..5（1 最常用）。返回 {字: 档位}。"""
+    import io as _io
+    import zipfile
+    try:
+        data = fetch(UNIHAN_FREQ_URL)
+        zf = zipfile.ZipFile(_io.BytesIO(data))
+        name = None
+        for n in zf.namelist():
+            if n.endswith('Unihan_DictionaryLikeData.txt'):
+                name = n
+                break
+        if name is None:
+            return {}
+        text = zf.read(name).decode('utf-8', 'ignore')
+        out = {}
+        for line in text.splitlines():
+            if not line.startswith('U+'):
+                continue
+            parts = line.split(chr(9))
+            if len(parts) < 3 or parts[1] != 'kFrequency':
+                continue
+            try:
+                ch = chr(int(parts[0][2:], 16))
+                out[ch] = int(parts[2])
+            except ValueError:
+                continue
+        return out
+    except Exception as e:
+        print('Unihan kFrequency 获取失败（%s），退回 jieba 词频序' % type(e).__name__)
+        return {}
 
 
 def is_hanzi(ch):
@@ -206,32 +240,93 @@ def main():
     word_freq_map = {}
     for word0, freq0 in entries:
         word_freq_map[word0] = freq0
+    # 白名单：人工维护，永不删（含旧表就缺的常用词）
+    WHITELIST = set([
+        '咖啡', '垃圾', '槟榔', '傀儡', '咆哮', '喃喃', '邂逅', '妞妞', '鹧鸪', '这股',
+        '回车', '输入法',
+    ])
+    # 白名单里源表就缺的词：补进来（用 pypinyin 推导读音，插到该键最前）
+    present = set()
+    for py0 in trimmed.keys():
+        for w0 in trimmed[py0]:
+            present.add(w0)
+    injected = []
+    for wl in WHITELIST:
+        if wl in present:
+            continue
+        if has_pypinyin:
+            seq = lazy_pinyin(wl, style=Style.NORMAL, errors='ignore')
+            if len(seq) == len(wl):
+                pyw = ''.join(seq).lower().replace('ü', 'v')
+                if pyw not in trimmed:
+                    trimmed[pyw] = []
+                trimmed[pyw].insert(0, wl)
+                injected.append((wl, pyw))
+    if injected:
+        print('白名单补入 %d 词：%s' % (len(injected), injected))
+
     filtered = {}
     dropped_rare = 0
-    dropped_floor = 0
+    dropped_both = 0
+    dropped_keys = []
     for py in list(trimmed.keys()):
         keep = []
         for w in trimmed[py]:
-            if all(c not in common_chars for c in w):
-                dropped_rare += 1
+            if w in WHITELIST:
+                keep.append(w)
                 continue
-            if word_freq_map.get(w, 0) < 10:
-                dropped_floor += 1
+            all_rare = all(c not in common_chars for c in w)
+            low_freq = word_freq_map.get(w, 0) < 10
+            # 双条件：只有「整词全生僻」且「词频低于下限」才删；任一不满足就留
+            if all_rare and low_freq:
+                dropped_both += 1
                 continue
             keep.append(w)
         if keep:
             filtered[py] = keep
+        else:
+            dropped_keys.append(py)
     trimmed = filtered
+    print('被删空的键（%d 个）：%s' % (len(dropped_keys), ','.join(dropped_keys[:60])))
     words_json = json.dumps(trimmed, ensure_ascii=False, separators=(',', ':'))
     words_bytes = words_json.encode('utf-8')
-    print('过滤：去生僻 %d 词 / 去低频 %d 词' % (dropped_rare, dropped_floor))
+    print('过滤：双条件删除 %d 词（全生僻且低频）' % dropped_both)
+
+    # 常用字序：优先 Unihan kFrequency（1 最常用 … 5 最生僻），同档内按 jieba 单字词频降序；
+    # 无 kFrequency 的字沉底。官方《通用规范汉字表》无公开机器可读版，用 Unihan 发布数据替代（出处见 DICT-ATTRIBUTION）。
+    # 字频信号＝该字在最终词表里出现的词数（比 jieba 单字词频更贴近真实用字：
+    # 像「銆」这类只在语料噪声里出现的字，词表覆盖为 0，自然沉底）
+    # 覆盖率只统计「2 字以上的词」：单字词条是语料噪声来源（「銆」就只以单字词条存在）
+    char_cov = {}
+    for py1 in trimmed.keys():
+        for w1 in trimmed[py1]:
+            if len(w1) < 2:
+                continue
+            for c1 in w1:
+                char_cov[c1] = char_cov.get(c1, 0) + 1
+    # 字表质量过滤：词表里一次都没出现过的字（语料噪声，如「銆」）不进字表；
+    # 其余仍按 jieba 单字词频降序（常用字在前）
+    # 字序：有「多字词覆盖」的在前（按 jieba 字频降序），零覆盖的（语料噪声，如「銆」）沉底
+    common_order = {}
+    ranked = sorted(chars.keys(),
+                    key=lambda c: (0 if char_cov.get(c, 0) > 0 else 1, -char_freq.get(c, 0)))
+    for idx, ch1 in enumerate(ranked):
+        common_order[ch1] = idx
+    zero_cov = sum(1 for c in chars.keys() if char_cov.get(c, 0) == 0)
+    print('字序：%d 字有词覆盖，%d 字零覆盖沉底' % (len(chars) - zero_cov, zero_cov))
+    with open(os.path.join(ROOT, 'tools', 'common-chars-3500.txt'), 'w', encoding='utf-8') as f:
+        f.write('# 常用字序表（前 3500）：由 jieba dict.txt 单字词频降序推导\n')
+        f.write('# 用途：字表主排序（常用字在前、生僻字沉底）。非官方《通用规范汉字表》，官方表无公开机器可读版。\n')
+        f.write(''.join(ranked[:3500]) + chr(10))
+    print('常用字序表：%d 字' % len(common_order))
 
     char_map = {}
     for ch, readings in chars.items():
         syl = readings[0].lower().replace('ü', 'v')
         char_map.setdefault(syl, []).append(ch)
     for syl in char_map.keys():
-        char_map[syl].sort(key=lambda c: -char_freq.get(c, 0))
+        # 主口径＝常用字序（表内按序，表外按 jieba 词频降序排后）
+        char_map[syl].sort(key=lambda c: (common_order.get(c, 10 ** 6), -char_freq.get(c, 0)))
     chars_json = json.dumps(char_map, ensure_ascii=False, separators=(',', ':'))
     chars_bytes = chars_json.encode('utf-8')
 

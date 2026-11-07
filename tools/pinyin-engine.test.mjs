@@ -120,19 +120,21 @@ test('§11.2 学习：选过的词置顶', () => {
   assert.equal(c[0].text, '你号');
 });
 
-test('§11.3 模糊音 8 组', () => {
-  engine.setFuzzy(true);
-  const cases = [['zhao','zao','找'], ['chi','ci','词'], ['shi','si','是'],
-                 ['nin','ning','您'], ['fen','feng','分'], ['an','ang','安'],
-                 ['na','la','那'], ['fa','ha','发']];
-  for (const [a, b] of cases) {
-    const ca = engine.candidates(a, 8).map(x => x.text);
-    const cb = engine.candidates(b, 8).map(x => x.text);
-    assert.ok(ca.length > 0 && cb.length > 0, a + '/' + b + ' 都应有候选');
+test('§11.3 模糊音：声母对与韵母对都要真命中', () => {
+  const e = PinyinEngine.fromData({ chars, words });
+  e.setFuzzy(true);
+  const must = [
+    ['nin', '宁'], ['ban', '帮'], ['chen', '成'], ['ning', '您'],
+    ['zhao', '找'], ['zao', '找'], ['zhi', '只'], ['zi', '只'],
+  ];
+  for (const pair of must) {
+    const list = e.candidates(pair[0], 60).map((x) => x.text);
+    assert.ok(list.includes(pair[1]), pair[0] + ' 必须出 ' + pair[1]);
   }
-  engine.setFuzzy(false);
+  e.setFuzzy(false);
+  const off = e.candidates('nin', 60).map((x) => x.text);
+  assert.ok(!off.includes('宁'), '关模糊音后 nin 不许出宁');
 });
-
 test('§11.4 我的词库：推导拼音 + 置顶 + 可查', () => {
   const py = engine.pinyinOfWord('大龙爪子');
   assert.ok(py.length > 0, 'pinyinOfWord 应能推导');
