@@ -150,19 +150,34 @@ export class DocStore {
         machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
         paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
-        charCount: this.countChars(entry.id),
+        charCount: this.countCharsFromJson(entry.id),
       });
     }
     return out;
   }
 
-  /** 字数（去空白）；把 rawLen 打出来，便于定位「txt 与 JSON 不一致」。 */
-  private countChars(id: string): number {
-    const raw: string = this.readPlainText(id);
-    const n: number = raw.replace(/\s/g, '').length;
-    hilog.info(DOMAIN, TAG, 'list id=%{public}s rawLen=%{public}s n=%{public}s',
-      id, raw.length.toString(), n.toString());
-    return n;
+  /**
+   * P1-8：字数**从 JSON 的 lines 现算**，不读 txt。
+   * 此前读 txt 会与 JSON 脱节（txt 可能未被写/被覆盖），导致卡片字数停在旧值。
+   */
+  private countCharsFromJson(id: string): number {
+    try {
+      const text: string = this.readText(this.docPath(id));
+      if (text.length === 0) {
+        return 0;
+      }
+      const data: DocData = JSON.parse(text) as DocData;
+      if (data.lines === undefined || data.lines === null) {
+        return 0;
+      }
+      let n: number = 0;
+      for (let i = 0; i < data.lines.length; i++) {
+        n += data.lines[i].text.replace(/\s/g, '').length;
+      }
+      return n;
+    } catch (e) {
+      return 0;
+    }
   }
 
   /** 暴露给导出（阶段3）：读某文档的纯文本。 */

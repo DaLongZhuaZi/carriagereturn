@@ -220,6 +220,9 @@ struct Index {
   @State switchFade: number = 1;
   /** P1-4：注册失败的字体族名（换装页据此标「未加载」）。 */
   @State fontLoadFailed: string[] = [];
+  /** P1-8：list() 结果缓存（docsRev 变才重算，不许 build 里每次都调）。 */
+  private docsCache: DocSummary[] = [];
+  private docsCacheRev: number = -1;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -1439,9 +1442,14 @@ struct Index {
   }
 
   /** 卷宗内页用：读一次 docsRev 以建立依赖，再取列表。 */
+  /** P1-8：带缓存的列表读取——docsRev 不变就复用上一次结果。 */
   private listDocs(): DocSummary[] {
     const rev: number = this.docsRev;
-    return rev >= 0 ? docStore.list() : [];
+    if (rev !== this.docsCacheRev) {
+      this.docsCache = docStore.list();
+      this.docsCacheRev = rev;
+    }
+    return this.docsCache;
   }
 
   /** §5.2 新建纸张：在该卷宗里建一张空白纸（dossierId 记当前卷宗）。 */
