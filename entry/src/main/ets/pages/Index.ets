@@ -271,7 +271,7 @@ struct Index {
   /** 中/EN 切换：只在这里 attach / detach（换行、换纸、换机都不动）。 */
   private async applyChineseMode(on: boolean): Promise<void> {
     if (on) {
-      // 先让隐藏 TextInput 取得焦点（IME 只对已绑定的编辑框 attach）
+      // 锚点必须聚焦，否则 attach 报 12800009（input method client detached）
       focusControl.requestFocus('cn_anchor');
       await new Promise<void>((resolve: () => void) => {
         setTimeout(() => { resolve(); }, 150);
