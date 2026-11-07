@@ -102,6 +102,11 @@ export struct DossierPage {
       // §2.10：顶栏顶距 = topInset（深底渐变已在根 Stack，伸到状态栏下）
       Column().width('100%').height(this.topInset)
       Row() {
+        // §5.1 补：返回箭头（44×44，与其他页一致）
+        Text('‹').fontSize(26).fontColor('#e8ddc9')
+          .width(44).height(44).textAlign(TextAlign.Center)
+          .margin({ right: 4 })
+          .onClick(() => { this.onBack(); })
         Text('卷宗').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
         Blank()
         Text('新建卷宗').fontSize(13).fontColor('#e8ddc9')
