@@ -59,6 +59,8 @@ export struct DossierDetailPage {
   onDeletePaper: (id: string) => void = (): void => {};
   /** 点缩略图 → 文档视图（§5.3）。 */
   onOpenDoc: (id: string) => void = (): void => {};
+  /** P1-2：改名后通知外层递增 docsRev，使卷宗页列表随之刷新。 */
+  onRenamed: () => void = (): void => {};
   /** 删卷宗：mode='unfile' 纸移出（变未归档）｜'purge' 连纸一起删。 */
   onDeleteDossier: (mode: string) => void = (): void => {};
   @State confirmDel: boolean = false;
@@ -498,6 +500,7 @@ export struct DossierDetailPage {
                   dossierStore.rename(this.dossierId, nm);
                   this.dName = nm;
                   this.renaming = false;
+                  this.onRenamed();
                   hilog.info(0x0000, 'DossierDetail', 'renamed to %{public}s', nm);
                 })
             }.width('100%').margin({ top: 18 })

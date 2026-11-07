@@ -1956,6 +1956,10 @@ struct Index {
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onOpenDoc: (id: string): void => { this.openDocId = id; },
+          onRenamed: (): void => {
+            this.docsRev = this.docsRev + 1;
+            hilog.info(DOMAIN, TAG, 'renamed rev=%{public}s (list will refresh)', this.docsRev.toString());
+          },
           onDeletePaper: (id: string): void => {
             docStore.remove(id);
             this.docsRev = this.docsRev + 1;
