@@ -1905,6 +1905,17 @@ struct Index {
             this.openDocId = '';
             this.docsRev = this.docsRev + 1;
           },
+          onAddPage: (id: string): void => {
+            // P1-5：文档末尾加一行并落盘
+            const data: DocData | null = docStore.load(id);
+            if (data !== null) {
+              data.lines.push({ text: '', ribbon: this.ribbon });
+              docStore.save(id, data, '未命名');
+              this.docsRev = this.docsRev + 1;
+              hilog.info(DOMAIN, TAG, 'addPage id=%{public}s lines=%{public}s',
+                id, data.lines.length.toString());
+            }
+          },
         })
       }
 

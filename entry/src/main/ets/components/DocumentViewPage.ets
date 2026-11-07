@@ -33,6 +33,8 @@ export struct DocumentViewPage {
   onBack: () => void = (): void => {};
   onEdit: (id: string) => void = (): void => {};
   onDelete: (id: string) => void = (): void => {};
+  /** P1-5：加页（文档末尾加一行并落盘）。 */
+  onAddPage: (id: string) => void = (): void => {};
 
   aboutToAppear(): void {
     this.load();
@@ -157,8 +159,11 @@ export struct DocumentViewPage {
         // 底栏：加页 / 分享 / 删除，各 1/3
         Row() {
           Text('加页').fontSize(15).fontColor('#c9a45c')
+            .id('dv_addpage')
             .layoutWeight(1).textAlign(TextAlign.Center)
-          Text('分享').fontSize(15).fontColor('#c9a45c')
+            .onClick(() => { this.onAddPage(this.docId); })
+          // P1-5：分享当批做不了 → 置灰 + 标注「待实现」，不留可点无反应的按钮
+          Text('分享·待实现').fontSize(13).fontColor('rgba(232,221,201,0.28)')
             .layoutWeight(1).textAlign(TextAlign.Center)
           Text('删除').fontSize(15).fontColor('rgba(232,221,201,0.6)')
             .layoutWeight(1).textAlign(TextAlign.Center)
