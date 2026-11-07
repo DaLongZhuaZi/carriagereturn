@@ -1666,6 +1666,7 @@ struct Index {
         .width(1).height(1).opacity(0.01)
         .position({ x: 0, y: 0 })
         .enabled(this.langZh)
+
       // 隐藏整行 Text：实测纸面真实渲染宽（三角/打击点/扣子走它）
       Row() {
         Text(this.currentLineText())
@@ -2290,6 +2291,19 @@ struct Index {
       })
           // 关闭淡出 150ms（打开动画在 AppMenu 内部）
           .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
+      }
+
+      // 中文模式：键盘弹起会遮住底部自绘键区，这里给一个始终可点的「切回英文」悬浮键
+      if (this.langZh) {
+        Text('A')
+          .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#171310')
+          .width(44).height(44).textAlign(TextAlign.Center)
+          .borderRadius(28).backgroundColor('#c9a45c')
+          .position({ x: this.stageWidth - 56, y: this.topInset + 8 })
+          .onClick(() => {
+            this.langZh = false;
+            this.applyChineseMode(false);
+          })
       }
     }
     .width('100%')
