@@ -1907,6 +1907,43 @@ struct Index {
       .alignItems(HorizontalAlign.Start)
 
       // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
+      // §11 主页：冷启动首帧；从任何页返回也回这里
+      // 主页常驻以便滑入时垫底；但栈顶是 typewriter 时必须让位（否则盖住打字机）
+      if (this.navStack.indexOf('home') >= 0
+        && this.navStack[this.navStack.length - 1] !== 'typewriter') {
+        HomePage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          onContinue: (): void => {
+            const list = docStore.list();
+            if (list.length > 0) {
+              this.loadDocument(list[0].id);
+              this.pushPage('typewriter');
+            }
+          },
+          onStartTyping: (): void => {
+            // 新建一张空白纸并进入打字机
+            const meta = this.docModel.toDocData().meta;
+            const fresh: DocData = {
+              lines: [{ text: '', ribbon: this.ribbon }],
+              cursor: { line: 0, offset: 0 },
+              meta: meta,
+            };
+            const nid: string = docStore.save('', fresh, '未命名');
+            this.docsRev = this.docsRev + 1;
+            this.loadDocument(nid);
+            this.pushPage('typewriter');
+          },
+          onOpen: (key: string): void => {
+            if (key === 'dossier') { this.pushPage('dossier'); }
+            if (key === 'collection') { this.pushPage('collection'); }
+            if (key === 'customize') { this.pushPage('customize'); }
+            if (key === 'settings') { this.pushPage('settings'); }
+            if (key === 'export') { this.pushPage('export'); }
+          },
+        })
+      }
+
       if (this.dossierOpen) {
         DossierPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
@@ -1989,52 +2026,8 @@ struct Index {
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
-      // §11 主页：冷启动首帧；从任何页返回也回这里
-      if (this.navStack.indexOf('home') >= 0) {
-        HomePage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
-          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          onContinue: (): void => {
-            const list = docStore.list();
-            if (list.length > 0) {
-              this.loadDocument(list[0].id);
-              this.pushPage('typewriter');
-            }
-          },
-          onStartTyping: (): void => {
-            // 新建一张空白纸并进入打字机
-            const meta = this.docModel.toDocData().meta;
-            const fresh: DocData = {
-              lines: [{ text: '', ribbon: this.ribbon }],
-              cursor: { line: 0, offset: 0 },
-              meta: meta,
-            };
-            const nid: string = docStore.save('', fresh, '未命名');
-            this.docsRev = this.docsRev + 1;
-            this.loadDocument(nid);
-            this.pushPage('typewriter');
-          },
-          onOpen: (key: string): void => {
-            if (key === 'dossier') { this.pushPage('dossier'); }
-            if (key === 'collection') { this.pushPage('collection'); }
-            if (key === 'customize') { this.pushPage('customize'); }
-            if (key === 'settings') { this.pushPage('settings'); }
-            if (key === 'export') { this.pushPage('export'); }
-          },
-        })
-      }
 
       // D1：汉堡下拉菜单（最上层）
-      AppMenu({
-        visible: this.menuOpen,
-        topVp: this.topInsetValue(),
-        onClose: (): void => { this.menuOpen = false; },
-        onPick: (key: string): void => {
-          if (key === 'collection') { this.pushPage('collection'); }
-          if (key === 'settings') { this.pushPage('settings'); }
-          if (key === 'export') { this.pushPage('export'); }
-        },
-      })
 
       // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
       if (this.settingsOpen) {
@@ -2203,6 +2196,17 @@ struct Index {
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
+
+      AppMenu({
+        visible: this.menuOpen,
+        topVp: this.topInsetValue(),
+        onClose: (): void => { this.menuOpen = false; },
+        onPick: (key: string): void => {
+          if (key === 'collection') { this.pushPage('collection'); }
+          if (key === 'settings') { this.pushPage('settings'); }
+          if (key === 'export') { this.pushPage('export'); }
+        },
+      })
     }
     .width('100%')
     .height('100%')
