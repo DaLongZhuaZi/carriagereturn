@@ -175,8 +175,10 @@ export struct CollectionPage {
       // P1-9：锁定提示条（与解锁提示条同样式），点一下即消失
       if (this.hintText !== null) {
         Row() {
+          // P1-9：提示条专属 id，便于与卡片条件行区分（两者文案相同）
           Text(this.hintText).fontSize(13).fontColor('#e8ddc9')
         }
+        .id('lock_hint')
         .padding({ left: 18, right: 18, top: 12, bottom: 12 })
         .borderRadius(10).backgroundColor('rgba(46,38,32,0.96)')
         .position({ x: 20, y: this.heightVp - this.bottomInset - 76 })

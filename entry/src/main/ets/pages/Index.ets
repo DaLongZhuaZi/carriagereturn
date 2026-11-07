@@ -1962,6 +1962,18 @@ struct Index {
             this.openDocId = '';
             this.docsRev = this.docsRev + 1;
           },
+          onAddPage: (id: string): void => {
+            // P1-5：入口日志——点了没有这一行说明点击没到按钮
+            hilog.info(DOMAIN, TAG, 'addPage enter id=%{public}s', id);
+            const data: DocData | null = docStore.load(id);
+            if (data !== null) {
+              data.lines.push({ text: '', ribbon: this.ribbon });
+              docStore.save(id, data, '未命名');
+              this.docsRev = this.docsRev + 1;
+              hilog.info(DOMAIN, TAG, 'addPage ok id=%{public}s lines=%{public}s',
+                id, data.lines.length.toString());
+            }
+          },
         })
       }
     }
