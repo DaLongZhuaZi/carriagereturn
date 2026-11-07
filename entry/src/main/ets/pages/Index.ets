@@ -496,6 +496,9 @@ struct Index {
       if (lj.length > 2) {
         const data: Record<string, Record<string, number>> = JSON.parse(lj) as Record<string, Record<string, number>>;
         this.pinyinEngine.setLearnData(data);
+        const lkeys: string[] = Object.keys(data);
+        hilog.info(DOMAIN, TAG, 'learn loaded keys=%{public}s hasNihao=%{public}s',
+          lkeys.length.toString(), lkeys.indexOf('nihao') >= 0 ? 'true' : 'false');
       }
     } catch (e) {
       hilog.warn(DOMAIN, TAG, 'learn json bad');
