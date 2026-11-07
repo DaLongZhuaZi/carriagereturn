@@ -45,6 +45,8 @@ export class PinyinEngine {
   private maxSylLen: number = 0;
   private chars: Map<string, string[]> = new Map<string, string[]>();
   private words: Map<string, string[]> = new Map<string, string[]>();
+  /** 声母缩写索引：词的拼音按音节取首字母（如 你好→nh），上限 4 字母。 */
+  private abbrev: Map<string, string[]> = new Map<string, string[]>();
   /** 用户自定义词：拼音串 → 词（置顶） */
   private userWords: Map<string, string[]> = new Map<string, string[]>();
   /** 选词学习：拼音串 → (词 → 次数)。次数越高越靠前。 */
@@ -75,6 +77,55 @@ export class PinyinEngine {
       const k: string = wk[i];
       this.words.set(k, data.words[k]);
     }
+    this.buildAbbrev();
+  }
+
+  /** 由词表预建声母缩写索引（加载时一次，不许每击键扫全表）。 */
+  private buildAbbrev(): void {
+    this.abbrev.clear();
+    this.words.forEach((arr: string[], py: string) => {
+      this.addAbbrevFor(py, arr);
+    });
+    this.userWords.forEach((arr2: string[], py2: string) => {
+      this.addAbbrevFor(py2, arr2);
+    });
+  }
+
+  private addAbbrevFor(py: string, words: string[]): void {
+    const segs: string[][] = this.segments(py);
+    if (segs.length === 0) {
+      return;
+    }
+    const seg: string[] = segs[0];
+    if (seg.length < 2 || seg.length > 4) {
+      return;
+    }
+    let ab: string = '';
+    for (let i = 0; i < seg.length; i++) {
+      ab = ab + seg[i].charAt(0);
+    }
+    if (ab.length < 2) {
+      return;
+    }
+    let list: string[] | undefined = this.abbrev.get(ab);
+    if (list === undefined) {
+      list = [];
+      this.abbrev.set(ab, list);
+    }
+    for (let j = 0; j < words.length && list.length < 30; j++) {
+      if (list.indexOf(words[j]) < 0) {
+        list.push(words[j]);
+      }
+    }
+  }
+
+  /** 重建缩写索引（我的词库变更后调用）。 */
+  rebuildAbbrev(): void {
+    this.buildAbbrev();
+  }
+
+  abbrevCount(): number {
+    return this.abbrev.size;
   }
 
   /** §11.3 模糊表：8 组（双向）。键为规范形，值为等价形列表。 */
@@ -170,6 +221,19 @@ export class PinyinEngine {
   }
 
   syllableCount(): number {
+    return this.syllables.size;
+  }
+
+  /** 词条总数（供设置页显示真实数字，不再手写）。 */
+  wordCount(): number {
+    let n: number = 0;
+    this.words.forEach((arr: string[]) => { n += arr.length; });
+    this.userWords.forEach((arr2: string[]) => { n += arr2.length; });
+    return n;
+  }
+
+  /** 音节数（词库信息用）。 */
+  syllableTotal(): number {
     return this.syllables.size;
   }
 
@@ -412,6 +476,15 @@ export class PinyinEngine {
     const cs0: string[] = this.charsOf(s);
     for (let k = 0; k < cs0.length && k < 4; k++) {
       push(cs0[k], 1, s);
+    }
+    // ④ 声母缩写补候选（nh→你好）：排在正常候选之后，绝不抢首选
+    if (s.length >= 2 && s.length <= 4) {
+      const ab: string[] | undefined = this.abbrev.get(s);
+      if (ab !== undefined) {
+        for (let i = 0; i < ab.length && res.length < limit; i++) {
+          push(ab[i], 2, s);
+        }
+      }
     }
     return res;
   }

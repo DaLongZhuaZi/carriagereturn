@@ -246,7 +246,14 @@ struct Index {
     } catch (e) {
       this.userWordsFlat = [];
     }
-    this.dictInfo = '内置拼音词库 409 音节 / 8 万词 / 生成于 2026-11-07';
+    // §13 第 4 步：词库信息读实际数，不许再手写
+    if (this.pinyinEngine !== null) {
+      this.dictInfo = '内置拼音词库 ' + this.pinyinEngine.syllableCount().toString() + ' 音节 / '
+        + this.pinyinEngine.wordCount().toString() + ' 词条 / 含我的词库 '
+        + this.userWordsFlat.length.toString() + ' 条';
+    } else {
+      this.dictInfo = '词库未加载';
+    }
     let lc: number = 0;
     if (this.pinyinEngine !== null) {
       const ex: Record<string, Record<string, number>> = this.pinyinEngine.exportLearn();
@@ -279,6 +286,7 @@ struct Index {
       return;
     }
     this.pinyinEngine.addUserWordWithPinyin(py, w);
+    this.pinyinEngine.rebuildAbbrev();
     this.persistUserWords();
     this.refreshPinyinMeta();
   }
