@@ -504,12 +504,15 @@ def main():
         '| 现代词补全 | CC-CEDICT（MDBG 发布） | CC BY-SA 4.0 | —— | ' + cedict_sha + ' |',
         '| 补录表＋HOT 置顶表 | 本项目人工维护（见 tools/build-pinyin-dict.py 的 SUPPLEMENT／HOT） | 与本项目同许可（MIT） | —— | —— |',
         '',
+        '合并后文件的许可：dict/pinyin-words.json 整体按 **CC BY-SA 4.0** 分发（它并入了 CC-CEDICT 的内容，是 CC-CEDICT 的衍生数据，按 BY-SA 须同许可共享；署名见上表）。其中 jieba／pypinyin／Unihan -derived 的部分各按其原许可（MIT／Unicode License v3）亦可单独使用；App 代码仍是 MIT（代码只是读数据文件，不构成数据的衍生作品）。',
+        '如需保住 MIT 主表干净（不与 BY-SA 混在一个文件里），须把词库拆成两个文件分发（主表 MIT＋扩展表 CC BY-SA 4.0），见设计稿 §16.5。',
+        '',
         '生成口径：',
         '- 每词读音 = pypinyin 词组读音优先；取不到则用 pinyin-data 单字主读音拼接；CC-CEDICT 词用其自带读音（去声调，u:→v）。',
         '- 只保留 1–4 字、全为汉字的词；jieba 按词频降序截前 ' + str(MAX_WORDS) + ' 词；CC-CEDICT 全量并入（去重，排在 jieba 词之后）。',
         '- HOT 置顶表：高频现代词提到各键首位（首次输入即排首位，之后由学习排序接管）。',
         '- 输出：dict/pinyin-words.json（' + str(len(trimmed)) + ' 键 / ' + str(n_words) + ' 词 / ' + ('%.2f' % (len(words_bytes) / 1048576.0)) + ' MB）与 dict/pinyin-chars.json（' + str(len(char_map)) + ' 音节 / ' + str(n_chars) + ' 字 / ' + ('%.1f' % (len(chars_bytes) / 1024.0)) + ' KB）。',
-        '- 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL／八股文。',
+        '- 未使用：rime-ice（GPL）、搜狗细胞词库、THUOCL（MIT 可商用，v3 候选）、八股文（LGPL）。',
     ]
     with open(os.path.join(RAW, 'DICT-ATTRIBUTION.md'), 'w', encoding='utf-8') as f:
         f.write(chr(10).join(attr) + chr(10))
