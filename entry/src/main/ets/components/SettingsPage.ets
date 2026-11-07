@@ -18,6 +18,8 @@ export struct SettingsPage {
   @State keyVibrate: boolean = true;
   @State deleteMode: string = '现代删除';
   @State revealN: number = 0;
+  /** D4：按压统一 0.97 / 120ms（原 §6.1「底色加深 100ms」作废）。 */
+  @State pressedRow: string = '';
   onBack: () => void = (): void => {};
 
   aboutToAppear(): void {
@@ -49,6 +51,15 @@ export struct SettingsPage {
     .width('100%').height(52)
     .opacity(this.revealN > idx ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
+    .scale({ x: this.pressedRow === label ? 0.97 : 1, y: this.pressedRow === label ? 0.97 : 1 })
+    .animation({ duration: 120, curve: Curve.EaseOut })
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.pressedRow = label;
+      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+        this.pressedRow = '';
+      }
+    })
   }
 
   @Builder

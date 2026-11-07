@@ -26,6 +26,8 @@ export struct ExportPage {
   @State previewOp: number = 0;
   @State rowN: number = 0;
   @State btnScale: number = 1;
+  /** D4：格式行按压 0.97 / 120ms。 */
+  @State pressedRow: number = -1;
   onBack: () => void = (): void => {};
   onShare: (format: string) => void = (): void => {};
 
@@ -82,6 +84,15 @@ export struct ExportPage {
               .width('100%').height(110).padding({ left: 16, right: 16 })
               .backgroundColor(this.picked === idx ? '#2e2620' : '#241c16')
               .animation({ duration: 100 })
+              .scale({ x: this.pressedRow === idx ? 0.97 : 1, y: this.pressedRow === idx ? 0.97 : 1 })
+              .animation({ duration: 120, curve: Curve.EaseOut })
+              .onTouch((e: TouchEvent) => {
+                if (e.type === TouchType.Down) {
+                  this.pressedRow = idx;
+                } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+                  this.pressedRow = -1;
+                }
+              })
               .opacity(this.rowN > idx ? 1 : 0)
               .animation({ duration: 180, curve: Curve.EaseOut })
               .onClick(() => { this.picked = idx; })

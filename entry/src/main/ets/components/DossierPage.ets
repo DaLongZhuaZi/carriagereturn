@@ -29,6 +29,8 @@ export struct DossierPage {
   @State draftName: string = '';
   @State draftCover: string = 'kraft';
   @State revealN: number = 0;
+  /** D4：按压统一 0.97 / 120ms。 */
+  @State pressedIdx: number = -1;
   @State winW: number = 0;
   @State winH: number = 0;
   onBack: () => void = (): void => {};
@@ -147,6 +149,16 @@ export struct DossierPage {
               .width('100%')
               .opacity(this.revealN > idx + 1 ? 1 : 0)
               .animation({ duration: 180, curve: Curve.EaseOut })
+              .scale({ x: this.pressedIdx === idx + 1 ? 0.97 : 1,
+                y: this.pressedIdx === idx + 1 ? 0.97 : 1 })
+              .animation({ duration: 120, curve: Curve.EaseOut })
+              .onTouch((e: TouchEvent) => {
+                if (e.type === TouchType.Down) {
+                  this.pressedIdx = idx + 1;
+                } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+                  this.pressedIdx = -1;
+                }
+              })
               .onClick(() => { this.onOpenDossier(d.id); })
             }
           }, (d: Dossier) => d.id + ':' + d.updatedAt.toString())

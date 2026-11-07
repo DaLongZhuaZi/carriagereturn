@@ -7,7 +7,7 @@
 
 import { MachineKind, PaperKind, RibbonKind, PaperFont } from '../model/DocModel';
 import { MACHINES, PAPERS, RIBBONS, FONTS, FontSpec, MachineSpec, PaperSpec, RibbonSpec } from '../model/MachineCatalog';
-import { applyImmersive, Insets } from '../services/Immersive';
+import { PageShell } from './PageShell';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const MACHINE_LABEL: Record<string, string> = {
@@ -36,8 +36,7 @@ export struct CustomizePage {
   @Prop paperKind: string = 'LETTER';
   @Prop ribbonKind: string = 'BLACK';
   @Prop fontKind: string = '';
-  @State topInset: number = 28;
-  @State bottomInset: number = 0;
+
   @State revealN: number = 0;
   /** P1-4：注册失败的字体族名（行上标「未加载」，不许静默回落）。 */
   @Prop failedFonts: string[] = [];
@@ -50,20 +49,11 @@ export struct CustomizePage {
   onPickFont: (f: string) => void = (): void => {};
 
   aboutToAppear(): void {
-    this.applyInsets();
-    // P2-13：先归零再逐区揭示
+    // insets 交给 PageShell；D6：60ms 逐区揭示（原 80ms）
     this.revealN = 0;
     for (let i = 0; i < 4; i++) {
-      setTimeout(() => { this.revealN = i + 1; }, i * 80);
+      setTimeout(() => { this.revealN = i + 1; }, i * 60);
     }
-  }
-
-  private async applyInsets(): Promise<void> {
-    const ins: Insets = await applyImmersive(this.getUIContext());
-    this.topInset = ins.top;
-    this.bottomInset = ins.bottom;
-    hilog.info(0x0000, 'Customize', 'insets top=%{public}s bottom=%{public}s',
-      ins.top.toFixed(1), ins.bottom.toFixed(1));
   }
 
   private unlockedMachine(kind: string): boolean {
@@ -86,19 +76,8 @@ export struct CustomizePage {
       .width('100%').margin({ bottom: 12 })
   }
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column() {
-        // §2.10：顶栏顶距 = topInset
-        Column().width('100%').height(this.topInset)
-        Row() {
-          Text('‹').fontSize(26).fontColor('#e8ddc9')
-            .width(44).height(44).textAlign(TextAlign.Center)
-            .onClick(() => { this.onBack(); })
-          Text('换装').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-            .margin({ left: 4 })
-        }.width('100%').padding({ left: 12, top: 6, bottom: 6 })
-
+  @Builder
+  body() {
         Scroll() {
           Column() {
             // ① 机器：四枚圆角胶囊
@@ -108,17 +87,18 @@ export struct CustomizePage {
                 ForEach(MACHINES, (m: MachineSpec) => {
                   Text(MACHINE_LABEL[m.kind as string])
                     .fontSize(15)
-                    .fontColor(this.machineKind === (m.kind as string) ? '#241c16' : '#e8ddc9')
+                    .fontColor('#e8ddc9')
                     .textAlign(TextAlign.Center)
                     .layoutWeight(1).height(48)
                     .borderRadius(28)
-                    .backgroundColor(this.machineKind === (m.kind as string)
-                      ? '#c9a45c'
-                      : (this.unlockedMachine(m.kind as string) ? '#2e2620' : '#241c16'))
+                    // D7：选中态统一 2vp 金描边 + #2e2620 底（金底作废）
+                    .backgroundColor(this.machineKind === (m.kind as string) ? '#2e2620' : '#241c16')
+                    .border({ width: this.machineKind === (m.kind as string) ? 2 : 0, color: '#c9a45c' })
                     .opacity(this.unlockedMachine(m.kind as string) ? 1 : 0.55)
-                    .scale({ x: this.pressedKey === (m.kind as string) ? 0.95 : 1,
-                      y: this.pressedKey === (m.kind as string) ? 0.95 : 1 })
-                    .animation({ duration: 100, curve: Curve.EaseOut })
+                    // D4：按压统一 0.97 / 120ms
+                    .scale({ x: this.pressedKey === (m.kind as string) ? 0.97 : 1,
+                      y: this.pressedKey === (m.kind as string) ? 0.97 : 1 })
+                    .animation({ duration: 120, curve: Curve.EaseOut })
                     .onTouch((e: TouchEvent) => {
                       const k: string = m.kind as string;
                       if (e.type === TouchType.Down) {
@@ -217,17 +197,19 @@ export struct CustomizePage {
             .opacity(this.revealN > 3 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })
 
-            Column().width('100%').height(this.bottomInset)
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
-      }
-      .width('100%').height('100%')
-    }
-    .width(this.widthVp).height(this.heightVp)
-    .linearGradient({ direction: GradientDirection.Bottom,
-      colors: [['#171310', 0.0], ['#241c16', 1.0]] })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+
+  build() {
+    PageShell({
+      widthVp: this.widthVp,
+      heightVp: this.heightVp,
+      title: '换装',
+      onBack: () => { this.onBack(); },
+      content: (): void => { this.body() },
+    })
   }
 }
