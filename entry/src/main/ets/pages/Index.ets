@@ -217,8 +217,10 @@ struct Index {
   /** 中文预编辑串（只显示，不进模型）。 */
   @State cnPreview: string = '';
   /** 中文整词拆单字的 FIFO 队列与出队定时器。 */
-  private cnQueue: string[] = [];
-  private cnTimer: number = -1;
+  /** 非 1920s 机的落字起搏器（§14.3 第 2 条） */
+  private pacerTimer: number = -1;
+  /** 队首字兜底看门狗（§14.3 第 3 条） */
+  private fallbackTimer: number = -1;
   @State cnKbShown: boolean = false;
   /** 锚点 TextInput 已消费的文本（用于算增量，避免重复落字）。 */
   private cnAnchorPrev: string = '';
@@ -563,30 +565,21 @@ struct Index {
   /** 键盘避让上移量（vp）：键盘弹起时按打击行位置算，收起归零。 */
   @State kbShift: number = 0;
 
-  /** 中文通道：整词拆单字，40ms 逐字走 commitChar（复用现有落字链）。 */
+  /**
+   * 中文通道：整词拆单字，**逐字进同一条落字队列**（§14.3 第 1 条）。
+   * 不许再另起定时器直落 commitChar——那会绕过字杆与音效、且每字一个 30ms 字车动画互相打断。
+   */
   private enqueueChinese(text: string): void {
     for (let i = 0; i < text.length; i++) {
       const ch: string = text.charAt(i);
       if (ch === '\n') {
         this.onNewline();
       } else {
-        this.cnQueue.push(ch);
+        this.queueChar(ch);
       }
     }
-    if (this.cnTimer < 0) {
-      this.cnTimer = setInterval(() => {
-        if (this.cnQueue.length === 0) {
-          clearInterval(this.cnTimer);
-          this.cnTimer = -1;
-          return;
-        }
-        const c: string = this.cnQueue.shift() as string;
-        this.lastCommittedChar = c;
-        hilog.info(DOMAIN, TAG, 'cn commit ch=%{public}s left=%{public}s docLen=%{public}s',
-          c, this.cnQueue.length.toString(), this.docModel.getLines().length.toString());
-        this.commitChar(c);
-      }, 40);
-    }
+    hilog.info(DOMAIN, TAG, 'cn enqueue len=%{public}s queue=%{public}s',
+      text.length.toString(), this.pendingChars.length.toString());
   }
 
   /** 中文模式下要离页：先退回英文（键盘是独立窗口，不会跟着收）。防重入由 detach 自身保证。 */
@@ -801,6 +794,8 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // 落字兜底基准：进入页面即视为「刚刚落过」，避免首字被兜底直接闪现
+    this.lastArriveMs = Date.now();
     // 读取持久化的中文引擎（默认内置拼音）
     this.readCnEngine();
     // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
@@ -1757,11 +1752,9 @@ struct Index {
       }
     }
     if (cap.label === ' ') {
-      // 空格直通落字：不进 queueChar（那会给 strikeTick+1 触发字杆摆动，导致一声两响）
-      // playSpace 保留在 Down 处，只出一声；stepCarriageLeft 左进一格 + jolt 照常
-      this.audioService.playSpace();
+      // §14.3 第 5 条：空格也进落字队列（落地时由 landHead 播 playSpace），不许直落
       this.audioService.vibrate();
-      this.commitChar(' ');
+      this.queueChar(' ');
       return;
     }
     if (cap.label === 'Backspace') {
@@ -1792,22 +1785,85 @@ struct Index {
 
   private queueChar(ch: string): void {
     this.pendingChars.push(ch);
-    // 兜底：200ms 内若无 onArrive，强制落字（动画缺失时打字不许静默全死）
-    const chSnapshot: string = ch;
-    setTimeout(() => {
-      const idx: number = this.pendingChars.indexOf(chSnapshot);
-      if (idx >= 0) {
-        this.pendingChars.splice(idx, 1);
-        this.droppedTicks += 1;
-        hilog.error(DOMAIN, TAG, 'typebar fallback: flush char=%{public}s', chSnapshot);
-        this.commitChar(chSnapshot);
-      }
-    }, 200);
     if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+      // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）
       this.strikeTick = this.strikeTick + 1;
     } else {
-      this.flushPending();
+      // 非 1920s：120ms 起搏器（队列非空时起、空时停），同样串行
+      this.startPacer();
     }
+    this.armFallback();
+  }
+
+  /** 非 1920s 起搏器：每 120ms 落一字；队列空即停。 */
+  private startPacer(): void {
+    if (this.pacerTimer >= 0) {
+      return;
+    }
+    this.pacerTimer = setInterval(() => {
+      if (this.pendingChars.length === 0) {
+        clearInterval(this.pacerTimer);
+        this.pacerTimer = -1;
+        return;
+      }
+      this.landHead();
+    }, 120);
+  }
+
+  /**
+   * 队首兜底（§14.3 第 3 条）：只对**队首字**，且 200ms 内没有 onArrive 才触发；
+   * 触发后仍走正常落字链（音＋落字），不许直接 commitChar 静默落字。
+   */
+  private armFallback(): void {
+    if (this.fallbackTimer >= 0) {
+      clearTimeout(this.fallbackTimer);
+    }
+    const armMs: number = Date.now();
+    this.fallbackTimer = setTimeout(() => {
+      this.fallbackTimer = -1;
+      if (this.pendingChars.length === 0) {
+        return;
+      }
+      // 判据：自「武装兜底」以来有没有发生过 onArrive（不是距上次落字多久——
+      // 那会让长时间没打字后的首字立刻吃兜底、直接闪现）
+      const arrivedSince: boolean = this.lastArriveMs > armMs;
+      const since: number = arrivedSince ? 0 : Date.now() - armMs;
+      if (since < 200) {
+        this.armFallback();
+        return;
+      }
+      this.droppedTicks += 1;
+      hilog.error(DOMAIN, TAG, 'typebar fallback head=%{public}s since=%{public}s',
+        this.pendingChars[0], since.toString());
+      this.landHead();
+      if (this.pendingChars.length > 0) {
+        this.armFallback();
+      }
+    }, 200);
+  }
+
+  /** 落队首字：空格播 playSpace，其余播主键音（快速连打走 transient）。 */
+  private landHead(): void {
+    const head: string | undefined = this.pendingChars[0];
+    if (head === undefined) {
+      return;
+    }
+    if (head === ' ') {
+      this.audioService.playSpace();
+    } else {
+      const now: number = Date.now();
+      const gapMs: number = this.lastArriveMs > 0 ? now - this.lastArriveMs : 9999;
+      const fast: boolean = gapMs < 150 || this.pendingChars.length >= 2;
+      if (fast) {
+        this.audioService.playKeyTransient();
+      } else {
+        this.audioService.playKey();
+      }
+      this.fastCount += fast ? 1 : 0;
+    }
+    this.soundCount += 1;
+    this.lastArriveMs = Date.now();
+    this.flushPending();
   }
 
   private flushPending(): void {
@@ -1815,28 +1871,19 @@ struct Index {
     if (ch === undefined) {
       return;
     }
+    this.lastCommittedChar = ch;
     this.commitChar(ch);
   }
 
   private onStrikeArrive(): void {
-    // 主击打音与落字、纸移动同帧；快速连打换 key-transient 短音，每字仍一音
+    // 字杆到位：音＋落字同帧（音由 landHead 按落地字决定：空格 playSpace，其余主键音）
     const now: number = Date.now();
-    const gapMs: number = this.lastArriveMs > 0 ? now - this.lastArriveMs : 9999;
-    const fast: boolean = gapMs < 150 || this.pendingChars.length >= 1;
-    if (fast) {
-      this.audioService.playKeyTransient();
-    } else {
-      this.audioService.playKey();
-    }
-    this.soundCount += 1;
-    this.fastCount += fast ? 1 : 0;
     this.arriveCount += 1;
     if (this.lastArriveMs > 0) {
       this.arriveGapSumMs += now - this.lastArriveMs;
       this.arriveGapCount += 1;
     }
-    this.lastArriveMs = now;
-    this.flushPending();
+    this.landHead();
     if (this.arriveCount <= 10 || this.arriveCount % 10 === 0) {
       const avgGap: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
       hilog.info(DOMAIN, TAG,
@@ -1946,6 +1993,21 @@ struct Index {
   }
 
   private onDelete(): void {
+    // §14.3 第 6 条：队列非空 → 先取消队尾字（不碰文档）
+    if (this.pendingChars.length > 0) {
+      const tail: string | undefined = this.pendingChars.pop();
+      this.audioService.playBackspace();
+      this.audioService.vibrate();
+      hilog.info(DOMAIN, TAG, 'del cancels queued char=%{public}s left=%{public}s',
+        tail === undefined ? '' : tail, this.pendingChars.length.toString());
+      if (this.pendingChars.length === 0) {
+        if (this.pacerTimer >= 0) {
+          clearInterval(this.pacerTimer);
+          this.pacerTimer = -1;
+        }
+      }
+      return;
+    }
     this.audioService.playBackspace();
     this.audioService.vibrate();
     // 诊断：删除前后的光标行／总行数／纸顶
@@ -2015,10 +2077,11 @@ struct Index {
     });
     setTimeout(() => {
       this.backBusy = false;
+      // §14.3 第 4 条：排队字逐字回落字队列（走字杆／起搏），不许循环直落
       const q: string[] = this.queuedChars.slice(0);
       this.queuedChars = [];
       for (let i = 0; i < q.length; i++) {
-        this.commitChar(q[i]);
+        this.queueChar(q[i]);
       }
     }, 270);
     hilog.info(DOMAIN, TAG, 'backLine to line=%{public}s col=%{public}s O=%{public}s paperTop=%{public}s',
@@ -2168,10 +2231,14 @@ struct Index {
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
       this.newlineBusy = false;
+      // §14.3 第 4 条：换行编排结束后，排队字逐字回落字队列
       const q: string[] = this.queuedChars.slice(0);
       this.queuedChars = [];
       for (let i = 0; i < q.length; i++) {
-        this.commitChar(q[i]);
+        this.queueChar(q[i]);
+      }
+      if (q.length > 0) {
+        hilog.info(DOMAIN, TAG, 'newline release n=%{public}s', q.length.toString());
       }
     }, t0 + 250);
   }
