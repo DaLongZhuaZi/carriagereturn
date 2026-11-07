@@ -315,7 +315,15 @@ export class PinyinEngine {
       m = new Map<string, number>();
       this.learn.set(py, m);
     }
-    m.set(word, (m.get(word) === undefined ? 0 : m.get(word) as number) + 1);
+    // 「次数＋新近」：刚选的词取「当前同串最大次数 + 1」，保证它在同串内排第一；
+    // 其余词保留历史次数，作为之后的次序依据
+    let maxN: number = 0;
+    m.forEach((n: number) => {
+      if (n > maxN) {
+        maxN = n;
+      }
+    });
+    m.set(word, maxN + 1);
   }
 
   /** 导出学习记录（供落盘）。 */
