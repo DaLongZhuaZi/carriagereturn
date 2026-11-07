@@ -32,6 +32,8 @@ import { DocumentViewPage } from '../components/DocumentViewPage';
 import { CollectionPage } from '../components/CollectionPage';
 import { CustomizePage } from '../components/CustomizePage';
 import { CollectionDetailPage } from '../components/CollectionDetailPage';
+import { SettingsPage } from '../components/SettingsPage';
+import { ExportPage } from '../components/ExportPage';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { TopBar } from '../components/TopBar';
@@ -216,6 +218,9 @@ struct Index {
   @State customizeOpen: boolean = false;
   /** 收藏详情页：非空则显示（已解锁机器）。 */
   @State collectionDetailKind: string = '';
+  /** §6.1／§6.2 设置页与导出页。 */
+  @State settingsOpen: boolean = false;
+  @State exportOpen: boolean = false;
   /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
   @State switchFade: number = 1;
   /** P1-4：注册失败的字体族名（换装页据此标「未加载」）。 */
@@ -1526,7 +1531,9 @@ struct Index {
         Column().width('100%').height(this.topInset)
         TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
           onOpenLibrary: (): void => { this.dossierOpen = true; },
-          onOpenMenu: (): void => { this.collectionOpen = true; } })
+          onOpenMenu: (): void => { this.collectionOpen = true; },
+          onOpenSettings: (): void => { this.settingsOpen = true; },
+          onOpenExport: (): void => { this.exportOpen = true; } })
 
         Column() {
           Column().width('100%').height(this.paperTopGap)
@@ -1915,6 +1922,30 @@ struct Index {
               hilog.info(DOMAIN, TAG, 'addPage id=%{public}s lines=%{public}s',
                 id, data.lines.length.toString());
             }
+          },
+        })
+      }
+
+      // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
+      if (this.settingsOpen) {
+        SettingsPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          machineLabel: this.machineKind as string,
+          paperLabel: this.paperKind as string,
+          onBack: (): void => { this.settingsOpen = false; },
+        })
+      }
+
+      // §6.2 导出页
+      if (this.exportOpen) {
+        ExportPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docId: this.docId,
+          onBack: (): void => { this.exportOpen = false; },
+          onShare: (format: string): void => {
+            hilog.info(DOMAIN, TAG, 'export share format=%{public}s', format);
           },
         })
       }
