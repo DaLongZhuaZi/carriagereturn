@@ -216,6 +216,8 @@ struct Index {
   private cnQueue: string[] = [];
   private cnTimer: number = -1;
   @State cnKbShown: boolean = false;
+  /** 锚点 TextInput 已消费的文本（用于算增量，避免重复落字）。 */
+  private cnAnchorPrev: string = '';
   /** 键盘避让上移量（vp）：键盘弹起时按打击行位置算，收起归零。 */
   @State kbShift: number = 0;
 
@@ -1760,6 +1762,26 @@ struct Index {
         .width(1).height(1).opacity(0.01)
         .position({ x: 0, y: 0 })
         .enabled(this.langZh)
+        // 诊断：若提交串被这个隐藏字段吞掉，这里能看到
+        .onChange((v: string) => {
+          // 系统输入法把提交串投给了这个隐藏字段（控制器收不到，见诊断日志），
+          // 这里取增量转发进同一条落字链；缩短时只更新基线，不动文档
+          const prev: string = this.cnAnchorPrev;
+          if (v.length > prev.length) {
+            const added: string = v.substring(prev.length);
+            hilog.info(DOMAIN, TAG, 'cn anchor delta=%{public}s', added.length.toString());
+            this.enqueueChinese(added);
+          } else if (v.length < prev.length) {
+            // 输入法退格把锚点文本缩短 → 对称地删已提交字符（预编辑中不动文档）
+            const d: number = prev.length - v.length;
+            hilog.info(DOMAIN, TAG, 'cn anchor shrink=%{public}s preview=%{public}s',
+              d.toString(), this.cnPreview.length.toString());
+            if (this.cnPreview.length === 0) {
+              for (let i = 0; i < d; i++) { this.onDelete(); }
+            }
+          }
+          this.cnAnchorPrev = v;
+        })
 
       // 隐藏整行 Text：实测纸面真实渲染宽（三角/打击点/扣子走它）
       Row() {
