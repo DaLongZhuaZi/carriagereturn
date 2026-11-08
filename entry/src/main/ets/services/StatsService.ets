@@ -47,6 +47,8 @@ export class StatsService {
    * flushPending 在离页/切页/导出前/退出时批量写一次。静态内存＝跨实例共享、进程内有效。
    */
   private static pendingBuf: number = 0;
+  /** pending 所属自然日；跨日后 recordChar 先 flush 旧日，避免把昨天的字记到今天。 */
+  private static pendingDayKey: string = '';
   /** 本地自然日的时区偏移（分钟）：Asia/Hong_Kong = 480。 */
   tzOffsetMinutes(): number {
     return -new Date().getTimezoneOffset();
@@ -89,11 +91,17 @@ export class StatsService {
     const storedKey: string = appPreferences.getString(PrefKeys.STATS_DAY_KEY, '');
     const stored: number = appPreferences.getNumber(PrefKeys.STATS_DAY_CHARS, 0);
     const base: number = mergeDailyChars(storedKey, stored, key, 0);
-    return base + this.pendingChars();
+    const pending: number = StatsService.pendingDayKey === key ? StatsService.pendingBuf : 0;
+    return base + pending;
   }
 
   /** 落字成功一次 +1（只进内存，不写盘；删除字不扣减）。 */
   recordChar(): void {
+    const key: string = dayKey(this.nowMs(), this.tzOffsetMinutes());
+    if (StatsService.pendingDayKey.length > 0 && StatsService.pendingDayKey !== key) {
+      this.flushPending();
+    }
+    StatsService.pendingDayKey = key;
     StatsService.pendingBuf = StatsService.pendingBuf + 1;
   }
 
@@ -112,13 +120,16 @@ export class StatsService {
       return;
     }
     const now: number = this.nowMs();
-    const key: string = dayKey(now, this.tzOffsetMinutes());
+    const today: string = dayKey(now, this.tzOffsetMinutes());
+    // 写 pending 所属的那一天（跨日时 pendingDayKey 是旧日，不能记到今天）
+    const key: string = StatsService.pendingDayKey.length > 0 ? StatsService.pendingDayKey : today;
     const storedKey: string = appPreferences.getString(PrefKeys.STATS_DAY_KEY, '');
     const stored: number = appPreferences.getNumber(PrefKeys.STATS_DAY_CHARS, 0);
     const next: number = mergeDailyChars(storedKey, stored, key, pending);
     appPreferences.setString(PrefKeys.STATS_DAY_KEY, key);
     appPreferences.setNumber(PrefKeys.STATS_DAY_CHARS, next);
     StatsService.pendingBuf = 0;
+    StatsService.pendingDayKey = '';
   }
 
   /** 记今天落字数（保存事件时批量调用；非热路径）。 */

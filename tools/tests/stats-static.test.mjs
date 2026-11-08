@@ -61,6 +61,8 @@ test('StatsService：pending 内存增量与纸张种类存在', () => {
   assert.ok(/recordChar\(\): void/.test(src), '缺 recordChar()');
   assert.ok(/pendingChars\(\): number/.test(src), '缺 pendingChars()');
   assert.ok(/flushPending\(\): void/.test(src), '缺 flushPending()');
+  assert.ok(/static\s+pendingDayKey/.test(src), '缺 pending 所属日，跨日会记错天');
+  assert.ok(/pendingDayKey === key/.test(src), 'todayChars 未按 pending 所属日过滤');
   assert.ok(/paperKindsUsed\(\): number/.test(src), '缺 paperKindsUsed()');
   assert.ok(/recordPaperKind\(kind: string\): void/.test(src), '缺 recordPaperKind()');
   assert.ok(src.includes('mergeDailyChars('), '日字数合并未走 StatsCore.mergeDailyChars');
