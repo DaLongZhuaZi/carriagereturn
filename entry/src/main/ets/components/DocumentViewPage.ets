@@ -10,6 +10,7 @@ import { docStore } from '../services/DocStore';
 import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { GuideStep } from './GuideOverlay';
 
 const PAPER_RAW: Record<string, string> = {
   'letter': 'paper/paper-letter.jpg',
@@ -180,7 +181,18 @@ export struct DocumentViewPage {
       heightVp: this.heightVp,
       title: $r('app.string.page_document'),
       onBack: () => { this.onBack(); },
+      subtitle: $r('app.string.guide_document_view_hint'),
+      showSubtitle: true,
       content: (): void => { this.body() },
     })
   }
+}
+
+/** DocumentView 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForDocumentView(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_document_view_1') },
+    { text: $r('app.string.guide_document_view_2') },
+    { text: $r('app.string.guide_document_view_3') },
+  ];
 }

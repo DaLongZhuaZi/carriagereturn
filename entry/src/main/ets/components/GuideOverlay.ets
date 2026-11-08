@@ -16,7 +16,8 @@ export interface GuideAnchor {
 
 /** 一条提示。 */
 export interface GuideStep {
-  text: string;
+  /** 文案资源（string.json）；第 1 批起统一走 ResourceStr（修改第 0 批 string 契约） */
+  text: ResourceStr;
   /** 该条提示指向的语义锚（可选）。 */
   anchor?: GuideAnchor;
 }
@@ -24,7 +25,7 @@ export interface GuideStep {
 @Component
 export struct GuideOverlay {
   @Prop visible: boolean = false;
-  @Prop title: string = '';
+  @Prop title: ResourceStr = '';
   @Prop steps: GuideStep[] = [];
   @Prop anchor: GuideAnchor = {};
   /** 第 1 批接入 seen-state 后由页面传入；本批默认只显示"知道了"。 */
@@ -75,17 +76,17 @@ export struct GuideOverlay {
             .width('100%')
             .alignItems(VerticalAlign.Top)
             .margin({ bottom: 8 })
-          }, (step: GuideStep, idx: number) => idx.toString() + step.text)
+          }, (step: GuideStep, idx: number) => idx.toString())
           Row() {
             if (this.showSkip) {
-              Text('跳过')
+              Text($r('app.string.guide_btn_skip'))
                 .fontSize(14)
                 .fontColor('rgba(232,221,201,0.55)')
                 .padding({ left: 8, right: 8, top: 6, bottom: 6 })
                 .onClick(() => { this.onSkip(); })
             }
             Blank()
-            Text('知道了')
+            Text($r('app.string.guide_btn_ok'))
               .fontSize(14)
               .fontColor('#171310')
               .backgroundColor('#c9a45c')

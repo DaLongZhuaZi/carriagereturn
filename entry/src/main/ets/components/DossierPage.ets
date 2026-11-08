@@ -10,6 +10,7 @@ import { Dossier, CoverStyle, dossierStore } from '../services/DossierStore';
 import { DocSummary } from '../model/DocModel';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
+import { GuideStep } from './GuideOverlay';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -218,6 +219,8 @@ export struct DossierPage {
         title: $r('app.string.page_dossier'),
         showTrailing: true,
         onBack: () => { this.onBack(); },
+        subtitle: $r('app.string.guide_dossier_hint'),
+        showSubtitle: true,
         content: (): void => { this.body() },
         trailing: (): void => { this.trailingBtn() },
       })
@@ -240,4 +243,13 @@ export struct DossierPage {
       this.winH = h;
     })
   }
+}
+
+/** Dossier 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForDossier(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_dossier_1') },
+    { text: $r('app.string.guide_dossier_2') },
+    { text: $r('app.string.guide_dossier_3') },
+  ];
 }

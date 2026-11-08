@@ -53,7 +53,8 @@ CHECKS = [
     ]),
     ("entry/src/main/ets/components/GuideOverlay.ets", [
         r"export interface GuideAnchor", r"export interface GuideStep", r"export struct GuideOverlay",
-        r"@Prop visible", r"onNext", r"onSkip", r"onClose",
+        r"@Prop visible", r"@Prop title: ResourceStr", r"text: ResourceStr",
+        r"guide_btn_skip", r"guide_btn_ok", r"onNext", r"onSkip", r"onClose",
     ]),
     ("entry/src/main/ets/model/DocStoreStateCore.ets", [
         r"export interface DocIndexRecord", r"export function trashRecord", r"export function restoreRecord",

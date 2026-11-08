@@ -31,19 +31,19 @@ import { PaperRow } from '../ui/PaperSheet';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
 import { dossierStore } from '../services/DossierStore';
-import { DossierPage } from '../components/DossierPage';
-import { DossierDetailPage } from '../components/DossierDetailPage';
-import { DocumentViewPage } from '../components/DocumentViewPage';
-import { CollectionPage } from '../components/CollectionPage';
-import { CustomizePage } from '../components/CustomizePage';
-import { CollectionDetailPage } from '../components/CollectionDetailPage';
-import { SettingsPage } from '../components/SettingsPage';
-import { ExportPage } from '../components/ExportPage';
-import { HomePage } from '../components/HomePage';
+import { DossierPage, guideStepsForDossier } from '../components/DossierPage';
+import { DossierDetailPage, guideStepsForDossierDetail } from '../components/DossierDetailPage';
+import { DocumentViewPage, guideStepsForDocumentView } from '../components/DocumentViewPage';
+import { CollectionPage, guideStepsForCollection } from '../components/CollectionPage';
+import { CustomizePage, guideStepsForCustomize } from '../components/CustomizePage';
+import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
+import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
+import { ExportPage, guideStepsForExport } from '../components/ExportPage';
+import { HomePage, guideStepsForHome } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
 import { PinyinEngine, PinyinSession, Candidate, PickResult } from '../services/PinyinEngine';
 import { CandidateBar } from '../components/CandidateBar';
-import { PinyinSettingsPage } from '../components/PinyinSettingsPage';
+import { PinyinSettingsPage, guideStepsForPinyinSettings } from '../components/PinyinSettingsPage';
 import { appPreferences, PrefKeys } from '../services/AppPreferences';
 import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
@@ -51,6 +51,9 @@ import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
+import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
+import { GuideService } from '../services/GuideService';
+import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER } from '../model/GuideCore';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
@@ -809,6 +812,13 @@ struct Index {
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
 
+  /** 第 1 批：引导（Index 单挂载点；页面只提供 guideSteps 数据）。 */
+  @State guideVisible: boolean = false;
+  @State guidePage: string = '';
+  @State guideTitle: ResourceStr = '';
+  @State guideSteps: GuideStep[] = [];
+  @State onboardingVisible: boolean = false;
+
   /** 导航栈（AGENTS「导航」）：栈底永远是 'home'。页内返回与系统返回都走弹栈。 */
   @State navStack: string[] = ['home'];
   /** 冷启动首帧不做进入动画；第一次页面切换后才启用过渡。 */
@@ -829,6 +839,108 @@ struct Index {
     this.exportOpen = has('export');
     hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
       this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
+    this.maybeShowPageGuide();
+  }
+
+  // ---- 第 1 批：引导（Index 单挂载点）----
+
+  /** 页面 id → guideSteps 数据（页面各自声明，Index 只做映射）。 */
+  private guideStepsOf(page: string): GuideStep[] {
+    if (page === GUIDE_PAGE_HOME) { return guideStepsForHome(); }
+    if (page === GUIDE_PAGE_DOSSIER) { return guideStepsForDossier(); }
+    if (page === GUIDE_PAGE_DOSSIER_DETAIL) { return guideStepsForDossierDetail(); }
+    if (page === GUIDE_PAGE_DOCUMENT_VIEW) { return guideStepsForDocumentView(); }
+    if (page === GUIDE_PAGE_COLLECTION) { return guideStepsForCollection(); }
+    if (page === GUIDE_PAGE_COLLECTION_DETAIL) { return guideStepsForCollectionDetail(); }
+    if (page === GUIDE_PAGE_CUSTOMIZE) { return guideStepsForCustomize(); }
+    if (page === GUIDE_PAGE_SETTINGS) { return guideStepsForSettings(); }
+    if (page === GUIDE_PAGE_EXPORT) { return guideStepsForExport(); }
+    if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return guideStepsForPinyinSettings(); }
+    if (page === GUIDE_PAGE_TYPEWRITER) {
+      return [
+        { text: $r('app.string.guide_typewriter_1') },
+        { text: $r('app.string.guide_typewriter_2') },
+        { text: $r('app.string.guide_typewriter_3') },
+      ];
+    }
+    return [];
+  }
+
+  private guideTitleOf(page: string): ResourceStr {
+    if (page === GUIDE_PAGE_HOME) { return $r('app.string.guide_home_title'); }
+    if (page === GUIDE_PAGE_DOSSIER) { return $r('app.string.guide_dossier_title'); }
+    if (page === GUIDE_PAGE_DOSSIER_DETAIL) { return $r('app.string.guide_dossier_detail_title'); }
+    if (page === GUIDE_PAGE_DOCUMENT_VIEW) { return $r('app.string.guide_document_view_title'); }
+    if (page === GUIDE_PAGE_COLLECTION) { return $r('app.string.guide_collection_title'); }
+    if (page === GUIDE_PAGE_COLLECTION_DETAIL) { return $r('app.string.guide_collection_detail_title'); }
+    if (page === GUIDE_PAGE_CUSTOMIZE) { return $r('app.string.guide_customize_title'); }
+    if (page === GUIDE_PAGE_SETTINGS) { return $r('app.string.guide_settings_title'); }
+    if (page === GUIDE_PAGE_EXPORT) { return $r('app.string.guide_export_title'); }
+    if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return $r('app.string.guide_pinyin_settings_title'); }
+    if (page === GUIDE_PAGE_TYPEWRITER) { return $r('app.string.guide_typewriter_title'); }
+    return '';
+  }
+
+  /** 当前可见页 → page id（覆盖层优先于底座）。 */
+  private currentGuidePage(): string {
+    if (this.pinyinSettingsOpen) { return GUIDE_PAGE_PINYIN_SETTINGS; }
+    if (this.settingsOpen) { return GUIDE_PAGE_SETTINGS; }
+    if (this.exportOpen) { return GUIDE_PAGE_EXPORT; }
+    if (this.collectionOpen && this.collectionDetailKind.length > 0) { return GUIDE_PAGE_COLLECTION_DETAIL; }
+    if (this.collectionOpen) { return GUIDE_PAGE_COLLECTION; }
+    if (this.customizeOpen) { return GUIDE_PAGE_CUSTOMIZE; }
+    if (this.dossierOpen && this.openDocId.length > 0) { return GUIDE_PAGE_DOCUMENT_VIEW; }
+    if (this.dossierOpen && this.detailOpen) { return GUIDE_PAGE_DOSSIER_DETAIL; }
+    if (this.dossierOpen) { return GUIDE_PAGE_DOSSIER; }
+    if (this.navStack[this.navStack.length - 1] === 'typewriter') { return GUIDE_PAGE_TYPEWRITER; }
+    if (this.homeOpen) { return GUIDE_PAGE_HOME; }
+    return '';
+  }
+
+  private maybeShowPageGuide(): void {
+    if (this.onboardingVisible || this.guideVisible) {
+      return;
+    }
+    const page: string = this.currentGuidePage();
+    if (page.length === 0 || !GuideService.shouldShow(page)) {
+      return;
+    }
+    this.guidePage = page;
+    this.guideTitle = this.guideTitleOf(page);
+    this.guideSteps = this.guideStepsOf(page);
+    this.guideVisible = true;
+  }
+
+  private closePageGuide(): void {
+    if (this.guidePage.length > 0) {
+      GuideService.markSeen(this.guidePage);
+    }
+    this.guideVisible = false;
+  }
+
+  private onboardingSteps(): GuideStep[] {
+    return [
+      { text: $r('app.string.guide_onboarding_1') },
+      { text: $r('app.string.guide_onboarding_2') },
+      { text: $r('app.string.guide_onboarding_3') },
+      { text: $r('app.string.guide_onboarding_4') },
+    ];
+  }
+
+  private closeOnboarding(): void {
+    GuideService.markOnboardingSeen();
+    this.onboardingVisible = false;
+    setTimeout(() => { this.maybeShowPageGuide(); }, 120);
+  }
+
+  private replayPageGuide(): void {
+    GuideService.resetPages();
+    this.hintText = '已重置，下次进入页面生效';
+  }
+
+  private replayOnboarding(): void {
+    GuideService.resetOnboarding();
+    this.onboardingVisible = true;
   }
 
   private pushPage(k: string): void {
@@ -870,6 +982,14 @@ struct Index {
   /** 系统返回：先关菜单，再弹栈；栈底主页时返回 false。 */
   onBackPress(): boolean {
     hilog.info(DOMAIN, TAG, 'onBackPress depth=%{public}s', this.navStack.length.toString());
+    if (this.onboardingVisible) {
+      this.closeOnboarding();
+      return true;
+    }
+    if (this.guideVisible) {
+      this.closePageGuide();
+      return true;
+    }
     if (this.menuOpen) {
       this.menuOpen = false;
       return true;
@@ -909,6 +1029,10 @@ struct Index {
     }, 1500);
     // 读取持久化的中文引擎（默认内置拼音）
     this.readCnEngine();
+    // 第 1 批：首启启动引导（ONBOARDING_SEEN 控制；延迟到首帧后）
+    if (!GuideService.onboardingSeen()) {
+      setTimeout(() => { this.onboardingVisible = true; }, 600);
+    }
     // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
     try {
       // 用 UIContext 导出的 KeyboardAvoidMode（OFFSET=0 页面上移 / RESIZE=1），避开组件作用域同名枚举
@@ -3773,6 +3897,8 @@ struct Index {
               this.refreshPinyinMeta();
             });
           },
+          onReplayPageGuide: (): void => { this.replayPageGuide(); },
+          onReplayOnboarding: (): void => { this.replayOnboarding(); },
           onPickCnEngine: (): void => {
             const next: string = this.cnEngine === 'builtin' ? 'system' : 'builtin';
             this.cnEngine = next;
@@ -4000,6 +4126,24 @@ struct Index {
             this.applyChineseMode(false);
           })
       }
+
+      // 第 1 批：引导浮层（唯一挂载点；启动引导优先，页面引导次之）
+      GuideOverlay({
+        visible: this.onboardingVisible,
+        title: $r('app.string.guide_onboarding_title'),
+        steps: this.onboardingSteps(),
+        showSkip: true,
+        onNext: (): void => { this.closeOnboarding(); },
+        onSkip: (): void => { this.closeOnboarding(); },
+        onClose: (): void => { this.closeOnboarding(); },
+      })
+      GuideOverlay({
+        visible: this.guideVisible && !this.onboardingVisible,
+        title: this.guideTitle,
+        steps: this.guideSteps,
+        onNext: (): void => { this.closePageGuide(); },
+        onClose: (): void => { this.closePageGuide(); },
+      })
     }
     .width('100%')
     .height('100%')

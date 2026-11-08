@@ -7,6 +7,8 @@
 
 import { PageShell } from './PageShell';
 import { AppIcon } from './AppIcon';
+import { SettingsRow } from './SettingsRow';
+import { GuideStep } from './GuideOverlay';
 
 @Component
 export struct SettingsPage {
@@ -19,6 +21,9 @@ export struct SettingsPage {
   onPickCnEngine: () => void = (): void => {};
   /** §11.6：拼音设置页入口 */
   onOpenPinyinSettings: () => void = (): void => {};
+  /** 第 1 批：重播引导（页面引导 / 启动引导） */
+  onReplayPageGuide: () => void = (): void => {};
+  onReplayOnboarding: () => void = (): void => {};
   @State volume: number = 70;
   @State newlineSound: boolean = true;
   @State keyVibrate: boolean = true;
@@ -147,6 +152,20 @@ export struct SettingsPage {
         // 5 关于
         Column() {
           this.groupTitle('关于')
+          SettingsRow({
+            label: '重播页面引导',
+            mode: 'link',
+            value: '',
+            onClick: (): void => { this.onReplayPageGuide(); },
+          })
+          this.divider()
+          SettingsRow({
+            label: '重播启动引导',
+            mode: 'link',
+            value: '',
+            onClick: (): void => { this.onReplayOnboarding(); },
+          })
+          this.divider()
           Row() {
             Text('音效致谢').fontSize(15).fontColor('#e8ddc9')
             Blank()
@@ -182,7 +201,18 @@ export struct SettingsPage {
       heightVp: this.heightVp,
       title: $r('app.string.page_settings'),
       onBack: () => { this.onBack(); },
+      subtitle: $r('app.string.guide_settings_hint'),
+      showSubtitle: true,
       content: (): void => { this.body() },
     })
   }
+}
+
+/** Settings 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForSettings(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_settings_1') },
+    { text: $r('app.string.guide_settings_2') },
+    { text: $r('app.string.guide_settings_3') },
+  ];
 }

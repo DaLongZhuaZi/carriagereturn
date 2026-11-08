@@ -16,6 +16,9 @@ export struct PageShell {
   @Prop heightVp: number = 720;
   @Prop title: ResourceStr = '';
   @Prop showBack: boolean = true;
+  /** 第 1 批：页首常驻说明行（静态说明；打字机页不用）。 */
+  @Prop subtitle: ResourceStr = '';
+  @Prop showSubtitle: boolean = false;
   /** 标题右侧的自定义区（如「新建卷宗」胶囊）。 */
   @Prop showTrailing: boolean = false;
   @State topInset: number = 28;
@@ -68,6 +71,15 @@ export struct PageShell {
               this.trailing()
             }
           }.width('100%').height(56).padding({ left: 12, right: 12 })
+        }
+
+        if (this.showSubtitle) {
+          Text(this.subtitle)
+            .fontSize(12)
+            .fontColor('rgba(232,221,201,0.6)')
+            .width('100%')
+            .padding({ left: 20, right: 20, bottom: 6 })
+            .maxLines(2)
         }
 
         Column() {

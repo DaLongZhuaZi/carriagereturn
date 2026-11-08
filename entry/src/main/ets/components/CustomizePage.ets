@@ -10,6 +10,7 @@ import { MACHINES, PAPERS, RIBBONS, FONTS, FontSpec, MachineSpec, PaperSpec, Rib
 import { PageShell } from './PageShell';
 import { AppIcon } from './AppIcon';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { GuideStep } from './GuideOverlay';
 
 const MACHINE_LABEL: Record<string, string> = {
   '1920s-upright': '1920s',
@@ -212,7 +213,18 @@ export struct CustomizePage {
       heightVp: this.heightVp,
       title: $r('app.string.page_customize'),
       onBack: () => { this.onBack(); },
+      subtitle: $r('app.string.guide_customize_hint'),
+      showSubtitle: true,
       content: (): void => { this.body() },
     })
   }
+}
+
+/** Customize 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForCustomize(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_customize_1') },
+    { text: $r('app.string.guide_customize_2') },
+    { text: $r('app.string.guide_customize_3') },
+  ];
 }

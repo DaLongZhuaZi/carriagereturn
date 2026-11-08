@@ -36,6 +36,9 @@ export class PrefKeys {
   // ---- 第 0 批：命名空间与登记规则（新键一律走前缀；不许各组件裸写字符串）----
   /** 引导：`guide.<page>.seen`；首次启动引导复用既有 ONBOARDING_SEEN 键。 */
   static readonly GUIDE_PREFIX: string = 'guide.';
+  /** 第 1 批：引导产品开关（默认 on）与测试模式（仅测试构建可置 true）。 */
+  static readonly GUIDE_ENABLED: string = 'guide.enabled';
+  static readonly GUIDE_TEST_MODE: string = 'guide.testMode';
   /** 自定义：`custom.font.<machine>.<field>`／`custom.paper.<field>`。 */
   static readonly CUSTOM_FONT_PREFIX: string = 'custom.font.';
   static readonly CUSTOM_PAPER_PREFIX: string = 'custom.paper.';
@@ -97,6 +100,8 @@ export class PrefRegistry {
       { key: PrefKeys.CN_ENGINE, type: 'string', defaultValue: 'builtin', owner: '既有', note: '中文引擎' },
       { key: PrefKeys.MACHINE, type: 'string', defaultValue: '1920s', owner: '既有', note: '默认机型' },
       { key: PrefKeys.GUIDE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F1／F2', note: '每页首次引导：guide.<page>.seen' },
+      { key: PrefKeys.GUIDE_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F1', note: '引导产品开关（移除点：第 7 批）' },
+      { key: PrefKeys.GUIDE_TEST_MODE, type: 'boolean', defaultValue: 'false', owner: 'F1', note: '测试模式（仅测试构建可置 true）' },
       { key: PrefKeys.CUSTOM_FONT_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '每机字体搭配：custom.font.<machine>.<field>' },
       { key: PrefKeys.CUSTOM_PAPER_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '纸张自定义' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
@@ -112,6 +117,7 @@ export class PrefRegistry {
       PrefKeys.VIBRATION_ENABLED, PrefKeys.CN_ENGINE, PrefKeys.CN_LEARN,
       PrefKeys.CN_USERWORDS, PrefKeys.CN_FUZZY, PrefKeys.CN_BIGRAM, PrefKeys.MACHINE,
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
+      PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
     ];
     if (fixed.indexOf(key) >= 0) {
       return true;

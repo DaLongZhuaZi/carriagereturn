@@ -8,6 +8,7 @@
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
 import { AppIcon } from './AppIcon';
+import { GuideStep } from './GuideOverlay';
 
 @Component
 export struct PinyinSettingsPage {
@@ -110,6 +111,8 @@ export struct PinyinSettingsPage {
         heightVp: this.heightVp,
         title: '拼音设置',
         onBack: (): void => { this.onBack(); },
+        subtitle: $r('app.string.guide_pinyin_settings_hint'),
+        showSubtitle: true,
         content: (): void => { this.body() },
       })
 
@@ -190,4 +193,13 @@ export struct PinyinSettingsPage {
       }.width('100%').margin({ top: 16 })
     }.width('100%')
   }
+}
+
+/** PinyinSettings 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForPinyinSettings(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_pinyin_settings_1') },
+    { text: $r('app.string.guide_pinyin_settings_2') },
+    { text: $r('app.string.guide_pinyin_settings_3') },
+  ];
 }

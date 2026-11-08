@@ -10,6 +10,7 @@ import { AppIcon } from './AppIcon';
 import { DocData } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { GuideStep } from './GuideOverlay';
 
 const FORMATS: string[][] = [
   ['图片', '所见即所得，分享到任何地方'],
@@ -132,7 +133,18 @@ export struct ExportPage {
       heightVp: this.heightVp,
       title: $r('app.string.page_export'),
       onBack: () => { this.onBack(); },
+      subtitle: $r('app.string.guide_export_hint'),
+      showSubtitle: true,
       content: (): void => { this.body() },
     })
   }
+}
+
+/** Export 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForExport(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_export_1') },
+    { text: $r('app.string.guide_export_2') },
+    { text: $r('app.string.guide_export_3') },
+  ];
 }

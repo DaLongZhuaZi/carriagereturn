@@ -9,6 +9,7 @@ import { DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { GuideStep } from './GuideOverlay';
 
 @Component
 export struct HomePage {
@@ -154,4 +155,13 @@ export struct HomePage {
       colors: [['#171310', 0.0], ['#241c16', 1.0]] })
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
+}
+
+/** Home 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForHome(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_home_1') },
+    { text: $r('app.string.guide_home_2') },
+    { text: $r('app.string.guide_home_3') },
+  ];
 }

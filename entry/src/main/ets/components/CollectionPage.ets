@@ -9,6 +9,7 @@ import { MachineKind } from '../model/DocModel';
 import { PageShell } from './PageShell';
 import { HintBar } from './HintBar';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { GuideStep } from './GuideOverlay';
 
 // P2-5：文案全部走 resources/base/element/string.json，代码只读资源
 const M_NAME: Record<string, Resource> = {
@@ -159,6 +160,8 @@ export struct CollectionPage {
         heightVp: this.heightVp,
         title: $r('app.string.page_collection'),
         onBack: () => { this.onBack(); },
+        subtitle: $r('app.string.guide_collection_hint'),
+        showSubtitle: true,
         content: (): void => { this.body() },
       })
       // D3：锁定提示改顶部下滑条（3 秒自动消失、点按关闭）
@@ -171,4 +174,13 @@ export struct CollectionPage {
     }
     .width(this.widthVp).height(this.heightVp)
   }
+}
+
+/** Collection 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForCollection(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_collection_1') },
+    { text: $r('app.string.guide_collection_2') },
+    { text: $r('app.string.guide_collection_3') },
+  ];
 }

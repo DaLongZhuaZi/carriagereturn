@@ -171,6 +171,250 @@
     {
       "name": "page_home",
       "value": "主页"
+    },
+    {
+      "name": "guide_home_title",
+      "value": "主页"
+    },
+    {
+      "name": "guide_home_hint",
+      "value": "写下去，纸会一张张留下来。"
+    },
+    {
+      "name": "guide_home_1",
+      "value": "这是回车：一台会落字的打字机。"
+    },
+    {
+      "name": "guide_home_2",
+      "value": "点金色按钮开始写作，写过的纸会自动保存。"
+    },
+    {
+      "name": "guide_home_3",
+      "value": "底部一行是卷宗、收藏、换装、设置和导出。"
+    },
+    {
+      "name": "guide_dossier_title",
+      "value": "卷宗"
+    },
+    {
+      "name": "guide_dossier_hint",
+      "value": "点卷宗卡片进入内页。"
+    },
+    {
+      "name": "guide_dossier_1",
+      "value": "卷宗用来收同一类纸。"
+    },
+    {
+      "name": "guide_dossier_2",
+      "value": "右上角「新建卷宗」建一个。"
+    },
+    {
+      "name": "guide_dossier_3",
+      "value": "点开卷宗看里面的纸。"
+    },
+    {
+      "name": "guide_dossier_detail_title",
+      "value": "卷宗内页"
+    },
+    {
+      "name": "guide_dossier_detail_hint",
+      "value": "删除的纸会按设置进入回收站或直接删除。"
+    },
+    {
+      "name": "guide_dossier_detail_1",
+      "value": "这里放这个卷宗里的纸。"
+    },
+    {
+      "name": "guide_dossier_detail_2",
+      "value": "右上角「新建纸张」放一张新纸进来。"
+    },
+    {
+      "name": "guide_dossier_detail_3",
+      "value": "点纸打开，点「⋯」可改名或删除。"
+    },
+    {
+      "name": "guide_document_view_title",
+      "value": "文档视图"
+    },
+    {
+      "name": "guide_document_view_hint",
+      "value": "文档视图只读，不会自动改动内容。"
+    },
+    {
+      "name": "guide_document_view_1",
+      "value": "这是文档视图，方便阅读整张纸。"
+    },
+    {
+      "name": "guide_document_view_2",
+      "value": "点「编辑」回打字机继续写。"
+    },
+    {
+      "name": "guide_document_view_3",
+      "value": "删除前会按你的删除方式确认。"
+    },
+    {
+      "name": "guide_collection_title",
+      "value": "收藏"
+    },
+    {
+      "name": "guide_collection_hint",
+      "value": "四台机共享同一批纸与文档。"
+    },
+    {
+      "name": "guide_collection_1",
+      "value": "收藏里是四台不同年代的原型机。"
+    },
+    {
+      "name": "guide_collection_2",
+      "value": "点卡片看机器介绍与解锁进度。"
+    },
+    {
+      "name": "guide_collection_3",
+      "value": "设置当前机器后，打字机立刻换装。"
+    },
+    {
+      "name": "guide_collection_detail_title",
+      "value": "机器详情"
+    },
+    {
+      "name": "guide_collection_detail_hint",
+      "value": "换机不丢文档，纸的位置会保留。"
+    },
+    {
+      "name": "guide_collection_detail_1",
+      "value": "这里是这台机器的来历与细节。"
+    },
+    {
+      "name": "guide_collection_detail_2",
+      "value": "下方是解锁进度与条件。"
+    },
+    {
+      "name": "guide_collection_detail_3",
+      "value": "点底部按钮把它设为当前机器。"
+    },
+    {
+      "name": "guide_customize_title",
+      "value": "换装"
+    },
+    {
+      "name": "guide_customize_hint",
+      "value": "右上角入口可管理导入的字体与纸张。"
+    },
+    {
+      "name": "guide_customize_1",
+      "value": "换装会即时生效，不用重启。"
+    },
+    {
+      "name": "guide_customize_2",
+      "value": "机器、纸张、色带、字体都在这里选。"
+    },
+    {
+      "name": "guide_customize_3",
+      "value": "字体和纸张可以进管理页做自定义。"
+    },
+    {
+      "name": "guide_settings_title",
+      "value": "设置"
+    },
+    {
+      "name": "guide_settings_hint",
+      "value": "所有设置只存本机，不会上传。"
+    },
+    {
+      "name": "guide_settings_1",
+      "value": "声音、触感、修正方式都在这里调。"
+    },
+    {
+      "name": "guide_settings_2",
+      "value": "默认机器和默认纸张可以修改。"
+    },
+    {
+      "name": "guide_settings_3",
+      "value": "找不到引导时，可在这里重播。"
+    },
+    {
+      "name": "guide_export_title",
+      "value": "导出"
+    },
+    {
+      "name": "guide_export_hint",
+      "value": "导出不加水印。"
+    },
+    {
+      "name": "guide_export_1",
+      "value": "先把纸导出成图片、PDF 或纯文本。"
+    },
+    {
+      "name": "guide_export_2",
+      "value": "可以只保存到本地，也可以直接分享。"
+    },
+    {
+      "name": "guide_export_3",
+      "value": "分享只会调起系统面板，不保证对方已收到。"
+    },
+    {
+      "name": "guide_pinyin_settings_title",
+      "value": "拼音设置"
+    },
+    {
+      "name": "guide_pinyin_settings_hint",
+      "value": "拼音数据只存本机。"
+    },
+    {
+      "name": "guide_pinyin_settings_1",
+      "value": "这里管理内置拼音的选项。"
+    },
+    {
+      "name": "guide_pinyin_settings_2",
+      "value": "候选栏的数量与字号可以调。"
+    },
+    {
+      "name": "guide_pinyin_settings_3",
+      "value": "「我的词库」可增删自定义词组。"
+    },
+    {
+      "name": "guide_typewriter_title",
+      "value": "打字机"
+    },
+    {
+      "name": "guide_typewriter_1",
+      "value": "敲键落字；拉下拨杆换行。"
+    },
+    {
+      "name": "guide_typewriter_2",
+      "value": "换纸会清空当前纸并换成新纸。"
+    },
+    {
+      "name": "guide_typewriter_3",
+      "value": "离页自动保存，回来还能接着写。"
+    },
+    {
+      "name": "guide_onboarding_title",
+      "value": "欢迎使用回车"
+    },
+    {
+      "name": "guide_onboarding_1",
+      "value": "这是一台打字机。"
+    },
+    {
+      "name": "guide_onboarding_2",
+      "value": "敲下去，字就落在纸上。"
+    },
+    {
+      "name": "guide_onboarding_3",
+      "value": "四台时代机在「收藏」里，随时换装。"
+    },
+    {
+      "name": "guide_onboarding_4",
+      "value": "写好的纸存在「卷宗」里，随时回来。"
+    },
+    {
+      "name": "guide_btn_skip",
+      "value": "跳过"
+    },
+    {
+      "name": "guide_btn_ok",
+      "value": "知道了"
     }
   ]
 }

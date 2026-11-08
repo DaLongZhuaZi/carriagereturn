@@ -15,6 +15,7 @@ import { AppIcon } from './AppIcon';
 import { AppMenu } from './AppMenu';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { componentUtils } from '@kit.ArkUI';
+import { GuideStep } from './GuideOverlay';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -508,6 +509,8 @@ export struct DossierDetailPage {
         title: '',
         customHeader: true,
         onBack: () => { this.onBack(); },
+        subtitle: $r('app.string.guide_dossier_detail_hint'),
+        showSubtitle: true,
         content: (): void => { this.body() },
         header: (): void => { this.hdrRow() },
       })
@@ -544,4 +547,13 @@ export struct DossierDetailPage {
     }
     .width(this.widthVp).height(this.heightVp)
   }
+}
+
+/** DossierDetail 页首次引导（与功能同处一源；文案键见 string.json）。 */
+export function guideStepsForDossierDetail(): GuideStep[] {
+  return [
+    { text: $r('app.string.guide_dossier_detail_1') },
+    { text: $r('app.string.guide_dossier_detail_2') },
+    { text: $r('app.string.guide_dossier_detail_3') },
+  ];
 }
