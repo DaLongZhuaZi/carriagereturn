@@ -1346,7 +1346,15 @@ struct Index {
       ? (this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp)
       : this.regionHeightVp;
     const rows: number = this.docModel.getLines().length;
-    this.carriageTopVp = 0.56 * H;
+    // §19 定案：手机系数 0.64（平板 0.56 不动）。下限：carriageTopVp 不得小于 10×行高，
+    // 否则字车会顶到顶栏。真机量底部余量，仍 >40vp 就继续往上调（上限 0.75）。
+    const kTop: number = this.isTablet ? 0.56 : 0.64;
+    let top: number = kTop * H;
+    const topFloor: number = 10 * this.lineHeightVp;
+    if (!this.isTablet && top < topFloor) {
+      top = topFloor;
+    }
+    this.carriageTopVp = top;
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
     // 平板：打击行上移 15vp（与横杆上移联动，横杆不挡字）；手机走原值
     const strikeShift: number = this.isTablet ? 15 : 0;
