@@ -14,12 +14,13 @@ const ts = path.join(tmp, 'GuideCore.ts');
 fs.copyFileSync(path.join(root, 'entry/src/main/ets/model/GuideCore.ets'), ts);
 const mod = await import('file://' + ts.replace(/\\/g, '/'));
 
-test('11 个 page id 固定且合法', () => {
+test('13 个 page id 固定且合法', () => {
   const pages = mod.allPages();
-  assert.equal(pages.length, 11);
+  assert.equal(pages.length, 13);
   assert.deepEqual(pages, [
     'home', 'dossier', 'dossier_detail', 'document_view', 'collection',
     'collection_detail', 'customize', 'settings', 'export', 'pinyin_settings', 'typewriter',
+    'font_manager', 'paper_custom',
   ]);
   for (const p of pages) assert.equal(mod.isValidPage(p), true);
   assert.equal(mod.isValidPage('unknown'), false);
@@ -42,8 +43,8 @@ test('资源键命名规则', () => {
   ]);
 });
 
-test('allResourceKeys 覆盖 11 页×3＋10 hint＋11 title＋4+1＋2 且无重复', () => {
+test('allResourceKeys 覆盖 13 页×3＋12 hint＋13 title＋4+1＋2 且无重复', () => {
   const keys = mod.allResourceKeys();
   assert.equal(new Set(keys).size, keys.length);
-  assert.equal(keys.length, 11 * 3 + 10 + 11 + 4 + 1 + 2);
+  assert.equal(keys.length, 13 * 3 + 12 + 13 + 4 + 1 + 2);
 });

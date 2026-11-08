@@ -5,7 +5,7 @@
  * 资源键命名、每页期望条数与合法性校验，可 Node 单测。
  */
 
-/** 11 个页面 id（顺序固定；与 docs/evidence/文案资源约定.md 一致）。 */
+/** 13 个页面 id（顺序固定；与 docs/evidence/文案资源约定.md 一致）。 */
 export const GUIDE_PAGE_HOME: string = 'home';
 export const GUIDE_PAGE_DOSSIER: string = 'dossier';
 export const GUIDE_PAGE_DOSSIER_DETAIL: string = 'dossier_detail';
@@ -17,6 +17,9 @@ export const GUIDE_PAGE_SETTINGS: string = 'settings';
 export const GUIDE_PAGE_EXPORT: string = 'export';
 export const GUIDE_PAGE_PINYIN_SETTINGS: string = 'pinyin_settings';
 export const GUIDE_PAGE_TYPEWRITER: string = 'typewriter';
+/** 第 2 批 F3：自定义下的两个新覆盖层页（字体管理／纸张自定义）。 */
+export const GUIDE_PAGE_FONT_MANAGER: string = 'font_manager';
+export const GUIDE_PAGE_PAPER_CUSTOM: string = 'paper_custom';
 
 export function allPages(): string[] {
   return [
@@ -24,6 +27,7 @@ export function allPages(): string[] {
     GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL,
     GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT,
     GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER,
+    GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM,
   ];
 }
 

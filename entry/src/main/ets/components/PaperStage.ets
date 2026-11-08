@@ -53,6 +53,10 @@ export struct PaperStage {
   @Prop visibleBottomVp: number = 0;
   /** 纸与字车共用的偏移 O（vp，≤0）：纸随 O 左移，与字车同弹簧同帧。 */
   @Prop offsetXVp: number = 0;
+  /** 第 2 批 F3：纯色纸（'' = 不用颜色，走默认纸纹；默认空串保证像素不变）。 */
+  @Prop paperColor: string = '';
+  /** 第 2 批 F3：用户导入的纸纹沙箱路径（'' = 不用；非空时盖住整张纸面）。 */
+  @Prop texturePath: string = '';
 
 
   /** 纸底柱面收尾高度：只做轻微视觉收尾，取 min(15vp, 可见高×15%)。 */
@@ -69,7 +73,15 @@ export struct PaperStage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // 纸纹：只铺纸片本身；圆角 12vp；下缘短实阴影（被字车条压住处的厚度感）
-      if (this.paperKind === PaperKind.MANUSCRIPT) {
+      // 第 2 批 F3 优先级：导入纸纹 texturePath → 纯色纸 paperColor → 现有按 paperKind 的 JPG。
+      // 两个新 prop 默认空串：默认路径与改造前逐行等价（评审 M-5／R3，1920s 像素不变）。
+      if (this.texturePath.length > 0) {
+        Image(this.texturePath).width('100%').height('100%')
+          .objectFit(ImageFit.Cover).borderRadius(12)
+      } else if (this.paperColor.length > 0) {
+        Column().width('100%').height('100%')
+          .borderRadius(12).backgroundColor(this.paperColor)
+      } else if (this.paperKind === PaperKind.MANUSCRIPT) {
         Image($rawfile('paper/paper-manuscript.jpg')).width('100%').height('100%')
           .objectFit(ImageFit.Cover).borderRadius(12)
       } else if (this.paperKind === PaperKind.POSTCARD) {

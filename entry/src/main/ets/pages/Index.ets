@@ -24,7 +24,7 @@ import {
   CANDIDATE_BAR_HEIGHT_VP,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP, PAPER_TOP_GAP_VP, TOP_BAR_HEIGHT_VP,
   findFont, findMachine, findPaper, findRibbon, fontDisplayName,
-  FONTS,
+  FONTS, MACHINES, FontSpec,
 } from '../model/MachineCatalog';
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
 import { PaperRow } from '../ui/PaperSheet';
@@ -36,6 +36,8 @@ import { DossierDetailPage, guideStepsForDossierDetail } from '../components/Dos
 import { DocumentViewPage, guideStepsForDocumentView } from '../components/DocumentViewPage';
 import { CollectionPage, guideStepsForCollection } from '../components/CollectionPage';
 import { CustomizePage, guideStepsForCustomize } from '../components/CustomizePage';
+import { FontManagerPage, guideStepsForFontManager } from '../components/FontManagerPage';
+import { PaperCustomPage, guideStepsForPaperCustom } from '../components/PaperCustomPage';
 import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
 import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
 import { ExportPage, guideStepsForExport } from '../components/ExportPage';
@@ -53,7 +55,7 @@ import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
 import { GuideService } from '../services/GuideService';
-import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER } from '../model/GuideCore';
+import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM } from '../model/GuideCore';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
@@ -74,6 +76,8 @@ import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
 import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
+import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
+import { clampFontSize, effectiveFontSize, lineHeightOf, clampMarginH, clampMarginT, clampMarginB, ImportedFont } from '../model/CustomizeCore';
 import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
@@ -210,6 +214,12 @@ struct Index {
   @State rows: PaperRow[] = [];
   @State machineKind: MachineKind = DEFAULT_MACHINE;
   @State paperKind: PaperKind = DEFAULT_PAPER;
+  /** 第 2 批 F3：当前纸的自定义值缓存（paperKind 变/自定义页保存时刷新）。 */
+  @State customMarginH: number = 0;
+  @State customMarginT: number = 0;
+  @State customMarginB: number = 0;
+  @State customPaperColor: string = '';
+  @State customPaperTexture: string = '';
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
   @State hintText: string = '';
   @State docTitle: string = '';
@@ -807,6 +817,9 @@ struct Index {
   @State collectionOpen: boolean = false;
   /** 换装页（§4）开合。 */
   @State customizeOpen: boolean = false;
+  /** 第 2 批 F3：换装子页。 */
+  @State fontManagerOpen: boolean = false;
+  @State paperCustomOpen: boolean = false;
   /** 收藏详情页：非空则显示（已解锁机器）。 */
   @State collectionDetailKind: string = '';
   /** §6.1／§6.2 设置页与导出页。 */
@@ -838,12 +851,16 @@ struct Index {
     this.collectionOpen = has('collection') || has('collectiondetail');
     if (!has('collectiondetail')) { this.collectionDetailKind = ''; }
     this.customizeOpen = has('customize');
+    this.fontManagerOpen = has('fontmanager');
+    this.paperCustomOpen = has('papercustom');
     this.settingsOpen = has('settings') || has('pinyinsettings');
     this.pinyinSettingsOpen = has('pinyinsettings');
     this.exportOpen = has('export');
     hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
       this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
     this.maybeShowPageGuide();
+    // 第 2 批 F3：从纸张自定义页返回时刷新自定义值缓存（系统返回也覆盖）
+    this.refreshPaperCustom();
   }
 
   // ---- 第 1 批：引导（Index 单挂载点）----
@@ -857,6 +874,8 @@ struct Index {
     if (page === GUIDE_PAGE_COLLECTION) { return guideStepsForCollection(); }
     if (page === GUIDE_PAGE_COLLECTION_DETAIL) { return guideStepsForCollectionDetail(); }
     if (page === GUIDE_PAGE_CUSTOMIZE) { return guideStepsForCustomize(); }
+    if (page === GUIDE_PAGE_FONT_MANAGER) { return guideStepsForFontManager(); }
+    if (page === GUIDE_PAGE_PAPER_CUSTOM) { return guideStepsForPaperCustom(); }
     if (page === GUIDE_PAGE_SETTINGS) { return guideStepsForSettings(); }
     if (page === GUIDE_PAGE_EXPORT) { return guideStepsForExport(); }
     if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return guideStepsForPinyinSettings(); }
@@ -878,6 +897,8 @@ struct Index {
     if (page === GUIDE_PAGE_COLLECTION) { return $r('app.string.guide_collection_title'); }
     if (page === GUIDE_PAGE_COLLECTION_DETAIL) { return $r('app.string.guide_collection_detail_title'); }
     if (page === GUIDE_PAGE_CUSTOMIZE) { return $r('app.string.guide_customize_title'); }
+    if (page === GUIDE_PAGE_FONT_MANAGER) { return $r('app.string.guide_font_manager_title'); }
+    if (page === GUIDE_PAGE_PAPER_CUSTOM) { return $r('app.string.guide_paper_custom_title'); }
     if (page === GUIDE_PAGE_SETTINGS) { return $r('app.string.guide_settings_title'); }
     if (page === GUIDE_PAGE_EXPORT) { return $r('app.string.guide_export_title'); }
     if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return $r('app.string.guide_pinyin_settings_title'); }
@@ -890,6 +911,8 @@ struct Index {
     if (this.pinyinSettingsOpen) { return GUIDE_PAGE_PINYIN_SETTINGS; }
     if (this.settingsOpen) { return GUIDE_PAGE_SETTINGS; }
     if (this.exportOpen) { return GUIDE_PAGE_EXPORT; }
+    if (this.fontManagerOpen) { return GUIDE_PAGE_FONT_MANAGER; }
+    if (this.paperCustomOpen) { return GUIDE_PAGE_PAPER_CUSTOM; }
     if (this.collectionOpen && this.collectionDetailKind.length > 0) { return GUIDE_PAGE_COLLECTION_DETAIL; }
     if (this.collectionOpen) { return GUIDE_PAGE_COLLECTION; }
     if (this.customizeOpen) { return GUIDE_PAGE_CUSTOMIZE; }
@@ -1070,6 +1093,8 @@ struct Index {
     // 第 0 批：注册循环搬进 FontService（同一函数），Index 只调一次。
     const fontResult: FontRegisterResult = FontService.registerBundled(this.getUIContext(), FONTS);
     this.fontLoadFailed = fontResult.failed;
+    // 第 2 批 F3（评审 B-2）：导入字体冷启动重注册（失败标 failed，不污染随包字体）
+    this.registerImportedFonts();
 
     const host = this.getUIContext().getHostContext();
     if (host !== undefined && host !== null) {
@@ -1191,19 +1216,18 @@ struct Index {
       // ③字号保 DPI：目标物理 57px（= 手机 17vp×3.375）÷ vp2px
       //    平板 vp2px=2.375 → 24vp；手机 3.375 → 16.9 钳到 17（与改前一致）
       const pxPerVp0: number = this.getUIContext().vp2px(1);
-      let fs: number = 57 / (pxPerVp0 > 0 ? pxPerVp0 : 3.375);
-      if (fs < 17) {
-        fs = 17;
+      let computedFs: number = 57 / (pxPerVp0 > 0 ? pxPerVp0 : 3.375);
+      if (computedFs < 17) {
+        computedFs = 17;
       }
-      if (fs > 26) {
-        fs = 26;
+      if (computedFs > 26) {
+        computedFs = 26;
       }
-      this.fontSizeVp = fs;
+      // 第 2 批 F3：用户覆盖值优先；键不存在（0）走现算值（B-3）
+      this.fontSizeVp = effectiveFontSize(CustomizeStore.fontSize(this.machineKind as string), computedFs);
       this.measureAdvance();
-      // 行高：中文 fs×30/17、英文 fs×28/17（随语言切换同步）
-      // §18.9：行高与语言无关——中英共用中文行高（30/17 大的一档）。
-      // 取英文值（28/17）会把中文行夹紧，不许。切换语言不许动纸与底板。
-      this.lineHeightVp = fs * (30 / 17);
+      // §18.9：行高与语言无关，唯一公式 fontSize×30/17
+      this.lineHeightVp = lineHeightOf(this.fontSizeVp);
 
       // 原生像素 guard：整套封顶（照片宽 + 键区高 + 字车高都按封顶宽重算，不许只封 Image）
       const vp2px: number = this.getUIContext().vp2px(1);
@@ -1278,7 +1302,7 @@ struct Index {
    */
   private recalcTravel(): void {
     // §15 第 4 步：与 charsPerLine() **同口径**——用纸宽（不是舞台宽），否则中文会算成 24 字/行
-    const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
+    const usable: number = this.paperWidthVp - 2 * this.marginH();
     // 中文按 advCjkVp，否则按 advEngVp
     const adv: number = this.langZh
       ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
@@ -1363,11 +1387,123 @@ struct Index {
     });
   }
 
+  /** 第 2 批 F3：启动时重注册已导入字体（CUJ2 重启后仍有效）。 */
+  private registerImportedFonts(): void {
+    const list: ImportedFont[] = CustomizeStore.importedFonts();
+    if (list.length === 0) {
+      return;
+    }
+    let changed: boolean = false;
+    for (let i = 0; i < list.length; i++) {
+      const ok: boolean = FontService.registerFromFile(this.getUIContext(), list[i].familyName, list[i].path);
+      const next: string = ok ? 'ok' : 'failed';
+      if (list[i].status !== next) {
+        list[i].status = next;
+        changed = true;
+      }
+    }
+    this.registerImportedFontsChanged(changed, list);
+  }
+
+  private registerImportedFontsChanged(changed: boolean, list: ImportedFont[]): void {
+    if (changed) {
+      CustomizeStore.setImportedFonts(list);
+      hilog.info(DOMAIN, TAG, 'imported fonts re-registered n=%{public}s', list.length.toString());
+    }
+  }
+
+  /** 第 2 批 F3：四台机当前字体族（给换装页展示）。 */
+  private machineFontsList(): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < MACHINES.length; i++) {
+      const fam: string = CustomizeStore.fontFamily(MACHINES[i].kind as string);
+      out.push(fam.length > 0 ? fam : findFont(DEFAULT_FONT).familyName);
+    }
+    return out;
+  }
+
+  /** 第 2 批 F3：按机器偏好应用字体（familyName 为空回落默认）。 */
+  private applyMachineFont(family: string): void {
+    let chosen: FontSpec | null = null;
+    if (family.length > 0) {
+      for (let i = 0; i < FONTS.length; i++) {
+        if (FONTS[i].familyName === family) {
+          chosen = FONTS[i];
+          break;
+        }
+      }
+    }
+    if (chosen === null) {
+      chosen = findFont(DEFAULT_FONT);
+    }
+    this.fontFamily = chosen.familyName + ', Noto Serif SC';
+    this.docModel.setFont(chosen.font);
+  }
+
+  private fontLabelOfCurrentMachine(): string {
+    const family: string = CustomizeStore.fontFamily(this.machineKind as string);
+    for (let i = 0; i < FONTS.length; i++) {
+      if (FONTS[i].familyName === family) {
+        return FONTS[i].familyName;
+      }
+    }
+    return findFont(DEFAULT_FONT).familyName;
+  }
+
+  private fontKindOfCurrentMachine(): string {
+    const family: string = CustomizeStore.fontFamily(this.machineKind as string);
+    for (let i = 0; i < FONTS.length; i++) {
+      if (FONTS[i].familyName === family) {
+        return FONTS[i].font as string;
+      }
+    }
+    return DEFAULT_FONT as string;
+  }
+
+  /** 第 2 批 F3：刷新当前纸的自定义值缓存（默认值来自 catalog，像素零变化）。 */
+  private refreshPaperCustom(): void {
+    const p: PaperValues = CustomizeStore.paper(this.paperKind as string);
+    this.customMarginH = p.marginH;
+    this.customMarginT = p.marginT;
+    this.customMarginB = p.marginB;
+    this.customPaperColor = p.color;
+    this.customPaperTexture = p.texture;
+  }
+
+  private marginH(): number {
+    return this.customMarginH > 0 ? this.customMarginH : findPaper(this.paperKind).marginH;
+  }
+
+  private marginT(): number {
+    return this.customMarginT > 0 ? this.customMarginT : findPaper(this.paperKind).marginTop;
+  }
+
+  private marginB(): number {
+    return this.customMarginB > 0 ? this.customMarginB : findPaper(this.paperKind).marginBottom;
+  }
+
+  /** 第 2 批 F3：字号变更后固定重排（评审 M-6 五步）。 */
+  private applyFontSize(value: number): void {
+    const v: number = clampFontSize(value);
+    CustomizeStore.setFontSize(this.machineKind as string, v);
+    this.fontSizeVp = v;
+    this.lineHeightVp = lineHeightOf(v);
+    this.measureAdvance();
+    this.recalcTravel();
+    this.rewrapAllOnLoad();
+    this.syncRows();
+    this.recalcPaperHeight();
+    hilog.info(DOMAIN, TAG, 'fontSize apply=%{public}s lineHeight=%{public}s',
+      v.toString(), this.lineHeightVp.toFixed(2));
+  }
+
   private applyMachine(kind: MachineKind): void {
     // 换机时防御性清空预编辑串
     this.cnPreview = '';
     const prevKind: MachineKind = this.machineKind;
     this.machineKind = kind;
+    // 第 2 批 F3：字体跟机器走（custom.font.<machine>.family 为渲染唯一来源）
+    this.applyMachineFont(CustomizeStore.fontFamily(kind as string));
     // 第 0b 批隔离：换机即清空四份拨杆比例与拖拽旗，并递增纪元让渲染件立即回静止角
     if (shouldResetOnSwitch(prevKind as string, kind as string)) {
       this.resetLeverStates();
@@ -1380,14 +1516,16 @@ struct Index {
     this.reloadKeymap();
     // P1-10：换装落盘（有内容才存，空纸不存）
     this.flushSave();
+    // 第 2 批 F3：每机字号是用户覆盖值，换机后按新机重新量一次（含 measureAdvance）
+    this.measureStage();
     this.fadeSwitch();
   }
 
   private applyPaper(kind: PaperKind): void {
     this.paperKind = kind;
-    // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖，避免公式被机器基数冲掉
-    // 回落链：英文走 Courier Prime，中文/符号由系统按字回落到 Noto Serif SC
-    this.fontFamily = findFont(DEFAULT_FONT).familyName + ', Noto Serif SC';
+    // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖
+    // 第 2 批 F3：换纸不重置字体（字体跟机器走，applyPaper 不再碰 fontFamily）
+    this.refreshPaperCustom();
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
     this.fadeSwitch();
@@ -1536,13 +1674,13 @@ struct Index {
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
     // 平板：打击行上移 15vp（与横杆上移联动，横杆不挡字）；手机走原值
     const strikeShift: number = this.isTablet ? 15 : 0;
-    this.strikeLineVp = this.carriageTopVp - 20 - this.lineHeightVp / 2 - strikeShift;
+    this.strikeLineVp = this.carriageTopVp - this.marginB() - this.lineHeightVp / 2 - strikeShift;
     // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
     this.paperHeightVp = this.paperWidthVp * 1.414;
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
     // 纸带基数随字号同步变：20（底边距）+ 行高 + 44（内容顶）
     const bandShift: number = this.isTablet ? 15 : 0;
-    const paperBandBase: number = 20 + this.lineHeightVp + 44 + bandShift;
+    const paperBandBase: number = this.marginB() + this.lineHeightVp + 44 + bandShift;
     // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
       - this.docModel.getCursor().line * this.lineHeightVp;
@@ -1879,7 +2017,7 @@ struct Index {
 
   private clampedStrikeXVp(): number {
     const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
-    const raw: number = paperLeft + findPaper(this.paperKind).marginH + this.currentLineWidthVp();
+    const raw: number = paperLeft + this.marginH() + this.currentLineWidthVp();
     const paperRight: number = paperLeft + this.paperWidthVp;
     const knobHalf: number = this.carriageHeight * 0.92 / 2;
     const limit: number = paperRight - knobHalf;
@@ -1944,7 +2082,7 @@ struct Index {
     if (lineIdx < 0 || lineIdx >= lines.length) {
       return false;
     }
-    const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
+    const usable: number = this.paperWidthVp - 2 * this.marginH();
     let idx: number = lineIdx;
     let cursorLine: number = this.docModel.getCursor().line;
     let cursorOffset: number = this.docModel.getCursor().offset;
@@ -1990,7 +2128,7 @@ struct Index {
   /** 行宽只认舞台宽（§2.5）。 */
   private charsPerLine(): number {
     // 可用行宽 = 纸宽 − 2×28vp（不用舞台宽）
-    const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
+    const usable: number = this.paperWidthVp - 2 * this.marginH();
     // §12.2 第 3 条：中文按 CJK 字宽算（约 16 字/行），英文按英文字宽（约 26 字/行）
     const unit: number = this.langZh
       ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
@@ -2397,7 +2535,7 @@ struct Index {
     // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
     //    raw > limit 与 clampedStrikeXVp 同一判据
     const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
-    const nextRaw: number = paperLeft + findPaper(this.paperKind).marginH
+    const nextRaw: number = paperLeft + this.marginH()
       + this.currentLineWidthVp() + this.charWidthVp(ch);
     const limit: number = paperLeft + this.paperWidthVp - this.carriageHeight * 0.92 / 2;
     if (nextRaw > limit && this.docModel.getCursor().offset > 0) {
@@ -2565,7 +2703,7 @@ struct Index {
         c1.line.toString(), this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1));
       // §18 第 0 步：拱位置定性日志
       const pl: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
-      const rawX: number = pl + findPaper(this.paperKind).marginH + this.currentLineWidthVp();
+      const rawX: number = pl + this.marginH() + this.currentLineWidthVp();
       const limX: number = pl + this.paperWidthVp - this.carriageHeight * 0.92 / 2;
       hilog.info(DOMAIN, TAG,
         'archTrace strikeX=%{public}s raw=%{public}s limit=%{public}s O=%{public}s lineW=%{public}s curLine=%{public}s curOff=%{public}s',
@@ -2824,7 +2962,7 @@ struct Index {
 
   /** 换行回位（§2.1）：字车条一次性跳回 0 + 导件回左缘，250ms 弹簧，与叮声同步。 */
   private resetCarriageAndGuide(): void {
-    const base: number = findPaper(this.paperKind).marginH;
+    const base: number = this.marginH();
     this.resetCarriage();
     this.getUIContext().animateTo({ duration: 250, curve: curves.springMotion() }, () => {
       this.guideXVp = base;
@@ -3097,7 +3235,7 @@ struct Index {
                   paperWidthVp: this.paperWidthVp,
                   carriageOffsetVp: this.carriageOffsetVp,
                   currentLineWidthVp: this.currentLineWidthVp(),
-                  paperMarginH: findPaper(this.paperKind).marginH,
+                  paperMarginH: this.marginH(),
                   carriageHeight: this.carriageHeight,
                   strikeLineVp: this.strikeLineVp,
                   strikeTick: this.strikeTick,
@@ -3114,7 +3252,7 @@ struct Index {
                   strikeTick: this.strikeTick,
                   animScale: 1,
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
                   offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
                   onArrive: (): void => {
                     this.onStrikeArrive();
@@ -3129,7 +3267,7 @@ struct Index {
                   strikeTick: this.strikeTick,
                   animScale: 1,
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
                   offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
                   onArrive: (): void => {
                     this.onStrikeArrive();
@@ -3144,7 +3282,7 @@ struct Index {
                   strikeTick: this.strikeTick,
                   animScale: 1,
                   offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
                   offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
                   onArrive: (): void => {
                     this.onStrikeArrive();
@@ -3481,14 +3619,16 @@ struct Index {
                 lineHeightVp: this.lineHeightVp,
                 fontSizeVp: this.fontSizeVp,
                 fontFamily: this.fontFamily,
-                marginHVp: findPaper(this.paperKind).marginH,
-                marginTopVp: findPaper(this.paperKind).marginTop,
-                marginBottomVp: findPaper(this.paperKind).marginBottom,
+                marginHVp: this.marginH(),
+                marginTopVp: this.marginT(),
+                marginBottomVp: this.marginB(),
+                paperColor: this.customPaperColor,
+                texturePath: this.customPaperTexture,
                 inkColor: this.inkColor,
                 pageNo: 1,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
                 offsetXVp: 0,
-                cursorXVp: findPaper(this.paperKind).marginH + this.currentLineWidthVp(),
+                cursorXVp: this.marginH() + this.currentLineWidthVp(),
                 // 三角 y = 打击行（相对纸顶）− 8vp，且 ≥0
                 // 三角 y = 打击行 − 纸顶 − 8vp，且 ≥0（打击行固定）
                 cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
@@ -3662,7 +3802,7 @@ struct Index {
 
         FontBar({
           fontFamily: this.fontFamily,
-          fontLabel: fontDisplayName(this.docModel.toDocData().meta.font),
+          fontLabel: this.fontLabelOfCurrentMachine(),
           heightVp: this.fontBarHeight,
           onOpenCustomize: (): void => { this.pushPage('customize'); },
         })
@@ -3825,8 +3965,13 @@ struct Index {
           machineKind: this.machineKind as string,
           paperKind: this.paperKind as string,
           ribbonKind: this.ribbon as string,
-          fontKind: this.docModel.toDocData().meta.font as string,
+          fontKind: this.fontKindOfCurrentMachine(),
+          fontSize: CustomizeStore.fontSize(this.machineKind as string),
+          machineFonts: this.machineFontsList(),
           failedFonts: this.fontLoadFailed,
+          onOpenFontManager: (): void => { this.pushPage('fontmanager'); },
+          onOpenPaperCustom: (): void => { this.pushPage('papercustom'); },
+          onFontSize: (v: number): void => { this.applyFontSize(v); },
           onBack: (): void => { this.popPage(); },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
@@ -3853,6 +3998,29 @@ struct Index {
                 break;
               }
             }
+          },
+        })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // 第 2 批 F3：换装子页（字体管理／纸张自定义）
+      if (this.fontManagerOpen) {
+        FontManagerPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          onBack: (): void => { this.popPage(); },
+        })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+      if (this.paperCustomOpen) {
+        PaperCustomPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          paperKind: this.paperKind as string,
+          onBack: (): void => {
+            this.refreshPaperCustom();
+            this.recalcPaperHeight();
+            this.popPage();
           },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))

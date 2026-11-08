@@ -39,9 +39,15 @@ export class PrefKeys {
   /** 第 1 批：引导产品开关（默认 on）与测试模式（仅测试构建可置 true）。 */
   static readonly GUIDE_ENABLED: string = 'guide.enabled';
   static readonly GUIDE_TEST_MODE: string = 'guide.testMode';
-  /** 自定义：`custom.font.<machine>.<field>`／`custom.paper.<field>`。 */
+  /** 自定义：`custom.font.<machine>.<field>`／`custom.paper.<paperKind>.<field>`。 */
   static readonly CUSTOM_FONT_PREFIX: string = 'custom.font.';
   static readonly CUSTOM_PAPER_PREFIX: string = 'custom.paper.';
+  /** 第 2 批 F3：自定义功能总开关（默认 off；静态验收后批末改 on，移除点＝第 7 批）。 */
+  static readonly CUSTOM_ENABLED: string = 'custom.enabled';
+  /** 第 2 批 F3：导入字体列表 JSON（familyName／path／size／status），冷启动重注册的数据源。 */
+  static readonly CUSTOM_FONT_IMPORTED: string = 'custom.font.imported';
+  /** 第 2 批 F3：纸张预设 JSON（`{名称: 预设}`）。 */
+  static readonly CUSTOM_PAPER_PRESETS: string = 'custom.paper.presets';
   /** 第 2 批 F15：候选栏选项。 */
   static readonly CUSTOM_CANDIDATE_COUNT: string = 'custom.candidate.count';
   static readonly CUSTOM_CANDIDATE_SIZE: string = 'custom.candidate.size';
@@ -67,6 +73,11 @@ export class PrefKeys {
   /** 纸张自定义键（field 例：color／margin／texture）。 */
   static customPaper(field: string): string {
     return PrefKeys.CUSTOM_PAPER_PREFIX + field;
+  }
+
+  /** 某张纸的自定义键（第 2 批 M-3：`custom.paper.<paperKind>.<field>`；field 例：color／ruled／marginH／texture）。 */
+  static customPaperOf(paperKind: string, field: string): string {
+    return PrefKeys.CUSTOM_PAPER_PREFIX + paperKind + '.' + field;
   }
 
   /** 统计事件计数键。 */
@@ -106,7 +117,10 @@ export class PrefRegistry {
       { key: PrefKeys.GUIDE_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F1', note: '引导产品开关（移除点：第 7 批）' },
       { key: PrefKeys.GUIDE_TEST_MODE, type: 'boolean', defaultValue: 'false', owner: 'F1', note: '测试模式（仅测试构建可置 true）' },
       { key: PrefKeys.CUSTOM_FONT_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '每机字体搭配：custom.font.<machine>.<field>' },
-      { key: PrefKeys.CUSTOM_PAPER_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '纸张自定义' },
+      { key: PrefKeys.CUSTOM_PAPER_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '纸张自定义：custom.paper.<paperKind>.<field>' },
+      { key: PrefKeys.CUSTOM_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F3', note: '自定义功能总开关（批末已开；移除点第 7 批）' },
+      { key: PrefKeys.CUSTOM_FONT_IMPORTED, type: 'string', defaultValue: '', owner: 'F3', note: '导入字体列表 JSON（familyName／path／size／status）' },
+      { key: PrefKeys.CUSTOM_PAPER_PRESETS, type: 'string', defaultValue: '{}', owner: 'F3', note: '纸张预设 JSON（{名称: 预设}）' },
       { key: PrefKeys.CUSTOM_CANDIDATE_COUNT, type: 'number', defaultValue: '9', owner: 'F15', note: '候选数量 5–15，默认 9' },
       { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
@@ -124,6 +138,7 @@ export class PrefRegistry {
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
       PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
       PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE,
+      PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
     ];
     if (fixed.indexOf(key) >= 0) {
       return true;

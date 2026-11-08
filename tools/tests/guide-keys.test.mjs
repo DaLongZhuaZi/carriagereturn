@@ -38,6 +38,8 @@ test('11 个页面源码都有对应 guideSteps 导出且引用字面量资源�
     settings: 'entry/src/main/ets/components/SettingsPage.ets',
     export: 'entry/src/main/ets/components/ExportPage.ets',
     pinyin_settings: 'entry/src/main/ets/components/PinyinSettingsPage.ets',
+    font_manager: 'entry/src/main/ets/components/FontManagerPage.ets',
+    paper_custom: 'entry/src/main/ets/components/PaperCustomPage.ets',
   };
   for (const p of pages) {
     if (p === 'typewriter') continue; // 打字机引导在 Index 内联（下方单独断言）
@@ -49,14 +51,16 @@ test('11 个页面源码都有对应 guideSteps 导出且引用字面量资源�
   }
 });
 
-test('9 个 PageShell 页有常驻说明行 subtitle（打字机/首页除外）', () => {
+test('11 个 PageShell 页有常驻说明行 subtitle（打字机/首页除外）', () => {
   const shellPages = ['dossier', 'dossier_detail', 'document_view', 'collection',
-    'collection_detail', 'customize', 'settings', 'export', 'pinyin_settings'];
+    'collection_detail', 'customize', 'settings', 'export', 'pinyin_settings',
+    'font_manager', 'paper_custom'];
   const files = {
     dossier: 'DossierPage.ets', dossier_detail: 'DossierDetailPage.ets',
     document_view: 'DocumentViewPage.ets', collection: 'CollectionPage.ets',
     collection_detail: 'CollectionDetailPage.ets', customize: 'CustomizePage.ets',
     settings: 'SettingsPage.ets', export: 'ExportPage.ets', pinyin_settings: 'PinyinSettingsPage.ets',
+    font_manager: 'FontManagerPage.ets', paper_custom: 'PaperCustomPage.ets',
   };
   for (const p of shellPages) {
     const text = fs.readFileSync(path.join(root, 'entry/src/main/ets/components', files[p]), 'utf8');

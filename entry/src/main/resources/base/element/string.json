@@ -415,6 +415,130 @@
     {
       "name": "guide_btn_ok",
       "value": "知道了"
+    },
+    {
+      "name": "guide_font_manager_title",
+      "value": "字体管理"
+    },
+    {
+      "name": "guide_font_manager_1",
+      "value": "把 .ttf／.otf 字体导入这里，纸面就能用。"
+    },
+    {
+      "name": "guide_font_manager_2",
+      "value": "导入后立即生效，重启也会重新注册。"
+    },
+    {
+      "name": "guide_font_manager_3",
+      "value": "删除会连同沙箱里的字体文件一起清掉。"
+    },
+    {
+      "name": "guide_font_manager_hint",
+      "value": "导入的字体只存在本机，不上传。"
+    },
+    {
+      "name": "guide_paper_custom_title",
+      "value": "纸张自定义"
+    },
+    {
+      "name": "guide_paper_custom_1",
+      "value": "颜色、横线、边距按纸张分别保存。"
+    },
+    {
+      "name": "guide_paper_custom_2",
+      "value": "导入的纸纹会盖住整张纸面。"
+    },
+    {
+      "name": "guide_paper_custom_3",
+      "value": "调好的搭配可以存成预设，随时切回。"
+    },
+    {
+      "name": "guide_paper_custom_hint",
+      "value": "边距分手机与平板两套范围。"
+    },
+    {
+      "name": "font_manager_title",
+      "value": "字体管理"
+    },
+    {
+      "name": "font_import",
+      "value": "导入字体"
+    },
+    {
+      "name": "font_delete",
+      "value": "删除"
+    },
+    {
+      "name": "font_status_ok",
+      "value": "已生效"
+    },
+    {
+      "name": "font_status_failed",
+      "value": "未生效（设备不支持）"
+    },
+    {
+      "name": "font_error_type",
+      "value": "只支持 .ttf/.otf"
+    },
+    {
+      "name": "font_error_size",
+      "value": "文件超过 20MB"
+    },
+    {
+      "name": "font_error_copy",
+      "value": "文件无法写入沙箱"
+    },
+    {
+      "name": "font_error_generic",
+      "value": "导入失败，请重试"
+    },
+    {
+      "name": "paper_custom_title",
+      "value": "纸张自定义"
+    },
+    {
+      "name": "paper_color",
+      "value": "颜色"
+    },
+    {
+      "name": "paper_ruled",
+      "value": "横线"
+    },
+    {
+      "name": "paper_margin_h",
+      "value": "左右边距"
+    },
+    {
+      "name": "paper_margin_t",
+      "value": "上边距"
+    },
+    {
+      "name": "paper_margin_b",
+      "value": "下边距"
+    },
+    {
+      "name": "paper_texture",
+      "value": "纸纹"
+    },
+    {
+      "name": "paper_texture_import",
+      "value": "导入纸纹"
+    },
+    {
+      "name": "paper_error_texture",
+      "value": "纸纹导入失败，请重试"
+    },
+    {
+      "name": "paper_preset_save",
+      "value": "保存为预设"
+    },
+    {
+      "name": "paper_preset_delete",
+      "value": "删除预设"
+    },
+    {
+      "name": "custom_font_size",
+      "value": "字号"
     }
   ]
 }
