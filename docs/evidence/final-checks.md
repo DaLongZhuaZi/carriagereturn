@@ -1,11 +1,12 @@
-# 最终验证总跑（第 7 批，2026-11-09T06:16:44+08:00）
+# 最终验证总跑（第 7 批，2026-11-09T06:35:32+08:00）
 
 | 项 | 命令 | 退出码 | 结果 |
 |---|---|---|---|
 | arkts-self-test | `node tools/check-arkts.mjs --self-test` | 0 | **PASS** |
 | arkts-structural | `node tools/check-arkts.mjs --quiet` | 0 | **PASS** |
 | contracts | `python tools/check-contracts.py` | 0 | **PASS** |
-| unit-tests | `node --experimental-strip-types --test D:\HarmonyAPP\carriagereturn\tools\tests\app-icon.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\audio-packs.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\batch5-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\batch6-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\candidate-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\customize-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\customize-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\docstore-state.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\docstore-trash.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-pixels.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\guide-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\guide-keys.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\knob-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-angle.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-gate.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-state.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\paper-change-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\settings-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-goal.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-static.test.mjs` | 0 | **PASS** |
+| unit-tests | `node --experimental-strip-types --test D:\HarmonyAPP\carriagereturn\tools\tests\app-icon.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\audio-packs.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\batch5-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\batch6-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\candidate-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\customize-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\customize-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\docstore-state.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\docstore-trash.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-pixels.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\export-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\guide-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\guide-keys.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\knob-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-angle.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-gate.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\lever-state.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\paper-change-static.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\resource-keys.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\settings-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-core.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-goal.test.mjs D:\HarmonyAPP\carriagereturn\tools\tests\stats-static.test.mjs` | 0 | **PASS** |
+| model-tsc | `python tools/check-model-types.py` | 0 | **PASS** |
 | gate-self-test | `python tools/gate-compare.py --self-test` | 0 | **PASS** |
 | gate-500-vs-332 | `python tools/gate-compare.py docs/shots/332_metal3.jpeg docs/shots/500_gate.jpeg --scale 400x640` | 0 | **PASS** |
 | gate-540-vs-332 | `python tools/gate-compare.py docs/shots/332_metal3.jpeg docs/shots/540_1920s_gate.jpeg --scale 400x640` | 1 | **EXPECTED-FAIL** |
@@ -23,14 +24,14 @@
 [self-test] PASS（0 项失败）
 
 [stderr]
-(node:14660) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:3964) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
 ## arkts-structural — PASS
 ```
 [stderr]
-(node:14912) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:12412) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -51,11 +52,16 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1286.2716
+# duration_ms 1462.3263
 
 [stderr]
-(node:15192) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:10832) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
+```
+
+## model-tsc — PASS
+```
+model files checked=11 tsc=PASS
 ```
 
 ## gate-self-test — PASS
@@ -131,7 +137,7 @@ Markdown: D:\HarmonyAPP\carriagereturn\docs\evidence\̽�����.md
 
 ## switch-audit — PASS
 ```
-keys=30 switches=3 problems=0 head=94156c1
+keys=30 switches=3 problems=0 head=ab23da4
 д�� docs/evidence/�����嵥-��7��.md
 �˶� PASS
 ```

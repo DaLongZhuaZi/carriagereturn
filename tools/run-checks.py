@@ -33,6 +33,7 @@ def main() -> int:
         ("arkts-structural", ["node", "tools/check-arkts.mjs", "--quiet"], False),
         ("contracts", ["python", "tools/check-contracts.py"], False),
         ("unit-tests", ["node", "--experimental-strip-types", "--test"] + tests, False),
+        ("model-tsc", ["python", "tools/check-model-types.py"], False),
         ("gate-self-test", ["python", "tools/gate-compare.py", "--self-test"], False),
         ("gate-500-vs-332", ["python", "tools/gate-compare.py",
                              "docs/shots/332_metal3.jpeg", "docs/shots/500_gate.jpeg",
