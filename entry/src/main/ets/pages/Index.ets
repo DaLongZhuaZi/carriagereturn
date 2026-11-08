@@ -826,6 +826,8 @@ struct Index {
   @State settingsOpen: boolean = false;
   @State pinyinSettingsOpen: boolean = false;
   @State exportOpen: boolean = false;
+  /** 第 3 批：导出页 busy（系统返回拦截）。 */
+  @State exportBusy: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
 
@@ -1015,6 +1017,10 @@ struct Index {
     }
     if (this.guideVisible) {
       this.closePageGuide();
+      return true;
+    }
+    if (this.exportOpen && this.exportBusy) {
+      hilog.info(DOMAIN, TAG, 'export busy: back ignored');
       return true;
     }
     if (this.menuOpen) {
@@ -4155,6 +4161,7 @@ struct Index {
             statsService.recordEvent(StatsEvents.DOC_EXPORTED);
             hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
           },
+          onBusyChange: (busy: boolean): void => { this.exportBusy = busy; },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }

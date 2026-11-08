@@ -98,6 +98,8 @@ export struct ExportPage {
   onBeforeExport: () => boolean = (): boolean => true;
   onSaved: (format: string) => void = (): void => {};
   onShared: (format: string) => void = (): void => {};
+  /** 第 3 批：busy 状态回传 Index（系统返回拦截用）。 */
+  onBusyChange: (busy: boolean) => void = (busy: boolean): void => {};
 
   @State picked: number = -1;
   @State previewOp: number = 0;
@@ -467,6 +469,7 @@ export struct ExportPage {
    * --------------------------------------------------------------------- */
 
   private beginOp(): void {
+    this.onBusyChange(true);
     this.opStartMs = Date.now();
     this.progressShownAt = 0;
     this.progressVisible = false;
@@ -495,6 +498,7 @@ export struct ExportPage {
   }
 
   private endOp(): void {
+    this.onBusyChange(false);
     this.stopTimer();
     if (!this.progressVisible) {
       return;
