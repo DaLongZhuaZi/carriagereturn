@@ -1503,6 +1503,29 @@ struct Index {
   }
 
   /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
+  /** §18 第 1 件：拱的实际位置（唯一渲染源），由 animateArch 平滑跟随目标 */
+  @State archXVp: number = 0;
+  private archInited: boolean = false;
+
+  /**
+   * §18 第 1 件：把拱从当前位置平滑滑到目标。只跟 target，不跟 O 的中间值
+   * （O 自己的动画继续走，两层不互相等待）。
+   */
+  private animateArch(duration: number): void {
+    const target: number = this.clampedStrikeXVp();
+    if (!this.archInited) {
+      this.archInited = true;
+      this.archXVp = target;
+      return;
+    }
+    if (Math.abs(target - this.archXVp) < 0.05) {
+      return;
+    }
+    this.getUIContext().animateTo({ duration: duration, curve: Curve.FastOutSlowIn }, () => {
+      this.archXVp = target;
+    });
+  }
+
   private clampedStrikeXVp(): number {
     const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
     const raw: number = paperLeft + findPaper(this.paperKind).marginH + this.currentLineWidthVp();
@@ -1530,10 +1553,13 @@ struct Index {
     // 只用 ttf 度量（0.600em）累加；隐藏 Text 的实测只记录，不参与布局——
     // 两者在长行上差 ~70vp，实测串可能吃到回落比例字体
 
+    // §18 第 3 件：只累加到**光标 offset**为止（不是整行）。
+    // 光标恒在行尾时两者相同；合并点光标在行中时拱跟光标走，不被整行宽钳住。
     const cursor = this.docModel.getCursor();
     const line = this.docModel.getLines()[cursor.line];
+    const end: number = cursor.offset < line.text.length ? cursor.offset : line.text.length;
     let w: number = 0;
-    for (let i = 0; i < line.text.length; i++) {
+    for (let i = 0; i < end; i++) {
       w += this.charWidthVp(line.text.charAt(i));
     }
     return w;
@@ -2062,6 +2088,7 @@ struct Index {
     }
     // 每次落字后把光标矩形推给输入法，候选窗跟着走
     this.pushCnCursor();
+    this.animateArch(90);
   }
 
   /**
@@ -2104,6 +2131,11 @@ struct Index {
   }
 
   private onDelete(): void {
+    // §18 第 4 件：退行忙窗（270ms）内禁删——会与 onBackLine 的 250ms O 动画抢 carriageOffsetVp
+    if (this.backBusy) {
+      hilog.info(DOMAIN, TAG, 'del skipped: backBusy');
+      return;
+    }
     // §15 第 1 步：队列非空 → **先同步落队再正常删除**。
     // 旧口径「只取消队尾就返回」作废：取消的是看不见的排队字，纸面与拱都不动，
     // 用户感知为「删了字、拱停在行末」。
@@ -2152,12 +2184,24 @@ struct Index {
         if (this.rewrapOverwideLines(cm.line, cm.offset)) {
           this.syncRows();
         }
+        // §18 第 2 件：合并后必须按当前光标重算 O（原来只被 stepCarriageRight 拨了 +4vp，
+        // 拱比正确位置偏右约 64vp 并被钳在右缘）
+        this.recalcOffsetFromCursor();
         this.paperAnimateNext = true;
         this.recalcPaperHeight();
       }
+      this.animateArch(90);
       const c1 = this.docModel.getCursor();
       hilog.info(DOMAIN, TAG, 'del after line=%{public}s lines=%{public}s paperTop=%{public}s',
         c1.line.toString(), this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1));
+      // §18 第 0 步：拱位置定性日志
+      const pl: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
+      const rawX: number = pl + findPaper(this.paperKind).marginH + this.currentLineWidthVp();
+      const limX: number = pl + this.paperWidthVp - this.carriageHeight * 0.92 / 2;
+      hilog.info(DOMAIN, TAG,
+        'archTrace strikeX=%{public}s raw=%{public}s limit=%{public}s O=%{public}s lineW=%{public}s curLine=%{public}s curOff=%{public}s',
+        this.archXVp.toFixed(2), rawX.toFixed(2), limX.toFixed(2), this.carriageOffsetVp.toFixed(2),
+        this.currentLineWidthVp().toFixed(2), c1.line.toString(), c1.offset.toString());
     }
   }
 
@@ -2190,11 +2234,16 @@ struct Index {
     });
     setTimeout(() => {
       this.backBusy = false;
+      // §18 第 1 件：退行与纸移动同拍（250ms），拱 200ms 平滑滑到新目标
+      this.animateArch(200);
       // §14.3 第 4 条：排队字逐字回落字队列（走字杆／起搏），不许循环直落
-      const q: string[] = this.queuedChars.slice(0);
-      this.queuedChars = [];
-      for (let i = 0; i < q.length; i++) {
-        this.queueChar(q[i]);
+      // §18 第 4 件：放行前先确认忙窗已清
+      if (!this.backBusy) {
+        const q: string[] = this.queuedChars.slice(0);
+        this.queuedChars = [];
+        for (let i = 0; i < q.length; i++) {
+          this.queueChar(q[i]);
+        }
       }
     }, 270);
     hilog.info(DOMAIN, TAG, 'backLine to line=%{public}s col=%{public}s O=%{public}s paperTop=%{public}s',
@@ -2344,6 +2393,7 @@ struct Index {
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
       this.newlineBusy = false;
+      this.animateArch(200);
       // §14.3 第 4 条：换行编排结束后，排队字逐字回落字队列
       const q: string[] = this.queuedChars.slice(0);
       this.queuedChars = [];
@@ -2462,6 +2512,9 @@ struct Index {
     // §15 第 2 步：旧文档的超宽行进纸即修（不许留着等用户删到才暴露）
     this.rewrapAllOnLoad();
     this.syncRows();
+    // §18 第 2 件：载入后按当前光标重算 O（原来直接归 0，光标在深处时 O 与光标脱节）
+    this.recalcOffsetFromCursor();
+    this.animateArch(90);
     this.recalcPaperHeight();
     // 私有 docModel 不是 @State：借 docsRev 触发一次重建，纸面才会换成新文档
     this.docsRev = this.docsRev + 1;
@@ -2652,7 +2705,7 @@ struct Index {
                 rollerAngleDeg: this.knobAngle,
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                strikeXVp: this.clampedStrikeXVp(),
+                strikeXVp: this.archXVp,
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
                 paperLeftFixedVp: this.paperLeftFixed(),
@@ -2674,7 +2727,7 @@ struct Index {
                 part: 'basket',
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                strikeXVp: this.clampedStrikeXVp(),
+                strikeXVp: this.archXVp,
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
               })
@@ -2692,7 +2745,7 @@ struct Index {
                     part: 'metal',
                   paperWidthVp: this.paperWidthVp,
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.clampedStrikeXVp(),
+                  strikeXVp: this.archXVp,
                   canvasOffsetVp: this.carriageOffsetVp,
                   paperLeftFixedVp: this.paperLeftFixed(),
                   texOffsetYVp: this.texOffsetVp,
