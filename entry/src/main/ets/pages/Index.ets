@@ -63,6 +63,7 @@ import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
+import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
@@ -2854,26 +2855,42 @@ struct Index {
 
             // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
             if (this.hasLayers() && this.useLayers) {
-              CarriageLayers({
-                stageWidth: this.photoW(),
-                joltYVp: this.joltYVp,
-                knobAngleDeg: this.knobAngle,
-                machineKind: this.machineKind,
-                part: 'roller',
-                rollerAngleDeg: this.knobAngle,
-                paperWidthVp: this.paperWidthVp,
-                paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                strikeXVp: this.archXVp,
-                rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                canvasOffsetVp: this.carriageOffsetVp,
-                strikeYVp: 0,
-                paperLeftFixedVp: this.paperLeftFixed(),
-                texOffsetYVp: this.texOffsetVp,
-              })
-                // 滚筒顶 y = Ht − Hc（实测 Ht），与金属件同一锚点
-                // 滚筒锚点钉死：offset y = carriageTopVp − Hc/2（纸底 = carriageTopVp + Hc/2）
-                .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                .zIndex(1)
+              if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                RollerAssembly1920({
+                  stageWidth: this.photoW(),
+                  joltYVp: this.joltYVp,
+                  knobAngleDeg: this.knobAngle,
+                  paperWidthVp: this.paperWidthVp,
+                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                  strikeXVp: this.archXVp,
+                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                  canvasOffsetVp: this.carriageOffsetVp,
+                  paperLeftFixedVp: this.paperLeftFixed(),
+                  texOffsetYVp: this.texOffsetVp,
+                  carriageHeight: this.carriageHeight,
+                  carriageTopVp: this.carriageTopVp,
+                })
+              } else {
+                CarriageLayers({
+                  stageWidth: this.photoW(),
+                  joltYVp: this.joltYVp,
+                  knobAngleDeg: this.knobAngle,
+                  machineKind: this.machineKind,
+                  part: 'roller',
+                  rollerAngleDeg: this.knobAngle,
+                  paperWidthVp: this.paperWidthVp,
+                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                  strikeXVp: this.archXVp,
+                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                  canvasOffsetVp: this.carriageOffsetVp,
+                  strikeYVp: 0,
+                  paperLeftFixedVp: this.paperLeftFixed(),
+                  texOffsetYVp: this.texOffsetVp,
+                })
+                  // 滚筒顶 y = Ht − Hc；与金属件同一锚点
+                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                  .zIndex(1)
+              }
             }
 
             // ---- 字杆篮扇面（纸后、滚筒前）：独立层，不放进带 clip 的 roller Stack ----
