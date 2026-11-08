@@ -165,7 +165,7 @@ export class ExportService {
    * 失败（含图片未就绪 160001）返回 ok:false，调用方回退 buildPngFromPreview。
    */
   static async buildPngTemplate(ui: UIContext, docId: string, machineKind: string,
-    title: string, dateText: string, builder: CustomBuilder): Promise<ExportResult> {
+    title: string, dateText: string, builder: () => void): Promise<ExportResult> {
     try {
       hilog.info(DOMAIN, TAG, 'buildPngTemplate start doc=%{public}s kind=%{public}s title=%{public}s date=%{public}s',
         docId, machineKind, title, dateText);

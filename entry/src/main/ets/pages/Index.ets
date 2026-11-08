@@ -77,7 +77,7 @@ import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
 import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
 import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
-import { deleteModeOf, nextDeleteMode, volumeToPref, prefToVolume, paperPrefOf } from '../model/SettingsCore';
+import { deleteModeOf, volumeToPref, prefToVolume, paperPrefOf } from '../model/SettingsCore';
 import { clampFontSize, effectiveFontSize, lineHeightOf, clampMarginH, clampMarginT, clampMarginB, ImportedFont } from '../model/CustomizeCore';
 import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
@@ -1026,6 +1026,10 @@ struct Index {
     s.pop();
     this.navStack = s;
     this.syncFromStack();
+    if (this.homeOpen) {
+      // 第 4 批 F11：回主页时重取统计（卷宗删除/设置改目标后不依赖 aboutToAppear）
+      this.statsRev = this.statsRev + 1;
+    }
     return true;
   }
 
@@ -3192,6 +3196,16 @@ struct Index {
 
   private restoreTrash(id: string): void {
     docStore.restore(id);
+    // 第 6 批 F10：恢复后若原卷宗已不存在，落为未归档，避免不可达文档
+    const data: DocData | null = docStore.load(id);
+    if (data !== null) {
+      const did: string | null | undefined = data.dossierId;
+      if (did !== undefined && did !== null && did.length > 0 && dossierStore.find(did) === null) {
+        data.dossierId = null;
+        docStore.save(id, data, '未命名');
+        hilog.info(DOMAIN, TAG, 'restored orphan -> unfiled id=%{public}s', id);
+      }
+    }
     this.docsRev = this.docsRev + 1;
     this.refreshTrashDocs();
     hilog.info(DOMAIN, TAG, 'trash restored id=%{public}s', id);

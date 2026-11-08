@@ -440,7 +440,7 @@ export struct ExportPage {
     // 图片：F16 模板优先（含机器框）
     const ui: UIContext = this.getUIContext();
     const t: ExportResult = await ExportService.buildPngTemplate(ui, this.docId, this.machineKind,
-      this.docTitleState, this.dateText, this.templateBuilder);
+      this.docTitleState, this.dateText, (): void => { this.templateBuilder(); });
     if (t.ok) {
       return { ok: true, bytes: t.bytes, path: '', error: '' };
     }
