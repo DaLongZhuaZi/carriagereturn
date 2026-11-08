@@ -55,6 +55,8 @@ export interface MachineSpec {
   bailRollerY: number;
   centralWindowX: number;
   centralWindowY: number;
+  /** §11 C：中央件宽高比（1920s 0.848、1930s 1.091） */
+  centralAspect: number;
   /** 纸面中文行高（vp）。 */
   chineseLineHeightVp: number;
 }
@@ -141,6 +143,7 @@ export const MACHINES: MachineSpec[] = [
     bailRollerY: 0.747,
     centralWindowX: 0.5,
     centralWindowY: 0.55,
+    centralAspect: 0.848,
   },
   {
     kind: MachineKind.PORTABLE_1930S,
@@ -174,6 +177,7 @@ export const MACHINES: MachineSpec[] = [
     bailRollerY: 0.5,
     centralWindowX: 0.502,
     centralWindowY: 0.522,
+    centralAspect: 1.091,
   },
   {
     kind: MachineKind.STREAMLINED_1950S,
@@ -205,6 +209,7 @@ export const MACHINES: MachineSpec[] = [
     bailRollerY: 0.747,
     centralWindowX: 0.5,
     centralWindowY: 0.55,
+    centralAspect: 0.848,
   },
   {
     kind: MachineKind.ELECTRIC_1960S,
@@ -236,6 +241,7 @@ export const MACHINES: MachineSpec[] = [
     bailRollerY: 0.747,
     centralWindowX: 0.5,
     centralWindowY: 0.55,
+    centralAspect: 0.848,
   },
 ];
 

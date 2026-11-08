@@ -1551,6 +1551,14 @@ struct Index {
     return this.bracketTopRel() + findMachine(this.machineKind).bracketPivotY * this.bracketH();
   }
 
+  /** 拨杆支架素材按机型静态分支（§11 A：1930s 是 T 形支架，不许顶 1920s 矩形板） */
+  private bracketSrc(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/lever-pivot-bracket.png');
+    }
+    return $rawfile('layers/1920s-upright/lever-pivot-bracket.png');
+  }
+
   /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
   private leverHForDrag(): number {
     return this.leverW() / findMachine(this.machineKind).leverAspect;
@@ -1562,7 +1570,8 @@ struct Index {
   }
   private leverW(): number {
     if (this.isTablet) {
-      return this.carriageHeight * 1.84 * 0.212;
+      // §11 B：0.212 是 1920s 拨杆宽高比，改用机型值
+      return this.carriageHeight * 1.84 * findMachine(this.machineKind).leverAspect;
     }
     // §19.1：手机按「尖端不出屏」反推杆长——leverReachMax = stageW − 8 − pinXRel()，
     // leverH ≤ leverReachMax / sin(最大摆角 35°)。平板不受影响。
@@ -1572,7 +1581,7 @@ struct Index {
     if (maxH > 0 && h > maxH) {
       h = maxH;
     }
-    return h * 0.212;
+    return h * findMachine(this.machineKind).leverAspect;
   }
 
   /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
@@ -2874,6 +2883,7 @@ struct Index {
                   bailRollerY: findMachine(this.machineKind).bailRollerY,
                   centralWindowX: findMachine(this.machineKind).centralWindowX,
                   centralWindowY: findMachine(this.machineKind).centralWindowY,
+                  centralAspect: findMachine(this.machineKind).centralAspect,
                   stageWidth: this.photoW(),
                   joltYVp: this.joltYVp,
                   knobAngleDeg: this.knobAngle,
@@ -2893,7 +2903,7 @@ struct Index {
                   .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
 
                 // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
-                Image($rawfile('layers/1920s-upright/lever-pivot-bracket.png'))
+                Image(this.bracketSrc())
                   .width(this.bracketW())
                   .height(this.bracketH())
                   .objectFit(ImageFit.Fill)

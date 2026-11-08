@@ -34,6 +34,8 @@ export struct CarriageLayers {
   @Prop bailRollerY: number = 0.747;
   @Prop centralWindowX: number = 0.500;
   @Prop centralWindowY: number = 0.550;
+  /** §11 C：中央件宽高比（1920s 0.848、1930s 1.091），不再写死 */
+  @Prop centralAspect: number = 0.848;
 
   /** §4：素材按机型静态分支（$rawfile 只吃编译期常量） */
   private imgBase(): Resource {
@@ -250,8 +252,10 @@ export struct CarriageLayers {
         // 木底座（整机最宽）：宽 = Pw + 2×knobD，左右各出纸缘一个旋钮直径；顶在滚筒中心 + Hc/2 + 2vp
         Image(this.imgBase())
           .width(this.baseW())
-          .height(this.baseW() / this.baseRailAspect)
-          .objectFit(ImageFit.Fill)
+          // §11 D：底座高钳在 Hc 以内——1930s 底座比 2.95 会让底座高 117vp 超出纸面区被裁；
+          // 钳后 1920s 不变（46≈Hc），1930s 约 45vp。图用 Cover 横向裁切、不压扁。
+          .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
+          .objectFit(ImageFit.Cover)
           .position({ x: this.baseLeft(), y: this.baseTop() })
           .zIndex(0)
 
@@ -312,17 +316,17 @@ export struct CarriageLayers {
         // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字
         Stack({ alignContent: Alignment.TopStart }) {
           Image(this.imgCentral())
-            .width(this.hc() * 1.5 * 0.848)
+            .width(this.hc() * 1.5 * this.centralAspect)
             .height(this.hc() * 1.5)
             .objectFit(ImageFit.Contain)
             .position({ x: 0, y: 0 })
         }
-        .width(this.hc() * 1.5 * 0.848)
+        .width(this.hc() * 1.5 * this.centralAspect)
         // 全高：不再裁掉拱下半（旧口径 +10 只留到打击行下 10vp，拱只剩半截）
         .height(this.hc() * 1.5)
         .clip(true)
         .position({
-          x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
+          x: this.strikeXVp - this.hc() * 1.5 * this.centralAspect / 2,
           y: this.strikeYVp - this.hc() * 1.5 * this.centralWindowY,
         })
 
