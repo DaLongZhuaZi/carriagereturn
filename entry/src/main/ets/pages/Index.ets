@@ -64,6 +64,7 @@ import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
+import { KnobLayer } from '../components/KnobLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
@@ -830,6 +831,8 @@ struct Index {
   @State exportBusy: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
+  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 7 批移除）。 */
+  @State knobEnabled: boolean = false;
   /** 第 4 批 F11：统计刷新计数（设置目标/返回主页/导出后递增）。 */
   @State statsRev: number = 0;
 
@@ -1071,6 +1074,8 @@ struct Index {
     if (!GuideService.onboardingSeen()) {
       setTimeout(() => { this.onboardingVisible = true; }, 600);
     }
+    // 第 5 批 F13：旋钮开关（默认 off）
+    this.knobEnabled = appPreferences.getBool(PrefKeys.CUSTOM_KNOB_ENABLED, false);
     // 第 2 批 F15：候选栏选项（缺省 9／15）
     this.candPageSize = clampCandidateCount(
       appPreferences.getNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, CANDIDATE_COUNT_DEFAULT));
@@ -3787,6 +3792,18 @@ struct Index {
                     })
                 )
               )
+
+            // 第 5 批 F13：旋钮视觉层（随 knobAngle 转动，非触摸目标；仅 1920s）
+            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.hasLayers()
+              && this.useLayers && this.knobEnabled) {
+              KnobLayer({
+                sizeVp: this.knobD(),
+                angleDeg: this.knobAngle,
+                leftXVp: this.paperLeftFixed() - this.knobD() - 4,
+                rightXVp: this.paperLeftFixed() + this.paperWidthVp + 4,
+                topYVp: this.carriageTopVp - this.knobD() / 2,
+              })
+            }
         }
         .width('100%')
         .layoutWeight(1)
