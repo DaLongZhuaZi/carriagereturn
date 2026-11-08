@@ -4,7 +4,7 @@
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { MachineKind } from '../../model/DocModel';
-import { LEVER_REST_DEG_TABLET, LEVER_SWING_DEG_TABLET, angleFor, dragRatioFor, pulledEnough } from '../../model/LeverAngleCore';
+import { LEVER_REST_DEG_TABLET, LEVER_SWING_DEG_TABLET, angleFor } from '../../model/LeverAngleCore';
 import { findMachine, MachineSpec } from '../../model/MachineCatalog';
 
 const LDOMAIN: number = 0x0100;
@@ -37,20 +37,10 @@ export struct LeverLayer1930 {
   @Prop @Watch('onResetEpoch') resetEpoch: number = 0;
 
   @State angle: number = 30;
-  /** §18.11：拖拽中（跟手控角），拖动中跳过 tick 摆动，避免与直接控角抢 angle */
-  @State dragging: boolean = false;
-  /** 本次拖拽的纵向位移（松手判阈值用） */
-  private dragOffsetY: number = 0;
 
-  /** 杆长（vp）= 图高。向下拉满一杆长 = 摆满 swingDeg */
-  /** §4：素材按机型静态分支取（$rawfile 只吃编译期常量，不许拼变量） */
   /** §14：本机型几何从这里取（M 件自己负责，Index 不传几何） */
   private spec(): MachineSpec {
     return findMachine(this.machineKind);
-  }
-
-  private leverH(): number {
-    return this.layerSizeVp / this.spec().leverAspect;
   }
 
   aboutToAppear(): void {
@@ -66,21 +56,17 @@ export struct LeverLayer1930 {
 
   /** 外部拖拽比例变化：跟手控角（不套动画）；回到 0 时弹回静止角 */
   onDragRatio(): void {
-    if (this.dragging) {
-      this.angle = angleFor(this.restDeg, this.swingDeg, this.dragRatio);
-      return;
-    }
     if (this.dragRatio <= 0.001) {
       this.getUIContext().animateTo({ duration: 150, curve: Curve.FastOutSlowIn }, () => {
         this.angle = this.restDeg;
       });
+      return;
     }
+    this.angle = angleFor(this.restDeg, this.swingDeg, this.dragRatio);
   }
 
   /** 切机纪元变化：立即回静止角（不带动画），并清掉本机拖拽中间态。 */
   onResetEpoch(): void {
-    this.dragging = false;
-    this.dragOffsetY = 0;
     this.angle = this.restDeg;
     hilog.info(LDOMAIN, LTAG, 'lever reset epoch=%{public}s', this.resetEpoch.toString());
   }
@@ -90,9 +76,9 @@ export struct LeverLayer1930 {
       return;
     }
     this.lastTick = this.newlineTick;
-    if (this.dragging) {
-      // §18.11 第 4 条：拖动中不许与直接控角抢 angle，跳过摆动
-      hilog.info(LDOMAIN, LTAG, 'lever swing skipped (dragging) tick=%{public}s', this.newlineTick.toString());
+    if (this.dragRatio > 0.001) {
+      // §18.11 第 4 条：拖拽中不许与直接控角抢 angle，跳过摆动
+      hilog.info(LDOMAIN, LTAG, 'lever swing skipped (drag) tick=%{public}s', this.newlineTick.toString());
       return;
     }
     this.onSwingStart();
@@ -108,50 +94,8 @@ export struct LeverLayer1930 {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Image($rawfile('layers/1930s-portable/lever.png'))
-      .onClick(() => {
-        hilog.info(LDOMAIN, LTAG, 'lever tap hit');
-        this.onLeverTap();
-      })
-      .hitTestBehavior(HitTestMode.Block)
+      .hitTestBehavior(HitTestMode.None)
       // §18.11：拉下拨杆换行（只跟纵向位移；向下为正）
-      .gesture(
-        PanGesture({ direction: PanDirection.Vertical })
-          .onActionStart(() => {
-            this.dragging = true;
-            this.dragOffsetY = 0;
-          })
-          .onActionUpdate((e: GestureEvent) => {
-            const h: number = this.leverH();
-            let dy: number = e.offsetY;
-            if (dy < 0) {
-              dy = 0;  // 不许往上转
-            }
-            if (dy > h) {
-              dy = h;
-            }
-            this.dragOffsetY = dy;
-            // 跟手直接赋值（不套动画，拉才有手感）：统一走纯函数驱动器
-            this.angle = angleFor(this.restDeg, this.swingDeg, dragRatioFor(dy, h));
-          })
-          .onActionEnd(() => {
-            const h: number = this.leverH();
-            const pulled: number = this.dragOffsetY;
-            this.dragging = false;
-            this.dragOffsetY = 0;
-            if (h > 0 && pulledEnough(dragRatioFor(pulled, h))) {
-              // 拉过一半：松手触发换行（一次拉动只换一行）
-              hilog.info(LDOMAIN, LTAG, 'lever drag commit pull=%{public}s h=%{public}s',
-                pulled.toFixed(1), h.toFixed(1));
-              this.onLeverTap();
-            } else {
-              // 不到一半：弹回静止角，不换行
-              hilog.info(LDOMAIN, LTAG, 'lever drag cancel pull=%{public}s', pulled.toFixed(1));
-              this.getUIContext().animateTo({ duration: 150, curve: Curve.FastOutSlowIn }, () => {
-                this.angle = this.restDeg;
-              });
-            }
-          })
-      )
       .width(this.layerSizeVp)
       .height(this.layerSizeVp / this.spec().leverAspect)
       .objectFit(ImageFit.Fill)
