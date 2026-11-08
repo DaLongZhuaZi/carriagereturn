@@ -78,7 +78,7 @@ import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/Le
 import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
 import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
 import { deleteModeOf, volumeToPref, prefToVolume, paperPrefOf } from '../model/SettingsCore';
-import { clampFontSize, effectiveFontSize, lineHeightOf, clampMarginH, clampMarginT, clampMarginB, ImportedFont } from '../model/CustomizeCore';
+import { clampFontSize, effectiveFontSize, lineHeightOf, ImportedFont } from '../model/CustomizeCore';
 import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';

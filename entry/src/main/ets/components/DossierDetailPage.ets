@@ -7,7 +7,7 @@
  */
 
 import { Dossier, dossierStore } from '../services/DossierStore';
-import { DocSummary, PaperKind } from '../model/DocModel';
+import { DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { DocSearchHit, DocSearchOptions } from '../model/DocStoreStateCore';
 import { PageShell } from './PageShell';

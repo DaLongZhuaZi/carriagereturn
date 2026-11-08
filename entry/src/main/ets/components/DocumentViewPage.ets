@@ -5,7 +5,7 @@
  * 点正文页进主屏编辑。沉浸式：两纸顶距 = topInset、底栏底距 = bottomInset。
  */
 
-import { DocSummary, PaperKind } from '../model/DocModel';
+import { DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
