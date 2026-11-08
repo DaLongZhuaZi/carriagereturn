@@ -13,11 +13,18 @@ import { common } from '@kit.AbilityKit';
 import { picker, fileIo as fs } from '@kit.CoreFileKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { SaveResult } from '../model/ExportCore';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'FileHelper';
 /** 导入文件落到应用沙箱的子目录（相对 filesDir）。 */
 const IMPORT_DIR: string = 'imports';
+/**
+ * picker 用户取消的错误码（13900042 “User operation cancelled”）。
+ * 第 3 批起 saveBytes 要把「取消」和「失败」分开：取消回 idle，失败进错误态。
+ * 该码值来自 user file service 通行约定，**设备未验**（第 7 批冒烟核对）。
+ */
+const PICKER_CANCEL_CODE: number = 13900042;
 
 /** 用户选中的一个文件。 */
 export interface PickedFile {
@@ -110,23 +117,48 @@ export class FileHelper {
   }
 
   /**
-   * 让用户选保存位置并写入字节。
-   * @returns 写入成功的 uri；用户取消或失败返回 null。
+   * 让用户选保存位置并写入字节（第 3 批 F4：返回值改为 SaveResult）。
+   *
+   * 三个分支必须分开（增量设计 §1.2 / M-10）：
+   *   - 写入成功 → `{ status:'ok', uri }`（页面显示“已保存”）；
+   *   - 用户取消选位置 → `{ status:'cancel' }`（页面回 idle，**不报错**）；
+   *   - 其它异常 → `{ status:'error', error }`（页面显示原文错误）。
+   *
+   * @param suggestedName 默认文件名（由 `ExportCore.safeFileName` 生成，带时间戳）
+   * @param ext 扩展名（不带点：png／pdf／txt）；非空时用于 `fileSuffixChoices`
+   * @param data 要写入的字节（ArrayBuffer）或文本
    */
-  static async saveBytes(ctx: common.UIAbilityContext, suggestedName: string, mime: string,
-    data: ArrayBuffer | string): Promise<string | null> {
+  static async saveBytes(ctx: common.UIAbilityContext, suggestedName: string, ext: string,
+    data: ArrayBuffer | string): Promise<SaveResult> {
+    let target: string = '';
     try {
       const documentPicker: picker.DocumentViewPicker = new picker.DocumentViewPicker(ctx);
       const options: picker.DocumentSaveOptions = new picker.DocumentSaveOptions();
       options.newFileNames = [suggestedName];
-      if (mime.length > 0) {
-        options.fileSuffixChoices = [mime];
+      // fileSuffixChoices 形如 '<描述>|.<后缀>'；描述用大写后缀，避免在服务层写中文文案
+      if (ext.length > 0) {
+        options.fileSuffixChoices = [ext.toUpperCase() + '|.' + ext];
       }
-      const uris: string[] = await documentPicker.save(options);
+      let uris: string[] = [];
+      try {
+        uris = await documentPicker.save(options);
+      } catch (e) {
+        const err: BusinessError = e as BusinessError;
+        const msg: string = err.message === undefined ? '' : err.message;
+        if (FileHelper.isCancel(err)) {
+          hilog.info(DOMAIN, TAG, 'saveBytes cancelled by user');
+          return { status: 'cancel', uri: '', error: '' };
+        }
+        hilog.error(DOMAIN, TAG, 'saveBytes picker failed code=%{public}s msg=%{public}s',
+          err.code === undefined ? '' : err.code.toString(), msg);
+        return { status: 'error', uri: '', error: msg.length > 0 ? msg : 'save failed' };
+      }
       if (uris === undefined || uris.length === 0) {
-        return null;
+        // picker 用「空数组」表示用户取消（与取消码两条路径都兜住）
+        hilog.info(DOMAIN, TAG, 'saveBytes cancelled: empty uri list');
+        return { status: 'cancel', uri: '', error: '' };
       }
-      const target: string = uris[0];
+      target = uris[0];
       const file: fs.File = fs.openSync(target,
         fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
       try {
@@ -135,14 +167,23 @@ export class FileHelper {
         fs.closeSync(file);
       }
       hilog.info(DOMAIN, TAG, 'saveBytes ok uri=%{public}s', target);
-      return target;
+      return { status: 'ok', uri: target, error: '' };
     } catch (e) {
       const err: BusinessError = e as BusinessError;
+      const msg: string = err.message === undefined ? '' : err.message;
       hilog.error(DOMAIN, TAG, 'saveBytes failed code=%{public}s msg=%{public}s',
-        err.code === undefined ? '' : err.code.toString(),
-        err.message === undefined ? '' : err.message);
-      return null;
+        err.code === undefined ? '' : err.code.toString(), msg);
+      return { status: 'error', uri: target, error: msg.length > 0 ? msg : 'save failed' };
     }
+  }
+
+  /** 是否是用户取消（错误码 + 消息两种线索；都拿不到就按失败处理，不吞错）。 */
+  private static isCancel(err: BusinessError): boolean {
+    if (err.code !== undefined && err.code === PICKER_CANCEL_CODE) {
+      return true;
+    }
+    const msg: string = err.message === undefined ? '' : err.message;
+    return msg.toLowerCase().indexOf('cancel') >= 0;
   }
 
   /** 文件大小（字节）；取不到 0（供导入配额/展示用）。 */

@@ -165,6 +165,78 @@
       "value": "导出"
     },
     {
+      "name": "export_save",
+      "value": "保存到本地"
+    },
+    {
+      "name": "export_share",
+      "value": "分享"
+    },
+    {
+      "name": "export_building",
+      "value": "正在生成…"
+    },
+    {
+      "name": "export_saving",
+      "value": "正在保存…"
+    },
+    {
+      "name": "export_sharing",
+      "value": "正在调起分享…"
+    },
+    {
+      "name": "export_result_saved",
+      "value": "已保存"
+    },
+    {
+      "name": "export_result_shared",
+      "value": "已调起分享"
+    },
+    {
+      "name": "export_result_saved_shared",
+      "value": "已保存，已调起分享"
+    },
+    {
+      "name": "export_save_failed",
+      "value": "保存失败"
+    },
+    {
+      "name": "export_share_failed",
+      "value": "分享失败"
+    },
+    {
+      "name": "export_empty",
+      "value": "这张纸还没有字"
+    },
+    {
+      "name": "export_template_fallback",
+      "value": "模板导出失败，已用基础图"
+    },
+    {
+      "name": "export_fmt_image",
+      "value": "图片"
+    },
+    {
+      "name": "export_fmt_image_desc",
+      "value": "所见即所得，分享到任何地方"
+    },
+    {
+      "name": "export_fmt_pdf",
+      "value": "PDF"
+    },
+    {
+      "name": "export_fmt_pdf_desc",
+      "value": "文本路径，可打印、可存档"
+    },
+    {
+      "name": "export_fmt_text",
+      "value": "纯文本"
+    },
+    {
+      "name": "export_fmt_text_desc",
+      "value": ".txt，可再编辑"
+    },
+    {
       "name": "page_document",
       "value": "文档"
     },
@@ -346,7 +418,7 @@
     },
     {
       "name": "guide_export_2",
-      "value": "可以只保存到本地，也可以直接分享。"
+      "value": "可以只保存到本地，也可以直接分享"
     },
     {
       "name": "guide_export_3",

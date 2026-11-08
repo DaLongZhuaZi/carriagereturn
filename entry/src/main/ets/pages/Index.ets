@@ -11,9 +11,6 @@
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
-import { fileIo as fs } from '@kit.CoreFileKit';
-import { image } from '@kit.ImageKit';
-import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { util } from '@kit.ArkTS';
@@ -53,6 +50,7 @@ import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
+import { statsService, StatsEvents } from '../services/StatsService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
 import { GuideService } from '../services/GuideService';
 import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM } from '../model/GuideCore';
@@ -1506,6 +1504,21 @@ struct Index {
     this.recalcPaperHeight();
     hilog.info(DOMAIN, TAG, 'fontSize apply=%{public}s lineHeight=%{public}s',
       v.toString(), this.lineHeightVp.toFixed(2));
+  }
+
+  /** 第 3 批：导出前 flush 保存并判定非空（M-6）。 */
+  private prepareExport(): boolean {
+    this.flushSave();
+    if (this.docId.length === 0) {
+      return false;
+    }
+    const d: DocData = this.docModel.toDocData();
+    for (let i = 0; i < d.lines.length; i++) {
+      if (d.lines[i].text.replace(/\s/g, '').length > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private applyMachine(kind: MachineKind): void {
@@ -4125,95 +4138,22 @@ struct Index {
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
-      // §6.2 导出页
+      // §6.2 导出页（第 3 批：双按钮/进度/结果态；构建与分享在 ExportPage 内部）
       if (this.exportOpen) {
         ExportPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.docId,
+          machineKind: this.machineKind as string,
           onBack: (): void => { this.popPage(); },
-          onShare: (format: string): void => {
-            // P1-6：三种格式。当前实现纯文本（.txt 可再编辑）；图片/PDF 走占位并明确记录
-            hilog.info(DOMAIN, TAG, 'export share format=%{public}s', format);
-            if (format === '纯文本') {
-              try {
-                const host = this.getUIContext().getHostContext();
-                const dir: string = host === undefined || host === null ? ''
-                  : (host as common.Context).filesDir;
-                if (dir.length > 0) {
-                  const p: string = dir + '/export-' + Date.now().toString() + '.txt';
-                  const f: fs.File = fs.openSync(p,
-                    fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
-                  fs.writeSync(f.fd, docStore.readPlainText(this.docId));
-                  fs.closeSync(f);
-                  hilog.info(DOMAIN, TAG, 'export txt ok path=%{public}s', p);
-                  this.shareFile(p, 'general.plain-text');
-                }
-              } catch (e) {
-                hilog.error(DOMAIN, TAG, 'export txt failed');
-              }
-            } else if (format === '图片') {
-              // §6.2：图片＝所见即所得离屏渲染（点击时抓，不在构建期）
-              const host = this.getUIContext().getHostContext();
-              const dir: string = host === undefined || host === null ? ''
-                : (host as common.Context).filesDir;
-              if (dir.length > 0) {
-                const p: string = dir + '/export-' + Date.now().toString() + '.png';
-                this.getUIContext().getComponentSnapshot().get('export_preview')
-                  .then((pm: image.PixelMap) => {
-                    const packer: image.ImagePacker = image.createImagePacker();
-                    packer.packToData(pm, { format: 'image/png', quality: 100 })
-                      .then((buf: ArrayBuffer) => {
-                        try {
-                          const f: fs.File = fs.openSync(p,
-                            fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
-                          fs.writeSync(f.fd, buf);
-                          fs.closeSync(f);
-                          hilog.info(DOMAIN, TAG, 'export png ok path=%{public}s bytes=%{public}s',
-                            p, buf.byteLength.toString());
-                        } catch (e2) {
-                          hilog.error(DOMAIN, TAG, 'export png write failed');
-                        }
-                        this.shareFile(p, 'general.png');
-                      })
-                      .catch(() => { hilog.error(DOMAIN, TAG, 'export png pack failed'); });
-                  })
-                  .catch(() => { hilog.error(DOMAIN, TAG, 'export png snapshot failed'); });
-              }
-            } else if (format === 'PDF') {
-              // §6.2：PDF＝PDF Kit 文本路径
-              try {
-                const host = this.getUIContext().getHostContext();
-                const dir: string = host === undefined || host === null ? ''
-                  : (host as common.Context).filesDir;
-                const p: string = dir + '/export-' + Date.now().toString() + '.pdf';
-                const pdf: pdfService.PdfDocument = new pdfService.PdfDocument();
-                if (pdf.createDocument(595, 842)) {
-                  const page: pdfService.PdfPage = pdf.getPage(0);
-                  const style: pdfService.TextStyle = new pdfService.TextStyle();
-                  style.textSize = 11;
-                  const lines: string[] = docStore.readPlainText(this.docId).split('\n');
-                  let y: number = 800;
-                  for (let i = 0; i < lines.length && y > 40; i++) {
-                    if (lines[i].length > 0) {
-                      page.addTextObject(lines[i], 48, y, style);
-                    }
-                    y -= 16;
-                  }
-                  const ok: boolean = pdf.saveDocument(p);
-                  pdf.releaseDocument();
-                  hilog.info(DOMAIN, TAG, 'export pdf ok=%{public}s path=%{public}s',
-                    ok ? 'true' : 'false', p);
-                  this.shareFile(p, 'general.pdf');
-                } else {
-                  hilog.error(DOMAIN, TAG, 'export pdf createDocument failed');
-                }
-              } catch (e) {
-                hilog.error(DOMAIN, TAG, 'export pdf failed: %{public}s', JSON.stringify(e));
-              }
-            } else {
-              hilog.warn(DOMAIN, TAG, 'export %{public}s not implemented yet', format);
-            }
+          onBeforeExport: (): boolean => { return this.prepareExport(); },
+          onSaved: (format: string): void => {
+            statsService.recordEvent(StatsEvents.DOC_SAVED);
+            hilog.info(DOMAIN, TAG, 'export saved format=%{public}s', format);
+          },
+          onShared: (format: string): void => {
+            statsService.recordEvent(StatsEvents.DOC_EXPORTED);
+            hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
           },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
