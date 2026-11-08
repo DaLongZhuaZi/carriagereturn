@@ -8,6 +8,7 @@
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
 import { AppIcon } from './AppIcon';
+import { SettingsRow } from './SettingsRow';
 import { GuideStep } from './GuideOverlay';
 
 @Component
@@ -18,6 +19,11 @@ export struct PinyinSettingsPage {
   @Prop userWords: string[] = [];
   @Prop dictInfo: string = '';
   @Prop learnCount: number = 0;
+  /** 第 2 批 F15：候选栏选项。 */
+  @Prop candidateCount: number = 9;
+  @Prop candidateSize: number = 15;
+  onCandidateCount: (n: number) => void = (n: number): void => {};
+  onCandidateSize: (n: number) => void = (n: number): void => {};
   @State managing: boolean = false;
   @State adding: boolean = false;
   @State draftWord: string = '';
@@ -42,6 +48,29 @@ export struct PinyinSettingsPage {
   body() {
     Scroll() {
       Column() {
+        Text('候选栏').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .width('100%').margin({ top: 18, bottom: 6 })
+        SettingsRow({
+          label: '候选数量',
+          mode: 'slider',
+          sliderValue: this.candidateCount,
+          sliderMin: 5,
+          sliderMax: 15,
+          sliderStep: 1,
+          onSlide: (v: number): void => { this.onCandidateCount(v); },
+        })
+        Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+        SettingsRow({
+          label: '候选字号',
+          mode: 'slider',
+          sliderValue: this.candidateSize,
+          sliderMin: 12,
+          sliderMax: 20,
+          sliderStep: 1,
+          onSlide: (v: number): void => { this.onCandidateSize(v); },
+        })
+        Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+
         Text('模糊拼音').fontSize(12).fontColor('rgba(232,221,201,0.6)')
           .width('100%').margin({ top: 18, bottom: 6 })
         Row() {

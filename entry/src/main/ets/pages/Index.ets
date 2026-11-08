@@ -73,6 +73,7 @@ import { CarriageLayers1930 } from '../machines/1930s/CarriageLayers1930';
 import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
+import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
 import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
@@ -422,8 +423,11 @@ struct Index {
   // ---------------- 内置拼音（设计稿 §1／§3／§4） ----------------
   /** 中文引擎：'builtin' 内置拼音（默认）｜'system' 系统输入法通道。 */
   @State cnEngine: string = 'builtin';
-  /** 候选栏当前页候选（最多 9 个）与页码。 */
+  /** 候选栏当前页候选（最多 N 个，N=candPageSize）与页码。 */
   @State candCurrent: string[] = [];
+  /** 第 2 批 F15：候选数量（5–15，默认 9）与字号（12–20，默认 15）。 */
+  @State candPageSize: number = CANDIDATE_COUNT_DEFAULT;
+  @State candChipFontSize: number = CANDIDATE_SIZE_DEFAULT;
   @State candPage: number = 0;
   @State candPages: number = 1;
   /** 组词中的拼音串（显示在候选栏左侧，并复用 cnPreview 做预编辑）。 */
@@ -1033,6 +1037,11 @@ struct Index {
     if (!GuideService.onboardingSeen()) {
       setTimeout(() => { this.onboardingVisible = true; }, 600);
     }
+    // 第 2 批 F15：候选栏选项（缺省 9／15）
+    this.candPageSize = clampCandidateCount(
+      appPreferences.getNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, CANDIDATE_COUNT_DEFAULT));
+    this.candChipFontSize = clampCandidateSize(
+      appPreferences.getNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, CANDIDATE_SIZE_DEFAULT));
     // §7.4：系统键盘弹起时页面整体上移（OFFSET），保打击行可见
     try {
       // 用 UIContext 导出的 KeyboardAvoidMode（OFFSET=0 页面上移 / RESIZE=1），避开组件作用域同名枚举
@@ -2047,7 +2056,7 @@ struct Index {
     this.cnPreview = this.cnPinyin.length > 0 ? this.pinyinSession.getBuffer() : '';
     this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
     this.candPage = 0;
-    this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
+    this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPageSize));
     this.pinyinShown();
     // 打点：buffer / 候选数 / 当前页候选
     const cur: string = this.candCurrent.join(',');
@@ -2056,9 +2065,9 @@ struct Index {
   }
 
   private pinyinShown(): void {
-    const start: number = this.candPage * 9;
+    const start: number = this.candPage * this.candPageSize;
     const out: string[] = [];
-    for (let i = start; i < this.candAll.length && out.length < 9; i++) {
+    for (let i = start; i < this.candAll.length && out.length < this.candPageSize; i++) {
       out.push(this.candAll[i].text);
     }
     this.candCurrent = out;
@@ -2071,7 +2080,7 @@ struct Index {
     if (this.pinyinSession === null) {
       return;
     }
-    const abs: number = this.candPage * 9 + index;
+    const abs: number = this.candPage * this.candPageSize + index;
     if (abs < 0 || abs >= this.candAll.length) {
       return;
     }
@@ -2099,7 +2108,7 @@ struct Index {
     if (this.cnPinyin.length > 0) {
       this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
       this.candPage = 0;
-      this.candPages = Math.max(1, Math.ceil(this.candAll.length / 9));
+      this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPageSize));
       this.pinyinShown();
     } else {
       this.candAll = [];
@@ -3633,7 +3642,9 @@ struct Index {
             pinyin: this.cnPinyin,
             pages: this.candPages,
             page: this.candPage,
+            chipFontSize: this.candChipFontSize,
             onPick: (i: number): void => { this.pinyinPick(i); },
+            onLongPress: (i: number): void => { this.pinyinPick(i); },
             onPrev: (): void => {
               if (this.candPage > 0) {
                 this.candPage = this.candPage - 1;
@@ -3898,6 +3909,17 @@ struct Index {
             });
           },
           onReplayPageGuide: (): void => { this.replayPageGuide(); },
+          candidateCount: this.candPageSize,
+          candidateSize: this.candChipFontSize,
+          onCandidateCount: (n: number): void => {
+            this.candPageSize = clampCandidateCount(n);
+            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, this.candPageSize);
+            this.pinyinShown();
+          },
+          onCandidateSize: (n: number): void => {
+            this.candChipFontSize = clampCandidateSize(n);
+            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, this.candChipFontSize);
+          },
           onReplayOnboarding: (): void => { this.replayOnboarding(); },
           onPickCnEngine: (): void => {
             const next: string = this.cnEngine === 'builtin' ? 'system' : 'builtin';
@@ -4079,6 +4101,17 @@ struct Index {
           userWords: this.userWordsFlat,
           dictInfo: this.dictInfo,
           learnCount: this.learnCount,
+          candidateCount: this.candPageSize,
+          candidateSize: this.candChipFontSize,
+          onCandidateCount: (n: number): void => {
+            this.candPageSize = clampCandidateCount(n);
+            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, this.candPageSize);
+            this.pinyinShown();
+          },
+          onCandidateSize: (n: number): void => {
+            this.candChipFontSize = clampCandidateSize(n);
+            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, this.candChipFontSize);
+          },
           onBack: (): void => { this.popPage(); },
           onToggleFuzzy: (): void => { this.toggleFuzzy(); },
           addPinyin: this.draftPinyin,

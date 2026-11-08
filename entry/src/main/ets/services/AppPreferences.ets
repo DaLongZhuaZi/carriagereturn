@@ -42,6 +42,9 @@ export class PrefKeys {
   /** 自定义：`custom.font.<machine>.<field>`／`custom.paper.<field>`。 */
   static readonly CUSTOM_FONT_PREFIX: string = 'custom.font.';
   static readonly CUSTOM_PAPER_PREFIX: string = 'custom.paper.';
+  /** 第 2 批 F15：候选栏选项。 */
+  static readonly CUSTOM_CANDIDATE_COUNT: string = 'custom.candidate.count';
+  static readonly CUSTOM_CANDIDATE_SIZE: string = 'custom.candidate.size';
   /** 统计：事件计数与日计数器。 */
   static readonly STATS_PREFIX: string = 'stats.';
   static readonly STATS_DAY_KEY: string = 'stats.day.key';
@@ -104,6 +107,8 @@ export class PrefRegistry {
       { key: PrefKeys.GUIDE_TEST_MODE, type: 'boolean', defaultValue: 'false', owner: 'F1', note: '测试模式（仅测试构建可置 true）' },
       { key: PrefKeys.CUSTOM_FONT_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '每机字体搭配：custom.font.<machine>.<field>' },
       { key: PrefKeys.CUSTOM_PAPER_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '纸张自定义' },
+      { key: PrefKeys.CUSTOM_CANDIDATE_COUNT, type: 'number', defaultValue: '9', owner: 'F15', note: '候选数量 5–15，默认 9' },
+      { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
       { key: PrefKeys.STATS_DAILY_GOAL, type: 'number', defaultValue: '500', owner: 'F11', note: '每日目标字数，缺省 500' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就解锁状态' },
@@ -118,6 +123,7 @@ export class PrefRegistry {
       PrefKeys.CN_USERWORDS, PrefKeys.CN_FUZZY, PrefKeys.CN_BIGRAM, PrefKeys.MACHINE,
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
       PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
+      PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE,
     ];
     if (fixed.indexOf(key) >= 0) {
       return true;

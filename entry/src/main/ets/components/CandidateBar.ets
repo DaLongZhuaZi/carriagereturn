@@ -17,21 +17,39 @@ export struct CandidateBar {
   /** 总页数（>1 才显示翻页键） */
   @Prop pages: number = 1;
   @Prop page: number = 0;
+  /** 第 2 批 F15：候选字号（12–20，默认 15）。 */
+  @Prop chipFontSize: number = 15;
   onPick: (index: number) => void = (): void => {};
   onPrev: () => void = (): void => {};
   onNext: () => void = (): void => {};
+  /** 长按出词：与点击同一 pinyinPick 路径（回调由 Index 提供）。 */
+  onLongPress: (index: number) => void = (index: number): void => {};
+  private lastLongPressMs: number = -1;
 
   @Builder
   chip(text: string, index: number) {
     Text((index + 1).toString() + ' ' + text)
-      .fontSize(15).fontColor('#e8ddc9')
+      .fontSize(this.chipFontSize).fontColor('#e8ddc9')
       .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       .padding({ left: 10, right: 10, top: 6, bottom: 6 })
       .margin({ right: 6 })
       .borderRadius(8)
       .backgroundColor(index === 0 ? '#2e2620' : '#241c16')
       .border({ width: index === 0 ? 2 : 0, color: '#c9a45c' })
-      .onClick(() => { this.onPick(index); })
+      .gesture(
+        LongPressGesture({ repeat: false })
+          .onAction(() => {
+            this.lastLongPressMs = Date.now();
+            this.onLongPress(index);
+          })
+      )
+      .onClick(() => {
+        // 长按已触发时抑制本次 click，避免双提交
+        if (this.lastLongPressMs > 0 && Date.now() - this.lastLongPressMs < 600) {
+          return;
+        }
+        this.onPick(index);
+      })
   }
 
   build() {

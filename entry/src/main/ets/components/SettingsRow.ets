@@ -22,6 +22,9 @@ export struct SettingsRow {
   @Prop valueColor: string = 'rgba(232,221,201,0.6)';
   @Prop switchOn: boolean = false;
   @Prop sliderValue: number = 0;
+  @Prop sliderMin: number = 0;
+  @Prop sliderMax: number = 100;
+  @Prop sliderStep: number = 1;
   @Prop reveal: boolean = true;
   onToggle: () => void = (): void => {};
   onSlide: (v: number) => void = (v: number): void => {};
@@ -44,12 +47,12 @@ export struct SettingsRow {
             }
           })
       } else if (this.mode === 'slider') {
-        Slider({ value: this.sliderValue, min: 0, max: 100 })
+        Slider({ value: this.sliderValue, min: this.sliderMin, max: this.sliderMax, step: this.sliderStep })
           .width(180)
           .trackThickness(2)
           .selectedColor('#c9a45c')
-          .onChange((v: number, mode: SliderChangeMode) => {
-            if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
+          .onChange((v: number, changeMode: SliderChangeMode) => {
+            if (changeMode === SliderChangeMode.End || changeMode === SliderChangeMode.Click) {
               this.onSlide(Math.round(v));
             }
           })
