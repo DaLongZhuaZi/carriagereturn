@@ -30,6 +30,15 @@ export struct LeverLayer {
   @Prop swingDeg: number = SWING_DEG;
 
   @State angle: number = 30;
+  /** §18.11：拖拽中（跟手控角），拖动中跳过 tick 摆动，避免与直接控角抢 angle */
+  @State dragging: boolean = false;
+  /** 本次拖拽的纵向位移（松手判阈值用） */
+  private dragOffsetY: number = 0;
+
+  /** 杆长（vp）= 图高。向下拉满一杆长 = 摆满 swingDeg */
+  private leverH(): number {
+    return this.layerSizeVp / LEVER_ASPECT;
+  }
 
   aboutToAppear(): void {
     // §19.1：初始静止角跟随传入值（手机 15°，平板 30°）
@@ -47,6 +56,11 @@ export struct LeverLayer {
       return;
     }
     this.lastTick = this.newlineTick;
+    if (this.dragging) {
+      // §18.11 第 4 条：拖动中不许与直接控角抢 angle，跳过摆动
+      hilog.info(LDOMAIN, LTAG, 'lever swing skipped (dragging) tick=%{public}s', this.newlineTick.toString());
+      return;
+    }
     this.onSwingStart();
     this.getUIContext().animateTo({ duration: SWING_MS, curve: Curve.FastOutSlowIn }, () => {
       this.angle = this.restDeg + this.swingDeg;
@@ -61,8 +75,49 @@ export struct LeverLayer {
     Stack({ alignContent: Alignment.TopStart }) {
       Image($rawfile('layers/1920s-upright/lever.png'))
         .onClick(() => {
+          hilog.info(LDOMAIN, LTAG, 'lever tap hit');
           this.onLeverTap();
         })
+        .hitTestBehavior(HitTestMode.Block)
+        // §18.11：拉下拨杆换行（只跟纵向位移；向下为正）
+        .gesture(
+          PanGesture({ direction: PanDirection.Vertical })
+            .onActionStart(() => {
+              this.dragging = true;
+              this.dragOffsetY = 0;
+            })
+            .onActionUpdate((e: GestureEvent) => {
+              const h: number = this.leverH();
+              let dy: number = e.offsetY;
+              if (dy < 0) {
+                dy = 0;  // 不许往上转
+              }
+              if (dy > h) {
+                dy = h;
+              }
+              this.dragOffsetY = dy;
+              // 跟手直接赋值（不套动画，拉才有手感）
+              this.angle = this.restDeg + (dy / h) * this.swingDeg;
+            })
+            .onActionEnd(() => {
+              const h: number = this.leverH();
+              const pulled: number = this.dragOffsetY;
+              this.dragging = false;
+              this.dragOffsetY = 0;
+              if (h > 0 && pulled >= h / 2) {
+                // 拉过一半：松手触发换行（一次拉动只换一行）
+                hilog.info(LDOMAIN, LTAG, 'lever drag commit pull=%{public}s h=%{public}s',
+                  pulled.toFixed(1), h.toFixed(1));
+                this.onLeverTap();
+              } else {
+                // 不到一半：弹回静止角，不换行
+                hilog.info(LDOMAIN, LTAG, 'lever drag cancel pull=%{public}s', pulled.toFixed(1));
+                this.getUIContext().animateTo({ duration: 150, curve: Curve.FastOutSlowIn }, () => {
+                  this.angle = this.restDeg;
+                });
+              }
+            })
+        )
         .width(this.layerSizeVp)
         .height(this.layerSizeVp / LEVER_ASPECT)
         .objectFit(ImageFit.Fill)
@@ -72,6 +127,13 @@ export struct LeverLayer {
           centerY: (this.layerSizeVp / LEVER_ASPECT) * PIVOT_Y_RATIO,
         })
         .offset({ x: this.offsetXVp, y: this.offsetYVp })
+        // §18.11 第 5 条：拨杆图很细（手机宽约 24vp），扩热区到 ≥44×44，不改视觉大小
+        .responseRegion({
+          x: -Math.max(0, (44 - this.layerSizeVp) / 2),
+          y: -Math.max(0, (44 - this.layerSizeVp / LEVER_ASPECT) / 2),
+          width: Math.max(44, this.layerSizeVp),
+          height: Math.max(44, this.layerSizeVp / LEVER_ASPECT),
+        })
     }
     .width('100%')
     .height('100%')
