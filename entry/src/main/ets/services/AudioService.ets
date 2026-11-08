@@ -43,6 +43,7 @@ import { vibrator } from '@kit.SensorServiceKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AudioEngineExposed, SoundRole } from '../ui/AudioEngine';
+import { AudioTrace } from './AudioTrace';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'AudioService';
@@ -116,6 +117,8 @@ export class AudioService implements AudioEngineExposed {
   private resourceMgr: resourceManager.ResourceManager | null = null;
   private banks: Map<SoundRole, SoundBank> = new Map<SoundRole, SoundBank>();
   private stemIds: Map<string, number> = new Map<string, number>();
+  /** 第 0 批：soundId → stem 反查（测试构建音效观测用；发布构建不读）。 */
+  private idToStem: Map<number, string> = new Map<number, string>();
   private loadedStems: string[] = [];
   private packName: string = '';
   private packPath: string = '';
@@ -208,6 +211,7 @@ export class AudioService implements AudioEngineExposed {
       if (soundId > 0) {
         this.loadedStems.push(stem);
         this.stemIds.set(stem, soundId);
+        this.idToStem.set(soundId, stem);
       }
     }
     this.loadedStems.sort();
@@ -329,6 +333,9 @@ export class AudioService implements AudioEngineExposed {
 
   /** 真正发声：play 是 Promise，但这里只挂 then/catch，绝不同步等待。 */
   private emit(pool: media.SoundPool, soundId: number, withPitch: boolean, role: SoundRole): void {
+    // 第 0 批：测试构建音效观测（发布构建 TestHooks=false，emitTrace 第一行即返回，零成本）
+    const stemName: string | undefined = this.idToStem.get(soundId);
+    AudioTrace.emitTrace(role.toString(), stemName === undefined ? '' : stemName, this.volume, 1);
     this.trimStreams(pool, role);
     let params: media.PlayParameters;
     if (withPitch) {
@@ -663,6 +670,7 @@ export class AudioService implements AudioEngineExposed {
     this.ready = false;
     this.loadedStems = [];
     this.stemIds = new Map<string, number>();
+    this.idToStem = new Map<number, string>();
     this.banks = new Map<SoundRole, SoundBank>();
     this.packPath = '';
     this.pitchAccepted = true;

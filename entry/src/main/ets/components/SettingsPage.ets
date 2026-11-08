@@ -48,27 +48,6 @@ export struct SettingsPage {
   }
 
   @Builder
-  row(label: string, right: string, rightColor: string, idx: number) {
-    Row() {
-      Text(label).fontSize(15).fontColor('#e8ddc9')
-      Blank()
-      Text(right).fontSize(15).fontColor(rightColor)
-    }
-    .width('100%').height(52)
-    .opacity(this.revealN > idx ? 1 : 0)
-    .animation({ duration: 180, curve: Curve.EaseOut })
-    .scale({ x: this.pressedRow === label ? 0.97 : 1, y: this.pressedRow === label ? 0.97 : 1 })
-    .animation({ duration: 120, curve: Curve.EaseOut })
-    .onTouch((e: TouchEvent) => {
-      if (e.type === TouchType.Down) {
-        this.pressedRow = label;
-      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
-        this.pressedRow = '';
-      }
-    })
-  }
-
-  @Builder
   body() {
     Scroll() {
       Column() {
