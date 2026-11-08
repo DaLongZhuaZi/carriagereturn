@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-09",
+  "mode": "--dry-run",
+  "results": [
+    {
+      "probe": "probe_touch_share",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "MLR-AL10 + 第二台支持 NFC 的设备（双机对碰）",
+      "pass_criterion": "命名出 API（模块／类／函数）且单机可调通：调用不崩、有可观测回调",
+      "fallback": "砍碰一碰传输，F4 只做 ShareKit＋指引；碰一碰标记未验证（Q5 缺省）",
+      "alternative": "单机 ShareKit 全链路（分享面板调起、回调 observable）＋UI 截图",
+      "evidence": [
+        "仓库命中 systemShare: entry/src/main/ets/pages/Index.ets:2715; entry/src/main/ets/services/ShareService.ets:4; entry/src/main/ets/services/ShareService.ets:11",
+        "仓库命中 ShareController: entry/src/main/ets/services/ShareService.ets:6; entry/src/main/ets/services/ShareService.ets:42; entry/src/main/ets/services/ShareService.ets:43",
+        "现有分享实现命中 11 处：entry/src/main/ets/pages/Index.ets:2714; entry/src/main/ets/pages/Index.ets:2721; entry/src/main/ets/pages/Index.ets:3814; entry/src/main/ets/pages/Index.ets:3841; entry/src/main/ets/pages/Index.ets:3871",
+        "OHOS_SDK_HOME 未设置或不存在：无法在 d.ts 里核对候选模块名",
+        "hdc 可用: False；targets: （空）"
+      ],
+      "reason": "无 NFC 第二台设备且无 SDK：按 Q5 缺省走 ShareKit＋指引；API 命名待有设备时补",
+      "checked_at": "2026-11-09T03:40:45+08:00"
+    },
+    {
+      "probe": "probe_register_font",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "MLR-AL10／ADA-AL00U",
+      "pass_criterion": "私有目录字体注册成功；冷启动后 familyName 仍有效；坏文件报错不崩溃、不污染已注册字体",
+      "fallback": "改方案（第 2 批增量设计）：例如导入后转 rawfile 不可行，则降级为“只管理不即时生效”并记录",
+      "alternative": "启动注册循环现状（$rawfile）＋ UI 截图（17 款字体试写分不出差别＝失败）；坏文件路径用单测/静态守卫",
+      "evidence": [
+        "registerFont 调用点 12 处：entry/src/main/ets/entryability/EntryAbility.ets:57; entry/src/main/ets/entryability/EntryAbility.ets:59; entry/src/main/ets/entryability/EntryAbility.ets:60; entry/src/main/ets/entryability/EntryAbility.ets:62; entry/src/main/ets/pages/Index.ets:1493",
+        "familySrc 现状: entry/src/main/ets/entryability/EntryAbility.ets:59 font.registerFont({ familyName: 'CourierPrime', familySrc: '/font/CourierPrime-Regular.ttf' });; entry/src/main/ets/services/FontService.ets:34 familySrc: $rawfile(fonts[i].rawfile),; entry/src/main/ets/services/FontService.ets:61 familySrc: 'file://' + filePath,",
+        "MachineCatalog.FONTS 条数: 17",
+        "私有路径注册: 仓库尚无实现（FontService.registerFromFile 为第 0 批签名占位，未接 UI）",
+        "是否出现 file:// 或 filesDir 拼 fontSrc: False"
+      ],
+      "reason": "判定标准需真机＋测试构建；本机无设备，静态部分已记录",
+      "checked_at": "2026-11-09T03:40:45+08:00"
+    },
+    {
+      "probe": "probe_file_picker",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "MLR-AL10／ADA-AL00U",
+      "pass_criterion": "DocumentViewPicker 选文件成功；PhotoViewPicker 选图成功；uitest 能驱动系统选择器；保存后用户可在文件管理器看到",
+      "fallback": "改方案（第 2／3 批增量设计）：例如 PhotoViewPicker 不可驱动则改为应用内相册代理，并在报告中记缺口",
+      "alternative": "系统选择器截图（打开前／后）＋返回 uri 的 hilog＋文件管理器截图；不可驱动时记录“需人工点一次”的豁免",
+      "evidence": [
+        "仓库 FilePicker 引用 6 处（总纲：现状零处）",
+        "FileHelper 现状: 存在",
+        "媒体库/相册 API 引用 0 处",
+        "uitest 是否可驱动系统选择器：需真机；系统选择器是独立进程 UI，历史经验只能截图判存在"
+      ],
+      "reason": "无设备：两路选择与保存可见性无法取证",
+      "checked_at": "2026-11-09T03:40:45+08:00"
+    },
+    {
+      "probe": "probe_fold_angle",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "折叠屏真机（无）／DevEco 折叠模拟器（本机有 Emulator 目录）",
+      "pass_criterion": "订阅 foldAngleChange 后能观测到折叠角随姿态变化；半开/展开/外屏三态可切换",
+      "fallback": "按 Q3 缺省：F7 只做模拟器布局验证，真机手感标记未验证；仍无模拟器则 F7 移出本轮（报告记）",
+      "alternative": "模拟器截图（三态）＋状态保持断言（文档/光标/纸张位置）＋API 存在性静态证据",
+      "evidence": [
+        "foldAngleChange: 0 处",
+        "FoldStatus: 0 处",
+        "windowSizeChange: 0 处",
+        "foldStatus: 0 处",
+        "总纲口述“折叠屏 API 全仓零处”与静态结果一致（若上行为 0）",
+        "DevEco 模拟器目录: 存在（存在≠有折叠设备配置）",
+        "设备：无折叠真机（既有 MLR-AL10 平板／ADA-AL00U 手机均非折叠）"
+      ],
+      "reason": "无折叠设备；模拟器可跑但本会话无 IDE/启动入口，按 Q3 缺省执行",
+      "checked_at": "2026-11-09T03:40:46+08:00"
+    },
+    {
+      "probe": "probe_test_clock",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "MLR-AL10",
+      "pass_criterion": "给出可行帧步进机制（可复现实验）或可替代的关键帧快照机制；或曲线纯函数单测方案可行且有样例",
+      "fallback": "不建测试时钟；动画类验证退回 AGENTS.md 口径（hilog 打点＋用户录屏），进豁免表",
+      "alternative": "曲线纯函数单测（本仓已有杠杆角驱动器纯函数与 Node 单测同型）；hilog 关键帧打点；用户录屏",
+      "evidence": [
+        "animateTo/.animation 调用点共 99 处",
+        "出现过的 duration 值（次数）: 180ms×20, 150ms×14, 250ms×14, 120ms×7, 20ms×7, 200ms×5, 300ms×4, 160ms×1, 87ms×1, 100ms×1, 30ms×1, 70ms×1, 40ms×1",
+        "已知实测定论（AGENTS.md）：animateTo 立即赋终值，观测 @State 只能证明方向与目标；screenCap 单帧 400–500ms > 350ms 动画窗，采不到首帧",
+        "仓库内帧步进/测试时钟痕迹: 1 处",
+        "曲线/驱动器纯函数化样例（LeverAngleCore）: 已建，可行",
+        "SDK 是否存在公开手动步进 API：本机无 SDK 目录，无法核对 d.ts；结论不能写成“支持”"
+      ],
+      "reason": "无设备与 SDK：帧步进无法实验；按 fallback 先走曲线纯函数单测＋AGENTS 口径",
+      "checked_at": "2026-11-09T03:40:46+08:00"
+    },
+    {
+      "probe": "probe_verification_capabilities",
+      "status": "UNVERIFIED_NO_DEVICE",
+      "device": "MLR-AL10",
+      "pass_criterion": "四项各给出“能／不能＋替代手段”，且能项有可复现命令",
+      "fallback": "不能的项进豁免表（写明识别层未验证）；不许把不能写成能",
+      "alternative": "仓库既有真机记录（§19.3 uitest drag 触发 lever pan）＋AGENTS 屏幕采样实测（400–500ms）",
+      "evidence": [
+        "hdc 驱动 PanGesture：仓库既有真机记录 已证（§19.3：uitest uiInput drag 触发 lever pan start/end pull=1.000）",
+        "本会话 hdc 可用=False；targets=（空）（本轮未复现，证据来自既有提交记录）",
+        "screenCap 连拍：AGENTS.md 实测单帧约 400–500ms，> 350ms 动画窗——“抓动画首帧”不可靠；替代：hilog 关键帧＋用户录屏",
+        "Date.now() 调用点 36 处；已有时间注入缝 20 处",
+        "替代：判定逻辑抽纯函数（StatsCore / LeverAngleCore）＋Node 单测，日期作参数传入",
+        "ShareKit 回调现状: entry/src/main/ets/services/ShareService.ets:6; entry/src/main/ets/services/ShareService.ets:42; entry/src/main/ets/services/ShareService.ets:43; entry/src/main/ets/services/ShareService.ets:44",
+        "结论：ShareController.show().then 只证“面板已调起”，证不了“对方已接收/完成分享”——分享完成不可观测，文案不得写“已分享成功”"
+      ],
+      "reason": "四项中“能”的两项来自仓库既有真机记录；本轮无设备，未复现，不记 PASS",
+      "checked_at": "2026-11-09T03:40:46+08:00"
+    }
+  ]
+}

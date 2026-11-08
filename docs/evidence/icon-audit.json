@@ -1,0 +1,35 @@
+{
+  "symbolGlyphDirectUses": [],
+  "textSymbolIcons": [],
+  "emojiHits": [
+    "entry/src/main/ets/pages/Index.ets:116: '＜ ＞ ＂ ＇ ※ ☆ ★ ○ ● ◆'.split(' '),"
+  ],
+  "kindsUsed": [
+    "back",
+    "check",
+    "chevron",
+    "chevron_up",
+    "delete",
+    "folder",
+    "menu",
+    "more",
+    "plus"
+  ],
+  "kindsRegistered": [
+    "back",
+    "check",
+    "chevron",
+    "chevron_up",
+    "delete",
+    "export",
+    "folder",
+    "lock",
+    "menu",
+    "more",
+    "plus",
+    "rename",
+    "settings"
+  ],
+  "violations": [],
+  "verdict": "PASS"
+}
