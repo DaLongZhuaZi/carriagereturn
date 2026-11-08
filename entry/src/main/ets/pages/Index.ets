@@ -3242,6 +3242,22 @@ struct Index {
     this.audioService.setVolume(pref);
   }
 
+  /** 第 6 批 F6：设置页回显本地化机名（原来直接显示 kind id）。 */
+  private machineLabelText(): string {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) { return this.resolveString($r('app.string.machine_name_1930s')); }
+    if (this.machineKind === MachineKind.STREAMLINED_1950S) { return this.resolveString($r('app.string.machine_name_1950s')); }
+    if (this.machineKind === MachineKind.ELECTRIC_1960S) { return this.resolveString($r('app.string.machine_name_1960s')); }
+    return this.resolveString($r('app.string.machine_name_1920s'));
+  }
+
+  /** 第 6 批 F6：设置页回显本地化纸名。 */
+  private paperLabelText(): string {
+    if (this.paperKind === PaperKind.MANUSCRIPT) { return this.resolveString($r('app.string.paper_manuscript')); }
+    if (this.paperKind === PaperKind.POSTCARD) { return this.resolveString($r('app.string.paper_postcard')); }
+    if (this.paperKind === PaperKind.MEMO) { return this.resolveString($r('app.string.paper_memo')); }
+    return this.resolveString($r('app.string.paper_letter'));
+  }
+
   private cycleMachine(): void {
     const all: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric'];
     const idx: number = all.indexOf(this.machineKind as string);
@@ -4269,8 +4285,8 @@ struct Index {
         SettingsPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          machineLabel: this.machineKind as string,
-          paperLabel: this.paperKind as string,
+          machineLabel: this.machineLabelText(),
+          paperLabel: this.paperLabelText(),
           volume0to100: this.volume0to100,
           soundEnabled: this.soundEnabled,
           vibrationEnabled: this.vibrationEnabled,
