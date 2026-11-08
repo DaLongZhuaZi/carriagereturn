@@ -60,6 +60,8 @@ import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
+import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
+import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
@@ -2813,25 +2815,38 @@ struct Index {
             // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
             // §14：字杆层重新启用——输入法落字要靠它驱动 onArrive（串行、每字一摆）
             if (this.hasLayers()) {
-              TypebarLayer({
-                machineKind: this.machineKind,
-                layerWidthVp: this.carriageHeight * 2.5,
-                layerHeightVp: this.carriageHeight * 2.5,
-                strikeTick: this.strikeTick,
-                animScale: 1,
-                // 字杆支点 x = 打击点（纸屏左 + marginH + 已落字总宽）
-                offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                  + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
-                // 杆头落在打击行（纸底 − 底边距 − 行高/2），不是纸底缘
-                // 层内杆尖 y = 0.115×H（H=stageWidth），故 offsetY = strikeY − 0.115×H
-                // 总成坐标系：层底对齐 Stack 底，杆尖 0.115×H；offsetY 使杆尖落在打击行
-                // 杆尖 y = strikeLineVp：层内杆尖在 0.115×层高处
-                offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
-                onArrive: (): void => {
-                  this.onStrikeArrive();
-                },
-              })
-                .zIndex(10)
+              // §14：1920s 走蓝图组件（几何在蓝图里），其余机型走 M 件
+              if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                TypebarAssembly1920({
+                  stageWidth: this.stageWidth,
+                  paperWidthVp: this.paperWidthVp,
+                  carriageOffsetVp: this.carriageOffsetVp,
+                  currentLineWidthVp: this.currentLineWidthVp(),
+                  paperMarginH: findPaper(this.paperKind).marginH,
+                  carriageHeight: this.carriageHeight,
+                  strikeLineVp: this.strikeLineVp,
+                  strikeTick: this.strikeTick,
+                  animScale: 1,
+                  onArrive: (): void => {
+                    this.onStrikeArrive();
+                  },
+                })
+              } else {
+                TypebarLayerM({
+                  machineKind: this.machineKind,
+                  layerWidthVp: this.carriageHeight * 2.5,
+                  layerHeightVp: this.carriageHeight * 2.5,
+                  strikeTick: this.strikeTick,
+                  animScale: 1,
+                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
+                  onArrive: (): void => {
+                    this.onStrikeArrive();
+                  },
+                })
+                  .zIndex(10)
+              }
             }
 
             // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
