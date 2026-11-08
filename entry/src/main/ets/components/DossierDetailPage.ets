@@ -348,6 +348,8 @@ export struct DossierDetailPage {
       this.searching = false;
       return;
     }
+    // 新查询等待期先清旧命中，避免 150ms 内显示上一关键词的结果
+    this.searchIds = [];
     this.searching = true;
     this.searchTimer = setTimeout(() => {
       this.searchTimer = -1;

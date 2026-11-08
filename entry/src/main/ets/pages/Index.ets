@@ -4407,6 +4407,8 @@ struct Index {
           onDelete: (id: string): void => {
             this.deletePaper(id);
             this.openDocId = '';
+            // 删掉正在看的文档后回卷宗内页（避免停在空白文档视图）
+            this.popPage();
           },
           onAddPage: (id: string): void => {
             // P1-5：入口日志——点了没有这一行说明点击没到按钮

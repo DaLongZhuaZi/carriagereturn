@@ -176,7 +176,7 @@ export struct DocumentViewPage {
             .layoutWeight(1).height(44).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#241c16')
             .margin({ right: 8 })
-          Text('删除').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          Text($r('app.string.delete')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
             .id('dv_del')
             .layoutWeight(1).height(44).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#241c16')
