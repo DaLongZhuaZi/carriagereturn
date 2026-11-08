@@ -1,4 +1,5 @@
 import { LeverLayer } from './LeverLayer';
+import { MachineKind } from '../../model/DocModel';
 
 /**
  * 1920s 拨杆（§14 蓝图）：几何在蓝图里，常量与 7fd6305^ 原件一致
@@ -66,8 +67,15 @@ export struct LeverOnlyAssembly1920 {
   }
 
   build() {
-    LeverLayer({
+    // 100% 容器：LeverLayer 内部用 width/height 100%，必须有同尺寸父层，否则参考系塌成 0
+    Stack({ alignContent: Alignment.TopStart }) {
+      LeverLayer({
       layerSizeVp: this.leverW(),
+      // 1920s 常量：宽高比 536/2522、支点孔 (0.500, 0.952)
+      machineKind: MachineKind.UPRIGHT_1920S,
+      leverAspect: 536 / 2522,
+      leverPivotX: 0.500,
+      leverPivotY: 0.952,
       newlineTick: this.newlineTick,
       restDeg: this.isTablet ? 30 : 15,
       swingDeg: this.isTablet ? 35 : 20,
@@ -81,6 +89,10 @@ export struct LeverOnlyAssembly1920 {
       onLeverTap: (): void => {
         this.onLeverTap();
       },
-    })
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .zIndex(9)
   }
 }
