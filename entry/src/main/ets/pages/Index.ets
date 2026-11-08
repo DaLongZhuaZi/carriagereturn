@@ -62,6 +62,8 @@ import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
+import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
+import { LeverOnlyAssembly1920 } from '../machines/1920s/LeverOnlyAssembly1920';
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
@@ -2926,9 +2928,30 @@ struct Index {
                   // 金属件与滚筒同锚点：旋钮中心 y = 滚筒中心
                   .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
 
+                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                  // §14 二分测试：只搬支架，拨杆仍在下面走原路径
+                  BracketAssembly1920({
+                    stageWidth: this.stageWidth,
+                    paperWidthVp: this.paperWidthVp,
+                    carriageHeight: this.carriageHeight,
+                    carriageTopVp: this.carriageTopVp,
+                  })
+                } else {
+                  // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
+                  Image(this.bracketSrc())
+                    .width(this.bracketW())
+                    .height(this.bracketH())
+                    .objectFit(ImageFit.Fill)
+                    .position({
+                      x: this.bracketLeftRel(),
+                      y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
+                    })
+                    .zIndex(8)
+                }
+
+                // 拨杆：§14 二分测试——1920s 走蓝图组件，其余走原路径
                 if (false && this.machineKind === MachineKind.UPRIGHT_1920S) {
-                  // §14：1920s 支架＋拨杆走蓝图组件（几何全在蓝图里）
-                  LeverAssembly1920({
+                  LeverOnlyAssembly1920({
                     stageWidth: this.stageWidth,
                     paperWidthVp: this.paperWidthVp,
                     carriageHeight: this.carriageHeight,
@@ -2944,17 +2967,6 @@ struct Index {
                     },
                   })
                 } else {
-                  // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
-                  Image(this.bracketSrc())
-                    .width(this.bracketW())
-                    .height(this.bracketH())
-                    .objectFit(ImageFit.Fill)
-                    .position({
-                      x: this.bracketLeftRel(),
-                      y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
-                    })
-                    .zIndex(8)
-
                   LeverLayer({
                     layerSizeVp: this.leverW(),
                     machineKind: this.machineKind,
