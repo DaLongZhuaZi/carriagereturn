@@ -1,5 +1,5 @@
 /**
- * 字杆击打层（§7.3 第 4 步；仅 1920s 有完整动画层，其余三台不编造动画层）。
+ * 字杆击打层（§7.3 第 4 步；1930s 已接入，1950s／1960s 待素材——素材未到前不许编造路径）。
  *
  * 素材：typebar-vertical.png = **竖直击打态**，2048×2048，透明 PNG；
  *       支点 = 底端圆孔中心 (1024,1776)（2048 层坐标）；静止态由绕支点旋转回去得到。
@@ -9,6 +9,7 @@
  */
 import { curves } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { MachineKind } from '../model/DocModel';
 
 // 硬曲线：固定时长，不许用 springMotion 猜结算时间
 // 常速：去程 90ms（60fps 下约 5–6 帧，摆动可见又不显迟钝）、回程 120ms
@@ -22,6 +23,8 @@ const MAX_QUEUE: number = 20;
 
 @Component
 export struct TypebarLayer {
+  /** §4：机型（决定取哪份素材） */
+  @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop layerWidthVp: number = 390;
   @Prop layerHeightVp: number = 420;
   @Prop @Watch('onTickChanged') strikeTick: number = 0;
@@ -88,9 +91,17 @@ export struct TypebarLayer {
     });
   }
 
+  /** §4：素材按机型静态分支（$rawfile 只吃编译期常量；1930s 已接入，1950s／1960s 待素材） */
+  private typebarSrc(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('typebar/1930s-portable-typebar-vertical.png');
+    }
+    return $rawfile('typebar/1920s-typebar-vertical.png');
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Image($rawfile('typebar/1920s-typebar-vertical.png'))
+      Image(this.typebarSrc())
         .width(this.layerWidthVp)
         .height(this.layerHeightVp)
         .objectFit(ImageFit.Contain)

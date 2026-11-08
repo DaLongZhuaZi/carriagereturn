@@ -1086,7 +1086,7 @@ struct Index {
       // maxTravel ≤ paperLeftFixed − (rollW − Pw)/2（手机约 42.8vp）
       let mt: number = Math.min(64, this.paperWidthVp * 0.25);
       if (!this.isTablet) {
-        const rollWPw: number = this.paperWidthVp / 0.9528;
+        const rollWPw: number = this.paperWidthVp / findMachine(this.machineKind).rollerWidthRatio;
         const paperLeftFixed: number = (this.stageWidth - this.paperWidthVp) / 2;
         const cap: number = paperLeftFixed - (rollWPw - this.paperWidthVp) / 2;
         if (cap > 0 && mt > cap) {
@@ -1526,7 +1526,7 @@ struct Index {
   }
 
   private bracketH(): number {
-    return this.bracketW() / 0.8042;
+    return this.bracketW() / findMachine(this.machineKind).bracketAspect;
   }
 
   /** 支架底面 = 沟槽底 + 2vp；沟槽底 = Hc + 22（底座顶 Hc+2，槽顶 +6，槽高 14）。 */
@@ -1540,18 +1540,22 @@ struct Index {
 
   /** 销钉孔 (0.503, 0.293) 即拨杆支点。 */
   private pinXRel(): number {
-    return this.bracketLeftRel() + 0.503 * this.bracketW();
+    return this.bracketLeftRel() + findMachine(this.machineKind).bracketPivotX * this.bracketW();
   }
 
   private pinYRel(): number {
-    return this.bracketTopRel() + 0.293 * this.bracketH();
+    return this.bracketTopRel() + findMachine(this.machineKind).bracketPivotY * this.bracketH();
   }
 
   /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
   private leverHForDrag(): number {
-    return this.leverW() / (536 / 2522);
+    return this.leverW() / findMachine(this.machineKind).leverAspect;
   }
 
+  /** 分层件（1920s／1930s）才渲染 TypebarLayer／CarriageLayers；1950s／1960s 走 CarriageStrip 兜底 */
+  private hasLayers(): boolean {
+    return this.machineKind === MachineKind.UPRIGHT_1920S || this.machineKind === MachineKind.PORTABLE_1930S;
+  }
   private leverW(): number {
     if (this.isTablet) {
       return this.carriageHeight * 1.84 * 0.212;
@@ -1972,7 +1976,7 @@ struct Index {
     this.pendingChars.push(ch);
     // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
     // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
-    if (this.leverEnabled && this.machineKind === MachineKind.UPRIGHT_1920S) {
+    if (this.leverEnabled && this.hasLayers()) {
       // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
       // 只有「队列原本为空」才踢第一击——多字同时入队时由 landHead 逐字续踢，
       // 否则 TypebarLayer 的 pending 只加 1，第二字等不到字杆、会被兜底直落
@@ -2062,7 +2066,7 @@ struct Index {
     this.arriveCount += 1;
     this.flushPending();
     // 队列还有字：续踢下一击（字杆串行，每字一摆）
-    if (this.leverEnabled && this.machineKind === MachineKind.UPRIGHT_1920S
+    if (this.leverEnabled && this.hasLayers()
       && this.pendingChars.length > 0 && this.pacerTimer < 0) {
       this.strikeTick = this.strikeTick + 1;
     }
@@ -2788,8 +2792,9 @@ struct Index {
           Stack({ alignContent: Alignment.TopStart }) {
             // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
             // §14：字杆层重新启用——输入法落字要靠它驱动 onArrive（串行、每字一摆）
-            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+            if (this.hasLayers()) {
               TypebarLayer({
+                machineKind: this.machineKind,
                 layerWidthVp: this.carriageHeight * 2.5,
                 layerHeightVp: this.carriageHeight * 2.5,
                 strikeTick: this.strikeTick,
@@ -2810,7 +2815,7 @@ struct Index {
             }
 
             // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
-            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+            if (this.hasLayers() && this.useLayers) {
               CarriageLayers({
                 stageWidth: this.photoW(),
                 joltYVp: this.joltYVp,
@@ -2834,7 +2839,7 @@ struct Index {
 
             // ---- 字杆篮扇面（纸后、滚筒前）：独立层，不放进带 clip 的 roller Stack ----
             // 篮扇本批隐藏（五件拼顺后再按 v5 加回）；开关不动素材
-            if (false && this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+            if (false && this.hasLayers() && this.useLayers) {
               CarriageLayers({
                 stageWidth: this.photoW(),
                 joltYVp: this.joltYVp,
@@ -2853,8 +2858,17 @@ struct Index {
 
             // ---- 压纸卷 + 中央件 + 旋钮（纸前）：包在 Stack 里，zIndex 3 盖在纸上 ----
             Stack({ alignContent: Alignment.TopStart }) {
-              if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+              if (this.hasLayers() && this.useLayers) {
                 CarriageLayers({
+                  machineKind: this.machineKind,
+                  rollerWidthRatio: findMachine(this.machineKind).rollerWidthRatio,
+                  baseRailAspect: findMachine(this.machineKind).baseRailAspect,
+                  basketAspect: findMachine(this.machineKind).basketAspect,
+                  bailRollerLX: findMachine(this.machineKind).bailRollerLX,
+                  bailRollerRX: findMachine(this.machineKind).bailRollerRX,
+                  bailRollerY: findMachine(this.machineKind).bailRollerY,
+                  centralWindowX: findMachine(this.machineKind).centralWindowX,
+                  centralWindowY: findMachine(this.machineKind).centralWindowY,
                   stageWidth: this.photoW(),
                   joltYVp: this.joltYVp,
                   knobAngleDeg: this.knobAngle,
@@ -2888,6 +2902,10 @@ struct Index {
                 LeverLayer({
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
                   layerSizeVp: this.leverW(),
+                  machineKind: this.machineKind,
+                  leverAspect: findMachine(this.machineKind).leverAspect,
+                  leverPivotX: findMachine(this.machineKind).leverPivotX,
+                  leverPivotY: findMachine(this.machineKind).leverPivotY,
                   newlineTick: this.newlineTick,
                   // §19.1：手机静止 15°／摆幅 20°（最大 35°）；平板 30/35 不变
                   restDeg: this.isTablet ? 30 : 15,
@@ -2896,7 +2914,7 @@ struct Index {
                   // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / (536 / 2522)) * 0.952,
+                    - (this.leverW() / findMachine(this.machineKind).leverAspect) * findMachine(this.machineKind).leverPivotY,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
@@ -3133,7 +3151,7 @@ struct Index {
         .width('100%')
         .layoutWeight(1)
 
-        if (this.machineKind === MachineKind.UPRIGHT_1920S && this.useLayers) {
+        if (this.hasLayers() && this.useLayers) {
           // 1920s 的滚筒/中央件已在总成 Stack 内渲染；此处只占位保持纵向构成高度
           Column().width('100%').height(0)
         } else {

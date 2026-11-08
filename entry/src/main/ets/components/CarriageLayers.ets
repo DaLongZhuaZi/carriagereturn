@@ -8,6 +8,7 @@
  *   Hc = Pw×0.17；中央件 Hg = Hc×1.5、宽 = Hg×0.848；旋钮直径 = Hc×0.92
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { MachineKind } from '../model/DocModel';
 
 const CDOMAIN: number = 0x0100;
 const CTAG: string = 'CarriageLayers';
@@ -23,6 +24,52 @@ export struct CarriageLayers {
   @Prop strikeXVp: number = 102;
   /** §18.7：滚筒横向偏移（= carriageOffsetVp × 系数 k）。只调滚筒，纸张／压纸卷／中央件仍用满 O */
   @Prop rollerOffsetVp: number = 0;
+  /** §4 多机型：机型＋几何参数（按机型取数，不写死） */
+  @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
+  @Prop rollerWidthRatio: number = 0.9528;
+  @Prop baseRailAspect: number = 7.562;
+  @Prop basketAspect: number = 4.70;
+  @Prop bailRollerLX: number = 0.280;
+  @Prop bailRollerRX: number = 0.724;
+  @Prop bailRollerY: number = 0.747;
+  @Prop centralWindowX: number = 0.500;
+  @Prop centralWindowY: number = 0.550;
+
+  /** §4：素材按机型静态分支（$rawfile 只吃编译期常量） */
+  private imgBase(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/carriage-base-rail.png');
+    }
+    return $rawfile('layers/1920s-upright/carriage-base-rail.png');
+  }
+
+  private imgBasket(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/typebar-basket-strip.png');
+    }
+    return $rawfile('layers/1920s-upright/typebar-basket-strip.png');
+  }
+
+  private imgBail(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/paper-bail-v2.png');
+    }
+    return $rawfile('layers/1920s-upright/paper-bail-v2.png');
+  }
+
+  private imgCentral(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/central-guide.png');
+    }
+    return $rawfile('layers/1920s-upright/central-guide.png');
+  }
+
+  private imgRoller(): Resource {
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return $rawfile('layers/1930s-portable/roller-texture-v7.jpg');
+    }
+    return $rawfile('layers/1920s-upright/roller-texture-v7.jpg');
+  }
   @Prop joltYVp: number = 0;
   @Prop knobAngleDeg: number = 0;
   /** 滚筒纹理转角（与旋钮同角，纹理须能旋转）。 */
@@ -107,7 +154,7 @@ export struct CarriageLayers {
 
   /** 滚筒总宽：v3 素材里纸卷部分占 95.28% → W = Pw / 0.9528（金属帽各露 (W−Pw)/2）。 */
   private rollW(): number {
-    return this.paperWidthVp / 0.9528;
+    return this.paperWidthVp / this.rollerWidthRatio;
   }
 
   private rollX(): number {
@@ -135,10 +182,10 @@ export struct CarriageLayers {
             Column().width(this.rollW()).height(1)
               .backgroundColor('rgba(255,246,230,0.18)').position({ x: 0, y: 0 })
             // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
-            Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
+            Image(this.imgRoller())
               .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
               .position({ x: 0, y: this.texOff() })
-            Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
+            Image(this.imgRoller())
               .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
               .position({ x: 0, y: this.texOff() + this.hc() })
           }
@@ -186,9 +233,9 @@ export struct CarriageLayers {
       if (this.part === 'basket') {
         // 字杆篮扇面：纸后、滚筒前的独立层。宽度比纸宽（两侧各留 80vp），
         // 只在纸左右两侧与纸下方露出扇形竖杆，绝不盖纸面。容器不 clip。
-        Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
+        Image(this.imgBasket())
           .width(this.paperWidthVp + 160)
-          .height((this.paperWidthVp + 160) * 0.213)
+          .height((this.paperWidthVp + 160) / this.basketAspect)
           .objectFit(ImageFit.Fill)
           .opacity(0.6)
           .position({
@@ -201,9 +248,9 @@ export struct CarriageLayers {
       if (this.part === 'metal') {
         // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
         // 木底座（整机最宽）：宽 = Pw + 2×knobD，左右各出纸缘一个旋钮直径；顶在滚筒中心 + Hc/2 + 2vp
-        Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
+        Image(this.imgBase())
           .width(this.baseW())
-          .height(this.baseW() / 7.562)
+          .height(this.baseW() / this.baseRailAspect)
           .objectFit(ImageFit.Fill)
           .position({ x: this.baseLeft(), y: this.baseTop() })
           .zIndex(0)
@@ -250,7 +297,7 @@ export struct CarriageLayers {
 
         // 压纸卷：x = 纸屏左 − 旋钮直径
         // 压纸卷 v2（深色钢杆＋两个黑滚轮，素材 2736×283）：杆宽 = 纸宽、对齐纸缘
-        Image($rawfile('layers/1920s-upright/paper-bail-v2.png'))
+        Image(this.imgBail())
           .width(this.bailW())
           .height(this.bailW() / 9.6678)
           .objectFit(ImageFit.Fill)
@@ -264,7 +311,7 @@ export struct CarriageLayers {
 
         // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字
         Stack({ alignContent: Alignment.TopStart }) {
-          Image($rawfile('layers/1920s-upright/central-guide.png'))
+          Image(this.imgCentral())
             .width(this.hc() * 1.5 * 0.848)
             .height(this.hc() * 1.5)
             .objectFit(ImageFit.Contain)
@@ -276,7 +323,7 @@ export struct CarriageLayers {
         .clip(true)
         .position({
           x: this.strikeXVp - this.hc() * 1.5 * 0.848 / 2,
-          y: this.strikeYVp - this.hc() * 1.5 * 0.550,
+          y: this.strikeYVp - this.hc() * 1.5 * this.centralWindowY,
         })
 
         // 本批撤掉两枚圆形旋钮：真机正面只见旋钮侧面而非整面圆盘，

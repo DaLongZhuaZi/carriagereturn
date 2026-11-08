@@ -40,6 +40,21 @@ export interface MachineSpec {
   fontScale: number;
   /** 纸面英文行高（vp）。 */
   englishLineHeightVp: number;
+  /** §4 几何参数（多机型逻辑层设计）：按机型取数，不许写死 */
+  leverAspect: number;
+  leverPivotX: number;
+  leverPivotY: number;
+  bracketAspect: number;
+  bracketPivotX: number;
+  bracketPivotY: number;
+  rollerWidthRatio: number;
+  baseRailAspect: number;
+  basketAspect: number;
+  bailRollerLX: number;
+  bailRollerRX: number;
+  bailRollerY: number;
+  centralWindowX: number;
+  centralWindowY: number;
   /** 纸面中文行高（vp）。 */
   chineseLineHeightVp: number;
 }
@@ -112,24 +127,53 @@ export const MACHINES: MachineSpec[] = [
     fontScale: 17,
     englishLineHeightVp: 28,
     chineseLineHeightVp: 30,
+    leverAspect: 0.2125,
+    leverPivotX: 0.5,
+    leverPivotY: 0.952,
+    bracketAspect: 0.8042,
+    bracketPivotX: 0.503,
+    bracketPivotY: 0.293,
+    rollerWidthRatio: 0.9528,
+    baseRailAspect: 7.56,
+    basketAspect: 4.7,
+    bailRollerLX: 0.28,
+    bailRollerRX: 0.724,
+    bailRollerY: 0.747,
+    centralWindowX: 0.5,
+    centralWindowY: 0.55,
   },
   {
     kind: MachineKind.PORTABLE_1930S,
     heroRawfile: 'machine/1930s-portable-hero.jpg',
     keybandPhoneRawfile: 'machine/1930s-portable-keyband-phone.jpg',
-    // 1930s 折叠带复用手机带（5 排 931px 装不进 853px 带，见 keymap bands.fold）
-    keybandFoldRawfile: 'machine/1930s-portable-keyband-phone.jpg',
+    // §4：fold 图已入仓（machine/1930s-portable-keyband-fold.jpg），改指 fold 带
+    keybandFoldRawfile: 'machine/1930s-portable-keyband-fold.jpg',
     keymapRawfile: 'keymap/1930s-portable-keymap.json',
     carriageStripRawfile: 'carriage/1930s-portable-carriage-strip.png',
-    typebarRawfile: '',
-    leverRawfile: '',
-    carriageLayerRawfile: '',
+    // §4：1930s 分层素材已到，三个字段填上
+    typebarRawfile: 'typebar/1930s-portable-typebar-vertical.png',
+    leverRawfile: 'typebar/1930s-portable-lever-single.png',
+    carriageLayerRawfile: 'typebar/1930s-portable-carriage-layer.png',
     overlayColor: '#dbccb3',
     overlayFontSizeVp: 14,
     bodyColor: '#3d3732',
     fontScale: 17,
     englishLineHeightVp: 28,
     chineseLineHeightVp: 30,
+    leverAspect: 0.3264,
+    leverPivotX: 0.538,
+    leverPivotY: 0.96,
+    bracketAspect: 1.2921,
+    bracketPivotX: 0.519,
+    bracketPivotY: 0.199,
+    rollerWidthRatio: 0.9528,
+    baseRailAspect: 2.95,
+    basketAspect: 3.1,
+    bailRollerLX: 0.027,
+    bailRollerRX: 0.974,
+    bailRollerY: 0.5,
+    centralWindowX: 0.502,
+    centralWindowY: 0.522,
   },
   {
     kind: MachineKind.STREAMLINED_1950S,
@@ -147,6 +191,20 @@ export const MACHINES: MachineSpec[] = [
     fontScale: 17,
     englishLineHeightVp: 28,
     chineseLineHeightVp: 30,
+    leverAspect: 0.2125,
+    leverPivotX: 0.5,
+    leverPivotY: 0.952,
+    bracketAspect: 0.8042,
+    bracketPivotX: 0.503,
+    bracketPivotY: 0.293,
+    rollerWidthRatio: 0.9528,
+    baseRailAspect: 7.56,
+    basketAspect: 4.7,
+    bailRollerLX: 0.28,
+    bailRollerRX: 0.724,
+    bailRollerY: 0.747,
+    centralWindowX: 0.5,
+    centralWindowY: 0.55,
   },
   {
     kind: MachineKind.ELECTRIC_1960S,
@@ -164,6 +222,20 @@ export const MACHINES: MachineSpec[] = [
     fontScale: 17,
     englishLineHeightVp: 28,
     chineseLineHeightVp: 30,
+    leverAspect: 0.2125,
+    leverPivotX: 0.5,
+    leverPivotY: 0.952,
+    bracketAspect: 0.8042,
+    bracketPivotX: 0.503,
+    bracketPivotY: 0.293,
+    rollerWidthRatio: 0.9528,
+    baseRailAspect: 7.56,
+    basketAspect: 4.7,
+    bailRollerLX: 0.28,
+    bailRollerRX: 0.724,
+    bailRollerY: 0.747,
+    centralWindowX: 0.5,
+    centralWindowY: 0.55,
   },
 ];
 
