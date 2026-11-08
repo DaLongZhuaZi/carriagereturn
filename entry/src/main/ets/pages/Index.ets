@@ -1039,7 +1039,9 @@ struct Index {
       this.fontSizeVp = fs;
       this.measureAdvance();
       // 行高：中文 fs×30/17、英文 fs×28/17（随语言切换同步）
-      this.lineHeightVp = this.langZh ? fs * (30 / 17) : fs * (28 / 17);
+      // §18.9：行高与语言无关——中英共用中文行高（30/17 大的一档）。
+      // 取英文值（28/17）会把中文行夹紧，不许。切换语言不许动纸与底板。
+      this.lineHeightVp = fs * (30 / 17);
 
       // 原生像素 guard：整套封顶（照片宽 + 键区高 + 字车高都按封顶宽重算，不许只封 Image）
       const vp2px: number = this.getUIContext().vp2px(1);
@@ -3022,8 +3024,8 @@ struct Index {
           onLang: (): void => {
             this.langZh = !this.langZh;
             this.applyChineseMode(this.langZh);
-            // 语言切换同步改行高与纸高（中文 fs×30/17、英文 fs×28/17）
-            this.lineHeightVp = this.langZh ? this.fontSizeVp * (30 / 17) : this.fontSizeVp * (28 / 17);
+            // §18.9：行高不再随语言变（中英共用中文行高），这里删掉赋值——
+            // 留住 recalcTravel（横向 travelPerChar 仍分语言）
             // §15 第 4 步：travelPerChar 分语言，切语言必须重算（否则中文行 O 永不饱和）
             this.recalcTravel();
             // §18.8 第 2 件：纸顶 300ms 平滑滑到新位置，不许直接赋值跳变
