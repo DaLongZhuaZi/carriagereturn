@@ -126,6 +126,9 @@ struct Index {
   private readonly ROLLER_K: number = 0.8;
   /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
   private readonly ROLLER_K_PHONE: number = 1.0;
+  /** §18.11：拉杆拖拽状态（拨杆节点不可触摸，改由字车层接管） */
+  @State leverDragRatio: number = 0;
+  private leverDragActive: boolean = false;
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
@@ -1544,6 +1547,11 @@ struct Index {
     return this.bracketTopRel() + 0.293 * this.bracketH();
   }
 
+  /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
+  private leverHForDrag(): number {
+    return this.leverW() / (536 / 2522);
+  }
+
   private leverW(): number {
     if (this.isTablet) {
       return this.carriageHeight * 1.84 * 0.212;
@@ -2884,6 +2892,7 @@ struct Index {
                   // §19.1：手机静止 15°／摆幅 20°（最大 35°）；平板 30/35 不变
                   restDeg: this.isTablet ? 30 : 15,
                   swingDeg: this.isTablet ? 35 : 20,
+                  dragRatio: this.leverDragRatio,
                   // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
@@ -2899,8 +2908,48 @@ struct Index {
             }
             .width('100%')
             .height('100%')
-            .hitTestBehavior(HitTestMode.Transparent)
+            // §18.11：改回 Default——Transparent 会让这层不阻塞兄弟，但实测拨杆图收不到触摸，
+            // Default 保证自身+子节点优先响应（这一层只含压纸卷/中央件/拨杆，不挡底层交互）
+            .hitTestBehavior(HitTestMode.Default)
             .zIndex(3)
+            // §18.11：拨杆节点自身收不到触摸（offset/position/Block/zIndex 四种都试过），
+            // 改在字车整层接纵向拖拽，按落点 x 判断是不是在拉杆（右侧 22% 区）
+            .gesture(
+              PanGesture({ direction: PanDirection.Vertical })
+                .onActionStart((e: GestureEvent) => {
+                  const sx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
+                  this.leverDragActive = sx > this.stageWidth * 0.78;
+                  this.leverDragRatio = 0;
+                  hilog.info(DOMAIN, TAG, 'lever pan start x=%{public}s active=%{public}s',
+                    sx.toFixed(1), this.leverDragActive ? 'true' : 'false');
+                })
+                .onActionUpdate((e: GestureEvent) => {
+                  if (!this.leverDragActive) {
+                    return;
+                  }
+                  const h: number = this.leverHForDrag();
+                  let dy: number = e.offsetY;
+                  if (dy < 0) {
+                    dy = 0;
+                  }
+                  if (dy > h) {
+                    dy = h;
+                  }
+                  this.leverDragRatio = h > 0 ? dy / h : 0;
+                })
+                .onActionEnd(() => {
+                  if (!this.leverDragActive) {
+                    return;
+                  }
+                  const pulled: number = this.leverDragRatio;
+                  this.leverDragActive = false;
+                  this.leverDragRatio = 0;
+                  hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s', pulled.toFixed(3));
+                  if (pulled >= 0.5) {
+                    this.onNewline();
+                  }
+                })
+            )
 
             // 页码轨锚定纸片：与纸片同高、同底
             Stack({ alignContent: Alignment.TopEnd }) {

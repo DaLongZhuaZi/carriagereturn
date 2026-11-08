@@ -28,6 +28,8 @@ export struct LeverLayer {
   /** §19.1：静止角／摆幅（度）。平板 30/35，手机 15/20 */
   @Prop restDeg: number = REST_DEG;
   @Prop swingDeg: number = SWING_DEG;
+  /** §18.11：外部驱动的拉杆比例 0..1（拨杆节点自身收不到触摸，改由 Index 在字车层接手势） */
+  @Prop @Watch('onDragRatio') dragRatio: number = 0;
 
   @State angle: number = 30;
   /** §18.11：拖拽中（跟手控角），拖动中跳过 tick 摆动，避免与直接控角抢 angle */
@@ -50,6 +52,20 @@ export struct LeverLayer {
   onSwingStart: () => void = (): void => {};
   /** 点拨杆 = 换行一次（与底部换行键同义）。 */
   onLeverTap: () => void = (): void => {};
+
+  /** 外部拖拽比例变化：跟手控角（不套动画）；回到 0 时弹回静止角 */
+  onDragRatio(): void {
+    if (this.dragging) {
+      const r: number = this.dragRatio < 0 ? 0 : (this.dragRatio > 1 ? 1 : this.dragRatio);
+      this.angle = this.restDeg + r * this.swingDeg;
+      return;
+    }
+    if (this.dragRatio <= 0.001) {
+      this.getUIContext().animateTo({ duration: 150, curve: Curve.FastOutSlowIn }, () => {
+        this.angle = this.restDeg;
+      });
+    }
+  }
 
   onTickChanged(): void {
     if (this.newlineTick === this.lastTick) {
@@ -126,7 +142,11 @@ export struct LeverLayer {
           centerX: this.layerSizeVp * PIVOT_X_RATIO,
           centerY: (this.layerSizeVp / LEVER_ASPECT) * PIVOT_Y_RATIO,
         })
-        .offset({ x: this.offsetXVp, y: this.offsetYVp })
+        // §18.11：用 .position() 而不是 .offset()——.offset 只挪渲染位置、不挪命中区，
+        // 导致拨杆"看得见却点不到/拉不动"（真机手指实测也无效）
+        .position({ x: this.offsetXVp, y: this.offsetYVp })
+        // §18.11：拨杆再抬一层 zIndex，确保它在这层 Stack 内最上（下方压纸卷/中央件不吃它）
+        .zIndex(9)
         // §18.11 第 5 条：拨杆图很细（手机宽约 24vp），扩热区到 ≥44×44，不改视觉大小
         .responseRegion({
           x: -Math.max(0, (44 - this.layerSizeVp) / 2),
