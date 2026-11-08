@@ -3018,6 +3018,57 @@ struct Index {
             .opacity(this.paperOpacity * this.switchFade)
             // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
             .zIndex(2)
+            // §18.12：纸面这一层原本是默认命中策略（自身响应），会把字车层（zIndex 3）的
+            // 拨杆点按/拖拽全吃掉——纸面本身没有交互，改 None 让触摸穿透到字车层
+            .hitTestBehavior(HitTestMode.None)
+            // §18.12：拨杆触摸层（总成 Stack 的最后一个子节点＝最顶层，只覆盖右侧拨杆区）
+            Column()
+              .width(this.stageWidth * 0.22)
+              .height(this.carriageHeight * 1.6)
+              .position({
+                x: this.stageWidth * 0.78,
+                y: this.carriageTopVp - this.carriageHeight * 1.3,
+              })
+              .backgroundColor('#01000000')
+              .zIndex(20)
+              .hitTestBehavior(HitTestMode.Default)
+              .gesture(
+                GestureGroup(GestureMode.Parallel,
+                  TapGesture({ count: 1 })
+                    .onAction(() => {
+                      hilog.info(DOMAIN, TAG, 'carriage tap lever=true (overlay)');
+                      this.onNewline();
+                    }),
+                  // §18.11 拖拽：同一层接纵向拖拽，过半松手＝换行
+                  PanGesture({ direction: PanDirection.Vertical })
+                    .onActionStart(() => {
+                      this.leverDragActive = true;
+                      this.leverDragRatio = 0;
+                      hilog.info(DOMAIN, TAG, 'lever pan start (overlay)');
+                    })
+                    .onActionUpdate((e: GestureEvent) => {
+                      const h: number = this.leverHForDrag();
+                      let dy: number = e.offsetY;
+                      if (dy < 0) {
+                        dy = 0;
+                      }
+                      if (dy > h) {
+                        dy = h;
+                      }
+                      this.leverDragRatio = h > 0 ? dy / h : 0;
+                    })
+                    .onActionEnd(() => {
+                      const pulled: number = this.leverDragRatio;
+                      this.leverDragActive = false;
+                      this.leverDragRatio = 0;
+                      hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s (overlay)', pulled.toFixed(3));
+                      if (pulled >= 0.5) {
+                        this.onNewline();
+                      }
+                    })
+                )
+              )
+
           }
           .width('100%')
           // §19：手机总成按 region 算（内层不许溢出容器）；平板仍用 availableHeightVp
@@ -3031,6 +3082,53 @@ struct Index {
               hilog.info(DOMAIN, TAG, 'assembly Ht=%{public}s Hc=%{public}s', ht.toFixed(1), this.carriageHeight.toFixed(1));
             }
           })
+
+            // 只覆盖拨杆区（右侧 22%），拨杆层/纸面层被吃触摸的历史问题由此绕开。
+            Column()
+              .width(this.stageWidth * 0.22)
+              .height(this.carriageHeight * 1.6)
+              .position({
+                x: this.stageWidth * 0.78,
+                y: this.carriageTopVp - this.carriageHeight * 1.3,
+              })
+              .backgroundColor('rgba(0,0,0,0.002)')
+              .zIndex(20)
+              .hitTestBehavior(HitTestMode.Default)
+              .gesture(
+                GestureGroup(GestureMode.Parallel,
+                  TapGesture({ count: 1 })
+                    .onAction(() => {
+                      hilog.info(DOMAIN, TAG, 'carriage tap lever=true (overlay)');
+                      this.onNewline();
+                    }),
+                  PanGesture({ direction: PanDirection.Vertical })
+                    .onActionStart(() => {
+                      this.leverDragActive = true;
+                      this.leverDragRatio = 0;
+                      hilog.info(DOMAIN, TAG, 'lever pan start (overlay)');
+                    })
+                    .onActionUpdate((e: GestureEvent) => {
+                      const h: number = this.leverHForDrag();
+                      let dy: number = e.offsetY;
+                      if (dy < 0) {
+                        dy = 0;
+                      }
+                      if (dy > h) {
+                        dy = h;
+                      }
+                      this.leverDragRatio = h > 0 ? dy / h : 0;
+                    })
+                    .onActionEnd(() => {
+                      const pulled: number = this.leverDragRatio;
+                      this.leverDragActive = false;
+                      this.leverDragRatio = 0;
+                      hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s (overlay)', pulled.toFixed(3));
+                      if (pulled >= 0.5) {
+                        this.onNewline();
+                      }
+                    })
+                )
+              )
         }
         .width('100%')
         .layoutWeight(1)
