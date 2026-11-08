@@ -65,6 +65,7 @@ import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
 import { MetalAssembly1920 } from '../machines/1920s/MetalAssembly1920';
+import { CarriageLayersM } from '../machines/1930s/CarriageLayersM';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
@@ -2936,17 +2937,8 @@ struct Index {
                     bailShiftVp: this.isTablet ? -15 : 0,
                   })
                 } else {
-                  CarriageLayers({
+                  CarriageLayersM({
                     machineKind: this.machineKind,
-                    rollerWidthRatio: findMachine(this.machineKind).rollerWidthRatio,
-                    baseRailAspect: findMachine(this.machineKind).baseRailAspect,
-                    basketAspect: findMachine(this.machineKind).basketAspect,
-                    bailRollerLX: findMachine(this.machineKind).bailRollerLX,
-                    bailRollerRX: findMachine(this.machineKind).bailRollerRX,
-                    bailRollerY: findMachine(this.machineKind).bailRollerY,
-                    centralWindowX: findMachine(this.machineKind).centralWindowX,
-                    centralWindowY: findMachine(this.machineKind).centralWindowY,
-                    centralAspect: findMachine(this.machineKind).centralAspect,
                     stageWidth: this.photoW(),
                     joltYVp: this.joltYVp,
                     knobAngleDeg: this.knobAngle,
