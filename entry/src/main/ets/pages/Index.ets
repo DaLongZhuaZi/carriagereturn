@@ -2915,7 +2915,19 @@ struct Index {
             // §18.11：拨杆节点自身收不到触摸（offset/position/Block/zIndex 四种都试过），
             // 改在字车整层接纵向拖拽，按落点 x 判断是不是在拉杆（右侧 22% 区）
             .gesture(
-              PanGesture({ direction: PanDirection.Vertical })
+              GestureGroup(GestureMode.Parallel,
+                // §18.12：点按入口也必须挂在总成层（拨杆节点自身收不到触摸）
+                TapGesture({ count: 1 })
+                  .onAction((e: GestureEvent) => {
+                    const tx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
+                    const onLever: boolean = tx > this.stageWidth * 0.78;
+                    hilog.info(DOMAIN, TAG, 'carriage tap x=%{public}s lever=%{public}s',
+                      tx.toFixed(1), onLever ? 'true' : 'false');
+                    if (onLever) {
+                      this.onNewline();
+                    }
+                  }),
+                PanGesture({ direction: PanDirection.Vertical })
                 .onActionStart((e: GestureEvent) => {
                   const sx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
                   this.leverDragActive = sx > this.stageWidth * 0.78;
@@ -2949,6 +2961,7 @@ struct Index {
                     this.onNewline();
                   }
                 })
+              )
             )
 
             // 页码轨锚定纸片：与纸片同高、同底

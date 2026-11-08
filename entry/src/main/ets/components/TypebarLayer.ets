@@ -104,6 +104,8 @@ export struct TypebarLayer {
     }
     .width('100%')
     .height('100%')
-    .hitTestBehavior(HitTestMode.Transparent)
+    // §18.12：这一层是纯装饰（字杆动画），却挂在 zIndex 10 且 Transparent 会**自己响应**触摸，
+    // 把下面字车层的拨杆点按/拖拽全吃掉了。改 None：自身与子都不参与命中。
+    .hitTestBehavior(HitTestMode.None)
   }
 }
