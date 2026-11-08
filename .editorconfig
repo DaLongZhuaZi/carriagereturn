@@ -1,0 +1,11 @@
+# 本仓所有文本文件一律 LF（2026-11-08 定：Index.ets 曾被改成 CRLF，diff 整文件飘红）
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
