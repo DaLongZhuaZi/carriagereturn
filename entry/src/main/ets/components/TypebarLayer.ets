@@ -92,16 +92,10 @@ export struct TypebarLayer {
   }
 
   /** §4：素材按机型静态分支（$rawfile 只吃编译期常量；1930s 已接入，1950s／1960s 待素材） */
-  private typebarSrc(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('typebar/1930s-portable-typebar-vertical.png');
-    }
-    return $rawfile('typebar/1920s-typebar-vertical.png');
-  }
-
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Image(this.typebarSrc())
+      if (this.machineKind === MachineKind.PORTABLE_1930S) {
+        Image($rawfile('typebar/1930s-portable-typebar-vertical.png'))
         .width(this.layerWidthVp)
         .height(this.layerHeightVp)
         .objectFit(ImageFit.Contain)
@@ -112,6 +106,19 @@ export struct TypebarLayer {
         })
         .offset({ x: this.offsetXVp, y: this.offsetYVp })
         // 静止不靠 opacity 跳变隐藏：杆在 −64° 时由字车条/纸区裁剪自然遮挡，摆动时从篮子里出来
+      } else {
+        Image($rawfile('typebar/1920s-typebar-vertical.png'))
+        .width(this.layerWidthVp)
+        .height(this.layerHeightVp)
+        .objectFit(ImageFit.Contain)
+        .rotate({
+          angle: this.angle,
+          centerX: this.layerWidthVp * 0.5,
+          centerY: this.layerHeightVp * 0.867,
+        })
+        .offset({ x: this.offsetXVp, y: this.offsetYVp })
+        // 静止不靠 opacity 跳变隐藏：杆在 −64° 时由字车条/纸区裁剪自然遮挡，摆动时从篮子里出来
+      }
     }
     .width('100%')
     .height('100%')

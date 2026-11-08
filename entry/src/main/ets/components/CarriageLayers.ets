@@ -38,40 +38,6 @@ export struct CarriageLayers {
   @Prop centralAspect: number = 0.848;
 
   /** §4：素材按机型静态分支（$rawfile 只吃编译期常量） */
-  private imgBase(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/carriage-base-rail.png');
-    }
-    return $rawfile('layers/1920s-upright/carriage-base-rail.png');
-  }
-
-  private imgBasket(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/typebar-basket-strip.png');
-    }
-    return $rawfile('layers/1920s-upright/typebar-basket-strip.png');
-  }
-
-  private imgBail(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/paper-bail-v2.png');
-    }
-    return $rawfile('layers/1920s-upright/paper-bail-v2.png');
-  }
-
-  private imgCentral(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/central-guide.png');
-    }
-    return $rawfile('layers/1920s-upright/central-guide.png');
-  }
-
-  private imgRoller(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/roller-texture-v7.jpg');
-    }
-    return $rawfile('layers/1920s-upright/roller-texture-v7.jpg');
-  }
   @Prop joltYVp: number = 0;
   @Prop knobAngleDeg: number = 0;
   /** 滚筒纹理转角（与旋钮同角，纹理须能旋转）。 */
@@ -184,12 +150,21 @@ export struct CarriageLayers {
             Column().width(this.rollW()).height(1)
               .backgroundColor('rgba(255,246,230,0.18)').position({ x: 0, y: 0 })
             // 两份拼接 + 父层 clip：texOff 归一化到 [−Hc,0) 即无缝
-            Image(this.imgRoller())
-              .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
-              .position({ x: 0, y: this.texOff() })
-            Image(this.imgRoller())
-              .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
-              .position({ x: 0, y: this.texOff() + this.hc() })
+            if (this.machineKind === MachineKind.PORTABLE_1930S) {
+              Image($rawfile('layers/1930s-portable/roller-texture-v7.jpg'))
+                .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+                .position({ x: 0, y: this.texOff() })
+              Image($rawfile('layers/1930s-portable/roller-texture-v7.jpg'))
+                .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+                .position({ x: 0, y: this.texOff() + this.hc() })
+            } else {
+              Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
+                .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+                .position({ x: 0, y: this.texOff() })
+              Image($rawfile('layers/1920s-upright/roller-texture-v7.jpg'))
+                .width(this.rollW()).height(this.hc()).objectFit(ImageFit.Cover)
+                .position({ x: 0, y: this.texOff() + this.hc() })
+            }
           }
           .width(this.rollW())
           .height(this.hc())
@@ -235,29 +210,42 @@ export struct CarriageLayers {
       if (this.part === 'basket') {
         // 字杆篮扇面：纸后、滚筒前的独立层。宽度比纸宽（两侧各留 80vp），
         // 只在纸左右两侧与纸下方露出扇形竖杆，绝不盖纸面。容器不 clip。
-        Image(this.imgBasket())
-          .width(this.paperWidthVp + 160)
-          .height((this.paperWidthVp + 160) / this.basketAspect)
-          .objectFit(ImageFit.Fill)
-          .opacity(0.6)
-          .position({
-            x: this.paperLeftVp - 80,
-            // 扇面顶约在 carrTop − 70vp；组件顶 = carrTop − Hc/2，故相对 y = Hc/2 − 70
-            y: this.hc() / 2 - 70,
-          })
+        if (this.machineKind === MachineKind.PORTABLE_1930S) {
+          Image($rawfile('layers/1930s-portable/typebar-basket-strip.png'))
+            .width(this.paperWidthVp + 160)
+            .height((this.paperWidthVp + 160) / this.basketAspect)
+            .objectFit(ImageFit.Fill)
+            .opacity(0.6)
+            .position({ x: this.paperLeftVp - 80, y: this.hc() / 2 - 70 })
+        } else {
+          Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
+            .width(this.paperWidthVp + 160)
+            .height((this.paperWidthVp + 160) / this.basketAspect)
+            .objectFit(ImageFit.Fill)
+            .opacity(0.6)
+            .position({ x: this.paperLeftVp - 80, y: this.hc() / 2 - 70 })
+        }
       }
 
       if (this.part === 'metal') {
         // 字杆篮扇面：字车后方（压暗 0.6）。放在 metal 件里才不会被子层级 clip 掉
         // 木底座（整机最宽）：宽 = Pw + 2×knobD，左右各出纸缘一个旋钮直径；顶在滚筒中心 + Hc/2 + 2vp
-        Image(this.imgBase())
-          .width(this.baseW())
-          // §11 D：底座高钳在 Hc 以内——1930s 底座比 2.95 会让底座高 117vp 超出纸面区被裁；
-          // 钳后 1920s 不变（46≈Hc），1930s 约 45vp。图用 Cover 横向裁切、不压扁。
-          .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
-          .objectFit(ImageFit.Cover)
-          .position({ x: this.baseLeft(), y: this.baseTop() })
-          .zIndex(0)
+        if (this.machineKind === MachineKind.PORTABLE_1930S) {
+          Image($rawfile('layers/1930s-portable/carriage-base-rail.png'))
+            .width(this.baseW())
+            // §11 D：底座高钳在 Hc 以内（1930s 比 2.95 → 117vp 会超出纸面区被裁）
+            .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
+            .objectFit(ImageFit.Cover)
+            .position({ x: this.baseLeft(), y: this.baseTop() })
+            .zIndex(0)
+        } else {
+          Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
+            .width(this.baseW())
+            .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
+            .objectFit(ImageFit.Cover)
+            .position({ x: this.baseLeft(), y: this.baseTop() })
+            .zIndex(0)
+        }
 
         // 沟槽：高 14vp，槽顶在底座顶面下 6vp；槽内深色 + 上缘高光 + 下缘阴影
         Column()
@@ -301,25 +289,37 @@ export struct CarriageLayers {
 
         // 压纸卷：x = 纸屏左 − 旋钮直径
         // 压纸卷 v2（深色钢杆＋两个黑滚轮，素材 2736×283）：杆宽 = 纸宽、对齐纸缘
-        Image(this.imgBail())
-          .width(this.bailW())
-          .height(this.bailW() / 9.6678)
-          .objectFit(ImageFit.Fill)
-          .position({
-            x: this.paperLeftVp,
-            // 杆身中心落在滚筒**中心** Y = Hc/2（不是底缘 Hc）：图顶 = Hc/2 − bailH/2（平板 37.8−23=14.8vp）
-            y: this.hc() / 2 - this.bailW() / 9.6678 / 2 + this.bailShiftVp,
-          })
-          // 压在底座(0)/沟槽(1,2)/铭牌(3) 之上：杆身不被木底座盖住
-          .zIndex(4)
+        if (this.machineKind === MachineKind.PORTABLE_1930S) {
+          Image($rawfile('layers/1930s-portable/paper-bail-v2.png'))
+            .width(this.bailW())
+            .height(this.bailW() / 9.6678)
+            .objectFit(ImageFit.Fill)
+            .position({ x: this.paperLeftVp, y: this.hc() / 2 - this.bailW() / 9.6678 / 2 + this.bailShiftVp })
+            .zIndex(4)
+        } else {
+          Image($rawfile('layers/1920s-upright/paper-bail-v2.png'))
+            .width(this.bailW())
+            .height(this.bailW() / 9.6678)
+            .objectFit(ImageFit.Fill)
+            .position({ x: this.paperLeftVp, y: this.hc() / 2 - this.bailW() / 9.6678 / 2 + this.bailShiftVp })
+            .zIndex(4)
+        }
 
         // 中央件：窗口中心仍在打击行，但底部裁到「打击行 +10vp」以内，不盖下一行文字
         Stack({ alignContent: Alignment.TopStart }) {
-          Image(this.imgCentral())
-            .width(this.hc() * 1.5 * this.centralAspect)
-            .height(this.hc() * 1.5)
-            .objectFit(ImageFit.Contain)
-            .position({ x: 0, y: 0 })
+          if (this.machineKind === MachineKind.PORTABLE_1930S) {
+            Image($rawfile('layers/1930s-portable/central-guide.png'))
+              .width(this.hc() * 1.5 * this.centralAspect)
+              .height(this.hc() * 1.5)
+              .objectFit(ImageFit.Contain)
+              .position({ x: 0, y: 0 })
+          } else {
+            Image($rawfile('layers/1920s-upright/central-guide.png'))
+              .width(this.hc() * 1.5 * this.centralAspect)
+              .height(this.hc() * 1.5)
+              .objectFit(ImageFit.Contain)
+              .position({ x: 0, y: 0 })
+          }
         }
         .width(this.hc() * 1.5 * this.centralAspect)
         // 全高：不再裁掉拱下半（旧口径 +10 只留到打击行下 10vp，拱只剩半截）
