@@ -2095,7 +2095,7 @@ struct Index {
    * 启动 / 载入文档时按当前行光标重算 O（不许归 0）：
    * O = −当前行已落字总宽，钳制到 −可用行宽，使末字落在导件处、中央件随手左移。
    */
-  private recalcOffsetFromCursor(): void {
+  private recalcOffsetFromCursor(duration: number = 0): void {
     const cursor = this.docModel.getCursor();
     const line = this.docModel.getLines()[cursor.line];
     let w: number = 0;
@@ -2111,7 +2111,15 @@ struct Index {
     if (o > 0) {
       o = 0;
     }
-    this.carriageOffsetVp = o;
+    if (duration > 0) {
+      // §18 返工：合并时 O 也必须**动画**过去；直接赋值会让纸/字车偏移瞬间跳到底，
+      // 看起来就是「拱瞬移到上一行末、不像换行那样平滑」
+      this.getUIContext().animateTo({ duration: duration, curve: Curve.FastOutSlowIn }, () => {
+        this.carriageOffsetVp = o;
+      });
+    } else {
+      this.carriageOffsetVp = o;
+    }
     hilog.info(DOMAIN, TAG,
       'recalcOffset cursor=%{public}s lineW=%{public}s O=%{public}s guideX=%{public}s lastCharX=%{public}s',
       cursor.offset.toString(), w.toFixed(1), o.toFixed(1), (this.stageWidth * 0.5).toFixed(1),
@@ -2186,11 +2194,14 @@ struct Index {
         }
         // §18 第 2 件：合并后必须按当前光标重算 O（原来只被 stepCarriageRight 拨了 +4vp，
         // 拱比正确位置偏右约 64vp 并被钳在右缘）
-        this.recalcOffsetFromCursor();
+        // 与换行／退行同拍：O 200ms 动画，拱 200ms 跟随，纸 250ms 上滑
+        this.recalcOffsetFromCursor(200);
         this.paperAnimateNext = true;
         this.recalcPaperHeight();
+        this.animateArch(200);
+      } else {
+        this.animateArch(90);
       }
-      this.animateArch(90);
       const c1 = this.docModel.getCursor();
       hilog.info(DOMAIN, TAG, 'del after line=%{public}s lines=%{public}s paperTop=%{public}s',
         c1.line.toString(), this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1));
