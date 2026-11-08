@@ -6,6 +6,7 @@
  */
 
 import { AppIcon } from './AppIcon';
+import { CANDIDATE_BAR_HEIGHT_VP } from '../model/MachineCatalog';
 
 @Component
 export struct CandidateBar {
@@ -62,7 +63,7 @@ export struct CandidateBar {
           .onClick(() => { this.onNext(); })
       }
     }
-    .width('100%').height(44)
+    .width('100%').height(CANDIDATE_BAR_HEIGHT_VP)
     .padding({ left: 12, right: 12 })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('rgba(23,19,16,0.92)')

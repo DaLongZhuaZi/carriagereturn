@@ -89,6 +89,8 @@ export const PAPER_TOP_GAP_VP: number = 4;
 export const CARRIAGE_STRIP_HEIGHT_VP: number = 55;
 export const CARRIAGE_PAPER_OVERLAP_VP: number = 8;
 export const FONT_BAR_HEIGHT_VP: number = 38;
+/** §18.8／§19：候选栏高度（常驻占位）。CandidateBar 与布局 region 共用这一个常量，不许两处各写 44 */
+export const CANDIDATE_BAR_HEIGHT_VP: number = 44;
 export const KEYBED_HEIGHT_VP: number = 186;
 export const FUNCTION_ROW_HEIGHT_VP: number = 52;
 export const KEYBOARD_HEIGHT_VP: number = KEYBED_HEIGHT_VP + FUNCTION_ROW_HEIGHT_VP;

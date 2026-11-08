@@ -60,7 +60,18 @@ export struct CarriageLayers {
 
   /** 木底座左缘 = 纸左缘 − knobD。 */
   private baseLeft(): number {
-    return this.paperLeftFixedVp - this.knobD();
+    // §19 兜底钳制：零件再怎么算也不许出屏（正常布局里不应触发，触发即记日志＝约束算错）
+    let x: number = this.paperLeftFixedVp - this.knobD();
+    if (x < 0) {
+      hilog.warn(CDOMAIN, CTAG, 'phone clamp: baseLeft raw=%{public}s -> 0', x.toFixed(2));
+      x = 0;
+    }
+    const right: number = x + this.baseW();
+    if (right > this.stageWidth) {
+      hilog.warn(CDOMAIN, CTAG, 'phone clamp: baseRight %{public}s > stage %{public}s',
+        right.toFixed(2), this.stageWidth.toFixed(2));
+    }
+    return x;
   }
 
   /** 纹理滚动量归一化到 [−Hc, 0)，便于无缝拼接。 */

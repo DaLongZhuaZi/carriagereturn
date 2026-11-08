@@ -22,6 +22,7 @@ import { deviceInfo } from '@kit.BasicServicesKit';
 import { CorrectionMode, DocLine, MachineKind, PaperKind, RibbonKind } from '../model/DocModel';
 import {
   CARRIAGE_PAPER_OVERLAP_VP, DEFAULT_FONT, DEFAULT_MACHINE, DEFAULT_PAPER, DEFAULT_RIBBON,
+  CANDIDATE_BAR_HEIGHT_VP,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP, PAPER_TOP_GAP_VP, TOP_BAR_HEIGHT_VP,
   findFont, findMachine, findPaper, findRibbon, fontDisplayName,
   FONTS,
@@ -1022,8 +1023,11 @@ struct Index {
       this.keybedHeight = stageW / KEYBAND_ASPECT;
       this.functionRowHeight = FUNCTION_ROW_HEIGHT_VP;
       const carriageConsumed: number = this.carriageHeight - CARRIAGE_PAPER_OVERLAP_VP;
+      // §18.8／§19：候选栏区**常驻 44vp**，已含在布局里——手机 region 必须减掉它，
+      // 否则总成溢出、底座被候选栏盖住。平板公式不动。
+      const candBarVp: number = this.isTablet ? 0 : CANDIDATE_BAR_HEIGHT_VP;
       const region: number = availH - this.topBarHeight - this.paperTopGap - carriageConsumed
-        - this.fontBarHeight - this.keybedHeight - this.functionRowHeight;
+        - this.fontBarHeight - this.keybedHeight - this.functionRowHeight - candBarVp;
       this.regionHeightVp = region > 120 ? region : 120;
 
       // ③字号保 DPI：目标物理 57px（= 手机 17vp×3.375）÷ vp2px
@@ -1059,6 +1063,16 @@ struct Index {
       // ①纸宽：平板 0.72×stageWidth（MLR 485vp / 72%），手机维持 0.82×stageWidth
       // 纸卷收窄留边：平板 0.66×stageWidth（左右各留深底空隙），手机维持 0.82
       this.paperWidthVp = (this.isTablet ? 0.66 : 0.82) * this.stageWidth;
+      // §19 修法 1：手机纸宽按「木底座装得下」反推——baseW = Pw × (1 + 2×0.17×0.92)，
+      // 要求底座左右各留 8vp，故 Pw ≤ (stageW − 16) / K。系数与 CarriageLayers 的 baseW()/knobD() 同源。
+      if (!this.isTablet) {
+        const phoneMarginVp: number = 8;
+        const baseK: number = 1 + 2 * 0.17 * 0.92;
+        const maxPw: number = (this.stageWidth - 2 * phoneMarginVp) / baseK;
+        if (this.paperWidthVp > maxPw) {
+          this.paperWidthVp = maxPw;
+        }
+      }
       // ①零件尺寸加顶：Hc 取 min(Pw×0.17, 纸带高×0.67)，使 Hg=1.5Hc 不超纸带、
     // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
     // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。
@@ -1327,7 +1341,10 @@ struct Index {
     if (this.frozenHVp <= 0 && this.availableHeightVp > 0) {
       this.frozenHVp = this.availableHeightVp;
     }
-    const H: number = this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp;
+    // §19：手机 H 用 region（纸面区真高），平板沿用冻结的 availableHeightVp
+    const H: number = this.isTablet
+      ? (this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp)
+      : this.regionHeightVp;
     const rows: number = this.docModel.getLines().length;
     this.carriageTopVp = 0.56 * H;
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
@@ -2903,7 +2920,8 @@ struct Index {
             .zIndex(2)
           }
           .width('100%')
-          .height(this.availableHeightVp)
+          // §19：手机总成按 region 算（内层不许溢出容器）；平板仍用 availableHeightVp
+          .height(this.isTablet ? this.availableHeightVp : this.regionHeightVp)
           .clip(false)
           .onAreaChange((oldA: Area, newA: Area) => {
             this.stackTopGlobalYVp = newA.globalPosition.y as number;
