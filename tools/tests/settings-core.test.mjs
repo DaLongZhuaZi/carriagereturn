@@ -21,10 +21,10 @@ test('deleteModeOf：稳定 id 白名单，非法回落 trash', () => {
   assert.equal(mod.deleteModeOf(''), 'trash');
 });
 
-test('nextDeleteMode：direct→ask→trash→direct', () => {
-  assert.equal(mod.nextDeleteMode('direct'), 'ask');
-  assert.equal(mod.nextDeleteMode('ask'), 'trash');
-  assert.equal(mod.nextDeleteMode('trash'), 'direct');
+test('nextDeleteMode：trash→ask→direct→trash（缺省首点不跳到不可恢复档）', () => {
+  assert.equal(mod.nextDeleteMode('trash'), 'ask');
+  assert.equal(mod.nextDeleteMode('ask'), 'direct');
+  assert.equal(mod.nextDeleteMode('direct'), 'trash');
 });
 
 test('volumeToPref / prefToVolume：clamp 与缺省', () => {

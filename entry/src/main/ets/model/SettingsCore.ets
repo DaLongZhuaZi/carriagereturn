@@ -18,12 +18,15 @@ export function deleteModeOf(raw: string): string {
   return DELETE_MODE_DEFAULT;
 }
 
-/** 下一档：direct→ask→trash→direct（设置页点击循环）。 */
+/**
+ * 下一档：trash→ask→direct→trash（设置页点击循环）。
+ * 顺序从最安全档开始：缺省 trash 第一次点只升到 ask，不会一步跳到不可恢复的 direct。
+ */
 export function nextDeleteMode(raw: string): string {
   const m: string = deleteModeOf(raw);
-  if (m === DELETE_MODE_DIRECT) { return DELETE_MODE_ASK; }
-  if (m === DELETE_MODE_ASK) { return DELETE_MODE_TRASH; }
-  return DELETE_MODE_DIRECT;
+  if (m === DELETE_MODE_TRASH) { return DELETE_MODE_ASK; }
+  if (m === DELETE_MODE_ASK) { return DELETE_MODE_DIRECT; }
+  return DELETE_MODE_TRASH;
 }
 
 /** 音量 0..100 → prefs 0..1；非法按 0.7。 */
