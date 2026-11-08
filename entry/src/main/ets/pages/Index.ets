@@ -60,6 +60,9 @@ import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
+import { MachineBlueprint } from '../machines/BlueprintTypes';
+import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
+import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
 
 const TAG: string = 'MainScreen';
 const DOMAIN: number = 0x0100;
@@ -1530,7 +1533,7 @@ struct Index {
   }
 
   private bracketH(): number {
-    return this.bracketW() / findMachine(this.machineKind).bracketAspect;
+    return this.bracketW() / this.bp().bracketAspect;
   }
 
   /** 支架底面 = 沟槽底 + 2vp；沟槽底 = Hc + 22（底座顶 Hc+2，槽顶 +6，槽高 14）。 */
@@ -1544,34 +1547,37 @@ struct Index {
 
   /** 销钉孔 (0.503, 0.293) 即拨杆支点。 */
   private pinXRel(): number {
-    return this.bracketLeftRel() + findMachine(this.machineKind).bracketPivotX * this.bracketW();
+    return this.bracketLeftRel() + this.bp().bracketPivotX * this.bracketW();
   }
 
   private pinYRel(): number {
-    return this.bracketTopRel() + findMachine(this.machineKind).bracketPivotY * this.bracketH();
+    return this.bracketTopRel() + this.bp().bracketPivotY * this.bracketH();
   }
 
   /** 拨杆支架素材按机型静态分支（§11 A：1930s 是 T 形支架，不许顶 1920s 矩形板） */
+  /** §14：支架素材由蓝图提供 —— Index 里不再出现任何机型资产路径 */
   private bracketSrc(): Resource {
-    if (this.machineKind === MachineKind.PORTABLE_1930S) {
-      return $rawfile('layers/1930s-portable/lever-pivot-bracket.png');
-    }
-    return $rawfile('layers/1920s-upright/lever-pivot-bracket.png');
+    return this.bp().bracketRawfile();
   }
 
   /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
   private leverHForDrag(): number {
-    return this.leverW() / findMachine(this.machineKind).leverAspect;
+    return this.leverW() / this.bp().leverAspect;
   }
 
   /** 分层件（1920s／1930s）才渲染 TypebarLayer／CarriageLayers；1950s／1960s 走 CarriageStrip 兜底 */
   private hasLayers(): boolean {
     return this.machineKind === MachineKind.UPRIGHT_1920S || this.machineKind === MachineKind.PORTABLE_1930S;
   }
+  /** §14：机型蓝图的唯一选择点（Index 里唯一的机型分派） */
+  private bp(): MachineBlueprint {
+    return this.machineKind === MachineKind.UPRIGHT_1920S ? BLUEPRINT_1920 : BLUEPRINT_1930;
+  }
+
   private leverW(): number {
     if (this.isTablet) {
       // §11 B：0.212 是 1920s 拨杆宽高比，改用机型值
-      return this.carriageHeight * 1.84 * findMachine(this.machineKind).leverAspect;
+      return this.carriageHeight * 1.84 * this.bp().leverSizeRatio;
     }
     // §19.1：手机按「尖端不出屏」反推杆长——leverReachMax = stageW − 8 − pinXRel()，
     // leverH ≤ leverReachMax / sin(最大摆角 35°)。平板不受影响。
@@ -1581,7 +1587,7 @@ struct Index {
     if (maxH > 0 && h > maxH) {
       h = maxH;
     }
-    return h * findMachine(this.machineKind).leverAspect;
+    return h * this.bp().leverSizeRatio;
   }
 
   /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
@@ -2920,9 +2926,9 @@ struct Index {
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
                   layerSizeVp: this.leverW(),
                   machineKind: this.machineKind,
-                  leverAspect: findMachine(this.machineKind).leverAspect,
-                  leverPivotX: findMachine(this.machineKind).leverPivotX,
-                  leverPivotY: findMachine(this.machineKind).leverPivotY,
+                  leverAspect: this.bp().leverAspect,
+                  leverPivotX: this.bp().bracketPivotX,
+                  leverPivotY: this.bp().leverPivotY,
                   newlineTick: this.newlineTick,
                   // §19.1：手机静止 15°／摆幅 20°（最大 35°）；平板 30/35 不变
                   restDeg: this.isTablet ? 30 : 15,
@@ -2931,7 +2937,7 @@ struct Index {
                   // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / findMachine(this.machineKind).leverAspect) * findMachine(this.machineKind).leverPivotY,
+                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
