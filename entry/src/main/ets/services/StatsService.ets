@@ -19,8 +19,7 @@ import { consecutiveDays as statsConsecutiveDays, dayKey, progressRatio, dayInde
 
 /**
  * 纸张种类集合（逗号分隔）：applyPaper 成功时由 Index 调 recordPaperKind 写入。
- * 设计 §1.8 的键名 `stats.paper.kinds`；未进 PrefRegistry（本文件不能改 AppPreferences，
- * 留给第 5 批登记），读写都走本常量。
+ * 第 4 批 F14 键名 `stats.paper.kinds`，已登记在 AppPreferences（PrefKeys.STATS_PAPER_KINDS）。
  */
 /** 统计事件名（总纲第 0 批定的枚举；字符串常量，避免 Node 单测受 TS enum 限制）。 */
 export class StatsEvents {

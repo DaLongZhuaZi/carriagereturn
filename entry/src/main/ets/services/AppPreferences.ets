@@ -52,7 +52,7 @@ export class PrefKeys {
   static readonly CUSTOM_FONT_IMPORTED: string = 'custom.font.imported';
   /** 第 2 批 F3：纸张预设 JSON（`{名称: 预设}`）。 */
   static readonly CUSTOM_PAPER_PRESETS: string = 'custom.paper.presets';
-  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 7 批移除）。 */
+  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 8 轮移除）。 */
   static readonly CUSTOM_KNOB_ENABLED: string = 'custom.knob.enabled';
   /** 第 2 批 F15：候选栏选项。 */
   static readonly CUSTOM_CANDIDATE_COUNT: string = 'custom.candidate.count';

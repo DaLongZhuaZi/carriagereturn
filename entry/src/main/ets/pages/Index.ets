@@ -833,7 +833,7 @@ struct Index {
   @State exportBusy: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
-  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 7 批移除）。 */
+  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 8 轮移除）。 */
   @State knobEnabled: boolean = false;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
   @State deleteMode: string = 'trash';
