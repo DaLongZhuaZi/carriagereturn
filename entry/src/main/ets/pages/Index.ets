@@ -2369,6 +2369,9 @@ struct Index {
       this.syncRows();
       this.hintText = '';
       this.carriageOffsetVp = 0;
+      // §18.10：换纸后拱必须滑回行首。此处 clear()+syncRows()+O=0 已就绪，
+      // clampedStrikeXVp() 的目标即行首；300ms 与第②步新纸卷入同窗，t=600ms 同时到达。
+      this.animateArch(300);
       // ★改：新纸从滚筒里卷出——动画开始前先把纸顶放到滚筒处藏起来（只露 2vp 纸底缘），
       // 再让 recalcPaperHeight() 把它推到起打位。纸顶从滚筒处往上长出来，不是从天上掉下来。
       this.paperTopVp = this.carriageTopVp;
