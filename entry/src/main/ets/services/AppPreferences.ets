@@ -30,6 +30,8 @@ export class PrefKeys {
   static readonly CN_FUZZY: string = 'cn_fuzzy';
   /** 字符级 bigram（用户本机语料，只存本地）。 */
   static readonly CN_BIGRAM: string = 'cn_bigram';
+  /** §10：机型是全局偏好（文档不再记住自己的机型） */
+  static readonly MACHINE: string = 'machine';
 }
 
 /** 偏好读写门面。初始化失败时全部走内存默认值，不阻断主屏。 */

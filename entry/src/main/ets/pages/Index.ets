@@ -926,7 +926,9 @@ struct Index {
     }
     this.docTitle = this.resolveString($r('app.string.doc_untitled'));
     this.measureStage();
-    this.applyMachine(DEFAULT_MACHINE);
+    // §10：机型从全局偏好读（读不到回落 DEFAULT_MACHINE），不再每次回 1920s
+    const savedMachine: string = appPreferences.getString(PrefKeys.MACHINE, DEFAULT_MACHINE as string);
+    this.applyMachine(savedMachine as MachineKind);
     this.applyPaper(DEFAULT_PAPER);
     this.applyRibbon(DEFAULT_RIBBON);
     this.reloadKeymap();
@@ -1214,6 +1216,8 @@ struct Index {
     // 换机时防御性清空预编辑串
     this.cnPreview = '';
     this.machineKind = kind;
+    // §10：机型改成全局偏好——换机即落盘，重启仍记得
+    appPreferences.setString(PrefKeys.MACHINE, kind as string);
     this.docModel.setMachine(kind);
     // P0-4：机器变了就重解析键位表，不管尺寸变没变
     this.reloadKeymap();
@@ -2622,7 +2626,8 @@ struct Index {
     }
     this.docId = id;
     this.docModel = new DocModel(data);
-    this.machineKind = data.meta.machine;
+    // §10：文档不再驱动机型——沿用当前全局机型，下次保存时写回 meta.machine
+    this.docModel.setMachine(this.machineKind);
     this.paperKind = data.meta.paper;
     this.ribbon = data.meta.ribbon;
     this.carriageOffsetVp = 0;
@@ -3423,8 +3428,10 @@ struct Index {
           onBack: (): void => { this.popPage(); },
           onSetCurrent: (kind: string): void => {
             this.applyMachine(kind as MachineKind);
-            this.collectionDetailKind = '';
-            this.collectionOpen = false;
+            // §10：手动关两个布尔量不够——栈里还留着 collection／collectiondetail，
+            // 下次 pushPage('typewriter') 触发 syncFromStack() 会用 has() 重算 collectionOpen=true
+            // 把收藏页重新盖回来。popTo('home') 截栈并重算，收藏页才真的退出。
+            this.popTo('home');
             hilog.info(DOMAIN, TAG, 'collection setCurrent -> %{public}s', kind);
           },
         })
