@@ -17,6 +17,8 @@ export const GUIDE_PAGE_SETTINGS: string = 'settings';
 export const GUIDE_PAGE_EXPORT: string = 'export';
 export const GUIDE_PAGE_PINYIN_SETTINGS: string = 'pinyin_settings';
 export const GUIDE_PAGE_TYPEWRITER: string = 'typewriter';
+/** 第 6 批 F10：回收站页。 */
+export const GUIDE_PAGE_TRASH: string = 'trash';
 /** 第 2 批 F3：自定义下的两个新覆盖层页（字体管理／纸张自定义）。 */
 export const GUIDE_PAGE_FONT_MANAGER: string = 'font_manager';
 export const GUIDE_PAGE_PAPER_CUSTOM: string = 'paper_custom';
@@ -27,7 +29,7 @@ export function allPages(): string[] {
     GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL,
     GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT,
     GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER,
-    GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM,
+    GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM, GUIDE_PAGE_TRASH,
   ];
 }
 

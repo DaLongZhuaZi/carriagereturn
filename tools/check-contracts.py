@@ -8,7 +8,7 @@
   3) prefs 命名空间与登记表存在，新键 builder 存在；
   4) Index 不再直接 import systemShare，分享走 ShareService；
   5) 字体注册循环在 FontService，Index 调 registerBundled；
-  6) DocStore 有 trash/restore/rename/search/listTrashed，且 remove() 仍硬删（未翻转）；
+  6) DocStore 有 trash/restore/rename/search/listTrashed；第 6 批起 remove() 已翻转为移入回收站；
   7) GuideOverlay 的语义锚类型存在。
 
 退出码：0=全过；1=有失败。
@@ -115,14 +115,16 @@ def main() -> int:
         PASSES.append("Index.ets: 字体注册走 FontService")
 
     docstore = read("entry/src/main/ets/services/DocStore.ets")
-    # remove() 仍硬删：函数体内应出现 unlinkIfPresent 且不出现 trashRecord
+    # 第 6 批起 remove()＝trash（语义已翻转）；removePermanently 才是硬删
     m = re.search(r"remove\(id: string\): boolean \{(.*?)\n  \}", docstore, re.S)
     if not m:
         FAILS.append("DocStore.remove() 未找到")
-    elif "unlinkIfPresent" not in m.group(1) or "trashRecord" in m.group(1):
-        FAILS.append("DocStore.remove() 语义已被改动（第 0 批要求仍硬删）")
+    elif "this.trash(" not in m.group(1) or "unlinkIfPresent" in m.group(1):
+        FAILS.append("DocStore.remove() 未按第 6 批翻转为 trash")
     else:
-        PASSES.append("DocStore.remove(): 仍硬删（第 6 批才翻转）")
+        PASSES.append("DocStore.remove(): 已翻转为 trash（第 6 批）")
+    if "removePermanently(id: string): boolean" not in docstore:
+        FAILS.append("DocStore.removePermanently() 未找到")
 
     print("== 共享契约静态断言 ==")
     for p in PASSES:

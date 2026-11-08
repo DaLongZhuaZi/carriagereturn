@@ -3,13 +3,24 @@
  *
  * 6 组分组列表（声音 / 触感 / 修正方式 / 统计 / 默认 / 关于），组标题 12vp 灰，
  * 行高 52vp、1vp 分割线、左右 20vp；入场按组 60ms 逐组淡入（D6）。
+ *
+ * 第 6 批 F6（M-11 resolve）：所有开关／滑杆／链接行一律走 SettingsRow
+ * （switch／slider／link／value）；手写 Row 只留纯展示（音效致谢／版本／底部离线声明）。
+ * 本页**不写盘**：开关、音量、删除方式、默认机纸都由 Index 持久化后以 props 回传，
+ * 保证"当前值＝默认值"回显（M-3）。
+ *
+ * 删除方式三档用稳定 id `'direct' | 'ask' | 'trash'`（N-1），显示走资源键；
+ * 点击循环 direct → ask → trash → direct；非法 id 一律按 trash 显示（回落口径在 SettingsCore）。
+ *
+ * 候选栏两行已迁到 PinyinSettingsPage（M-1）：本页不再收 candidate props。
  */
 
 import { PageShell } from './PageShell';
-import { AppIcon } from './AppIcon';
 import { SettingsRow } from './SettingsRow';
 import { GuideStep } from './GuideOverlay';
 import { clampDailyGoal } from '../model/StatsCore';
+import { DELETE_MODE_DIRECT, DELETE_MODE_ASK, deleteModeOf, nextDeleteMode } from '../model/SettingsCore';
+import { common } from '@kit.AbilityKit';
 
 @Component
 export struct SettingsPage {
@@ -21,6 +32,14 @@ export struct SettingsPage {
   @Prop cnEngine: string = 'builtin';
   /** 第 4 批 F11：每日目标字数（100–2000，step 100；Index 持久化后回传）。 */
   @Prop dailyGoal: number = 500;
+  /** F6：音量百分数 0–100（AppPreferences VOLUME 0..1 的百分数；Index 持久化后回传）。 */
+  @Prop volume0to100: number = 70;
+  /** F6：音效总开关（SOUND_ENABLED）；行名"音效"＝全关/全开，不再暗示只关叮声（M-2）。 */
+  @Prop soundEnabled: boolean = true;
+  /** F6：按键震动（VIBRATION_ENABLED）。 */
+  @Prop vibrationEnabled: boolean = true;
+  /** F6：删除方式稳定 id 'direct'|'ask'|'trash'（缺省进回收站）。 */
+  @Prop deleteMode: string = 'trash';
   onGoal: (n: number) => void = (n: number): void => {};
   onPickCnEngine: () => void = (): void => {};
   /** §11.6：拼音设置页入口 */
@@ -28,21 +47,61 @@ export struct SettingsPage {
   /** 第 1 批：重播引导（页面引导 / 启动引导） */
   onReplayPageGuide: () => void = (): void => {};
   onReplayOnboarding: () => void = (): void => {};
-  @State volume: number = 70;
-  @State newlineSound: boolean = true;
-  @State keyVibrate: boolean = true;
-  @State deleteMode: string = '现代删除';
+  /** F6：真实写盘与生效都在 Index（本页只发意图）。 */
+  onToggleSound: () => void = (): void => {};
+  onToggleVibrate: () => void = (): void => {};
+  onVolume: (v0to100: number) => void = (v0to100: number): void => {};
+  onDeleteMode: (mode: string) => void = (mode: string): void => {};
+  onPickMachine: () => void = (): void => {};
+  onPickPaper: () => void = (): void => {};
+  onOpenTrash: () => void = (): void => {};
   @State revealN: number = 0;
-  /** D4：按压统一 0.97 / 120ms（原 §6.1「底色加深 100ms」作废）。 */
-  @State pressedRow: string = '';
   onBack: () => void = (): void => {};
 
   aboutToAppear(): void {
-    // D6：逐组 60ms（第 4 批加入"统计"组，共 6 组）
+    // D6：逐组 60ms（第 4 批加入"统计"组，第 6 批仍为 6 组：声音/触感/修正方式/统计/默认/关于）
     this.revealN = 0;
     for (let i = 0; i < 6; i++) {
       setTimeout(() => { this.revealN = i + 1; }, i * 60);
     }
+  }
+
+  /** 删除方式显示：稳定 id → 资源键 → 本地化字符串（SettingsRow.value 是 string）。 */
+  private deleteModeText(): string {
+    const m: string = deleteModeOf(this.deleteMode);
+    if (m === DELETE_MODE_DIRECT) {
+      return this.resolveString($r('app.string.delete_mode_direct'));
+    }
+    if (m === DELETE_MODE_ASK) {
+      return this.resolveString($r('app.string.delete_mode_ask'));
+    }
+    return this.resolveString($r('app.string.delete_mode_trash'));
+  }
+
+  /** 点击循环 direct → ask → trash → direct（口径在 SettingsCore，页面不重写一套）。 */
+  private nextMode(): string {
+    return nextDeleteMode(this.deleteMode);
+  }
+
+  /** Resource → 本地化字符串（与 ExportPage／Index 的 resolveString 同口径；失败降级空串）。 */
+  private resolveString(res: Resource): string {
+    try {
+      const ctx: common.UIAbilityContext | null = this.hostCtx();
+      if (ctx !== null) {
+        return ctx.resourceManager.getStringSync(res.id);
+      }
+    } catch (e) {
+      // 资源缺失降级空串
+    }
+    return '';
+  }
+
+  private hostCtx(): common.UIAbilityContext | null {
+    const host = this.getUIContext().getHostContext();
+    if (host === undefined || host === null) {
+      return null;
+    }
+    return host as common.UIAbilityContext;
   }
 
   @Builder
@@ -60,24 +119,26 @@ export struct SettingsPage {
   body() {
     Scroll() {
       Column() {
-        // 1 声音
+        // 1 声音（音效总开关＋音量；M-2：行名"音效"，不叫"换行叮声"）
         Column() {
           this.groupTitle('声音')
-          Row() {
-            Text('音量').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Slider({ value: this.volume, min: 0, max: 100 })
-              .width(180).trackThickness(2).selectedColor('#c9a45c')
-              .onChange((v: number, mode: SliderChangeMode) => { this.volume = Math.round(v); })
-          }.width('100%').height(52)
+          SettingsRow({
+            label: $r('app.string.settings_sound'),
+            mode: 'switch',
+            switchOn: this.soundEnabled,
+            onToggle: (): void => { this.onToggleSound(); },
+          })
           this.divider()
-          Row() {
-            Text('换行叮声').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.newlineSound ? '开' : '关').fontSize(15).fontColor('#c9a45c')
-              .animation({ duration: 150 })
-              .onClick(() => { this.newlineSound = !this.newlineSound; })
-          }.width('100%').height(52)
+          SettingsRow({
+            label: '音量',
+            mode: 'slider',
+            sliderValue: this.volume0to100,
+            sliderMin: 0,
+            sliderMax: 100,
+            sliderStep: 1,
+            sliderValueText: this.volume0to100.toString() + '%',
+            onSlide: (v: number): void => { this.onVolume(Math.round(v)); },
+          })
         }
         .width('100%')
         .opacity(this.revealN > 0 ? 1 : 0)
@@ -86,49 +147,42 @@ export struct SettingsPage {
         // 2 触感
         Column() {
           this.groupTitle('触感')
-          Row() {
-            Text('按键震动').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.keyVibrate ? '开' : '关').fontSize(15).fontColor('#c9a45c')
-              .animation({ duration: 150 })
-              .onClick(() => { this.keyVibrate = !this.keyVibrate; })
-          }.width('100%').height(52)
+          SettingsRow({
+            label: '按键震动',
+            mode: 'switch',
+            switchOn: this.vibrationEnabled,
+            onToggle: (): void => { this.onToggleVibrate(); },
+          })
         }
         .width('100%')
         .opacity(this.revealN > 1 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 3 修正方式
+        // 3 修正方式（删除方式三档／中文输入／拼音设置）
         Column() {
           this.groupTitle('修正方式')
-          Row() {
-            Text('删除方式').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.deleteMode).fontSize(15).fontColor('rgba(232,221,201,0.6)')
-          }.width('100%').height(52)
-            .onClick(() => {
-              this.deleteMode = this.deleteMode === '现代删除' ? 'XXX 覆盖' : '现代删除';
-            })
-          // 中文输入：内置拼音（默认）｜系统输入法。必须落 AppPreferences（设计稿 §1／§7）
-          Row() {
-            Text('中文输入').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.cnEngine === 'builtin' ? '内置拼音' : '系统输入法')
-              .fontSize(15).fontColor('rgba(232,221,201,0.6)')
-          }.width('100%').height(52)
-            .onClick(() => {
-              this.onPickCnEngine();
-            })
-          // 拼音设置（模糊音／我的词库／学习记录／词库信息）：设计稿 §11.6
-          Row() {
-            Text('拼音设置').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
-          }.width('100%').height(52)
-            .onClick(() => {
-              this.onOpenPinyinSettings();
-            })
+          SettingsRow({
+            label: $r('app.string.settings_delete_mode'),
+            mode: 'value',
+            value: this.deleteModeText(),
+            onClick: (): void => { this.onDeleteMode(this.nextMode()); },
+          })
           this.divider()
+          // 中文输入：内置拼音（默认）｜系统输入法。必须落 AppPreferences（设计稿 §1／§7）
+          SettingsRow({
+            label: '中文输入',
+            mode: 'value',
+            value: this.cnEngine === 'builtin' ? '内置拼音' : '系统输入法',
+            onClick: (): void => { this.onPickCnEngine(); },
+          })
+          this.divider()
+          // 拼音设置（模糊音／我的词库／学习记录／词库信息）：设计稿 §11.6
+          SettingsRow({
+            label: '拼音设置',
+            mode: 'link',
+            value: '',
+            onClick: (): void => { this.onOpenPinyinSettings(); },
+          })
         }
         .width('100%')
         .opacity(this.revealN > 2 ? 1 : 0)
@@ -155,26 +209,35 @@ export struct SettingsPage {
         .opacity(this.revealN > 3 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 5 默认
+        // 5 默认（M-3：选择即生效、行回显当前值＝默认值；回收站入口同组）
         Column() {
           this.groupTitle('默认')
-          Row() {
-            Text('默认机器').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.machineLabel).fontSize(15).fontColor('rgba(232,221,201,0.6)')
-          }.width('100%').height(52)
+          SettingsRow({
+            label: $r('app.string.settings_default_machine'),
+            mode: 'link',
+            value: this.machineLabel,
+            onClick: (): void => { this.onPickMachine(); },
+          })
           this.divider()
-          Row() {
-            Text('默认纸张').fontSize(15).fontColor('#e8ddc9')
-            Blank()
-            Text(this.paperLabel).fontSize(15).fontColor('rgba(232,221,201,0.6)')
-          }.width('100%').height(52)
+          SettingsRow({
+            label: $r('app.string.settings_default_paper'),
+            mode: 'link',
+            value: this.paperLabel,
+            onClick: (): void => { this.onPickPaper(); },
+          })
+          this.divider()
+          SettingsRow({
+            label: $r('app.string.settings_trash'),
+            mode: 'link',
+            value: '',
+            onClick: (): void => { this.onOpenTrash(); },
+          })
         }
         .width('100%')
         .opacity(this.revealN > 4 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 6 关于
+        // 6 关于（重播引导两行＋音效致谢＋版本；后两行是纯展示，保留手写 Row）
         Column() {
           this.groupTitle('关于')
           SettingsRow({

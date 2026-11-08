@@ -32,6 +32,10 @@ export class PrefKeys {
   static readonly CN_BIGRAM: string = 'cn_bigram';
   /** §10：机型是全局偏好（文档不再记住自己的机型） */
   static readonly MACHINE: string = 'machine';
+  /** 第 6 批 F6：默认纸张 id（letter/manuscript/postcard/memo）。 */
+  static readonly PAPER: string = 'paper';
+  /** 第 6 批 F10：删除方式稳定 id（direct/ask/trash）。 */
+  static readonly DELETE_MODE: string = 'delete_mode';
 
   // ---- 第 0 批：命名空间与登记规则（新键一律走前缀；不许各组件裸写字符串）----
   /** 引导：`guide.<page>.seen`；首次启动引导复用既有 ONBOARDING_SEEN 键。 */
@@ -116,7 +120,9 @@ export class PrefRegistry {
       { key: PrefKeys.VOLUME, type: 'number', defaultValue: '0.7', owner: 'F6', note: '音量 0..1（第 6 批接线；首次缺省 0.7）' },
       { key: PrefKeys.VIBRATION_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F6', note: '震动开关' },
       { key: PrefKeys.CN_ENGINE, type: 'string', defaultValue: 'builtin', owner: '既有', note: '中文引擎' },
-      { key: PrefKeys.MACHINE, type: 'string', defaultValue: '1920s', owner: '既有', note: '默认机型' },
+      { key: PrefKeys.MACHINE, type: 'string', defaultValue: '1920s', owner: '既有', note: '默认机型（启动机）' },
+      { key: PrefKeys.PAPER, type: 'string', defaultValue: 'letter', owner: 'F6', note: '默认纸张 id（启动纸）' },
+      { key: PrefKeys.DELETE_MODE, type: 'string', defaultValue: 'trash', owner: 'F10', note: '删除方式：direct/ask/trash（缺省 trash）' },
       { key: PrefKeys.GUIDE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F1／F2', note: '每页首次引导：guide.<page>.seen' },
       { key: PrefKeys.GUIDE_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F1', note: '引导产品开关（移除点：第 7 批）' },
       { key: PrefKeys.GUIDE_TEST_MODE, type: 'boolean', defaultValue: 'false', owner: 'F1', note: '测试模式（仅测试构建可置 true）' },
@@ -144,6 +150,7 @@ export class PrefRegistry {
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
       PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
       PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE, PrefKeys.CUSTOM_KNOB_ENABLED,
+      PrefKeys.PAPER, PrefKeys.DELETE_MODE,
       PrefKeys.STATS_PAPER_KINDS,
       PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
     ];

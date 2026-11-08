@@ -14,8 +14,8 @@ const ts = path.join(tmp, 'GuideCore.ts');
 fs.copyFileSync(path.join(root, 'entry/src/main/ets/model/GuideCore.ets'), ts);
 const core = await import('file://' + ts.replace(/\\/g, '/'));
 
-test('引导：13 页 id 与 Index 映射完整', () => {
-  assert.equal(core.allPages().length, 13);
+test('引导：14 页 id 与 Index 映射完整', () => {
+  assert.equal(core.allPages().length, 14);
   let mapped = 0;
   for (const page of core.allPages()) {
     if (page === 'typewriter') {
@@ -27,7 +27,7 @@ test('引导：13 页 id 与 Index 映射完整', () => {
     const constName = 'GUIDE_PAGE_' + page.toUpperCase();
     if (index.includes(constName)) mapped += 1;
   }
-  assert.ok(mapped >= 12, `Index 映射覆盖 ${mapped}/13`);
+  assert.ok(mapped >= 12, `Index 映射覆盖 ${mapped}/14`);
 });
 
 test('F14 复核：fadeSwitch 函数体不含几何写入；applyMachine 确实 measureStage（据此记未验）', () => {

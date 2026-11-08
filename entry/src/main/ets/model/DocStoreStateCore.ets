@@ -1,8 +1,9 @@
 /**
  * 回车 · DocStore 状态模型的纯逻辑（第 0 批）。
  *
- * 状态：active（默认）／trashed（回收站）。第 0 批只定模型与签名，
- * **不翻转 remove() 语义、不改 list() 只返回 active**——二者第 6 批落地。
+ * 状态：active（默认）／trashed（回收站）。第 0 批只定模型与签名；
+ * **第 6 批 F10 已翻转**：DocStore.remove()＝trash、list() 只返回 active，
+ * 新增 expiredRecords（30 天清理）。
  *
  * 纯函数：不碰文件、不 import @kit，可 Node 单测。
  * DocStore 只做 I/O：读索引 → 调本文件 → 写索引。
@@ -183,4 +184,29 @@ export function searchRecords(index: DocIndexRecord[], query: string, opts: DocS
   }
   hits.sort((a: DocSearchHit, b: DocSearchHit) => b.updatedAt - a.updatedAt);
   return hits.length > limit ? hits.slice(0, limit) : hits;
+}
+
+/** 回收站保留期（天）：缺省 30（总纲第 6 批）。 */
+export const TRASH_RETENTION_DAYS: number = 30;
+
+/**
+ * 过期回收站记录 id：trashedAt 超过 retentionDays；trashedAt 缺失按 updatedAt 兜底
+ * （旧索引/半途崩溃不误删刚入站的文件）。
+ */
+export function expiredRecords(index: DocIndexRecord[], nowMs: number,
+  retentionDays: number = TRASH_RETENTION_DAYS): string[] {
+  const out: string[] = [];
+  const days: number = retentionDays > 0 ? retentionDays : TRASH_RETENTION_DAYS;
+  const cutoff: number = nowMs - days * 86400000;
+  for (let i = 0; i < index.length; i++) {
+    const rec: DocIndexRecord = index[i];
+    if (!isTrashed(rec)) {
+      continue;
+    }
+    const at: number = rec.trashedAt === undefined ? rec.updatedAt : rec.trashedAt;
+    if (isFinite(at) && at < cutoff) {
+      out.push(rec.id);
+    }
+  }
+  return out;
 }

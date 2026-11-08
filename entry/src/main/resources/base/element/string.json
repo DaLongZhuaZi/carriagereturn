@@ -659,6 +659,138 @@
     {
       "name": "sound_credit",
       "value": "素材：ddohler、YleArkisto 等（CC BY）；本机为 DSP 变体"
+    },
+    {
+      "name": "delete_mode_direct",
+      "value": "直接删除"
+    },
+    {
+      "name": "delete_mode_ask",
+      "value": "先问"
+    },
+    {
+      "name": "delete_mode_trash",
+      "value": "进回收站"
+    },
+    {
+      "name": "settings_sound",
+      "value": "音效"
+    },
+    {
+      "name": "settings_delete_mode",
+      "value": "删除方式"
+    },
+    {
+      "name": "settings_default_machine",
+      "value": "默认机器"
+    },
+    {
+      "name": "settings_default_paper",
+      "value": "默认纸张"
+    },
+    {
+      "name": "settings_trash",
+      "value": "回收站"
+    },
+    {
+      "name": "settings_pick_machine",
+      "value": "选择默认机器"
+    },
+    {
+      "name": "settings_pick_paper",
+      "value": "选择默认纸张"
+    },
+    {
+      "name": "settings_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "trash_title",
+      "value": "回收站"
+    },
+    {
+      "name": "trash_empty",
+      "value": "回收站是空的"
+    },
+    {
+      "name": "trash_keep_days",
+      "value": "保留 30 天，过期自动彻底删除"
+    },
+    {
+      "name": "trash_restore",
+      "value": "恢复"
+    },
+    {
+      "name": "trash_purge",
+      "value": "彻底删除"
+    },
+    {
+      "name": "trash_orig_dossier",
+      "value": "原卷宗"
+    },
+    {
+      "name": "trash_unknown_dossier",
+      "value": "未归档"
+    },
+    {
+      "name": "search_placeholder",
+      "value": "搜索标题或正文"
+    },
+    {
+      "name": "search_empty",
+      "value": "没有匹配的纸"
+    },
+    {
+      "name": "rename_paper_title",
+      "value": "重命名纸"
+    },
+    {
+      "name": "rename_paper_ok",
+      "value": "保存"
+    },
+    {
+      "name": "rename_paper_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "delete_paper_title",
+      "value": "删除这张纸？"
+    },
+    {
+      "name": "delete",
+      "value": "删除"
+    },
+    {
+      "name": "cancel",
+      "value": "取消"
+    },
+    {
+      "name": "delete_direct_confirm",
+      "value": "删除后不可恢复。"
+    },
+    {
+      "name": "delete_trash_confirm",
+      "value": "删除后进回收站，可恢复。"
+    },
+    {
+      "name": "guide_trash_title",
+      "value": "回收站"
+    },
+    {
+      "name": "guide_trash_hint",
+      "value": "删除的纸会在这里暂存 30 天，随时可以恢复。"
+    },
+    {
+      "name": "guide_trash_1",
+      "value": "点「恢复」把纸放回原卷宗；原卷宗已删除时回到未归档。"
+    },
+    {
+      "name": "guide_trash_2",
+      "value": "点「彻底删除」会再问一次，删掉后不可恢复。"
+    },
+    {
+      "name": "guide_trash_3",
+      "value": "超过 30 天自动彻底删除，不占空间。"
     }
   ]
 }

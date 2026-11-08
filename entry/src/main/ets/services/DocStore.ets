@@ -15,7 +15,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { DocData, DocSummary, MachineKind, PaperKind } from '../model/DocModel';
 import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
 import {
-  DocIndexRecord, DocSearchHit, DocSearchOptions, activeRecords, renameRecord,
+  DocIndexRecord, DocSearchHit, DocSearchOptions, activeRecords, expiredRecords, renameRecord,
   restoreRecord, searchRecords, trashRecord, trashedRecords,
 } from '../model/DocStoreStateCore';
 
@@ -120,8 +120,16 @@ export class DocStore {
     }
   }
 
-  /** 删除一份文档：JSON 与 .txt 成对删除。 */
+  /**
+   * 第 6 批 F10：删除＝**移入回收站**（语义已从硬删翻转；见 docs/designs/6-…§1.3）。
+   * 彻底删除只走 removePermanently（回收站「彻底删除」/直接删除档/删卷宗 purge）。
+   */
   remove(id: string): boolean {
+    return this.trash(id, Date.now());
+  }
+
+  /** 旧硬删语义（第 6 批改名保留）：JSON 与 .txt 成对删除 + 从索引移除。 */
+  removePermanently(id: string): boolean {
     if (!this.initialized) {
       return false;
     }
@@ -131,10 +139,26 @@ export class DocStore {
     return true;
   }
 
-  // ---- 第 0 批：文档状态模型接口（active／trashed）----
-  // 本批只落模型与签名；remove() 的"硬删→移入回收站"语义翻转在第 6 批，
-  // list() 默认只返回 active 的改动也在第 6 批。下面的 trash／restore／rename／search
-  // 供第 6 批 F10 直接消费，本批不接 UI。
+  /** 第 6 批 F10：30 天过期清理（EntryAbility init 后调一次；纯逻辑在 DocStoreStateCore）。 */
+  housekeeping(nowMs: number, retentionDays: number = 30): number {
+    if (!this.initialized) {
+      return 0;
+    }
+    const index: DocIndex = this.readIndex();
+    const expired: string[] = expiredRecords(index.entries, nowMs, retentionDays);
+    for (let i = 0; i < expired.length; i++) {
+      this.removePermanently(expired[i]);
+    }
+    if (expired.length > 0) {
+      hilog.info(DOMAIN, TAG, 'housekeeping purged=%{public}s retention=%{public}s',
+        expired.length.toString(), retentionDays.toString());
+    }
+    return expired.length;
+  }
+
+  // ---- 文档状态模型接口（active／trashed）----
+  // 第 0 批只落模型与签名；**第 6 批 F10 已翻转**：remove()＝trash、list() 只返回 active、
+  // 新增 removePermanently/housekeeping。trash／restore／rename／search 由 F10 UI 消费。
 
   /** 移入回收站；返回 false＝不存在或本来就在回收站。 */
   trash(id: string, nowMs: number): boolean {
@@ -194,6 +218,8 @@ export class DocStore {
         dossierId: entry.dossierId === undefined ? null : entry.dossierId,
         charCount: this.countCharsFromJson(entry.id),
         preview: this.previewFromJson(entry.id),
+        trashedAt: entry.trashedAt === undefined ? entry.updatedAt : entry.trashedAt,
+        origDossierId: entry.origDossierId === undefined ? null : entry.origDossierId,
       });
     }
     return out;
@@ -226,8 +252,10 @@ export class DocStore {
       return [];
     }
     const index: DocIndex = this.readIndex();
+    // 第 6 批 F10：list() 默认只返回 active（trashed 走 listTrashed）
+    const entries: DocIndexRecord[] = activeRecords(index.entries);
     const out: DocSummary[] = [];
-    for (const entry of index.entries) {
+    for (const entry of entries) {
       out.push({
         id: entry.id,
         title: entry.title,

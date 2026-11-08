@@ -27,6 +27,8 @@ export default class EntryAbility extends UIAbility {
     uiContextManager.bindAbilityContext(this.context as common.UIAbilityContext);
     FileUtils.setSandboxBaseDir(this.context.filesDir);
     docStore.init(this.context.filesDir);
+    // 第 6 批 F10：回收站 30 天过期清理（保留期缺省 30；纯逻辑可单测）
+    docStore.housekeeping(Date.now());
     dossierStore.init(this.context.filesDir);
     appPreferences.init(this.context as common.UIAbilityContext);
 

@@ -35,6 +35,7 @@ import { CollectionPage, guideStepsForCollection } from '../components/Collectio
 import { CustomizePage, guideStepsForCustomize } from '../components/CustomizePage';
 import { FontManagerPage, guideStepsForFontManager } from '../components/FontManagerPage';
 import { PaperCustomPage, guideStepsForPaperCustom } from '../components/PaperCustomPage';
+import { TrashPage, guideStepsForTrash } from '../components/TrashPage';
 import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
 import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
 import { ExportPage, guideStepsForExport } from '../components/ExportPage';
@@ -53,7 +54,7 @@ import { ShareService, ShareResult } from '../services/ShareService';
 import { statsService, StatsEvents } from '../services/StatsService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
 import { GuideService } from '../services/GuideService';
-import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM } from '../model/GuideCore';
+import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM, GUIDE_PAGE_TRASH } from '../model/GuideCore';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
@@ -76,6 +77,7 @@ import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
 import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
 import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
+import { deleteModeOf, nextDeleteMode, volumeToPref, prefToVolume, paperPrefOf } from '../model/SettingsCore';
 import { clampFontSize, effectiveFontSize, lineHeightOf, clampMarginH, clampMarginT, clampMarginB, ImportedFont } from '../model/CustomizeCore';
 import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
@@ -833,6 +835,13 @@ struct Index {
   @State homeOpen: boolean = true;
   /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 7 批移除）。 */
   @State knobEnabled: boolean = false;
+  /** 第 6 批 F6/F10：设置接线与回收站。 */
+  @State deleteMode: string = 'trash';
+  @State volume0to100: number = 70;
+  @State soundEnabled: boolean = true;
+  @State vibrationEnabled: boolean = true;
+  @State @Watch('onTrashChanged') trashOpen: boolean = false;
+  @State trashDocs: DocSummary[] = [];
   /** 第 4 批 F11：统计刷新计数（设置目标/返回主页/导出后递增）。 */
   @State statsRev: number = 0;
 
@@ -860,6 +869,7 @@ struct Index {
     this.customizeOpen = has('customize');
     this.fontManagerOpen = has('fontmanager');
     this.paperCustomOpen = has('papercustom');
+    this.trashOpen = has('trash');
     this.settingsOpen = has('settings') || has('pinyinsettings');
     this.pinyinSettingsOpen = has('pinyinsettings');
     this.exportOpen = has('export');
@@ -883,6 +893,7 @@ struct Index {
     if (page === GUIDE_PAGE_CUSTOMIZE) { return guideStepsForCustomize(); }
     if (page === GUIDE_PAGE_FONT_MANAGER) { return guideStepsForFontManager(); }
     if (page === GUIDE_PAGE_PAPER_CUSTOM) { return guideStepsForPaperCustom(); }
+    if (page === GUIDE_PAGE_TRASH) { return guideStepsForTrash(); }
     if (page === GUIDE_PAGE_SETTINGS) { return guideStepsForSettings(); }
     if (page === GUIDE_PAGE_EXPORT) { return guideStepsForExport(); }
     if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return guideStepsForPinyinSettings(); }
@@ -906,6 +917,7 @@ struct Index {
     if (page === GUIDE_PAGE_CUSTOMIZE) { return $r('app.string.guide_customize_title'); }
     if (page === GUIDE_PAGE_FONT_MANAGER) { return $r('app.string.guide_font_manager_title'); }
     if (page === GUIDE_PAGE_PAPER_CUSTOM) { return $r('app.string.guide_paper_custom_title'); }
+    if (page === GUIDE_PAGE_TRASH) { return $r('app.string.guide_trash_title'); }
     if (page === GUIDE_PAGE_SETTINGS) { return $r('app.string.guide_settings_title'); }
     if (page === GUIDE_PAGE_EXPORT) { return $r('app.string.guide_export_title'); }
     if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return $r('app.string.guide_pinyin_settings_title'); }
@@ -915,6 +927,7 @@ struct Index {
 
   /** 当前可见页 → page id（覆盖层优先于底座）。 */
   private currentGuidePage(): string {
+    if (this.trashOpen) { return GUIDE_PAGE_TRASH; }
     if (this.pinyinSettingsOpen) { return GUIDE_PAGE_PINYIN_SETTINGS; }
     if (this.settingsOpen) { return GUIDE_PAGE_SETTINGS; }
     if (this.exportOpen) { return GUIDE_PAGE_EXPORT; }
@@ -1117,11 +1130,20 @@ struct Index {
       this.audioService.attachContext(host as common.Context);
     }
     this.docTitle = this.resolveString($r('app.string.doc_untitled'));
+    // 第 6 批 F6：启动灌 prefs 音量/开关（AudioService 私有默认 0.8/全开）
+    this.volume0to100 = prefToVolume(appPreferences.getNumber(PrefKeys.VOLUME, 0.7));
+    this.soundEnabled = appPreferences.getBool(PrefKeys.SOUND_ENABLED, true);
+    this.vibrationEnabled = appPreferences.getBool(PrefKeys.VIBRATION_ENABLED, true);
+    this.audioService.setVolume(volumeToPref(this.volume0to100));
+    this.audioService.setSoundEnabled(this.soundEnabled);
+    this.audioService.setVibrationEnabled(this.vibrationEnabled);
+    this.deleteMode = deleteModeOf(appPreferences.getString(PrefKeys.DELETE_MODE, 'trash'));
     this.measureStage();
     // §10：机型从全局偏好读（读不到回落 DEFAULT_MACHINE），不再每次回 1920s
     const savedMachine: string = appPreferences.getString(PrefKeys.MACHINE, DEFAULT_MACHINE as string);
     this.applyMachine(savedMachine as MachineKind);
-    this.applyPaper(DEFAULT_PAPER);
+    this.applyPaper(paperPrefOf(appPreferences.getString(PrefKeys.PAPER, DEFAULT_PAPER as string),
+      DEFAULT_PAPER as string) as PaperKind);
     this.applyRibbon(DEFAULT_RIBBON);
     this.reloadKeymap();
     this.detectLayers();
@@ -3132,6 +3154,95 @@ struct Index {
   }
 
   /** §5.4 删卷宗：mode='unfile' 纸移出变未归档；'purge' 连纸一起删。只删索引，不默认连删。 */
+  // ---- 第 6 批 F6/F10：删除方式、回收站、设置接线 ----
+
+  /** 统一删纸入口：direct＝彻底删；ask/trash＝入回收站（确认由页面按档负责）。 */
+  private deletePaper(id: string): void {
+    if (deleteModeOf(this.deleteMode) === 'direct') {
+      docStore.removePermanently(id);
+      hilog.info(DOMAIN, TAG, 'paper deleted permanently id=%{public}s', id);
+    } else {
+      docStore.remove(id);
+      hilog.info(DOMAIN, TAG, 'paper trashed id=%{public}s', id);
+    }
+    this.docsRev = this.docsRev + 1;
+  }
+
+  private renameDocument(id: string, name: string): void {
+    if (docStore.rename(id, name)) {
+      this.docsRev = this.docsRev + 1;
+      hilog.info(DOMAIN, TAG, 'doc renamed id=%{public}s name=%{public}s', id, name);
+    }
+  }
+
+  private refreshTrashDocs(): void {
+    this.trashDocs = docStore.listTrashed();
+  }
+
+  private openTrash(): void {
+    this.refreshTrashDocs();
+    this.pushPage('trash');
+  }
+
+  private onTrashChanged(): void {
+    if (this.trashOpen) {
+      this.refreshTrashDocs();
+    }
+  }
+
+  private restoreTrash(id: string): void {
+    docStore.restore(id);
+    this.docsRev = this.docsRev + 1;
+    this.refreshTrashDocs();
+    hilog.info(DOMAIN, TAG, 'trash restored id=%{public}s', id);
+  }
+
+  private purgeTrash(id: string): void {
+    docStore.removePermanently(id);
+    this.docsRev = this.docsRev + 1;
+    this.refreshTrashDocs();
+    hilog.info(DOMAIN, TAG, 'trash purged id=%{public}s', id);
+  }
+
+  private setDeleteMode(mode: string): void {
+    this.deleteMode = deleteModeOf(mode);
+    appPreferences.setString(PrefKeys.DELETE_MODE, this.deleteMode);
+  }
+
+  private toggleSound(): void {
+    this.soundEnabled = !this.soundEnabled;
+    appPreferences.setBool(PrefKeys.SOUND_ENABLED, this.soundEnabled);
+    this.audioService.setSoundEnabled(this.soundEnabled);
+  }
+
+  private toggleVibrate(): void {
+    this.vibrationEnabled = !this.vibrationEnabled;
+    appPreferences.setBool(PrefKeys.VIBRATION_ENABLED, this.vibrationEnabled);
+    this.audioService.setVibrationEnabled(this.vibrationEnabled);
+  }
+
+  private setVolume(v0to100: number): void {
+    this.volume0to100 = Math.round(v0to100);
+    const pref: number = volumeToPref(this.volume0to100);
+    appPreferences.setNumber(PrefKeys.VOLUME, pref);
+    this.audioService.setVolume(pref);
+  }
+
+  private cycleMachine(): void {
+    const all: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric'];
+    const idx: number = all.indexOf(this.machineKind as string);
+    const next: MachineKind = all[(idx + 1) % all.length] as MachineKind;
+    this.applyMachine(next);
+  }
+
+  private cyclePaper(): void {
+    const all: string[] = ['letter', 'manuscript', 'postcard', 'memo'];
+    const idx: number = all.indexOf(this.paperKind as string);
+    const next: PaperKind = all[(idx + 1) % all.length] as PaperKind;
+    appPreferences.setString(PrefKeys.PAPER, next as string);
+    this.applyPaper(next);
+  }
+
   private deleteDossier(id: string, mode: string): void {
     const all: DocSummary[] = docStore.list();
     let n: number = 0;
@@ -3142,7 +3253,8 @@ struct Index {
       }
       n = n + 1;
       if (mode === 'purge') {
-        docStore.remove(all[i].id);
+        // 第 6 批 F10：卷宗连纸一起删＝彻底删（remove() 已翻转为入回收站）
+        docStore.removePermanently(all[i].id);
       } else {
         const data: DocData | null = docStore.load(all[i].id);
         if (data !== null) {
@@ -4145,6 +4257,17 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
+          volume0to100: this.volume0to100,
+          soundEnabled: this.soundEnabled,
+          vibrationEnabled: this.vibrationEnabled,
+          deleteMode: this.deleteMode,
+          onToggleSound: (): void => { this.toggleSound(); },
+          onToggleVibrate: (): void => { this.toggleVibrate(); },
+          onVolume: (v: number): void => { this.setVolume(v); },
+          onDeleteMode: (mode: string): void => { this.setDeleteMode(mode); },
+          onPickMachine: (): void => { this.cycleMachine(); },
+          onPickPaper: (): void => { this.cyclePaper(); },
+          onOpenTrash: (): void => { this.openTrash(); },
           dailyGoal: statsService.dailyGoal(),
           onGoal: (n: number): void => {
             statsService.setDailyGoal(n);
@@ -4160,17 +4283,6 @@ struct Index {
             });
           },
           onReplayPageGuide: (): void => { this.replayPageGuide(); },
-          candidateCount: this.candPageSize,
-          candidateSize: this.candChipFontSize,
-          onCandidateCount: (n: number): void => {
-            this.candPageSize = clampCandidateCount(n);
-            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, this.candPageSize);
-            this.pinyinShown();
-          },
-          onCandidateSize: (n: number): void => {
-            this.candChipFontSize = clampCandidateSize(n);
-            appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, this.candChipFontSize);
-          },
           onReplayOnboarding: (): void => { this.replayOnboarding(); },
           onPickCnEngine: (): void => {
             const next: string = this.cnEngine === 'builtin' ? 'system' : 'builtin';
@@ -4184,6 +4296,19 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'cn engine -> %{public}s', next);
           },
           onBack: (): void => { this.popPage(); },
+        })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // 第 6 批 F10：回收站（排在设置页之后，保证盖在设置页上）
+      if (this.trashOpen) {
+        TrashPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docs: this.trashDocs,
+          onBack: (): void => { this.popPage(); },
+          onRestore: (id: string): void => { this.restoreTrash(id); },
+          onPurge: (id: string): void => { this.purgeTrash(id); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
@@ -4216,6 +4341,7 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           dossierId: this.openDossierId,
           docs: this.listDocs(),
+          deleteMode: this.deleteMode,
           onBack: (): void => { this.popPage(); },
           onOpenPaper: (id: string): void => {
             // §5.2：点「打开」进打字页——栈退到 typewriter 层再载入
@@ -4224,17 +4350,13 @@ struct Index {
           },
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
+          onRenamePaper: (id: string, name: string): void => { this.renameDocument(id, name); },
           onOpenDoc: (id: string): void => { this.openDocId = id; this.pushPage('docview'); },
           onRenamed: (): void => {
             this.docsRev = this.docsRev + 1;
             hilog.info(DOMAIN, TAG, 'renamed rev=%{public}s (list will refresh)', this.docsRev.toString());
           },
-          onDeletePaper: (id: string): void => {
-            docStore.remove(id);
-            this.docsRev = this.docsRev + 1;
-            hilog.info(DOMAIN, TAG, 'paperDeleted id=%{public}s rev=%{public}s',
-              id, this.docsRev.toString());
-          },
+          onDeletePaper: (id: string): void => { this.deletePaper(id); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
@@ -4245,6 +4367,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.openDocId,
+          deleteMode: this.deleteMode,
           onBack: (): void => { this.popPage(); },
           onEdit: (id: string): void => {
             // 点正文页进打字机：栈退到 typewriter 层
@@ -4252,9 +4375,8 @@ struct Index {
             this.popTo('typewriter');
           },
           onDelete: (id: string): void => {
-            docStore.remove(id);
+            this.deletePaper(id);
             this.openDocId = '';
-            this.docsRev = this.docsRev + 1;
           },
           onAddPage: (id: string): void => {
             // P1-5：入口日志——点了没有这一行说明点击没到按钮

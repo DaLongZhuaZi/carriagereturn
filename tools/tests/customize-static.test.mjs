@@ -150,9 +150,9 @@ test('FontBar：currentFamilyName 非空时优先，空时走原逻辑', () => {
   assert.match(fontBar, /fontFamily\(this\.currentFamilyName\.length > 0 \? this\.currentFamilyName : this\.fontFamily\)/);
 });
 
-test('GuideCore：页面清单 13 个（含 font_manager / paper_custom），新页 3 条', () => {
+test('GuideCore：页面清单 14 个（含 font_manager / paper_custom / trash），新页 3 条', () => {
   const pages = guide.allPages();
-  assert.equal(pages.length, 13);
+  assert.equal(pages.length, 14);
   assert.ok(pages.includes('font_manager'));
   assert.ok(pages.includes('paper_custom'));
   assert.equal(guide.stepsExpected('font_manager'), 3);

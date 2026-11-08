@@ -104,4 +104,8 @@ export interface DocSummary {
   charCount?: number;
   /** P2-9：缩略图正文（前 3 行），随列表一次算好，卡片不再 build 期读文件。 */
   preview?: string;
+  /** 第 6 批 F10：入回收站时间（active 文档无值）。 */
+  trashedAt?: number;
+  /** 第 6 批 F10：入回收站前所属卷宗（恢复时回原卷宗）。 */
+  origDossierId?: string | null;
 }

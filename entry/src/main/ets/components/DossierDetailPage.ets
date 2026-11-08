@@ -9,6 +9,7 @@
 import { Dossier, dossierStore } from '../services/DossierStore';
 import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
+import { DocSearchHit, DocSearchOptions } from '../model/DocStoreStateCore';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
 import { AppIcon } from './AppIcon';
@@ -42,6 +43,8 @@ export struct DossierDetailPage {
   @Prop heightVp: number = 720;
   @Prop dossierId: string = '';
   @Prop @Watch('onDocsChanged') docs: DocSummary[] = [];
+  /** 第 6 批 F10：删除方式三档（'direct'|'ask'|'trash'）；确认归属在页面，Index 只分派。 */
+  @Prop deleteMode: string = 'trash';
   @State papers: DocSummary[] = [];
   @State dName: string = '';
   @State dCover: string = 'kraft';
@@ -60,6 +63,8 @@ export struct DossierDetailPage {
   onOpenPaper: (id: string) => void = (): void => {};
   onNewPaper: () => void = (): void => {};
   onDeletePaper: (id: string) => void = (): void => {};
+  /** 第 6 批 F10：纸重命名（页面只发意图，rename 落盘在 Index→docStore.rename）。 */
+  onRenamePaper: (id: string, name: string) => void = (id: string, name: string): void => {};
   /** 点缩略图 → 文档视图（§5.3）。 */
   onOpenDoc: (id: string) => void = (): void => {};
   /** P1-2：改名后通知外层递增 docsRev，使卷宗页列表随之刷新。 */
@@ -75,6 +80,16 @@ export struct DossierDetailPage {
   @State moreOpen: boolean = false;
   /** 非受控输入（同新建卷宗）：普通字段，打字不重建对话框。 */
   private draftName: string = '';
+  /** 第 6 批 F10：卷宗内搜索（150ms 防抖；空查询＝显示本卷宗全部）。 */
+  @State searchQ: string = '';
+  @State searchIds: string[] = [];
+  @State searching: boolean = false;
+  /** 第 6 批 F10：纸卡片 ⋯ 菜单与重命名弹窗。 */
+  @State paperMenuId: string = '';
+  @State renamingPaper: string = '';
+  private paperDraftName: string = '';
+  /** 防抖定时器（-1＝未挂）。 */
+  private searchTimer: number = -1;
 
   aboutToAppear(): void {
     this.reload();
@@ -86,6 +101,14 @@ export struct DossierDetailPage {
   /** P1-11：docs 变化只重算列表，**不重播飞出动画**（新纸/删纸都应直接在位）。 */
   onDocsChanged(): void {
     this.reloadList(false);
+  }
+
+  /** 离页清掉未触发的搜索防抖定时器（避免卸载后回写状态）。 */
+  aboutToDisappear(): void {
+    if (this.searchTimer >= 0) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = -1;
+    }
   }
 
   private reload(): void {
@@ -307,6 +330,124 @@ export struct DossierDetailPage {
     return t.length > 0 ? t : ' ';
   }
 
+  /* ------------------------------------------------------------------ *
+   * 第 6 批 F10：卷宗内搜索（150ms 防抖；只过滤本卷宗 papers）
+   * ------------------------------------------------------------------ */
+
+  /** 输入变化：先记 query，安静 150ms 后才查（M-8 防抖，不逐字符同步扫盘）。 */
+  private onSearchChange(v: string): void {
+    this.searchQ = v;
+    if (this.searchTimer >= 0) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = -1;
+    }
+    const q: string = v.trim();
+    if (q.length === 0) {
+      // 空查询＝显示本卷宗全部（旧命中一并清掉）
+      this.searchIds = [];
+      this.searching = false;
+      return;
+    }
+    this.searching = true;
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = -1;
+      this.runSearch(q);
+    }, 150);
+  }
+
+  /** 全局搜标题＋正文（includeTrashed=false，limit 50），只取命中 id；失败不抛。 */
+  private runSearch(q: string): void {
+    const ids: string[] = [];
+    try {
+      const opts: DocSearchOptions = { includeTrashed: false, limit: 50 };
+      const hits: DocSearchHit[] = docStore.search(q, opts);
+      for (let i = 0; i < hits.length; i++) {
+        ids.push(hits[i].id);
+      }
+    } catch (e) {
+      hilog.warn(0x0000, 'DossierDetail', 'search failed q=%{public}s', q);
+    }
+    this.searchIds = ids;
+    this.searching = false;
+    hilog.info(0x0000, 'DossierDetail', 'search q=%{public}s hits=%{public}s',
+      q, ids.length.toString());
+  }
+
+  /** 可见纸：空查询＝全部；否则只留命中 id（保持本卷宗原有时间倒序）。 */
+  private visiblePapers(): DocSummary[] {
+    if (this.searchQ.trim().length === 0) {
+      return this.papers;
+    }
+    const out: DocSummary[] = [];
+    for (let i = 0; i < this.papers.length; i++) {
+      if (this.searchIds.indexOf(this.papers[i].id) >= 0) {
+        out.push(this.papers[i]);
+      }
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 第 6 批 F10：纸卡片 ⋯ 菜单 / 重命名 / 删除确认文案
+   * ------------------------------------------------------------------ */
+
+  private paperTitleOf(id: string): string {
+    for (let i = 0; i < this.papers.length; i++) {
+      if (this.papers[i].id === id) {
+        return this.papers[i].title;
+      }
+    }
+    return '';
+  }
+
+  private openPaperRename(id: string): void {
+    this.paperMenuId = '';
+    this.paperDraftName = this.paperTitleOf(id);
+    this.renamingPaper = id;
+  }
+
+  /** 空标题不提交（renameRecord 也会 trim）；空提交时弹窗不关，允许继续改。 */
+  private commitPaperRename(): void {
+    const id: string = this.renamingPaper;
+    if (id.length === 0) {
+      this.renamingPaper = '';
+      return;
+    }
+    const nm: string = this.paperDraftName.trim();
+    if (nm.length === 0) {
+      return;
+    }
+    this.renamingPaper = '';
+    hilog.info(0x0000, 'DossierDetail', 'renamePaper id=%{public}s name=%{public}s', id, nm);
+    this.onRenamePaper(id, nm);
+  }
+
+  /** 删除确认文案按档：direct＝不可恢复；ask/trash＝进回收站可恢复（M-4）。 */
+  private deleteConfirmText(): ResourceStr {
+    return this.deleteMode === 'direct'
+      ? $r('app.string.delete_direct_confirm')
+      : $r('app.string.delete_trash_confirm');
+  }
+
+  /** 搜索框：纸列表上方，占位文案走资源键。 */
+  @Builder
+  searchRow() {
+    Column() {
+      TextInput({ placeholder: $r('app.string.search_placeholder') })
+        .id('dossier_search')
+        .width('100%')
+        .height(40)
+        .fontSize(15)
+        .fontColor('#e8ddc9')
+        .placeholderColor('rgba(232,221,201,0.4)')
+        .backgroundColor('#241c16')
+        .borderRadius(10)
+        .onChange((v: string) => { this.onSearchChange(v); })
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 2, bottom: 10 })
+  }
+
 
 
   @Builder
@@ -362,15 +503,26 @@ export struct DossierDetailPage {
 
   @Builder
   body() {
+    Column() {
+        // 第 6 批 F10：搜索框在最上方（150ms 防抖；命中结果只过滤本卷宗 papers）
+        this.searchRow()
         if (this.papers.length === 0) {
           Column() {
             Text('这里还没有纸。点右上角「新建纸张」放一张进来。')
               .fontSize(12).fontColor('rgba(232,221,201,0.6)')
           }
           .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        } else if (this.searchQ.trim().length > 0 && !this.searching &&
+          this.visiblePapers().length === 0) {
+          // 有查询但无命中（搜索进行中不显示，避免空态闪现）
+          Column() {
+            Text($r('app.string.search_empty'))
+              .fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
         } else {
           Grid() {
-            ForEach(this.papers, (p: DocSummary, idx: number) => {
+            ForEach(this.visiblePapers(), (p: DocSummary, idx: number) => {
               GridItem() {
                 Column() {
                   // 缩略图：纸纹 + 前 3 行
@@ -398,10 +550,14 @@ export struct DossierDetailPage {
                     Text('打开').fontSize(12).fontColor('#c9a45c')
                       .id('open_' + p.id)
                       .onClick(() => { this.onOpenPaper(p.id); })
-                    Text('·').fontSize(12).fontColor('rgba(232,221,201,0.4)').margin({ left: 6, right: 6 })
-                    Text('删除').fontSize(12).fontColor('rgba(232,221,201,0.6)')
-                      .id('del_' + p.id)
-                      .onClick(() => { this.pendingDelPaper = p.id; })
+                    // 第 6 批 F10：⋯ 收「重命名纸／删除」两项（删除不再裸放在卡片上）
+                    Stack() {
+                      AppIcon({ kind: 'more', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
+                    }
+                    .width(30).height(28)
+                    .id('more_' + p.id)
+                    .margin({ left: 8 })
+                    .onClick(() => { this.paperMenuId = p.id; })
                   }.width('100%').margin({ top: 6 })
                 }
                 .width('100%')
@@ -435,6 +591,8 @@ export struct DossierDetailPage {
           .width('100%').layoutWeight(1)
           .padding({ left: 20, right: 20 })
         }
+    }
+    .width('100%').layoutWeight(1)
   }
   @Builder
   delDossierBody() {
@@ -458,10 +616,11 @@ export struct DossierDetailPage {
   @Builder
   delPaperBody() {
     Column() {
-      Text('删除这张纸？').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-      Text('删除后不可恢复。').fontSize(12).fontColor('rgba(232,221,201,0.75)')
+      Text($r('app.string.delete_paper_title')).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+      // M-4：文案按 deleteMode 分档（direct＝不可恢复；ask/trash＝进回收站可恢复）
+      Text(this.deleteConfirmText()).fontSize(12).fontColor('rgba(232,221,201,0.75)')
         .margin({ top: 10 })
-      Text('删除').fontSize(15).fontColor('#a33327')
+      Text($r('app.string.delete')).fontSize(15).fontColor('#a33327')
         .id('dlg_del')
         .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
         .onClick(() => {
@@ -469,10 +628,55 @@ export struct DossierDetailPage {
           this.pendingDelPaper = '';
           this.onDeletePaper(id);
         })
-      Text('取消').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+      Text($r('app.string.cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
         .id('dlg_cancel')
         .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
         .onClick(() => { this.pendingDelPaper = ''; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
+
+  /** 第 6 批 F10：纸卡片 ⋯ 菜单（重命名纸／删除／取消）。 */
+  @Builder
+  paperMenuBody() {
+    Column() {
+      Text($r('app.string.rename_paper_title')).fontSize(15).fontColor('#c9a45c')
+        .id('paper_menu_rename')
+        .width('100%').textAlign(TextAlign.Center)
+        .onClick(() => { this.openPaperRename(this.paperMenuId); })
+      Text($r('app.string.delete')).fontSize(15).fontColor('#a33327')
+        .id('paper_menu_delete')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => {
+          const id: string = this.paperMenuId;
+          this.paperMenuId = '';
+          if (id.length > 0) {
+            this.pendingDelPaper = id;
+          }
+        })
+      Text($r('app.string.cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        .id('paper_menu_cancel')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => { this.paperMenuId = ''; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
+
+  /** 第 6 批 F10：纸重命名（预填当前标题；空标题不提交）。 */
+  @Builder
+  paperRenameBody() {
+    Column() {
+      Text($r('app.string.rename_paper_title')).fontSize(17).fontWeight(FontWeight.Bold)
+        .fontColor('#e8ddc9')
+      TextInput({ text: this.paperDraftName, placeholder: $r('app.string.rename_paper_title') })
+        .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
+        .defaultFocus(true)
+        .onChange((v: string) => { this.paperDraftName = v; })
+      Row() {
+        Text($r('app.string.rename_paper_cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
+          .onClick(() => { this.renamingPaper = ''; })
+        Blank()
+        Text($r('app.string.rename_paper_ok')).fontSize(15).fontColor('#c9a45c').id('paper_rename_ok')
+          .onClick(() => { this.commitPaperRename(); })
+      }.width('100%').margin({ top: 18 })
     }.width('100%').alignItems(HorizontalAlign.Start)
   }
 
@@ -538,6 +742,17 @@ export struct DossierDetailPage {
         visible: this.pendingDelPaper.length > 0, widthVp: this.widthVp, heightVp: this.heightVp,
         onClose: () => { this.pendingDelPaper = ''; },
         content: (): void => { this.delPaperBody() },
+      })
+      // 第 6 批 F10：纸卡片 ⋯ 菜单与重命名（遮罩/卡片同层兄弟，点遮罩关）
+      AppDialog({
+        visible: this.paperMenuId.length > 0, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: () => { this.paperMenuId = ''; },
+        content: (): void => { this.paperMenuBody() },
+      })
+      AppDialog({
+        visible: this.renamingPaper.length > 0, widthVp: this.widthVp, heightVp: this.heightVp,
+        onClose: () => { this.renamingPaper = ''; },
+        content: (): void => { this.paperRenameBody() },
       })
       AppDialog({
         visible: this.renaming, widthVp: this.widthVp, heightVp: this.heightVp,

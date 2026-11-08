@@ -9,6 +9,7 @@ import { DocSummary, PaperKind } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
+import { AppDialog } from './AppDialog';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { GuideStep } from './GuideOverlay';
 
@@ -24,6 +25,10 @@ export struct DocumentViewPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop docId: string = '';
+  /** 第 6 批 F10：删除方式三档（'direct'|'ask'|'trash'）；确认归页面，文案按档（M-4）。 */
+  @Prop deleteMode: string = 'trash';
+  /** 第 6 批 F10：删除二次确认弹窗开关。 */
+  @State confirmDel: boolean = false;
   /** D6：入场 stagger 计数。 */
   @State revealN: number = 0;
   @State title: string = '';
@@ -79,6 +84,13 @@ export struct DocumentViewPage {
       if (i < this.lines.length - 1) { out += '\n'; }
     }
     return out.length > 0 ? out : ' ';
+  }
+
+  /** 删除确认文案按档：direct＝不可恢复；ask/trash＝进回收站可恢复（M-4）。 */
+  private deleteConfirmText(): ResourceStr {
+    return this.deleteMode === 'direct'
+      ? $r('app.string.delete_direct_confirm')
+      : $r('app.string.delete_trash_confirm');
   }
 
   @Builder
@@ -165,26 +177,61 @@ export struct DocumentViewPage {
             .borderRadius(28).backgroundColor('#241c16')
             .margin({ right: 8 })
           Text('删除').fontSize(15).fontColor('rgba(232,221,201,0.6)')
+            .id('dv_del')
             .layoutWeight(1).height(44).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#241c16')
-            .onClick(() => { this.onDelete(this.docId); })
+            // 第 6 批 F10：先二次确认（文案按 deleteMode），确认后才 onDelete
+            .onClick(() => { this.confirmDel = true; })
         }
         .width('100%').height(56).padding({ left: 20, right: 20 })
     }
     .width('100%').height('100%')
   }
 
+  /** 第 6 批 F10：删除确认弹窗（遮罩/卡片由 AppDialog 内部同层兄弟实现）。 */
+  @Builder
+  delBody() {
+    Column() {
+      Text($r('app.string.delete_paper_title')).fontSize(17).fontWeight(FontWeight.Bold)
+        .fontColor('#e8ddc9')
+      Text(this.deleteConfirmText()).fontSize(12).fontColor('rgba(232,221,201,0.75)')
+        .margin({ top: 10 })
+      Text($r('app.string.delete')).fontSize(15).fontColor('#a33327')
+        .id('dv_dlg_del')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+        .onClick(() => {
+          const id: string = this.docId;
+          this.confirmDel = false;
+          this.onDelete(id);
+        })
+      Text($r('app.string.cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        .id('dv_dlg_cancel')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => { this.confirmDel = false; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     // D2：根节点多余的 backgroundColor('#171310') 已删（渐变由 PageShell 统一给）
-    PageShell({
-      widthVp: this.widthVp,
-      heightVp: this.heightVp,
-      title: $r('app.string.page_document'),
-      onBack: () => { this.onBack(); },
-      subtitle: $r('app.string.guide_document_view_hint'),
-      showSubtitle: true,
-      content: (): void => { this.body() },
-    })
+    Stack({ alignContent: Alignment.TopStart }) {
+      PageShell({
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        title: $r('app.string.page_document'),
+        onBack: () => { this.onBack(); },
+        subtitle: $r('app.string.guide_document_view_hint'),
+        showSubtitle: true,
+        content: (): void => { this.body() },
+      })
+      AppDialog({
+        visible: this.confirmDel,
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        onClose: () => { this.confirmDel = false; },
+        content: (): void => { this.delBody() },
+      })
+    }
+    .width(this.widthVp).height(this.heightVp)
   }
 }
 
