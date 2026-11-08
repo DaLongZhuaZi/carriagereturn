@@ -7,6 +7,7 @@ export const BLUEPRINT_1930: MachineBlueprint = {
   bracketAspect: 1.2921,
   bracketPivotX: 0.519,
   bracketPivotY: 0.199,
+  rollerWidthRatio: 0.9528,
   leverPivotY: 0.960,
   bracketRawfile: (): Resource => $rawfile('layers/1930s-portable/lever-pivot-bracket.png'),
 };

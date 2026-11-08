@@ -9,6 +9,8 @@ export interface MachineBlueprint {
   /** 支架销钉孔 x／y 比例 */
   bracketPivotX: number;
   bracketPivotY: number;
+  /** 滚筒纸卷占比（W = Pw / 此值） */
+  rollerWidthRatio: number;
   /** 拨杆支点孔 y 比例 */
   leverPivotY: number;
   /** 拨杆支架素材（各机型各自字面量，$rawfile 只吃编译期常量） */

@@ -1099,7 +1099,7 @@ struct Index {
       // maxTravel ≤ paperLeftFixed − (rollW − Pw)/2（手机约 42.8vp）
       let mt: number = Math.min(64, this.paperWidthVp * 0.25);
       if (!this.isTablet) {
-        const rollWPw: number = this.paperWidthVp / findMachine(this.machineKind).rollerWidthRatio;
+        const rollWPw: number = this.paperWidthVp / this.bp().rollerWidthRatio;
         const paperLeftFixed: number = (this.stageWidth - this.paperWidthVp) / 2;
         const cap: number = paperLeftFixed - (rollWPw - this.paperWidthVp) / 2;
         if (cap > 0 && mt > cap) {
@@ -1317,9 +1317,10 @@ struct Index {
     }
   }
 
-  /** 探测 1920s 分层素材是否齐备；缺失则回退旧 carriage-strip.png。 */
+  /** 探测分层素材是否齐备；缺失则回退旧 carriage-strip.png。
+   *  §14：1920s 与 1930s 都有分层件（各自蓝图目录），1950s／1960s 无素材走兜底。 */
   private detectLayers(): void {
-    if (this.machineKind !== MachineKind.UPRIGHT_1920S) {
+    if (!this.hasLayers()) {
       this.useLayers = false;
       return;
     }
