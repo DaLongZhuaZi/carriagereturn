@@ -11,8 +11,7 @@
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
-import { fileIo as fs, fileUri } from '@kit.CoreFileKit';
-import { systemShare } from '@kit.ShareKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
 import { image } from '@kit.ImageKit';
 import { pdfService } from '@kit.PDFKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
@@ -50,6 +49,8 @@ import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext'
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
+import { FontService, FontRegisterResult } from '../services/FontService';
+import { ShareService, ShareResult } from '../services/ShareService';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
@@ -61,7 +62,6 @@ import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
-import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
 import { MetalAssembly1920 } from '../machines/1920s/MetalAssembly1920';
@@ -90,6 +90,8 @@ const KEYBAND_ASPECT: number = 2048 / 975;
 const CARRIAGE_STRIP_ASPECT: number = 2048 / 287;
 const GROW_DURATION_MS: number = 60; // 硬曲线：纸移动 50–70ms，写死
 const BELL_REMAINING: number = 8;
+/** 换纸计时打点开关（第 0 批；默认 false＝零成本关闭；测试构建/排查时改 true）。 */
+const PAPER_CHANGE_TRACE: boolean = false;
 
 function emptyLayout(): KeymapLayout {
   return {
@@ -921,24 +923,9 @@ struct Index {
     // 上一轮实测 onCreate 里注册两次都打 ok 但 i/m 仍比例字体
     // P1-4：按 MachineCatalog.FONTS 表逐一注册 17 款字体（原来只注册了 CourierPrime，
     // 其余 16 款在换装页会静默回落到系统字体 → 17 行试写分不出差别）
-    const failed: string[] = [];
-    for (let i = 0; i < FONTS.length; i++) {
-      try {
-        this.getUIContext().getFont().registerFont({
-          familyName: FONTS[i].familyName,
-          familySrc: $rawfile(FONTS[i].rawfile),
-        });
-        hilog.info(DOMAIN, TAG, 'registerFont ok %{public}s <- %{public}s',
-          FONTS[i].familyName, FONTS[i].rawfile);
-      } catch (e) {
-        failed.push(FONTS[i].familyName);
-        hilog.error(DOMAIN, TAG, 'registerFont FAILED %{public}s <- %{public}s',
-          FONTS[i].familyName, FONTS[i].rawfile);
-      }
-    }
-    this.fontLoadFailed = failed;
-    hilog.info(DOMAIN, TAG, 'registerFont total=%{public}s failed=%{public}s',
-      FONTS.length.toString(), failed.length.toString());
+    // 第 0 批：注册循环搬进 FontService（同一函数），Index 只调一次。
+    const fontResult: FontRegisterResult = FontService.registerBundled(this.getUIContext(), FONTS);
+    this.fontLoadFailed = fontResult.failed;
 
     const host = this.getUIContext().getHostContext();
     if (host !== undefined && host !== null) {
@@ -2401,6 +2388,15 @@ struct Index {
       (cur.line - 1).toString(), prevLen.toString(), targetO.toFixed(1), this.paperTopVp.toFixed(1));
   }
 
+  /** 换纸计时打点（第 0 批）：只加日志，不改任何动画时长与顺序。 */
+  private pcTrace(stage: string, t0: number, extra: string): void {
+    if (!PAPER_CHANGE_TRACE) {
+      return;
+    }
+    hilog.info(DOMAIN, TAG, 'paperChange trace stage=%{public}s dt=%{public}s %{public}s',
+      stage, (Date.now() - t0).toString(), extra);
+  }
+
   /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
   private onPaperChange(): void {
     // 换纸时防御性清空预编辑串
@@ -2408,7 +2404,9 @@ struct Index {
     if (this.paperChanging) {
       return;
     }
+    const pcT0: number = Date.now();
     this.paperChanging = true;
+    this.pcTrace('start', pcT0, 'trace=on');
     const startTop: number = this.paperTopVp;
     hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s', startTop.toFixed(1), this.paperContainerVp.toFixed(1));
     // ① 整张模式：容器高 = Ph、不裁，整张纸才能整片飞出（不再只露一截）
@@ -2425,6 +2423,7 @@ struct Index {
     // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
     hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
       this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
+    this.pcTrace('step1', pcT0, 'targetTop=' + this.paperTopVp.toFixed(1));
     setTimeout(() => {
       // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
       this.docModel.clear();
@@ -2441,6 +2440,8 @@ struct Index {
       // ★改：opacity 与整张模式都在动画开始前恢复（否则纸在滚筒处透明/中途 clip 突变闪现）
       this.paperOpacity = 1;
       this.paperFullSheet = false;
+      this.pcTrace('step2-hide', pcT0, 'top=' + this.paperTopVp.toFixed(1) +
+        ' box=' + this.paperContainerVp.toFixed(1));
       // 打点在 animateTo 之前：此时 paperTop 就是「藏在滚筒处」的值（应 ≈ carriageTop）
       hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s box=%{public}s carriageTop=%{public}s',
         this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1), this.carriageTopVp.toFixed(1));
@@ -2453,8 +2454,10 @@ struct Index {
         this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
       hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s top=%{public}s',
         this.knobAngle.toFixed(1), this.paperTopVp.toFixed(1));
+      this.pcTrace('step2-begin', pcT0, 'knob=' + this.knobAngle.toFixed(1));
       setTimeout(() => {
         this.paperChanging = false;
+        this.pcTrace('end', pcT0, 'total=' + (Date.now() - pcT0).toString());
       }, 320);
     }, 300);
   }
@@ -2597,22 +2600,20 @@ struct Index {
 
   /** §6.2：把刚导出的文件交给系统分享面板。失败只记日志，不影响已落盘的文件。 */
   private shareFile(path: string, utd: string): void {
+    // 第 0 批：分享唯一入口 ShareService（原 systemShare 逻辑原样搬入；行为不变）
     try {
       const host = this.getUIContext().getHostContext();
       if (host === undefined || host === null) {
         return;
       }
-      const uri: string = fileUri.getUriFromPath(path);
-      const data: systemShare.SharedData = new systemShare.SharedData({
-        utd: utd,
-        uri: uri,
-      });
-      const controller: systemShare.ShareController = new systemShare.ShareController(data);
-      const opts: systemShare.ShareControllerOptions = {};
-      controller.show(host as common.UIAbilityContext, opts)
-        .then(() => { hilog.info(DOMAIN, TAG, 'share panel shown'); })
-        .catch(() => { hilog.error(DOMAIN, TAG, 'share panel failed'); });
-      hilog.info(DOMAIN, TAG, 'share shown uri=%{public}s', uri);
+      ShareService.shareFile(host as common.UIAbilityContext, path, utd)
+        .then((r: ShareResult) => {
+          if (r.shown) {
+            hilog.info(DOMAIN, TAG, 'share panel shown via ShareService');
+          } else {
+            hilog.error(DOMAIN, TAG, 'share panel failed via ShareService: %{public}s', r.error);
+          }
+        });
     } catch (e) {
       hilog.error(DOMAIN, TAG, 'share failed: %{public}s', JSON.stringify(e));
     }
