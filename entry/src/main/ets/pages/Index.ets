@@ -406,6 +406,16 @@ struct Index {
       const charsText: string = this.decodeUtf8(bytes);
       const wordsBytes: Uint8Array = await rm.getRawFileContent('dict/pinyin-words.json');
       const wordsText: string = this.decodeUtf8(wordsBytes);
+      // §17.5：字母序键表由管线预排（177,615 键），运行时绝不 sort
+      let keysArr: string[] = [];
+      try {
+        const keysBytes: Uint8Array = await rm.getRawFileContent('dict/pinyin-keys.json');
+        const keysText: string = this.decodeUtf8(keysBytes);
+        keysArr = JSON.parse(keysText) as string[];
+        hilog.info(DOMAIN, TAG, 'keys loaded n=%{public}s', keysArr.length.toString());
+      } catch (e) {
+        hilog.warn(DOMAIN, TAG, 'keys fallback: pinyin-keys.json 读不到，前缀候选将不可用');
+      }
       const chars: Record<string, string[]> = JSON.parse(charsText) as Record<string, string[]>;
       const words: Record<string, string[]> = JSON.parse(wordsText) as Record<string, string[]>;
       const tLoad: number = Date.now();
@@ -413,6 +423,11 @@ struct Index {
       // setTimeout 让出事件循环累计到 26s，实测更糟，故用同步建索引 + 延迟预加载
       // §17.3：懒加载——启动只解码＋解析（约 500ms），建索引交给后台分片
       this.pinyinEngine = PinyinEngine.fromDataLazy({ chars: chars, words: words });
+      if (keysArr.length > 0) {
+        this.pinyinEngine.setSortedKeys(keysArr);
+      } else {
+        hilog.warn(DOMAIN, TAG, 'keys fallback: sortedKeys 为空，prefixWords 直接返回空');
+      }
       this.pinyinSession = new PinyinSession(this.pinyinEngine);
       this.pinyinReady = true;
       hilog.info(DOMAIN, TAG, 'index ms=%{public}s (lazy)',

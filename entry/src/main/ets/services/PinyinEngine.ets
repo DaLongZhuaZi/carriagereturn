@@ -105,11 +105,8 @@ export class PinyinEngine {
     if (!this.pendingAbbrev || this.indexesReady) {
       return;
     }
+    // §17.5：keys 由 pinyin-keys.json 提供，这里不再构建／排序
     const keys: string[] = Object.keys(this.rawWords);
-    if (this.sortedKeys.length === 0) {
-      this.sortedKeys = keys.slice();
-      this.sortedKeys.sort();
-    }
     // 每 25 键让出 24ms：设备上 300 键/片会把 UI 线程占满导致系统判无响应
     const SEG: number = 25;
     for (let i = 0; i < keys.length; i++) {
@@ -144,6 +141,15 @@ export class PinyinEngine {
     await e.buildAbbrevAsync();
     e.ready = true;
     return e;
+  }
+
+  /** §17.5：接管管线预排好的字母序键表（pinyin-keys.json），运行时零排序。 */
+  setSortedKeys(keys: string[]): void {
+    this.sortedKeys = keys;
+  }
+
+  sortedKeyCount(): number {
+    return this.sortedKeys.length;
   }
 
   /** 词库是否已建好索引（异步加载期间为 false）。 */
@@ -228,6 +234,8 @@ export class PinyinEngine {
       const k: string = wk[i];
       this.words.set(k, data.words[k]);
     }
+    // 注：本函数只用于 Node 单测/开发路径；设备运行时走 fromDataLazy + setSortedKeys，
+    // 那里绝不 sort（§17.5）
     this.sortedKeys = wk.slice();
     this.sortedKeys.sort();
     // 词频序：JSON 键顺序 = 生成时的词频序；每键内数组也已按频序
@@ -251,16 +259,9 @@ export class PinyinEngine {
    */
   private abbrevScan(s: string, limit: number): string[] {
     const res: string[] = [];
+    // §17.5：绝不在这里 sort（177,615 键在设备上 6 秒以上，按键即冻）
     if (this.sortedKeys.length === 0) {
-      const rk2: string[] = Object.keys(this.rawWords);
-      if (rk2.length > 0) {
-        this.sortedKeys = rk2;
-      } else {
-        const mk2: string[] = [];
-        this.words.forEach((a: string[], k: string) => { mk2.push(k); });
-        this.sortedKeys = mk2;
-      }
-      this.sortedKeys.sort();
+      return res;
     }
     const first: string = s.charAt(0);
     let lo: number = 0;
@@ -352,11 +353,8 @@ export class PinyinEngine {
     if (s.length < 2) {
       return res;
     }
-    if (this.sortedKeys.length === 0) {
-      // 懒模式：首次用到前缀时再建有序键（一次排序，之后常驻）
-      this.sortedKeys = Object.keys(this.rawWords);
-      this.sortedKeys.sort();
-    }
+    // §17.5：运行时绝不 sort。sortedKeys 由管线预排的 pinyin-keys.json 提供；
+    // 没读到就是没读到——击键路径上不许现排 177,615 个键
     if (this.sortedKeys.length === 0) {
       return res;
     }
