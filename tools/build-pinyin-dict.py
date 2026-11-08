@@ -540,6 +540,20 @@ def main():
                 target.append(w_x)
                 n_xzqh_new += 1
     print('行政区划新增 %d 词（去重后）' % n_xzqh_new)
+    # v3.1（2026-11-08 单测回归后补）：键内按 wordfreq 全局词频降序重排。
+    # 根因：jieba dict.txt 不是词频序（重庆 3518 在 315,273 行，崇庆 13 在 121,104 行），
+    # 且截前 8 万是按键取整（先遇到的键整取），高频词可能根本不在截断后的 jieba 里
+    # （重庆就不在），只能靠后来的 CC-CEDICT／THUOCL 补，而它们的内部顺序不是词频序——
+    # 结果 chongqing 键排成 [崇庆， 重庆]，单测挂。键内按 wordfreq 重排后，重庆（7.2e-05）
+    # 回到崇庆（9.1e-08）前面。wordfreq 里没有的词频率 0，稳定排序保持原相对顺序。
+    # 注意：放在 SUPPLEMENT／HOT 之前，让那两张表仍能强制置顶。
+    if wf:
+        n_resorted = 0
+        for k_w, lst_w in trimmed.items():
+            if len(lst_w) > 1:
+                lst_w.sort(key=lambda w: -wf.get(w, 0.0))
+                n_resorted += 1
+        print('键内按 wordfreq 重排（%d 个多词键）' % n_resorted)
     # 补录表（CC-CEDICT 也没有的品牌名／新词／常见人名）：人名走姓氏读音（pinyin_for kind='person'），
     # 其余走 pypinyin；插到该键首位
     n_supp = 0
@@ -667,6 +681,19 @@ def main():
         f.write(words_bytes)
     with open(os.path.join(DICT_DIR, 'pinyin-chars.json'), 'wb') as f:
         f.write(chars_bytes)
+    # v3.1（2026-11-08 卡死复发后补）：预排键表 pinyin-keys.json。
+    # 桌面 6e447bf 把引擎改成懒模式（不建 Map）后，prefixWords／abbrevScan 首次调用时
+    # 在 UI 线程上同步跑 Object.keys(rawWords)＋sortedKeys.sort()（177,615 键）。
+    # Node 里这只要 182ms，但 ArkTS 设备上 sort() 慢到 6 秒以上，直接触发 APP_INPUT_BLOCK。
+    # 所以键的字母序在构建期一次排好、随词库发走，引擎直接拿来当 sortedKeys，运行时绝不 sort。
+    # 注意：words.json 的键顺序是 wordfreq 词频序（供 wordRank／abbrevScan 排序用），
+    # 与本文件的字母序用途不同，两者都要，不许互相替代。
+    keys_sorted = sorted(trimmed.keys())
+    keys_bytes = json.dumps(keys_sorted, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    with open(os.path.join(DICT_DIR, 'pinyin-keys.json'), 'wb') as f:
+        f.write(keys_bytes)
+    print('预排键表 %d 键 / %.2f KB（字母序，供引擎二分查找，运行时不许 sort）' % (
+        len(keys_sorted), len(keys_bytes) / 1024.0))
 
     jieba_sha = sha256(jieba_data)
     pd_sha = sha256(pd_data)
