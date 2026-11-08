@@ -56,6 +56,11 @@ export struct TrashPage {
     return t === undefined || t <= 0 ? p.updatedAt : t;
   }
 
+  /** 标题：空标题用资源键 doc_untitled（不在渲染里写硬编码中文）。 */
+  private titleText(p: DocSummary): string {
+    return p.title.length > 0 ? p.title : this.resolveString($r('app.string.doc_untitled'));
+  }
+
   /** 原卷宗名：origDossierId 查不到／为 null → 资源键 trash_unknown_dossier。 */
   private origDossierText(p: DocSummary): string {
     const id: string | null | undefined = p.origDossierId;
@@ -94,7 +99,7 @@ export struct TrashPage {
   trashRow(p: DocSummary) {
     Column() {
       Row() {
-        Text(p.title.length > 0 ? p.title : '未命名')
+        Text(this.titleText(p))
           .fontSize(17).fontColor('#e8ddc9').maxLines(1).layoutWeight(1)
         Text($r('app.string.trash_restore')).fontSize(12).fontColor('#c9a45c')
           .padding({ left: 10, right: 6, top: 6, bottom: 6 })
