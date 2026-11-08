@@ -180,20 +180,23 @@ export function safeFileName(title: string, ext: string, ts: number): string {
  * 机器名资源键（M-1 resolve：机名在 string.json，不在这里写中文）
  * ------------------------------------------------------------------------- */
 
-const MACHINE_TITLE_KEYS: Record<string, string> = {
-  '1920s-upright': 'machine_name_1920s',
-  '1930s-portable': 'machine_name_1930s',
-  '1950s-streamlined': 'machine_name_1950s',
-  '1960s-electric': 'machine_name_1960s',
-};
+const MACHINE_NAME_1920S: string = 'machine_name_1920s';
 
 /**
  * 机器 kind → `machine_name_*` 资源键；未知 kind 回落 1920s 默认机。
  * 只返回**键名**：拿中文串由调用方（页面）走 resourceManager。
  */
 export function machineTitleKey(kind: string): string {
-  const key: string = MACHINE_TITLE_KEYS[kind];
-  return key === undefined || key.length === 0 ? 'machine_name_1920s' : key;
+  if (kind === '1930s-portable') {
+    return 'machine_name_1930s';
+  }
+  if (kind === '1950s-streamlined') {
+    return 'machine_name_1950s';
+  }
+  if (kind === '1960s-electric') {
+    return 'machine_name_1960s';
+  }
+  return MACHINE_NAME_1920S;
 }
 
 /* ------------------------------------------------------------------------- *

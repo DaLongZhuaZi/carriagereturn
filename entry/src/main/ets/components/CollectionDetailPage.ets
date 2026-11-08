@@ -2,8 +2,10 @@
  * 回车 · 收藏详情页（§3）+ 沉浸式（§2.10）
  *
  * 顶部 side 大图；中部 keyboard 与 carriage 特写左右并排；下部史实文字 15vp/行高 24vp；
+ * 史实之后是「进度」区（总字数／连续天数／用过纸张种类，F14 非阈值项）＋"待定"条件行；
  * 底部「设为当前机器」深色按钮（全宽 48vp，底距 = bottomInset）。
  * 锁定态铁律：本页只对已解锁机器开放（入口在 CollectionPage 已拦）。
+ * 阈值项 Q2 未决期间一律显示"待定（阈值待批准）"，不显示 5000 字/7 天/3 次等数字。
  */
 
 import { PageShell } from './PageShell';
@@ -22,6 +24,10 @@ export struct CollectionDetailPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop machineKind: string = '1920s-upright';
+  /** 第 4 批 F14：进度区数据（StatsService 单一派生层；非阈值项）。 */
+  @Prop totalWords: number = 0;
+  @Prop streakDays: number = 0;
+  @Prop paperKindsUsed: number = 0;
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   onBack: () => void = (): void => {};
@@ -30,9 +36,9 @@ export struct CollectionDetailPage {
   @State revealN: number = 0;
 
   aboutToAppear(): void {
-    // D6：收藏详情补入场动画（60ms 逐块）
+    // D6：收藏详情补入场动画（60ms 逐块）；第 4 批扩到 4 块（进度区为第 4 块）
     this.revealN = 0;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       setTimeout(() => { this.revealN = i + 1; }, i * 60);
     }
   }
@@ -65,6 +71,42 @@ export struct CollectionDetailPage {
               .width('100%').margin({ top: 16 })
               .opacity(this.revealN > 2 ? 1 : 0)
               .animation({ duration: 180, curve: Curve.EaseOut })
+
+            // 进度区（F14）：只显示非阈值事实；阈值条件行统一"待定"（B-3）
+            // 注：三行直接写在本页 build 里（不用 @Builder 按值传参——本仓 2026-11-09 真机定位
+            // 过"@Builder 按值传参不建立依赖，值变化不刷新"，进度数字必须随 stats props 刷新）
+            Column() {
+              Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.25)')
+              Row() {
+                Text($r('app.string.collection_total_words'))
+                  .fontSize(15).fontColor('rgba(232,221,201,0.75)')
+                Blank()
+                Text(this.totalWords.toString())
+                  .fontSize(15).fontColor('#c9a45c')
+              }.width('100%').height(40)
+              Row() {
+                Text($r('app.string.collection_streak'))
+                  .fontSize(15).fontColor('rgba(232,221,201,0.75)')
+                Blank()
+                Text(this.streakDays.toString())
+                  .fontSize(15).fontColor('#c9a45c')
+              }.width('100%').height(40)
+              Row() {
+                Text($r('app.string.collection_paper_kinds'))
+                  .fontSize(15).fontColor('rgba(232,221,201,0.75)')
+                Blank()
+                Text(this.paperKindsUsed.toString())
+                  .fontSize(15).fontColor('#c9a45c')
+              }.width('100%').height(40)
+              Row() {
+                Text($r('app.string.collection_pending'))
+                  .fontSize(13).fontColor('rgba(232,221,201,0.5)')
+              }
+              .width('100%').height(32)
+            }
+            .width('100%').margin({ top: 16 })
+            .opacity(this.revealN > 3 ? 1 : 0)
+            .animation({ duration: 180, curve: Curve.EaseOut })
           }
           .width('100%').padding({ left: 20, right: 20 })
         }

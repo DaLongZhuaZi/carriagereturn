@@ -1,7 +1,7 @@
 /**
  * 回车 · 设置页（§6.1）— 已接入共享 PageShell（D2）
  *
- * 5 组分组列表（声音 / 触感 / 修正方式 / 默认 / 关于），组标题 12vp 灰，
+ * 6 组分组列表（声音 / 触感 / 修正方式 / 统计 / 默认 / 关于），组标题 12vp 灰，
  * 行高 52vp、1vp 分割线、左右 20vp；入场按组 60ms 逐组淡入（D6）。
  */
 
@@ -9,6 +9,7 @@ import { PageShell } from './PageShell';
 import { AppIcon } from './AppIcon';
 import { SettingsRow } from './SettingsRow';
 import { GuideStep } from './GuideOverlay';
+import { clampDailyGoal } from '../model/StatsCore';
 
 @Component
 export struct SettingsPage {
@@ -18,6 +19,9 @@ export struct SettingsPage {
   @Prop paperLabel: string = '信纸';
   /** 中文输入引擎：'builtin' 内置拼音｜'system' 系统输入法（设计稿 §1）。 */
   @Prop cnEngine: string = 'builtin';
+  /** 第 4 批 F11：每日目标字数（100–2000，step 100；Index 持久化后回传）。 */
+  @Prop dailyGoal: number = 500;
+  onGoal: (n: number) => void = (n: number): void => {};
   onPickCnEngine: () => void = (): void => {};
   /** §11.6：拼音设置页入口 */
   onOpenPinyinSettings: () => void = (): void => {};
@@ -34,9 +38,9 @@ export struct SettingsPage {
   onBack: () => void = (): void => {};
 
   aboutToAppear(): void {
-    // D6：逐组 60ms（原来是 30ms 后一次性 revealN=6）
+    // D6：逐组 60ms（第 4 批加入"统计"组，共 6 组）
     this.revealN = 0;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       setTimeout(() => { this.revealN = i + 1; }, i * 60);
     }
   }
@@ -130,7 +134,28 @@ export struct SettingsPage {
         .opacity(this.revealN > 2 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 4 默认
+        // 4 统计（第 4 批 F11：每日目标；100–2000 步进 100，滑杆左侧回显"X 字"）
+        Column() {
+          this.groupTitle('统计')
+          SettingsRow({
+            label: $r('app.string.settings_goal'),
+            mode: 'slider',
+            sliderValue: this.dailyGoal,
+            sliderMin: 100,
+            sliderMax: 2000,
+            sliderStep: 100,
+            // N-1：SettingsRow 的 sliderValueText 是 string prop，$r 不能拼字符串，故这里用拼接
+            sliderValueText: this.dailyGoal.toString() + ' 字',
+            onSlide: (v: number): void => {
+              this.onGoal(clampDailyGoal(Math.round(v), this.dailyGoal));
+            },
+          })
+        }
+        .width('100%')
+        .opacity(this.revealN > 3 ? 1 : 0)
+        .animation({ duration: 180, curve: Curve.EaseOut })
+
+        // 5 默认
         Column() {
           this.groupTitle('默认')
           Row() {
@@ -146,10 +171,10 @@ export struct SettingsPage {
           }.width('100%').height(52)
         }
         .width('100%')
-        .opacity(this.revealN > 3 ? 1 : 0)
+        .opacity(this.revealN > 4 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 5 关于
+        // 6 关于
         Column() {
           this.groupTitle('关于')
           SettingsRow({
@@ -169,7 +194,10 @@ export struct SettingsPage {
           Row() {
             Text('音效致谢').fontSize(15).fontColor('#e8ddc9')
             Blank()
-            Text('—').fontSize(15).fontColor('rgba(232,221,201,0.4)')
+            Text($r('app.string.sound_credit'))
+              .fontSize(12).fontColor('rgba(232,221,201,0.6)')
+              .maxLines(2).textAlign(TextAlign.End).layoutWeight(1)
+              .margin({ left: 12 })
           }.width('100%').height(52)
           this.divider()
           Row() {
@@ -181,7 +209,7 @@ export struct SettingsPage {
           Column().width('100%').height(24)
         }
         .width('100%')
-        .opacity(this.revealN > 4 ? 1 : 0)
+        .opacity(this.revealN > 5 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
         // 底部常驻声明（§6.1）

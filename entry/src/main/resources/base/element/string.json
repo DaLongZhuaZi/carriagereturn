@@ -106,15 +106,15 @@
     },
     {
       "name": "machine_cond_1930s",
-      "value": "换过字体与色带 + 半开折叠打字 1 次"
+      "value": "待定（阈值待批准）"
     },
     {
       "name": "machine_cond_1950s",
-      "value": "累计 5,000 字 + 用过 2 种纸"
+      "value": "待定（阈值待批准）"
     },
     {
       "name": "machine_cond_1960s",
-      "value": "连续 7 天 + 导出分享 3 次"
+      "value": "待定（阈值待批准）"
     },
     {
       "name": "machine_info_1920s",
@@ -615,6 +615,50 @@
     {
       "name": "font_apply",
       "value": "应用到当前机"
+    },
+    {
+      "name": "home_today",
+      "value": "今日"
+    },
+    {
+      "name": "home_goal",
+      "value": "目标"
+    },
+    {
+      "name": "home_unit",
+      "value": "字"
+    },
+    {
+      "name": "home_goal_met",
+      "value": "今日目标已达成"
+    },
+    {
+      "name": "settings_goal",
+      "value": "每日目标"
+    },
+    {
+      "name": "collection_progress",
+      "value": "当前总字数"
+    },
+    {
+      "name": "collection_total_words",
+      "value": "总字数"
+    },
+    {
+      "name": "collection_streak",
+      "value": "连续天数"
+    },
+    {
+      "name": "collection_paper_kinds",
+      "value": "用过纸张种类"
+    },
+    {
+      "name": "collection_pending",
+      "value": "待定（阈值待批准）"
+    },
+    {
+      "name": "sound_credit",
+      "value": "素材：ddohler、YleArkisto 等（CC BY）；本机为 DSP 变体"
     }
   ]
 }

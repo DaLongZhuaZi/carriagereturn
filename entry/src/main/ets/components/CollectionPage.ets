@@ -31,6 +31,9 @@ export struct CollectionPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop currentMachine: string = '1920s-upright';
+  /** 第 4 批 F14：当前进度（全局统计，锁定卡也可见；数值取 StatsService）。 */
+  @Prop totalWords: number = 0;
+  @Prop streakDays: number = 0;
 
   @State revealN: number = 0;
   /** P1-9：锁定态提示文案（空＝不显示）。 */
@@ -107,6 +110,22 @@ export struct CollectionPage {
         .fontSize(12)
         .fontColor(this.unlocked(kind) ? '#c9a45c' : 'rgba(232,221,201,0.4)')
         .margin({ top: 4 })
+      // F14：当前进度（条件行位置；锁定态也可见）。文案走资源键，不在本页写死进度短语。
+      Row({ space: 2 }) {
+        Text($r('app.string.collection_progress'))
+          .fontSize(12).fontColor('rgba(232,221,201,0.5)').maxLines(1)
+        Text(this.totalWords.toString())
+          .fontSize(12).fontColor('rgba(232,221,201,0.8)')
+        Text($r('app.string.home_unit'))
+          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+        Text('·')
+          .fontSize(12).fontColor('rgba(232,221,201,0.35)')
+        Text($r('app.string.collection_streak'))
+          .fontSize(12).fontColor('rgba(232,221,201,0.5)').maxLines(1)
+        Text(this.streakDays.toString())
+          .fontSize(12).fontColor('rgba(232,221,201,0.8)')
+      }
+      .width('100%').justifyContent(FlexAlign.Center).margin({ top: 4 })
       Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.6)')
         .margin({ top: 4 }).maxLines(1)
     }

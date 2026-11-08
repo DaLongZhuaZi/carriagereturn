@@ -1,0 +1,31 @@
+# pack-1930 · 回车每机音效包
+# 上游来源：sound/pack/SOURCE.txt（BigSoundBank CC0；Freesound CC0/CC BY）
+# CC BY 署名：ddohler（Typewriter.wav, https://freesound.org/s/9098/）、
+#              YleArkisto（Kirjoituskone, https://freesound.org/people/YleArkisto/sounds/271525/）
+# 来源：sound/pack 19 个 .ogg 的确定性 DSP 变体（Q6 代决备选 B；非 Freesound 重新采制）
+# 参数：pitch=1.15 treble=-2.0dB 时长保持（atempo 补偿）
+# 生成日期：2026-11-09
+# 生成器：tools/make-sound-packs.py（可复现）
+# ffmpeg：ffmpeg version 2026-04-30-git-cc3ca17127-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
+# 说明：1930s portable（DSP: pitch +15%, treble -2dB）
+
+SHA-256:
+b38cb46222c1019fb8e14c1d3cecb4664b55ae5da61b73a539a5dcf365d723aa  bell-01.ogg
+c85b0776523eec9cf53bd571ddaa0649ea1bf6e599afbfeb537008b0f374654b  bell-02.ogg
+b29fe4927167b8ca2f82ce222cbf3e2e40077b2f725bd94a7e8a656ac984cc79  bell-03.ogg
+52610cc753aa6be09b75e0d7b15da5b7116084fbbd30f31e904e0e0d148b89f9  carriage-reset-01.ogg
+736de0b944b9a267cc48551b7dc02f43fa54da9300ff7ccbee272f61d37955b6  key-01.ogg
+fcafe97da4ccec6b846281b48e79bf9573c15de68f25f83fb9a17912609d652c  key-02.ogg
+3a5559daa5d74342b4400f17a34715b1dc985fe4a1bac83e6d5b5021cabb7e7e  key-03.ogg
+17e248e85b53c7eefe74539ddc4dcba70d59868b1a75f409df2e3c938940aa93  key-04.ogg
+3a4405c095ab01c4fd471d4a3aa394f0318e341002f9c74c9abe4154a498470d  key-05.ogg
+3bab369bc8704f6b96d9c57635d0c73160d4f7c83d43797113c7cec2f981624d  key-06.ogg
+ec7719a02dd3802036c188a468d3d1125b1d117c3bb163fba0f65d10d2e7625f  key-07.ogg
+409d6b455932cb72bfe30fa9858715b935a670dcf6a706029f861690d5181901  key-08.ogg
+f50f7e810f061792ef1ae1f3df531d2cc66134cc2be0633817e7c35663b3b16b  key-09.ogg
+13cc8db6562ec26ba1d071ceefc34d9ed74458ddb6342e4f0a2573249d6b4e55  key-10.ogg
+56186a147959e600d623957606ca5a162ad7e0ae877c2a8cdc1d830d9f72e0a4  key-11.ogg
+1546bc947e90e077fb72b864d73b9f5331a8ba8d6535d07df38a35ace51771e0  key-12.ogg
+8a4e298de748b758fca8301da0804099235df8fca4f70cc930fd7923f13a506c  key-alt-01.ogg
+75bbee52de5b6e1c36bd29a156804547ff3010afe01b4a7cae43a9caa34e1f51  key-transient.ogg
+00cd5e96f52f6bebd88b853ad712eb09b522243d7e23af8bc5ab6d3f0e9f81a0  space-01.ogg

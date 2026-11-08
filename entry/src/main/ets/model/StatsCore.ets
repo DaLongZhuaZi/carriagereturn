@@ -103,3 +103,87 @@ export function progressRatio(chars: number, goal: number): number {
 export function goalReached(chars: number, goal: number): boolean {
   return isFinite(chars) && chars > 0 && isFinite(goal) && goal > 0 && chars >= goal;
 }
+
+// ---- 第 4 批 F11／F14：日字数合并、目标 clamp、纸张种类合并（纯函数，Node 可测）----
+
+/** 每日目标上下限（与设置页滑杆 100–2000 同口径）。 */
+export const DAILY_GOAL_MIN: number = 100;
+export const DAILY_GOAL_MAX: number = 2000;
+/** 每日目标步进（设置页滑杆用）。 */
+export const DAILY_GOAL_STEP: number = 100;
+
+/**
+ * 每日目标 clamp 到 100–2000（守住设置页滑杆的上下限）。
+ * 非有限值/≤0 先取 fallback（缺省 DAILY_GOAL_MIN），再 clamp；小数向下取整。
+ */
+export function clampDailyGoal(goal: number, fallback: number = DAILY_GOAL_MIN): number {
+  let g: number = isFinite(goal) && goal > 0 ? Math.floor(goal) : fallback;
+  if (!isFinite(g) || g <= 0) {
+    g = DAILY_GOAL_MIN;
+  }
+  if (g < DAILY_GOAL_MIN) {
+    return DAILY_GOAL_MIN;
+  }
+  if (g > DAILY_GOAL_MAX) {
+    return DAILY_GOAL_MAX;
+  }
+  return g;
+}
+
+/**
+ * 今日字数合并：日键相同则累加，跨日归零后只加 delta。
+ * delta 只加不减（负数/非有限值按 0），删除字不扣减（设计 §1.3）。
+ */
+export function mergeDailyChars(prevKey: string, prevChars: number, todayKey: string, delta: number): number {
+  const base: number = prevKey === todayKey && isFinite(prevChars) && prevChars > 0
+    ? Math.floor(prevChars) : 0;
+  const add: number = isFinite(delta) && delta > 0 ? Math.floor(delta) : 0;
+  return base + add;
+}
+
+/** 纸张种类集合的小数组插入排序（确定性；避开仓规禁止的运行时排序）。 */
+function sortedUniqueKinds(parts: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const v: string = parts[i];
+    let pos: number = out.length;
+    for (let j = 0; j < out.length; j++) {
+      if (v < out[j]) {
+        pos = j;
+        break;
+      }
+    }
+    out.push('');
+    for (let j = out.length - 1; j > pos; j--) {
+      out[j] = out[j - 1];
+    }
+    out[pos] = v;
+  }
+  return out;
+}
+
+/**
+ * 纸张种类集合合并：逗号去重＋按字母序稳定排序。
+ * kind 为空（或全空白）原样返回 prev（不做归一化，保证"空 kind 不写盘"）。
+ */
+export function paperKindsMerge(prev: string, kind: string): string {
+  const k: string = kind.trim();
+  if (k.length === 0) {
+    return prev;
+  }
+  const seen: Set<string> = new Set<string>();
+  const list: string[] = [];
+  const parts: string[] = prev.split(',');
+  for (let i = 0; i < parts.length; i++) {
+    const p: string = parts[i].trim();
+    if (p.length > 0 && !seen.has(p)) {
+      seen.add(p);
+      list.push(p);
+    }
+  }
+  if (!seen.has(k)) {
+    seen.add(k);
+    list.push(k);
+  }
+  return sortedUniqueKinds(list).join(',');
+}

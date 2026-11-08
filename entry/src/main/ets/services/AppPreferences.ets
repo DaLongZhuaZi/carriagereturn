@@ -56,6 +56,8 @@ export class PrefKeys {
   static readonly STATS_DAY_KEY: string = 'stats.day.key';
   static readonly STATS_DAY_CHARS: string = 'stats.day.chars';
   static readonly STATS_DAILY_GOAL: string = 'stats.daily_goal';
+  /** 用过的纸张种类集合（逗号分隔，第 4 批 F14）。 */
+  static readonly STATS_PAPER_KINDS: string = 'stats.paper.kinds';
   static readonly STATS_EVENT_PREFIX: string = 'stats.event.';
   /** 成就：`achieve.<id>`。 */
   static readonly ACHIEVE_PREFIX: string = 'achieve.';
@@ -125,6 +127,7 @@ export class PrefRegistry {
       { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
       { key: PrefKeys.STATS_DAILY_GOAL, type: 'number', defaultValue: '500', owner: 'F11', note: '每日目标字数，缺省 500' },
+      { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就解锁状态' },
     ];
   }
@@ -138,6 +141,7 @@ export class PrefRegistry {
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
       PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
       PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE,
+      PrefKeys.STATS_PAPER_KINDS,
       PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
     ];
     if (fixed.indexOf(key) >= 0) {

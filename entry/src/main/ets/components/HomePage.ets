@@ -1,12 +1,14 @@
 /**
  * 回车 · 主页（§11 极简方向 C）
  *
- * 自上而下：机器图区 → 回车大字 → 引导语 → 金色按钮 → 统计行 → 底部入口行。
- * 数据：继续写作＝最近修改的一张纸；总字数＝全部文档 charCount 之和；连续天数＝updatedAt 去重日期以今天为终点连续算。
+ * 自上而下：机器图区 → 回车大字 → 引导语 → 金色按钮 → 统计行 → 目标行 → 底部入口行。
+ * 数据（单一派生层，第 4 批 B-1）：总字数／连续天数／今日字数／每日目标全部取 StatsService；
+ * 这里不再自算（latestId/latestTitle 仍从 docStore.list() 第一条取）。
  */
 
 import { DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
+import { statsService } from '../services/StatsService';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { GuideStep } from './GuideOverlay';
@@ -15,12 +17,17 @@ import { GuideStep } from './GuideOverlay';
 export struct HomePage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
+  /** F11 刷新时机（M-7）：Index 在改目标/返回主页/导出保存后递增，触发 refresh。 */
+  @Prop @Watch('onStatsRev') statsRev: number = 0;
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   @State latestId: string = '';
   @State latestTitle: string = '';
   @State totalChars: number = 0;
   @State streakDays: number = 0;
+  @State todayChars: number = 0;
+  @State dailyGoal: number = 500;
+  @State goalProgress: number = 0;
   @State op: number = 0;
   onContinue: () => void = (): void => {};
   onStartTyping: () => void = (): void => {};
@@ -33,6 +40,11 @@ export struct HomePage {
     this.op = 1;
   }
 
+  /** @Watch 回调：Index 的 statsRev 变化即重取统计（空文档也刷新目标行）。 */
+  onStatsRev(): void {
+    this.refresh();
+  }
+
   private async applyInsets(): Promise<void> {
     const ins: Insets = await applyImmersive(this.getUIContext());
     this.topInset = ins.top;
@@ -42,41 +54,22 @@ export struct HomePage {
   }
 
   private refresh(): void {
+    // 单一派生层：统计口径只在 StatsService／StatsCore
+    this.totalChars = statsService.totalWords();
+    this.streakDays = statsService.consecutiveDays();
+    this.todayChars = statsService.todayChars();
+    this.dailyGoal = statsService.dailyGoal();
+    this.goalProgress = statsService.goalProgress();
+    // latest 仍从文档列表取（只取第一条，不做第二套统计）
     const list: DocSummary[] = docStore.list();
-    let total: number = 0;
-    for (let i = 0; i < list.length; i++) {
-      total += list[i].charCount === undefined ? 0 : list[i].charCount as number;
-    }
-    this.totalChars = total;
     if (list.length > 0) {
       this.latestId = list[0].id;
       this.latestTitle = list[0].title;
     }
-    // 连续天数：updatedAt 去重日期，以今天为终点
-    const days: number[] = [];
-    for (let i = 0; i < list.length; i++) {
-      const d: Date = new Date(list[i].updatedAt);
-      const k: number = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-      if (days.indexOf(k) < 0) { days.push(k); }
-    }
-    days.sort((a: number, b: number) => b - a);
-    let streak: number = 0;
-    const today: Date = new Date();
-    const tk: number = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    let cursor: number = tk;
-    for (let i = 0; i < days.length; i++) {
-      if (days[i] === cursor) {
-        streak = streak + 1;
-        const d: Date = new Date(cursor / 10000 | 0, ((cursor % 10000) / 100 | 0) - 1, cursor % 100);
-        d.setDate(d.getDate() - 1);
-        cursor = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-      } else if (days[i] < cursor) {
-        break;
-      }
-    }
-    this.streakDays = streak;
-    hilog.info(0x0000, 'HomePage', 'data docs=%{public}s total=%{public}s streak=%{public}s',
-      list.length.toString(), total.toString(), streak.toString());
+    hilog.info(0x0000, 'HomePage',
+      'data docs=%{public}s total=%{public}s streak=%{public}s today=%{public}s goal=%{public}s',
+      list.length.toString(), this.totalChars.toString(), this.streakDays.toString(),
+      this.todayChars.toString(), this.dailyGoal.toString());
   }
 
   @Builder
@@ -130,6 +123,34 @@ export struct HomePage {
               .width('100%').textAlign(TextAlign.Center).margin({ top: 12 })
           }
 
+          // ⑥ 目标行（F11）：空文档也显示（今日 0 / 目标 500 字），线性进度条 160×3 金色
+          Row({ space: 4 }) {
+            Text($r('app.string.home_today'))
+              .fontSize(13).fontColor('rgba(232,221,201,0.6)')
+            Text(this.todayChars.toString())
+              .fontSize(13).fontColor('#c9a45c')
+            Text('/')
+              .fontSize(13).fontColor('rgba(232,221,201,0.4)')
+            Text($r('app.string.home_goal'))
+              .fontSize(13).fontColor('rgba(232,221,201,0.6)')
+            Text(this.dailyGoal.toString())
+              .fontSize(13).fontColor('#c9a45c')
+            Text($r('app.string.home_unit'))
+              .fontSize(13).fontColor('rgba(232,221,201,0.6)')
+            Progress({ value: this.goalProgress * 100, total: 100, type: ProgressType.Linear })
+              .width(160).height(3)
+              .color('#c9a45c')
+              .backgroundColor('rgba(201,164,92,0.25)')
+              .margin({ left: 6 })
+          }
+          .width('100%').justifyContent(FlexAlign.Center).margin({ top: 8 })
+
+          if (this.goalProgress >= 1) {
+            Text($r('app.string.home_goal_met'))
+              .fontSize(12).fontColor('#c9a45c')
+              .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
+          }
+
           Column().width('100%').height(24)
         }
         .width('100%')
@@ -138,7 +159,7 @@ export struct HomePage {
       }
       .layoutWeight(1).width('100%').scrollBar(BarState.Off)
 
-      // ⑥ 底部入口行（底距 = bottomInset）
+      // ⑦ 底部入口行（底距 = bottomInset）
       Row() {
         this.entryLink('卷宗', 'dossier')
         this.entryLink('收藏', 'collection')

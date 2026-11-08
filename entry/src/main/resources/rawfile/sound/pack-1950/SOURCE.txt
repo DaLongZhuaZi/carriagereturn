@@ -1,0 +1,31 @@
+# pack-1950 · 回车每机音效包
+# 上游来源：sound/pack/SOURCE.txt（BigSoundBank CC0；Freesound CC0/CC BY）
+# CC BY 署名：ddohler（Typewriter.wav, https://freesound.org/s/9098/）、
+#              YleArkisto（Kirjoituskone, https://freesound.org/people/YleArkisto/sounds/271525/）
+# 来源：sound/pack 19 个 .ogg 的确定性 DSP 变体（Q6 代决备选 B；非 Freesound 重新采制）
+# 参数：pitch=0.85 treble=2.0dB 时长保持（atempo 补偿）
+# 生成日期：2026-11-09
+# 生成器：tools/make-sound-packs.py（可复现）
+# ffmpeg：ffmpeg version 2026-04-30-git-cc3ca17127-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
+# 说明：1950s streamlined（DSP: pitch -15%, treble +2dB）
+
+SHA-256:
+44c354a4db27db759a568f138d7b6c3e88eea8411afa7dc8d27a2e404aad3624  bell-01.ogg
+dbca42e1f84c2123a36586557b2fade4960eee8554465942f57f8663eddcda34  bell-02.ogg
+5f9ab595ff153d889f77e9a0238c004aeecd5609ac4ae2638e902ee2b2286679  bell-03.ogg
+ada193acbe8a5e11fb68b479a7c31f9c9e50d49a38329deb37a8cd4defd84955  carriage-reset-01.ogg
+3d7be082e896ef1925052aa11c810296073a10e9a8dffe18c78ccd4d821ddc0d  key-01.ogg
+5ac948271bf4ce509264f06b16ea3b566adf0658fee75907b20e51c9aae92d50  key-02.ogg
+222c1aab44758b6dea1fe3788e690fcf4a67ff477b0a4599be82cdb13c8d86f4  key-03.ogg
+7aaf768463710d0b12614284413d02f0f5ce03756788f8aac2c6ef6e8c28a741  key-04.ogg
+1ebb2cb22e17d7d5fa377ec5daa4136889d241890d6b5ea6e2d7a0a0476046f3  key-05.ogg
+6241116c915af03096944aff49f7249896f66842c7718f097fbfc751f2f9f078  key-06.ogg
+0477d54ccf260ab6ac8e1840426cf034370fb86cf797415cd4721391b6133cfe  key-07.ogg
+6ff8756917988a902a68848300706ae25b93e4d0f15ca62bcf38b39567210c0d  key-08.ogg
+1b35fb3a2b4e78a9686234e91e652f76a2fde1290861ede6aeac0a6a89f74fa0  key-09.ogg
+46ea4fa3340d69a202fb720acb97c57e611c509604581444a83288ff323ea903  key-10.ogg
+aaf05c0d4e6a47e26af89d1f76f54535d42214b1262e3d61e29bd26a5d974223  key-11.ogg
+4841ea41a325e1500ba0f5671712e79d3a5cae74aee4aa20f938a547e8dd43cf  key-12.ogg
+ec433d0aaade2c1db3543acc7f48a9e1fc2dc05b8d12080f6a19d2781a8a38f3  key-alt-01.ogg
+12f90834ad23cc891613237c1919da112cf1c1c428fbae43bf71b770ba384081  key-transient.ogg
+436f7cd47afe1734eedf1ea7569863861597a87cc21478d12c2a9df580df258e  space-01.ogg

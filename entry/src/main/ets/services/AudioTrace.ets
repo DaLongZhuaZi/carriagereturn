@@ -14,6 +14,8 @@ import { TestHooks } from './TestHooks';
 export interface AudioEmitTrace {
   role: string;
   file: string;
+  /** 第 4 批 F8：音效包名（证明“每台独立”选择层）。 */
+  pack: string;
   volume: number;
   rate: number;
   atMs: number;
@@ -44,13 +46,14 @@ export class AudioTrace {
   }
 
   /** AudioService.emit() 调用；发布构建立即返回。 */
-  static emitTrace(role: string, file: string, volume: number, rate: number): void {
+  static emitTrace(role: string, file: string, volume: number, rate: number, pack: string): void {
     if (!TestHooks.audioTraceEnabled() || AudioTrace.emitCb === null) {
       return;
     }
     AudioTrace.emitCb({
       role: role,
       file: file,
+      pack: pack,
       volume: volume,
       rate: rate,
       atMs: Date.now(),

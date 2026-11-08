@@ -122,6 +122,8 @@ export class AudioService implements AudioEngineExposed {
   private loadedStems: string[] = [];
   private packName: string = '';
   private packPath: string = '';
+  /** 第 4 批 F8：preload 代际；旧的过期请求不得覆盖新包。 */
+  private preloadGeneration: number = 0;
   private ready: boolean = false;
   private soundEnabled: boolean = true;
   private vibrationEnabled: boolean = true;
@@ -179,7 +181,8 @@ export class AudioService implements AudioEngineExposed {
     if (this.ready && this.packPath === path) {
       return true;
     }
-    this.teardown();
+    const gen: number = this.preloadGeneration + 1;
+    this.preloadGeneration = gen;
 
     const rm: resourceManager.ResourceManager | null = this.resolveResourceManager();
     if (rm === null) {
@@ -187,41 +190,92 @@ export class AudioService implements AudioEngineExposed {
       return false;
     }
 
-    const rendererInfo: audio.AudioRendererInfo = {
-      usage: audio.StreamUsage.STREAM_USAGE_MUSIC,
-      rendererFlags: LOW_LATENCY_RENDERER_FLAGS,
-    };
-    let pool: media.SoundPool | null = null;
-    try {
-      pool = await media.createSoundPool(MAX_STREAMS, rendererInfo);
-    } catch (err) {
-      pool = null;
-    }
+    // 第 4 批 F8（B-5/M-12）：双缓冲。已有 pool 不复用 teardown——旧 banks 继续可播，
+    // 新包加载完再原子替换；旧请求由 preloadGeneration 丢弃。
+    let pool: media.SoundPool | null = this.pool;
     if (pool === null) {
-      logWarn('createSoundPool failed, stay silent');
+      const rendererInfo: audio.AudioRendererInfo = {
+        usage: audio.StreamUsage.STREAM_USAGE_MUSIC,
+        rendererFlags: LOW_LATENCY_RENDERER_FLAGS,
+      };
+      try {
+        pool = await media.createSoundPool(MAX_STREAMS, rendererInfo);
+      } catch (err) {
+        pool = null;
+      }
+      if (pool === null) {
+        logWarn('createSoundPool failed, stay silent');
+        return false;
+      }
+      this.pool = pool;
+    }
+    if (gen !== this.preloadGeneration) {
       return false;
     }
-    this.pool = pool;
-    this.packName = packName;
-    this.packPath = path;
 
     const stems: string[] = this.listStems(rm, path, packName);
+    const nextLoaded: string[] = [];
+    const nextStemIds: Map<string, number> = new Map<string, number>();
+    const nextIdToStem: Map<number, string> = new Map<number, string>();
     for (const stem of stems) {
       const soundId: number = await this.loadOne(rm, path, stem);
+      if (gen !== this.preloadGeneration) {
+        // 过期请求：不替换任何当前状态，丢弃已加载 id
+        if (soundId > 0 && this.pool !== null) {
+          this.pool.unload(soundId).catch(() => {});
+        }
+        return false;
+      }
       if (soundId > 0) {
-        this.loadedStems.push(stem);
-        this.stemIds.set(stem, soundId);
-        this.idToStem.set(soundId, stem);
+        nextLoaded.push(stem);
+        nextStemIds.set(stem, soundId);
+        nextIdToStem.set(soundId, stem);
       }
     }
-    this.loadedStems.sort();
+    nextLoaded.sort();
+
+    // 记录旧 id 供替换后卸载（旧 banks 在新 banks 建好前仍可播）
+    const oldIds: number[] = [];
+    this.banks.forEach((bank: SoundBank) => {
+      for (let i = 0; i < bank.soundIds.length; i++) {
+        oldIds.push(bank.soundIds[i]);
+      }
+    });
+    this.stemIds.forEach((id: number) => { oldIds.push(id); });
+
+    this.loadedStems = nextLoaded;
+    this.stemIds = nextStemIds;
+    this.idToStem = nextIdToStem;
+    this.packName = packName;
+    this.packPath = path;
+    this.banks = new Map<SoundRole, SoundBank>();
     this.buildBanks(packName);
     this.ready = this.hasAnySound();
+
+    for (let i = 0; i < oldIds.length; i++) {
+      if (nextStemIds.get(this.idToStemName(oldIds[i])) === undefined && this.pool !== null) {
+        this.pool.unload(oldIds[i]).catch(() => {});
+      }
+    }
 
     const loadedText: string = this.loadedStems.length.toString();
     const readyText: string = this.ready ? 'true' : 'false';
     logInfo('preload pack=' + path + ' loaded=' + loadedText + ' ready=' + readyText);
     return this.ready;
+  }
+
+  /** 旧 id 是否仍在新 stems 里（名字反查；找不到不卸载也无害）。 */
+  private idToStemName(id: number): string {
+    const stem: string | undefined = this.idToStem.get(id);
+    return stem === undefined ? '' : stem;
+  }
+
+  /** 第 4 批 F8：机型 → 音效包目录（1920s 基线，其余各一包）。 */
+  static packForMachine(machine: string): string {
+    if (machine === '1930s-portable') { return 'pack-1930'; }
+    if (machine === '1950s-streamlined') { return 'pack-1950'; }
+    if (machine === '1960s-electric') { return 'pack-1960'; }
+    return DEFAULT_PACK_NAME;
   }
 
   /** 按键主音：Down 当刻同步调用，内部 fire-and-forget，绝不 await。 */
@@ -335,7 +389,7 @@ export class AudioService implements AudioEngineExposed {
   private emit(pool: media.SoundPool, soundId: number, withPitch: boolean, role: SoundRole): void {
     // 第 0 批：测试构建音效观测（发布构建 TestHooks=false，emitTrace 第一行即返回，零成本）
     const stemName: string | undefined = this.idToStem.get(soundId);
-    AudioTrace.emitTrace(role.toString(), stemName === undefined ? '' : stemName, this.volume, 1);
+    AudioTrace.emitTrace(role.toString(), stemName === undefined ? '' : stemName, this.volume, 1, this.packName);
     this.trimStreams(pool, role);
     let params: media.PlayParameters;
     if (withPitch) {
@@ -537,8 +591,9 @@ export class AudioService implements AudioEngineExposed {
         stems.push('key-' + pad2(i));
       }
     } else {
-      for (let i: number = 1; i <= MACHINE2_VARIANT_COUNT; i++) {
-        stems.push(packName + '-key-' + pad2(i));
+      // 第 4 批 F8：每包文件无前缀（key-01…），不再拼 '<pack>-key-01'
+      for (let i: number = 1; i <= KEY_VARIANT_COUNT; i++) {
+        stems.push('key-' + pad2(i));
       }
     }
     for (const shared of FALLBACK_SHARED_STEMS) {

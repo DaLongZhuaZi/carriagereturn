@@ -6,7 +6,7 @@
  *   chevron 左标签＋右值＋右箭头（可点）
  *   link    左标签＋右值（无箭头，整行可点，值用金色）
  *   switch  左标签＋右开关
- *   slider  左标签＋右滑杆（0..100）
+ *   slider  左标签＋右滑杆（0..100）＋可选左侧回显文本（sliderValueText）
  *
  * 规范：行高 52vp、1vp 分割线由使用方加；D4 按压 0.97／120ms；D6 入场逐行淡入
  * 由使用方的 reveal 控制（false → 透明）。
@@ -16,7 +16,7 @@ import { AppIcon } from './AppIcon';
 
 @Component
 export struct SettingsRow {
-  @Prop label: string = '';
+  @Prop label: ResourceStr = '';
   @Prop mode: string = 'value';
   @Prop value: string = '';
   @Prop valueColor: string = 'rgba(232,221,201,0.6)';
@@ -25,6 +25,8 @@ export struct SettingsRow {
   @Prop sliderMin: number = 0;
   @Prop sliderMax: number = 100;
   @Prop sliderStep: number = 1;
+  /** slider 模式在滑杆左侧显示的值回显（如 "500 字"）；空串不显示。 */
+  @Prop sliderValueText: string = '';
   @Prop reveal: boolean = true;
   onToggle: () => void = (): void => {};
   onSlide: (v: number) => void = (v: number): void => {};
@@ -47,6 +49,13 @@ export struct SettingsRow {
             }
           })
       } else if (this.mode === 'slider') {
+        // N-1：滑杆左侧回显当前值（"500 字"），非空才显示
+        if (this.sliderValueText.length > 0) {
+          Text(this.sliderValueText)
+            .fontSize(14)
+            .fontColor('#c9a45c')
+            .margin({ right: 8 })
+        }
         Slider({ value: this.sliderValue, min: this.sliderMin, max: this.sliderMax, step: this.sliderStep })
           .width(180)
           .trackThickness(2)

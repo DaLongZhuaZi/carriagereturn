@@ -830,6 +830,8 @@ struct Index {
   @State exportBusy: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
+  /** 第 4 批 F11：统计刷新计数（设置目标/返回主页/导出后递增）。 */
+  @State statsRev: number = 0;
 
   /** 第 1 批：引导（Index 单挂载点；页面只提供 guideSteps 数据）。 */
   @State guideVisible: boolean = false;
@@ -973,6 +975,7 @@ struct Index {
   }
 
   private pushPage(k: string): void {
+    statsService.flushPending();
     this.leaveChinese();
     this.navAnimated = true;
     // 同 key 已在栈顶时不重复压栈（返回少走一步）
@@ -987,6 +990,7 @@ struct Index {
 
   /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
   private popTo(k: string): void {
+    statsService.flushPending();
     const idx: number = this.navStack.indexOf(k);
     if (idx < 0) { return; }
     this.leaveChinese();
@@ -999,6 +1003,7 @@ struct Index {
   /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
   private popPage(): boolean {
     if (this.navStack.length <= 1) { return false; }
+    statsService.flushPending();
     this.leaveChinese();
     this.navAnimated = true;
     const s: string[] = this.navStack.slice();
@@ -1122,10 +1127,10 @@ struct Index {
     // 启动即有 O：按当前行光标重算，不许归 0
     this.recalcTravel();
     this.recalcOffsetFromCursor();
-    this.audioService.preload('pack');
   }
 
   aboutToDisappear(): void {
+    statsService.flushPending();
     this.audioService.release();
   }
 
@@ -1514,6 +1519,7 @@ struct Index {
 
   /** 第 3 批：导出前 flush 保存并判定非空（M-6）。 */
   private prepareExport(): boolean {
+    statsService.flushPending();
     this.flushSave();
     if (this.docId.length === 0) {
       return false;
@@ -1534,6 +1540,13 @@ struct Index {
     this.machineKind = kind;
     // 第 2 批 F3：字体跟机器走（custom.font.<machine>.family 为渲染唯一来源）
     this.applyMachineFont(CustomizeStore.fontFamily(kind as string));
+    // 第 4 批 F8：每机独立音效包（唯一 preload 入口；双缓冲不静音）
+    this.audioService.preload(AudioService.packForMachine(kind as string))
+      .then((ok: boolean) => {
+        hilog.info(DOMAIN, TAG, 'audio pack=%{public}s ready=%{public}s',
+          AudioService.packForMachine(kind as string), ok ? 'true' : 'false');
+      })
+      .catch(() => { hilog.warn(DOMAIN, TAG, 'audio pack preload failed'); });
     // 第 0b 批隔离：换机即清空四份拨杆比例与拖拽旗，并递增纪元让渲染件立即回静止角
     if (shouldResetOnSwitch(prevKind as string, kind as string)) {
       this.resetLeverStates();
@@ -1556,6 +1569,7 @@ struct Index {
     // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖
     // 第 2 批 F3：换纸不重置字体（字体跟机器走，applyPaper 不再碰 fontFamily）
     this.refreshPaperCustom();
+    statsService.recordPaperKind(kind as string);
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
     this.fadeSwitch();
@@ -2598,6 +2612,8 @@ struct Index {
       this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
       this.currentLineWidthVp().toFixed(2), this.clampedStrikeXVp().toFixed(2));
     this.scheduleSave();
+    // 第 4 批 F11：落字成功即内存自增（不写盘；离页/导出前批量 flush）
+    statsService.recordChar();
     if (outcome.marginBell) {
       this.audioService.playBell();
     }
@@ -3942,6 +3958,7 @@ struct Index {
         HomePage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();
             if (list.length > 0) {
@@ -4071,6 +4088,8 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
+          totalWords: statsService.totalWords(),
+          streakDays: statsService.consecutiveDays(),
           onBack: (): void => { this.popPage(); },
           onPick: (kind: string): void => { this.collectionDetailKind = kind; this.pushPage('collectiondetail'); },
         })
@@ -4083,6 +4102,9 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineKind: this.collectionDetailKind,
+          totalWords: statsService.totalWords(),
+          streakDays: statsService.consecutiveDays(),
+          paperKindsUsed: statsService.paperKindsUsed(),
           onBack: (): void => { this.popPage(); },
           onSetCurrent: (kind: string): void => {
             this.applyMachine(kind as MachineKind);
@@ -4106,6 +4128,11 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineKind as string,
           paperLabel: this.paperKind as string,
+          dailyGoal: statsService.dailyGoal(),
+          onGoal: (n: number): void => {
+            statsService.setDailyGoal(n);
+            this.statsRev = this.statsRev + 1;
+          },
           cnEngine: this.cnEngine,
           onOpenPinyinSettings: (): void => {
             this.refreshPinyinMeta();
@@ -4154,7 +4181,7 @@ struct Index {
           onBack: (): void => { this.popPage(); },
           onBeforeExport: (): boolean => { return this.prepareExport(); },
           onSaved: (format: string): void => {
-            statsService.recordEvent(StatsEvents.DOC_SAVED);
+            statsService.recordEvent(StatsEvents.DOC_EXPORTED);
             hilog.info(DOMAIN, TAG, 'export saved format=%{public}s', format);
           },
           onShared: (format: string): void => {

@@ -18,12 +18,17 @@ const mod = await import('file://' + ts.replace(/\\/g, '/'));
 
 test('safeFileName：非法字符全部去掉，格式 回车-<title>-<yyyyMMdd-HHmmss>.<ext>', () => {
   const ts = new Date(2026, 10, 9, 4, 33, 4).getTime(); // 本地时间 2026-11-09 04:33:04
-  const name = mod.safeFileName('a/b\\c:d*e?f"g<h>i|j', 'txt', ts);
-  for (const ch of ['/', '\\', ':', '*', '?', '"', '<', '>', '|']) {
+  // 用字符码拼非法集（\ / : * ? " < > |），避免源码里的转义歧义
+  const illegal = ['/', ':', '*', '?', '"', '<', '>', '|', String.fromCharCode(92)];
+  const name = mod.safeFileName('a' + illegal.join('') + 'b', 'txt', ts);
+  for (const ch of illegal) {
     assert.ok(!name.includes(ch), `文件名仍含非法字符 ${ch}: ${name}`);
   }
-  assert.equal(name, '回车-abcdefghij-20261109-043304.txt');
+  assert.equal(name, '回车-ab-20261109-043304.txt');
   assert.match(name, /^回车-.+-\d{8}-\d{6}\.txt$/);
+  // 反斜杠必须真被去掉（旧实现曾漏掉 \，单测看不出）
+  const bs = String.fromCharCode(92);
+  assert.ok(!mod.safeFileName('x' + bs + 'y', 'txt', ts).includes(bs), '反斜杠没被去掉');
 });
 
 test('safeFileName：空标题/纯非法字符回落「回车」', () => {
