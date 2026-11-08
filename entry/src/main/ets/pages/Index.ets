@@ -121,6 +121,8 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
+  /** §18.7：滚筒横向速度系数（滚筒走 k×O，纸张走满 O）。平板几何上限 0.914，手机 0.612——手机靠 rollX 钳制兜底 */
+  private readonly ROLLER_K: number = 0.8;
   /** 换纸时旧纸淡出用。 */
   @State paperOpacity: number = 1;
   /** 换纸第①步：纸容器切「整张模式」（高=Ph、不裁），整张纸飞出去。 */
@@ -2754,6 +2756,7 @@ struct Index {
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                 strikeXVp: this.archXVp,
+                rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
                 paperLeftFixedVp: this.paperLeftFixed(),
@@ -2776,6 +2779,7 @@ struct Index {
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                 strikeXVp: this.archXVp,
+                rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
               })
@@ -2794,6 +2798,7 @@ struct Index {
                   paperWidthVp: this.paperWidthVp,
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                   strikeXVp: this.archXVp,
+                  rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
                   canvasOffsetVp: this.carriageOffsetVp,
                   paperLeftFixedVp: this.paperLeftFixed(),
                   texOffsetYVp: this.texOffsetVp,

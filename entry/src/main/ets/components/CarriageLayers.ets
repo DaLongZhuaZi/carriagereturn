@@ -21,6 +21,8 @@ export struct CarriageLayers {
   @Prop paperLeftVp: number = 74;
   /** 打击点 x（= 纸屏左 + marginH + 已落字总宽，相对舞台左缘）。 */
   @Prop strikeXVp: number = 102;
+  /** §18.7：滚筒横向偏移（= carriageOffsetVp × 系数 k）。只调滚筒，纸张／压纸卷／中央件仍用满 O */
+  @Prop rollerOffsetVp: number = 0;
   @Prop joltYVp: number = 0;
   @Prop knobAngleDeg: number = 0;
   /** 滚筒纹理转角（与旋钮同角，纹理须能旋转）。 */
@@ -98,7 +100,14 @@ export struct CarriageLayers {
   }
 
   private rollX(): number {
-    return this.paperLeftVp - (this.rollW() - this.paperWidthVp) / 2;
+    // §18.7：滚筒只走 k×O（纸张走满 O）。k 由 Index 的 ROLLER_K 决定。
+    let x: number = this.paperLeftFixedVp + this.rollerOffsetVp - (this.rollW() - this.paperWidthVp) / 2;
+    // 钳制兜底：滚筒左缘不许左出底座左缘（手机 k 上限只有 0.612，单靠系数守不住）
+    const bl: number = this.baseLeft();
+    if (x < bl) {
+      x = bl;
+    }
+    return x;
   }
 
   private canvasW(): number {
