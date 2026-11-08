@@ -791,6 +791,10 @@
     {
       "name": "guide_trash_3",
       "value": "超过 30 天自动彻底删除，不占空间。"
+    },
+    {
+      "name": "keyboard_shift",
+      "value": "Shift"
     }
   ]
 }

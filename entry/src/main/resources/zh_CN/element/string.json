@@ -67,6 +67,10 @@
     {
       "name": "paper_memo",
       "value": "便签"
+    },
+    {
+      "name": "keyboard_shift",
+      "value": "Shift"
     }
   ]
 }
