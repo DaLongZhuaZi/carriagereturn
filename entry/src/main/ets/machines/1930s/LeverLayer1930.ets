@@ -4,14 +4,12 @@
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { MachineKind } from '../../model/DocModel';
+import { LEVER_REST_DEG_TABLET, LEVER_SWING_DEG_TABLET, angleFor, dragRatioFor, pulledEnough } from '../../model/LeverAngleCore';
 import { findMachine, MachineSpec } from '../../model/MachineCatalog';
 
 const LDOMAIN: number = 0x0100;
 const LTAG: string = 'LeverLayer';
-/** 静止外倾 30°（不竖直）；摆幅仍 35° → 摆出到 65°，回 30°。 */
-/** 默认角度（平板口径）；手机由 Index 传入更小的值（§19.1：尖端不许出屏） */
-const REST_DEG: number = 30;
-const SWING_DEG: number = 35;
+/** 静止／摆幅常量统一在 model/LeverAngleCore（冻结值，第 0b 批只搬不改）。 */
 /** 层素材 536×2522，宽高比写死，不许方形层套 Contain。 */
 const LEVER_ASPECT: number = 536 / 2522;
 const SWING_MS: number = 150;
@@ -31,10 +29,12 @@ export struct LeverLayer1930 {
   @Prop offsetXVp: number = 0;
   @Prop offsetYVp: number = 0;
   /** §19.1：静止角／摆幅（度）。平板 30/35，手机 15/20 */
-  @Prop restDeg: number = REST_DEG;
-  @Prop swingDeg: number = SWING_DEG;
+  @Prop restDeg: number = LEVER_REST_DEG_TABLET;
+  @Prop swingDeg: number = LEVER_SWING_DEG_TABLET;
   /** §18.11：外部驱动的拉杆比例 0..1（拨杆节点自身收不到触摸，改由 Index 在字车层接手势） */
   @Prop @Watch('onDragRatio') dragRatio: number = 0;
+  /** 第 0b 批：切机纪元；变化即回静止角（不带动画），切断在途摆动跨机。 */
+  @Prop @Watch('onResetEpoch') resetEpoch: number = 0;
 
   @State angle: number = 30;
   /** §18.11：拖拽中（跟手控角），拖动中跳过 tick 摆动，避免与直接控角抢 angle */
@@ -67,8 +67,7 @@ export struct LeverLayer1930 {
   /** 外部拖拽比例变化：跟手控角（不套动画）；回到 0 时弹回静止角 */
   onDragRatio(): void {
     if (this.dragging) {
-      const r: number = this.dragRatio < 0 ? 0 : (this.dragRatio > 1 ? 1 : this.dragRatio);
-      this.angle = this.restDeg + r * this.swingDeg;
+      this.angle = angleFor(this.restDeg, this.swingDeg, this.dragRatio);
       return;
     }
     if (this.dragRatio <= 0.001) {
@@ -76,6 +75,14 @@ export struct LeverLayer1930 {
         this.angle = this.restDeg;
       });
     }
+  }
+
+  /** 切机纪元变化：立即回静止角（不带动画），并清掉本机拖拽中间态。 */
+  onResetEpoch(): void {
+    this.dragging = false;
+    this.dragOffsetY = 0;
+    this.angle = this.restDeg;
+    hilog.info(LDOMAIN, LTAG, 'lever reset epoch=%{public}s', this.resetEpoch.toString());
   }
 
   onTickChanged(): void {
@@ -123,15 +130,15 @@ export struct LeverLayer1930 {
               dy = h;
             }
             this.dragOffsetY = dy;
-            // 跟手直接赋值（不套动画，拉才有手感）
-            this.angle = this.restDeg + (dy / h) * this.swingDeg;
+            // 跟手直接赋值（不套动画，拉才有手感）：统一走纯函数驱动器
+            this.angle = angleFor(this.restDeg, this.swingDeg, dragRatioFor(dy, h));
           })
           .onActionEnd(() => {
             const h: number = this.leverH();
             const pulled: number = this.dragOffsetY;
             this.dragging = false;
             this.dragOffsetY = 0;
-            if (h > 0 && pulled >= h / 2) {
+            if (h > 0 && pulledEnough(dragRatioFor(pulled, h))) {
               // 拉过一半：松手触发换行（一次拉动只换一行）
               hilog.info(LDOMAIN, LTAG, 'lever drag commit pull=%{public}s h=%{public}s',
                 pulled.toFixed(1), h.toFixed(1));
