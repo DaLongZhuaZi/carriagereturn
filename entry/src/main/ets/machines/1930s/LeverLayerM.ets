@@ -3,7 +3,8 @@
  * 换行开始摆出约 35°、150ms，回位完成后再回位。
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { MachineKind } from '../model/DocModel';
+import { MachineKind } from '../../model/DocModel';
+import { findMachine, MachineSpec } from '../../model/MachineCatalog';
 
 const LDOMAIN: number = 0x0100;
 const LTAG: string = 'LeverLayer';
@@ -24,9 +25,6 @@ export struct LeverLayerM {
   /** §4：机型（决定取哪份素材） */
   @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
   /** §4：拨杆图宽高比／支点孔比例（按机型取数，不再写死常量） */
-  @Prop leverAspect: number = 0.2125;
-  @Prop leverPivotX: number = 0.500;
-  @Prop leverPivotY: number = 0.952;
   /** 换行计数：+1 触发一次摆动。 */
   /** 换行计数：+1 触发一次摆动（@Watch 直接挂它，避免复制属性竞态）。 */
   @Prop @Watch('onTickChanged') newlineTick: number = 0;
@@ -46,8 +44,13 @@ export struct LeverLayerM {
 
   /** 杆长（vp）= 图高。向下拉满一杆长 = 摆满 swingDeg */
   /** §4：素材按机型静态分支取（$rawfile 只吃编译期常量，不许拼变量） */
+  /** §14：本机型几何从这里取（M 件自己负责，Index 不传几何） */
+  private spec(): MachineSpec {
+    return findMachine(this.machineKind);
+  }
+
   private leverH(): number {
-    return this.layerSizeVp / this.leverAspect;
+    return this.layerSizeVp / this.spec().leverAspect;
   }
 
   aboutToAppear(): void {
@@ -144,12 +147,12 @@ export struct LeverLayerM {
             })
         )
         .width(this.layerSizeVp)
-        .height(this.layerSizeVp / this.leverAspect)
+        .height(this.layerSizeVp / this.spec().leverAspect)
         .objectFit(ImageFit.Fill)
         .rotate({
           angle: this.angle,
-          centerX: this.layerSizeVp * this.leverPivotX,
-          centerY: (this.layerSizeVp / this.leverAspect) * this.leverPivotY,
+          centerX: this.layerSizeVp * this.spec().leverPivotX,
+          centerY: (this.layerSizeVp / this.spec().leverAspect) * this.spec().leverPivotY,
         })
         // §18.11：用 .position() 而不是 .offset()——.offset 只挪渲染位置、不挪命中区，
         // 导致拨杆"看得见却点不到/拉不动"（真机手指实测也无效）
@@ -159,9 +162,9 @@ export struct LeverLayerM {
         // §18.11 第 5 条：拨杆图很细（手机宽约 24vp），扩热区到 ≥44×44，不改视觉大小
         .responseRegion({
           x: -Math.max(0, (44 - this.layerSizeVp) / 2),
-          y: -Math.max(0, (44 - this.layerSizeVp / this.leverAspect) / 2),
+          y: -Math.max(0, (44 - this.layerSizeVp / this.spec().leverAspect) / 2),
           width: Math.max(44, this.layerSizeVp),
-          height: Math.max(44, this.layerSizeVp / this.leverAspect),
+          height: Math.max(44, this.layerSizeVp / this.spec().leverAspect),
         })
       } else {
         Image($rawfile('layers/1920s-upright/lever.png'))
@@ -210,12 +213,12 @@ export struct LeverLayerM {
             })
         )
         .width(this.layerSizeVp)
-        .height(this.layerSizeVp / this.leverAspect)
+        .height(this.layerSizeVp / this.spec().leverAspect)
         .objectFit(ImageFit.Fill)
         .rotate({
           angle: this.angle,
-          centerX: this.layerSizeVp * this.leverPivotX,
-          centerY: (this.layerSizeVp / this.leverAspect) * this.leverPivotY,
+          centerX: this.layerSizeVp * this.spec().leverPivotX,
+          centerY: (this.layerSizeVp / this.spec().leverAspect) * this.spec().leverPivotY,
         })
         // §18.11：用 .position() 而不是 .offset()——.offset 只挪渲染位置、不挪命中区，
         // 导致拨杆"看得见却点不到/拉不动"（真机手指实测也无效）
@@ -225,9 +228,9 @@ export struct LeverLayerM {
         // §18.11 第 5 条：拨杆图很细（手机宽约 24vp），扩热区到 ≥44×44，不改视觉大小
         .responseRegion({
           x: -Math.max(0, (44 - this.layerSizeVp) / 2),
-          y: -Math.max(0, (44 - this.layerSizeVp / this.leverAspect) / 2),
+          y: -Math.max(0, (44 - this.layerSizeVp / this.spec().leverAspect) / 2),
           width: Math.max(44, this.layerSizeVp),
-          height: Math.max(44, this.layerSizeVp / this.leverAspect),
+          height: Math.max(44, this.layerSizeVp / this.spec().leverAspect),
         })
       }
     }

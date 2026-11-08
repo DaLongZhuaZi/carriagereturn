@@ -9,7 +9,7 @@
  */
 import { curves } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { MachineKind } from '../model/DocModel';
+import { MachineKind } from '../../model/DocModel';
 
 // 硬曲线：固定时长，不许用 springMotion 猜结算时间
 // 常速：去程 90ms（60fps 下约 5–6 帧，摆动可见又不显迟钝）、回程 120ms

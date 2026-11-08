@@ -8,7 +8,8 @@
  *   Hc = Pw×0.17；中央件 Hg = Hc×1.5、宽 = Hg×0.848；旋钮直径 = Hc×0.92
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { MachineKind } from '../model/DocModel';
+import { MachineKind } from '../../model/DocModel';
+import { findMachine, MachineSpec } from '../../model/MachineCatalog';
 
 const CDOMAIN: number = 0x0100;
 const CTAG: string = 'CarriageLayers';
@@ -26,16 +27,7 @@ export struct CarriageLayersM {
   @Prop rollerOffsetVp: number = 0;
   /** §4 多机型：机型＋几何参数（按机型取数，不写死） */
   @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
-  @Prop rollerWidthRatio: number = 0.9528;
-  @Prop baseRailAspect: number = 7.562;
-  @Prop basketAspect: number = 4.70;
-  @Prop bailRollerLX: number = 0.280;
-  @Prop bailRollerRX: number = 0.724;
-  @Prop bailRollerY: number = 0.747;
-  @Prop centralWindowX: number = 0.500;
-  @Prop centralWindowY: number = 0.550;
-  /** §11 C：中央件宽高比（1920s 0.848、1930s 1.091），不再写死 */
-  @Prop centralAspect: number = 0.848;
+  /** §14：几何由 M 件自己按机型从 MachineSpec 取，Index 不再传任何几何 */
 
   /** §4：素材按机型静态分支（$rawfile 只吃编译期常量） */
   @Prop joltYVp: number = 0;
@@ -121,8 +113,13 @@ export struct CarriageLayersM {
   }
 
   /** 滚筒总宽：v3 素材里纸卷部分占 95.28% → W = Pw / 0.9528（金属帽各露 (W−Pw)/2）。 */
+  /** §14：本机型几何从这里取（M 件自己负责，Index 不传几何） */
+  private spec(): MachineSpec {
+    return findMachine(this.machineKind);
+  }
+
   private rollW(): number {
-    return this.paperWidthVp / this.rollerWidthRatio;
+    return this.paperWidthVp / this.spec().rollerWidthRatio;
   }
 
   private rollX(): number {
@@ -213,14 +210,14 @@ export struct CarriageLayersM {
         if (this.machineKind === MachineKind.PORTABLE_1930S) {
           Image($rawfile('layers/1930s-portable/typebar-basket-strip.png'))
             .width(this.paperWidthVp + 160)
-            .height((this.paperWidthVp + 160) / this.basketAspect)
+            .height((this.paperWidthVp + 160) / this.spec().basketAspect)
             .objectFit(ImageFit.Fill)
             .opacity(0.6)
             .position({ x: this.paperLeftVp - 80, y: this.hc() / 2 - 70 })
         } else {
           Image($rawfile('layers/1920s-upright/typebar-basket-strip.png'))
             .width(this.paperWidthVp + 160)
-            .height((this.paperWidthVp + 160) / this.basketAspect)
+            .height((this.paperWidthVp + 160) / this.spec().basketAspect)
             .objectFit(ImageFit.Fill)
             .opacity(0.6)
             .position({ x: this.paperLeftVp - 80, y: this.hc() / 2 - 70 })
@@ -234,14 +231,14 @@ export struct CarriageLayersM {
           Image($rawfile('layers/1930s-portable/carriage-base-rail.png'))
             .width(this.baseW())
             // §11 D：底座高钳在 Hc 以内（1930s 比 2.95 → 117vp 会超出纸面区被裁）
-            .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
+            .height(Math.min(this.baseW() / this.spec().baseRailAspect, this.hc()))
             .objectFit(ImageFit.Cover)
             .position({ x: this.baseLeft(), y: this.baseTop() })
             .zIndex(0)
         } else {
           Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
             .width(this.baseW())
-            .height(Math.min(this.baseW() / this.baseRailAspect, this.hc()))
+            .height(Math.min(this.baseW() / this.spec().baseRailAspect, this.hc()))
             .objectFit(ImageFit.Cover)
             .position({ x: this.baseLeft(), y: this.baseTop() })
             .zIndex(0)
@@ -309,25 +306,25 @@ export struct CarriageLayersM {
         Stack({ alignContent: Alignment.TopStart }) {
           if (this.machineKind === MachineKind.PORTABLE_1930S) {
             Image($rawfile('layers/1930s-portable/central-guide.png'))
-              .width(this.hc() * 1.5 * this.centralAspect)
+              .width(this.hc() * 1.5 * this.spec().centralAspect)
               .height(this.hc() * 1.5)
               .objectFit(ImageFit.Contain)
               .position({ x: 0, y: 0 })
           } else {
             Image($rawfile('layers/1920s-upright/central-guide.png'))
-              .width(this.hc() * 1.5 * this.centralAspect)
+              .width(this.hc() * 1.5 * this.spec().centralAspect)
               .height(this.hc() * 1.5)
               .objectFit(ImageFit.Contain)
               .position({ x: 0, y: 0 })
           }
         }
-        .width(this.hc() * 1.5 * this.centralAspect)
+        .width(this.hc() * 1.5 * this.spec().centralAspect)
         // 全高：不再裁掉拱下半（旧口径 +10 只留到打击行下 10vp，拱只剩半截）
         .height(this.hc() * 1.5)
         .clip(true)
         .position({
-          x: this.strikeXVp - this.hc() * 1.5 * this.centralAspect / 2,
-          y: this.strikeYVp - this.hc() * 1.5 * this.centralWindowY,
+          x: this.strikeXVp - this.hc() * 1.5 * this.spec().centralAspect / 2,
+          y: this.strikeYVp - this.hc() * 1.5 * this.spec().centralWindowY,
         })
 
         // 本批撤掉两枚圆形旋钮：真机正面只见旋钮侧面而非整面圆盘，
