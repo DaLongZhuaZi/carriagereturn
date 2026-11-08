@@ -61,6 +61,7 @@ import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
+import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
@@ -2925,41 +2926,56 @@ struct Index {
                   // 金属件与滚筒同锚点：旋钮中心 y = 滚筒中心
                   .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
 
-                // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
-                Image(this.bracketSrc())
-                  .width(this.bracketW())
-                  .height(this.bracketH())
-                  .objectFit(ImageFit.Fill)
-                  .position({
-                    x: this.bracketLeftRel(),
-                    y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
+                if (false && this.machineKind === MachineKind.UPRIGHT_1920S) {
+                  // §14：1920s 支架＋拨杆走蓝图组件（几何全在蓝图里）
+                  LeverAssembly1920({
+                    stageWidth: this.stageWidth,
+                    paperWidthVp: this.paperWidthVp,
+                    carriageHeight: this.carriageHeight,
+                    carriageTopVp: this.carriageTopVp,
+                    isTablet: this.isTablet,
+                    newlineTick: this.newlineTick,
+                    dragRatio: this.leverDragRatio,
+                    onSwingStart: (): void => {
+                      this.audioService.playCarriageReset();
+                    },
+                    onLeverTap: (): void => {
+                      this.onNewline();
+                    },
                   })
-                  .zIndex(8)
+                } else {
+                  // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
+                  Image(this.bracketSrc())
+                    .width(this.bracketW())
+                    .height(this.bracketH())
+                    .objectFit(ImageFit.Fill)
+                    .position({
+                      x: this.bracketLeftRel(),
+                      y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
+                    })
+                    .zIndex(8)
 
-                // 拨杆：支点 = 车条右端 + O，支点 y = Hc/2（滚筒中心相对金属顶）
-                LeverLayer({
-                  // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
-                  layerSizeVp: this.leverW(),
-                  machineKind: this.machineKind,
-                  leverAspect: this.bp().leverAspect,
-                  leverPivotX: this.bp().bracketPivotX,
-                  leverPivotY: this.bp().leverPivotY,
-                  newlineTick: this.newlineTick,
-                  // §19.1：手机静止 15°／摆幅 20°（最大 35°）；平板 30/35 不变
-                  restDeg: this.isTablet ? 30 : 15,
-                  swingDeg: this.isTablet ? 35 : 20,
-                  dragRatio: this.leverDragRatio,
-                  // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
-                  offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                  onSwingStart: (): void => {
-                    this.audioService.playCarriageReset();
-                  },
-                  onLeverTap: (): void => {
-                    this.onNewline();
-                  },
-                })
+                  LeverLayer({
+                    layerSizeVp: this.leverW(),
+                    machineKind: this.machineKind,
+                    leverAspect: this.bp().leverAspect,
+                    leverPivotX: this.bp().bracketPivotX,
+                    leverPivotY: this.bp().leverPivotY,
+                    newlineTick: this.newlineTick,
+                    restDeg: this.isTablet ? 30 : 15,
+                    swingDeg: this.isTablet ? 35 : 20,
+                    dragRatio: this.leverDragRatio,
+                    offsetXVp: this.pinXRel() - this.leverW() / 2,
+                    offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                      - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
+                    onSwingStart: (): void => {
+                      this.audioService.playCarriageReset();
+                    },
+                    onLeverTap: (): void => {
+                      this.onNewline();
+                    },
+                  })
+                }
               }
             }
             .width('100%')
