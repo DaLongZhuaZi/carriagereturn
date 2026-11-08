@@ -149,6 +149,8 @@ struct Index {
   @State carriageTopVp: number = 0;
   /** 换行计数：驱动 LeverLayer 摆动。 */
   @State newlineTick: number = 0;
+  /** §18.6 第 2 件：退行代际，防上一次 setTimeout 提前清旗 */
+  @State backLineTick: number = 0;
   /** 实测单字 advance（vp）：隐藏 Text 量宽得到，中英分开。 */
   @State advEngVp: number = 0;
   @State advCjkVp: number = 0;
@@ -2139,9 +2141,16 @@ struct Index {
   }
 
   private onDelete(): void {
-    // §18 第 4 件：退行忙窗（270ms）内禁删——会与 onBackLine 的 250ms O 动画抢 carriageOffsetVp
-    if (this.backBusy) {
-      hilog.info(DOMAIN, TAG, 'del skipped: backBusy');
+    // §18.6 第 1 件：删／换行／退行三操作统一守旗（与 commitChar 同口径，两面旗都要查）。
+    // 显式按键被忽略后用户可再按；**不许排队**（排队删会删错字）。
+    if (this.newlineBusy || this.backBusy) {
+      hilog.info(DOMAIN, TAG, 'del skipped: busy nl=%{public}s bl=%{public}s',
+        this.newlineBusy ? 'true' : 'false', this.backBusy ? 'true' : 'false');
+      return;
+    }
+    // §18.6 第 3 件：换纸 600ms 内删会撞 DocModelCore.clear()（与 commitChar 同口径）
+    if (this.paperChanging) {
+      hilog.info(DOMAIN, TAG, 'del skipped: paperChanging');
       return;
     }
     // §15 第 1 步：队列非空 → **先同步落队再正常删除**。
@@ -2218,6 +2227,12 @@ struct Index {
 
   /** 退行：回到上一行文字末尾（不删当前行）；已在第一行则无动作。 */
   private onBackLine(): void {
+    // §18.6 第 1 件：与删／换行统一守旗（连按两次退行时第二次被忽略，不会提前清旗）
+    if (this.newlineBusy || this.backBusy) {
+      hilog.info(DOMAIN, TAG, 'backLine skipped: busy nl=%{public}s bl=%{public}s',
+        this.newlineBusy ? 'true' : 'false', this.backBusy ? 'true' : 'false');
+      return;
+    }
     const cur = this.docModel.getCursor();
     if (cur.line <= 0) {
       return;
@@ -2240,10 +2255,18 @@ struct Index {
     this.paperAnimateNext = true;
     this.recalcPaperHeight();
     this.backBusy = true;
+    // §18.6 第 2 件：代际守卫——本轮 setTimeout 只负责自己那一代
+    this.backLineTick = this.backLineTick + 1;
+    const myTick: number = this.backLineTick;
     this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
       this.carriageOffsetVp = targetO;
     });
     setTimeout(() => {
+      if (myTick !== this.backLineTick) {
+        hilog.info(DOMAIN, TAG, 'backLine release stale tick=%{public}s cur=%{public}s',
+          myTick.toString(), this.backLineTick.toString());
+        return;
+      }
       this.backBusy = false;
       // §18 第 1 件：退行与纸移动同拍（250ms），拱 200ms 平滑滑到新目标
       this.animateArch(200);
@@ -2317,6 +2340,12 @@ struct Index {
   }
 
   private onNewline(): void {
+    // §18.6 第 1 件：与删／退行统一守旗
+    if (this.newlineBusy || this.backBusy) {
+      hilog.info(DOMAIN, TAG, 'newline skipped: busy nl=%{public}s bl=%{public}s',
+        this.newlineBusy ? 'true' : 'false', this.backBusy ? 'true' : 'false');
+      return;
+    }
     // 第三方输入法可能不发 finishTextPreview，换行时防御性清空预编辑串
     this.cnPreview = '';
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
@@ -2358,6 +2387,8 @@ struct Index {
       this.syncRows();
       this.scheduleSave();
     }
+    // §18.6 第 2 件：捕获本轮换行代际
+    const myNlTick: number = this.newlineTick;
     // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
     setTimeout(() => {
       this.animatePaperHeight();
@@ -2403,6 +2434,12 @@ struct Index {
         this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
+      // §18.6 第 2 件：代际守卫（newlineTick 变了说明已被新一轮接管，本轮不许清旗／释放）
+      if (this.newlineTick !== myNlTick) {
+        hilog.info(DOMAIN, TAG, 'newline release stale tick=%{public}s cur=%{public}s',
+          myNlTick.toString(), this.newlineTick.toString());
+        return;
+      }
       this.newlineBusy = false;
       this.animateArch(200);
       // §14.3 第 4 条：换行编排结束后，排队字逐字回落字队列
