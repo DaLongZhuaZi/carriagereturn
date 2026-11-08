@@ -63,7 +63,7 @@ import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
-import { LeverOnlyAssembly1920 } from '../machines/1920s/LeverOnlyAssembly1920';
+// §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
@@ -2950,44 +2950,26 @@ struct Index {
                 }
 
                 // 拨杆：§14 二分测试——1920s 走蓝图组件，其余走原路径
-                if (false && this.machineKind === MachineKind.UPRIGHT_1920S) {
-                  LeverOnlyAssembly1920({
-                    stageWidth: this.stageWidth,
-                    paperWidthVp: this.paperWidthVp,
-                    carriageHeight: this.carriageHeight,
-                    carriageTopVp: this.carriageTopVp,
-                    isTablet: this.isTablet,
-                    newlineTick: this.newlineTick,
-                    dragRatio: this.leverDragRatio,
-                    onSwingStart: (): void => {
-                      this.audioService.playCarriageReset();
-                    },
-                    onLeverTap: (): void => {
-                      this.onNewline();
-                    },
-                  })
-                } else {
-                  LeverLayer({
-                    layerSizeVp: this.leverW(),
-                    machineKind: this.machineKind,
-                    leverAspect: this.bp().leverAspect,
-                    leverPivotX: this.bp().bracketPivotX,
-                    leverPivotY: this.bp().leverPivotY,
-                    newlineTick: this.newlineTick,
-                    restDeg: this.isTablet ? 30 : 15,
-                    swingDeg: this.isTablet ? 35 : 20,
-                    dragRatio: this.leverDragRatio,
-                    offsetXVp: this.pinXRel() - this.leverW() / 2,
-                    offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                      - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                    onSwingStart: (): void => {
-                      this.audioService.playCarriageReset();
-                    },
-                    onLeverTap: (): void => {
-                      this.onNewline();
-                    },
-                  })
-                }
+                LeverLayer({
+                  layerSizeVp: this.leverW(),
+                  machineKind: this.machineKind,
+                  leverAspect: this.bp().leverAspect,
+                  leverPivotX: this.bp().bracketPivotX,
+                  leverPivotY: this.bp().leverPivotY,
+                  newlineTick: this.newlineTick,
+                  restDeg: this.isTablet ? 30 : 15,
+                  swingDeg: this.isTablet ? 35 : 20,
+                  dragRatio: this.leverDragRatio,
+                  offsetXVp: this.pinXRel() - this.leverW() / 2,
+                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
+                  onSwingStart: (): void => {
+                    this.audioService.playCarriageReset();
+                  },
+                  onLeverTap: (): void => {
+                    this.onNewline();
+                  },
+                })
               }
             }
             .width('100%')
