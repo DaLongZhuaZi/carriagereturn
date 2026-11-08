@@ -7,6 +7,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 const LDOMAIN: number = 0x0100;
 const LTAG: string = 'LeverLayer';
 /** 静止外倾 30°（不竖直）；摆幅仍 35° → 摆出到 65°，回 30°。 */
+/** 默认角度（平板口径）；手机由 Index 传入更小的值（§19.1：尖端不许出屏） */
 const REST_DEG: number = 30;
 const SWING_DEG: number = 35;
 /** 层素材 536×2522，宽高比写死，不许方形层套 Contain。 */
@@ -24,8 +25,16 @@ export struct LeverLayer {
   @Prop @Watch('onTickChanged') newlineTick: number = 0;
   @Prop offsetXVp: number = 0;
   @Prop offsetYVp: number = 0;
+  /** §19.1：静止角／摆幅（度）。平板 30/35，手机 15/20 */
+  @Prop restDeg: number = REST_DEG;
+  @Prop swingDeg: number = SWING_DEG;
 
-  @State angle: number = REST_DEG;
+  @State angle: number = 30;
+
+  aboutToAppear(): void {
+    // §19.1：初始静止角跟随传入值（手机 15°，平板 30°）
+    this.angle = this.restDeg;
+  }
   private lastTick: number = 0;
 
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
@@ -40,10 +49,10 @@ export struct LeverLayer {
     this.lastTick = this.newlineTick;
     this.onSwingStart();
     this.getUIContext().animateTo({ duration: SWING_MS, curve: Curve.FastOutSlowIn }, () => {
-      this.angle = REST_DEG + SWING_DEG;
+      this.angle = this.restDeg + this.swingDeg;
     });
     this.getUIContext().animateTo({ duration: BACK_MS, delay: SWING_MS, curve: Curve.FastOutSlowIn }, () => {
-      this.angle = REST_DEG;
+      this.angle = this.restDeg;
     });
     hilog.info(LDOMAIN, LTAG, 'lever swing tick=%{public}s', this.newlineTick.toString());
   }

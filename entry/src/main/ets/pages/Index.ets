@@ -124,6 +124,8 @@ struct Index {
   @State paperChanging: boolean = false;
   /** §18.7：滚筒横向速度系数（滚筒走 k×O，纸张走满 O）。平板几何上限 0.914，手机 0.612——手机靠 rollX 钳制兜底 */
   private readonly ROLLER_K: number = 0.8;
+  /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
+  private readonly ROLLER_K_PHONE: number = 1.0;
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
@@ -1077,7 +1079,18 @@ struct Index {
     // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
     // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。
     this.carriageHeight = this.paperWidthVp * 0.17;
-      this.maxTravelVp = Math.min(64, this.paperWidthVp * 0.25);
+      // §19.2：手机 maxTravel 再封顶——滚筒左缘满行程时不许出屏：
+      // maxTravel ≤ paperLeftFixed − (rollW − Pw)/2（手机约 42.8vp）
+      let mt: number = Math.min(64, this.paperWidthVp * 0.25);
+      if (!this.isTablet) {
+        const rollWPw: number = this.paperWidthVp / 0.9528;
+        const paperLeftFixed: number = (this.stageWidth - this.paperWidthVp) / 2;
+        const cap: number = paperLeftFixed - (rollWPw - this.paperWidthVp) / 2;
+        if (cap > 0 && mt > cap) {
+          mt = cap;
+        }
+      }
+      this.maxTravelVp = mt;
       this.recalcTravel();
       this.recalcPaperHeight();
 
@@ -1532,7 +1545,18 @@ struct Index {
   }
 
   private leverW(): number {
-    return (this.isTablet ? this.carriageHeight * 1.84 : this.carriageHeight * 2.5) * 0.212;
+    if (this.isTablet) {
+      return this.carriageHeight * 1.84 * 0.212;
+    }
+    // §19.1：手机按「尖端不出屏」反推杆长——leverReachMax = stageW − 8 − pinXRel()，
+    // leverH ≤ leverReachMax / sin(最大摆角 35°)。平板不受影响。
+    let h: number = this.carriageHeight * 2.5;
+    const reachMax: number = this.stageWidth - 8 - this.pinXRel();
+    const maxH: number = reachMax / Math.sin(35 * Math.PI / 180);
+    if (maxH > 0 && h > maxH) {
+      h = maxH;
+    }
+    return h * 0.212;
   }
 
   /** 扣子中心 x 硬钳制：永不超出纸右缘 − 扣子半宽。 */
@@ -2785,7 +2809,7 @@ struct Index {
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                 strikeXVp: this.archXVp,
-                rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
+                rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
                 paperLeftFixedVp: this.paperLeftFixed(),
@@ -2808,7 +2832,7 @@ struct Index {
                 paperWidthVp: this.paperWidthVp,
                 paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                 strikeXVp: this.archXVp,
-                rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
+                rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
                 canvasOffsetVp: this.carriageOffsetVp,
                 strikeYVp: 0,
               })
@@ -2827,7 +2851,7 @@ struct Index {
                   paperWidthVp: this.paperWidthVp,
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
                   strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * this.ROLLER_K,
+                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
                   canvasOffsetVp: this.carriageOffsetVp,
                   paperLeftFixedVp: this.paperLeftFixed(),
                   texOffsetYVp: this.texOffsetVp,
@@ -2854,6 +2878,9 @@ struct Index {
                   // 拨杆：平板用 Hc×2.0（顶端不高于纸顶 311.2），手机 Hc×2.5 不动
                   layerSizeVp: this.leverW(),
                   newlineTick: this.newlineTick,
+                  // §19.1：手机静止 15°／摆幅 20°（最大 35°）；平板 30/35 不变
+                  restDeg: this.isTablet ? 30 : 15,
+                  swingDeg: this.isTablet ? 35 : 20,
                   // 支点 = 支架销钉孔 (0.503,0.293)；拨杆静止外倾 30°（LeverLayer 内 REST_DEG）
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
