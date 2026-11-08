@@ -51,9 +51,9 @@ export struct CollectionPage {
     }
   }
 
-  /** 解锁判定：目前只有 1920s 默认解锁（其余解锁条件未实现，按锁定渲染）。 */
+  /** 解锁判定：临时全解锁（2026-11-08 用户定，成就系统未做前四台全开；成就系统落地时改回按条件判定）。 */
   private unlocked(kind: string): boolean {
-    return kind === '1920s-upright';
+    return true;
   }
 
   private colsTemplate(): string {

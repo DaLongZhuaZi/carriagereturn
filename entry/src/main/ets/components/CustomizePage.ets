@@ -57,8 +57,9 @@ export struct CustomizePage {
     }
   }
 
+  /** 临时全解锁（2026-11-08 用户定，成就系统未做前四台全开；成就系统落地时改回按条件判定）。 */
   private unlockedMachine(kind: string): boolean {
-    return kind === '1920s-upright';
+    return true;
   }
 
   private groups(): string[] { return ['english', 'chinese', 'handwriting']; }
