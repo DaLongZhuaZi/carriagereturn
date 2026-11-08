@@ -65,12 +65,21 @@ import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
 import { MetalAssembly1920 } from '../machines/1920s/MetalAssembly1920';
-import { CarriageLayersM } from '../machines/1930s/CarriageLayersM';
+import { CarriageLayers1930 } from '../machines/1930s/CarriageLayers1930';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
-import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
+import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
+import { BLUEPRINT_1950 } from '../machines/1950s/Blueprint';
+import { BLUEPRINT_1960 } from '../machines/1960s/Blueprint';
+import { CarriageLayers1950 } from '../machines/1950s/CarriageLayers';
+import { CarriageLayers1960 } from '../machines/1960s/CarriageLayers';
+import { LeverLayer1930 } from '../machines/1930s/LeverLayer1930';
+import { LeverLayer1950 } from '../machines/1950s/LeverLayer';
+import { LeverLayer1960 } from '../machines/1960s/LeverLayer';
+import { TypebarLayer1950 } from '../machines/1950s/TypebarLayer';
+import { TypebarLayer1960 } from '../machines/1960s/TypebarLayer';
 
 const TAG: string = 'MainScreen';
 const DOMAIN: number = 0x0100;
@@ -1576,11 +1585,24 @@ struct Index {
 
   /** 分层件（1920s／1930s）才渲染 TypebarLayer／CarriageLayers；1950s／1960s 走 CarriageStrip 兜底 */
   private hasLayers(): boolean {
-    return this.machineKind === MachineKind.UPRIGHT_1920S || this.machineKind === MachineKind.PORTABLE_1930S;
+    // §14：四台机型都有分层件（各自蓝图目录）
+    return this.machineKind === MachineKind.UPRIGHT_1920S
+      || this.machineKind === MachineKind.PORTABLE_1930S
+      || this.machineKind === MachineKind.STREAMLINED_1950S
+      || this.machineKind === MachineKind.ELECTRIC_1960S;
   }
   /** §14：机型蓝图的唯一选择点（Index 里唯一的机型分派） */
   private bp(): MachineBlueprint {
-    return this.machineKind === MachineKind.UPRIGHT_1920S ? BLUEPRINT_1920 : BLUEPRINT_1930;
+    if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+      return BLUEPRINT_1920;
+    }
+    if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      return BLUEPRINT_1930;
+    }
+    if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+      return BLUEPRINT_1950;
+    }
+    return BLUEPRINT_1960;
   }
 
   private leverW(): number {
@@ -2838,8 +2860,38 @@ struct Index {
                     this.onStrikeArrive();
                   },
                 })
+              } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+                TypebarLayer1930({
+                  machineKind: this.machineKind,
+                  layerWidthVp: this.carriageHeight * 2.5,
+                  layerHeightVp: this.carriageHeight * 2.5,
+                  strikeTick: this.strikeTick,
+                  animScale: 1,
+                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
+                  onArrive: (): void => {
+                    this.onStrikeArrive();
+                  },
+                })
+                  .zIndex(10)
+              } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+                TypebarLayer1950({
+                  machineKind: this.machineKind,
+                  layerWidthVp: this.carriageHeight * 2.5,
+                  layerHeightVp: this.carriageHeight * 2.5,
+                  strikeTick: this.strikeTick,
+                  animScale: 1,
+                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
+                    + findPaper(this.paperKind).marginH + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
+                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
+                  onArrive: (): void => {
+                    this.onStrikeArrive();
+                  },
+                })
+                  .zIndex(10)
               } else {
-                TypebarLayerM({
+                TypebarLayer1960({
                   machineKind: this.machineKind,
                   layerWidthVp: this.carriageHeight * 2.5,
                   layerHeightVp: this.carriageHeight * 2.5,
@@ -2873,12 +2925,12 @@ struct Index {
                   carriageHeight: this.carriageHeight,
                   carriageTopVp: this.carriageTopVp,
                 })
-              } else {
-                CarriageLayers({
+              } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+                CarriageLayers1930({
+                  machineKind: this.machineKind,
                   stageWidth: this.photoW(),
                   joltYVp: this.joltYVp,
                   knobAngleDeg: this.knobAngle,
-                  machineKind: this.machineKind,
                   part: 'roller',
                   rollerAngleDeg: this.knobAngle,
                   paperWidthVp: this.paperWidthVp,
@@ -2890,7 +2942,44 @@ struct Index {
                   paperLeftFixedVp: this.paperLeftFixed(),
                   texOffsetYVp: this.texOffsetVp,
                 })
-                  // 滚筒顶 y = Ht − Hc；与金属件同一锚点
+                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                  .zIndex(1)
+              } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+                CarriageLayers1950({
+                  machineKind: this.machineKind,
+                  stageWidth: this.photoW(),
+                  joltYVp: this.joltYVp,
+                  knobAngleDeg: this.knobAngle,
+                  part: 'roller',
+                  rollerAngleDeg: this.knobAngle,
+                  paperWidthVp: this.paperWidthVp,
+                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                  strikeXVp: this.archXVp,
+                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                  canvasOffsetVp: this.carriageOffsetVp,
+                  strikeYVp: 0,
+                  paperLeftFixedVp: this.paperLeftFixed(),
+                  texOffsetYVp: this.texOffsetVp,
+                })
+                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                  .zIndex(1)
+              } else {
+                CarriageLayers1960({
+                  machineKind: this.machineKind,
+                  stageWidth: this.photoW(),
+                  joltYVp: this.joltYVp,
+                  knobAngleDeg: this.knobAngle,
+                  part: 'roller',
+                  rollerAngleDeg: this.knobAngle,
+                  paperWidthVp: this.paperWidthVp,
+                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                  strikeXVp: this.archXVp,
+                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                  canvasOffsetVp: this.carriageOffsetVp,
+                  strikeYVp: 0,
+                  paperLeftFixedVp: this.paperLeftFixed(),
+                  texOffsetYVp: this.texOffsetVp,
+                })
                   .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
                   .zIndex(1)
               }
@@ -2937,8 +3026,44 @@ struct Index {
                     paperLeftFixedVp: this.paperLeftFixed(),
                     bailShiftVp: this.isTablet ? -15 : 0,
                   })
+                } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+                  CarriageLayers1930({
+                    machineKind: this.machineKind,
+                    stageWidth: this.photoW(),
+                    joltYVp: this.joltYVp,
+                    knobAngleDeg: this.knobAngle,
+                    part: 'metal',
+                    paperWidthVp: this.paperWidthVp,
+                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                    strikeXVp: this.archXVp,
+                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                    canvasOffsetVp: this.carriageOffsetVp,
+                    paperLeftFixedVp: this.paperLeftFixed(),
+                    texOffsetYVp: this.texOffsetVp,
+                    bailShiftVp: this.isTablet ? -15 : 0,
+                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
+                  })
+                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+                  CarriageLayers1950({
+                    machineKind: this.machineKind,
+                    stageWidth: this.photoW(),
+                    joltYVp: this.joltYVp,
+                    knobAngleDeg: this.knobAngle,
+                    part: 'metal',
+                    paperWidthVp: this.paperWidthVp,
+                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                    strikeXVp: this.archXVp,
+                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                    canvasOffsetVp: this.carriageOffsetVp,
+                    paperLeftFixedVp: this.paperLeftFixed(),
+                    texOffsetYVp: this.texOffsetVp,
+                    bailShiftVp: this.isTablet ? -15 : 0,
+                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
+                  })
+                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
                 } else {
-                  CarriageLayersM({
+                  CarriageLayers1960({
                     machineKind: this.machineKind,
                     stageWidth: this.photoW(),
                     joltYVp: this.joltYVp,
@@ -2978,13 +3103,32 @@ struct Index {
                     .zIndex(8)
                 }
 
-                // 拨杆：§14 二分测试——1920s 走蓝图组件，其余走原路径
-                LeverLayer({
+                // 拨杆：§14 按机型选各自蓝图件（各件自带本机型素材与几何）
+                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                  LeverLayer({
+                    machineKind: this.machineKind,
+                    leverAspect: this.bp().leverAspect,
+                    leverPivotX: this.bp().bracketPivotX,
+                    leverPivotY: this.bp().leverPivotY,
                   layerSizeVp: this.leverW(),
+                  newlineTick: this.newlineTick,
+                  restDeg: this.isTablet ? 30 : 15,
+                  swingDeg: this.isTablet ? 35 : 20,
+                  dragRatio: this.leverDragRatio,
+                  offsetXVp: this.pinXRel() - this.leverW() / 2,
+                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
+                  onSwingStart: (): void => {
+                    this.audioService.playCarriageReset();
+                  },
+                  onLeverTap: (): void => {
+                    this.onNewline();
+                  },
+                  })
+                } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+                LeverLayer1930({
                   machineKind: this.machineKind,
-                  leverAspect: this.bp().leverAspect,
-                  leverPivotX: this.bp().bracketPivotX,
-                  leverPivotY: this.bp().leverPivotY,
+                  layerSizeVp: this.leverW(),
                   newlineTick: this.newlineTick,
                   restDeg: this.isTablet ? 30 : 15,
                   swingDeg: this.isTablet ? 35 : 20,
@@ -2999,6 +3143,43 @@ struct Index {
                     this.onNewline();
                   },
                 })
+                } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+                LeverLayer1950({
+                  machineKind: this.machineKind,
+                  layerSizeVp: this.leverW(),
+                  newlineTick: this.newlineTick,
+                  restDeg: this.isTablet ? 30 : 15,
+                  swingDeg: this.isTablet ? 35 : 20,
+                  dragRatio: this.leverDragRatio,
+                  offsetXVp: this.pinXRel() - this.leverW() / 2,
+                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
+                  onSwingStart: (): void => {
+                    this.audioService.playCarriageReset();
+                  },
+                  onLeverTap: (): void => {
+                    this.onNewline();
+                  },
+                })
+                } else {
+                LeverLayer1960({
+                  machineKind: this.machineKind,
+                  layerSizeVp: this.leverW(),
+                  newlineTick: this.newlineTick,
+                  restDeg: this.isTablet ? 30 : 15,
+                  swingDeg: this.isTablet ? 35 : 20,
+                  dragRatio: this.leverDragRatio,
+                  offsetXVp: this.pinXRel() - this.leverW() / 2,
+                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
+                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
+                  onSwingStart: (): void => {
+                    this.audioService.playCarriageReset();
+                  },
+                  onLeverTap: (): void => {
+                    this.onNewline();
+                  },
+                })
+                }
               }
             }
             .width('100%')
