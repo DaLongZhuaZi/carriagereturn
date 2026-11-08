@@ -1,34 +1,68 @@
 /**
  * 回车 · 图标集（AGENTS「图标」）：全部用系统 SymbolGlyph，禁止手画 Path / 文字符号。
  *
- * 符号名以 SDK 为准（sys.symbol.*）；nameFor() 只做「语义 → 系统符号名」映射。
+ * 第 0 批：kind 收敛为注册表（`IconKind` 常量 + `iconResourceOf()` 唯一映射 + `all()` 清单），
+ * 供 `tools/audit-icons.py` 审计；本批只登记现有 13 种，各批新增 kind 时在此追加。
+ *
+ * 符号名以 SDK 为准（sys.symbol.*）；查不到的符号不许现编。
  */
+
+export class IconKind {
+  static readonly BACK: string = 'back';
+  static readonly CHEVRON_UP: string = 'chevron_up';
+  static readonly PLUS: string = 'plus';
+  static readonly CHEVRON: string = 'chevron';
+  static readonly FOLDER: string = 'folder';
+  static readonly MENU: string = 'menu';
+  static readonly MORE: string = 'more';
+  static readonly CHECK: string = 'check';
+  static readonly SETTINGS: string = 'settings';
+  static readonly EXPORT: string = 'export';
+  static readonly RENAME: string = 'rename';
+  static readonly DELETE: string = 'delete';
+  static readonly LOCK: string = 'lock';
+
+  /** 全部已登记 kind（审计与断言用）。 */
+  static all(): string[] {
+    return [
+      IconKind.BACK, IconKind.CHEVRON_UP, IconKind.PLUS, IconKind.CHEVRON,
+      IconKind.FOLDER, IconKind.MENU, IconKind.MORE, IconKind.CHECK,
+      IconKind.SETTINGS, IconKind.EXPORT, IconKind.RENAME, IconKind.DELETE, IconKind.LOCK,
+    ];
+  }
+
+  /** kind 是否已登记。 */
+  static isRegistered(kind: string): boolean {
+    return IconKind.all().indexOf(kind) >= 0;
+  }
+}
+
+/** 语义 kind → 系统符号资源（唯一映射点；未知 kind 回落 back，不崩）。 */
+export function iconResourceOf(kind: string): Resource {
+  if (kind === IconKind.BACK) { return $r('sys.symbol.chevron_left'); }
+  if (kind === IconKind.CHEVRON_UP) { return $r('sys.symbol.chevron_up'); }
+  if (kind === IconKind.PLUS) { return $r('sys.symbol.plus'); }
+  if (kind === IconKind.CHEVRON) { return $r('sys.symbol.chevron_right'); }
+  if (kind === IconKind.FOLDER) { return $r('sys.symbol.folder'); }
+  if (kind === IconKind.MENU) { return $r('sys.symbol.line_3_horizontal'); }
+  if (kind === IconKind.MORE) { return $r('sys.symbol.dot_grid_2x2'); }
+  if (kind === IconKind.CHECK) { return $r('sys.symbol.checkmark'); }
+  if (kind === IconKind.SETTINGS) { return $r('sys.symbol.gearshape'); }
+  if (kind === IconKind.EXPORT) { return $r('sys.symbol.share'); }
+  if (kind === IconKind.RENAME) { return $r('sys.symbol.square_and_pencil'); }
+  if (kind === IconKind.DELETE) { return $r('sys.symbol.trash'); }
+  if (kind === IconKind.LOCK) { return $r('sys.symbol.lock'); }
+  return $r('sys.symbol.chevron_left');
+}
 
 @Component
 export struct AppIcon {
-  @Prop kind: string = 'back';
+  @Prop kind: string = IconKind.BACK;
   @Prop iconSize: number = 24;
   @Prop color: string = '#e8ddc9';
 
-  private nameFor(): Resource {
-    if (this.kind === 'back') { return $r('sys.symbol.chevron_left'); }
-    if (this.kind === 'chevron_up') { return $r('sys.symbol.chevron_up'); }
-    if (this.kind === 'plus') { return $r('sys.symbol.plus'); }
-    if (this.kind === 'chevron') { return $r('sys.symbol.chevron_right'); }
-    if (this.kind === 'folder') { return $r('sys.symbol.folder'); }
-    if (this.kind === 'menu') { return $r('sys.symbol.line_3_horizontal'); }
-    if (this.kind === 'more') { return $r('sys.symbol.dot_grid_2x2'); }
-    if (this.kind === 'check') { return $r('sys.symbol.checkmark'); }
-    if (this.kind === 'settings') { return $r('sys.symbol.gearshape'); }
-    if (this.kind === 'export') { return $r('sys.symbol.share'); }
-    if (this.kind === 'rename') { return $r('sys.symbol.square_and_pencil'); }
-    if (this.kind === 'delete') { return $r('sys.symbol.trash'); }
-    if (this.kind === 'lock') { return $r('sys.symbol.lock'); }
-    return $r('sys.symbol.chevron_left');
-  }
-
   build() {
-    SymbolGlyph(this.nameFor())
+    SymbolGlyph(iconResourceOf(this.kind))
       .fontSize(this.iconSize)
       .fontColor([this.color])
       .width(this.iconSize)

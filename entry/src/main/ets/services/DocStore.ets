@@ -14,6 +14,10 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { DocData, DocSummary, MachineKind, PaperKind } from '../model/DocModel';
 import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
+import {
+  DocIndexRecord, DocSearchHit, DocSearchOptions, activeRecords, renameRecord,
+  restoreRecord, searchRecords, trashRecord, trashedRecords,
+} from '../model/DocStoreStateCore';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'DocStore';
@@ -22,17 +26,8 @@ const DOC_DIR: string = 'documents';
 const TEXT_DIR: string = 'documents-text';
 const INDEX_FILE: string = 'documents-index.json';
 
-/** 一份文档的落盘索引项。 */
-interface DocIndexEntry {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  /** 所属卷宗 id；缺省 = 未归档（§5 卷宗系统）。 */
-  dossierId?: string | null;
-  /** 该纸的机器与纸张种类（供卷宗内页缩略图用真实纸纹）。 */
-  machine?: string;
-  paper?: string;
+/** 一份文档的落盘索引项（状态字段见 model/DocStoreStateCore）。 */
+export interface DocIndexEntry extends DocIndexRecord {
 }
 
 interface DocIndex {
@@ -136,6 +131,95 @@ export class DocStore {
     return true;
   }
 
+  // ---- 第 0 批：文档状态模型接口（active／trashed）----
+  // 本批只落模型与签名；remove() 的"硬删→移入回收站"语义翻转在第 6 批，
+  // list() 默认只返回 active 的改动也在第 6 批。下面的 trash／restore／rename／search
+  // 供第 6 批 F10 直接消费，本批不接 UI。
+
+  /** 移入回收站；返回 false＝不存在或本来就在回收站。 */
+  trash(id: string, nowMs: number): boolean {
+    if (!this.initialized) {
+      return false;
+    }
+    const index: DocIndex = this.readIndex();
+    const changed: boolean = trashRecord(index.entries, id, nowMs);
+    if (changed) {
+      this.writeIndex(index);
+    }
+    return changed;
+  }
+
+  /** 从回收站恢复（回原卷宗）；返回 false＝不存在或本来就是 active。 */
+  restore(id: string): boolean {
+    if (!this.initialized) {
+      return false;
+    }
+    const index: DocIndex = this.readIndex();
+    const changed: boolean = restoreRecord(index.entries, id);
+    if (changed) {
+      this.writeIndex(index);
+    }
+    return changed;
+  }
+
+  /** 重命名（空标题不改）；返回是否改了。 */
+  rename(id: string, title: string): boolean {
+    if (!this.initialized) {
+      return false;
+    }
+    const index: DocIndex = this.readIndex();
+    const changed: boolean = renameRecord(index.entries, id, title);
+    if (changed) {
+      this.writeIndex(index);
+    }
+    return changed;
+  }
+
+  /** 回收站列表（第 6 批回收站 UI 消费；本批只提供数据）。 */
+  listTrashed(): DocSummary[] {
+    if (!this.initialized) {
+      return [];
+    }
+    const index: DocIndex = this.readIndex();
+    const records: DocIndexRecord[] = trashedRecords(index.entries);
+    const out: DocSummary[] = [];
+    for (const entry of records) {
+      out.push({
+        id: entry.id,
+        title: entry.title,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
+        paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
+        dossierId: entry.dossierId === undefined ? null : entry.dossierId,
+        charCount: this.countCharsFromJson(entry.id),
+        preview: this.previewFromJson(entry.id),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * 搜索（标题＋正文；默认只搜 active）。
+   * 正文走 .txt（与导出同源）；第 6 批若改为逐文档 load() 全文扫，只换这一处实现。
+   */
+  search(query: string, opts: DocSearchOptions): DocSearchHit[] {
+    if (!this.initialized) {
+      return [];
+    }
+    const index: DocIndex = this.readIndex();
+    return searchRecords(index.entries, query, opts,
+      (id: string): string => this.readPlainText(id));
+  }
+
+  /** active 记录数（第 6 批 list() 切换前的过渡查询用；不改既有 list()). */
+  activeCount(): number {
+    if (!this.initialized) {
+      return 0;
+    }
+    return activeRecords(this.readIndex().entries).length;
+  }
+
   /** 文档库列表（按更新时间倒序）。 */
   list(): DocSummary[] {
     if (!this.initialized) {
@@ -144,6 +228,33 @@ export class DocStore {
     const index: DocIndex = this.readIndex();
     const out: DocSummary[] = [];
     for (const entry of index.entries) {
+      out.push({
+        id: entry.id,
+        title: entry.title,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        machine: (entry.machine === undefined ? DEFAULT_MACHINE as string : entry.machine) as MachineKind,
+        paper: (entry.paper === undefined ? DEFAULT_PAPER as string : entry.paper) as PaperKind,
+        dossierId: entry.dossierId === undefined ? null : entry.dossierId,
+        charCount: this.countCharsFromJson(entry.id),
+        preview: this.previewFromJson(entry.id),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * 第 0 批：active-only 列表（第 6 批 list() 翻转前的过渡实现；StatsService 用它，
+   * 保证回收站文档不进总字数/连续天数）。list() 本批语义不动。
+   */
+  listActive(): DocSummary[] {
+    if (!this.initialized) {
+      return [];
+    }
+    const index: DocIndex = this.readIndex();
+    const entries: DocIndexRecord[] = activeRecords(index.entries);
+    const out: DocSummary[] = [];
+    for (const entry of entries) {
       out.push({
         id: entry.id,
         title: entry.title,
