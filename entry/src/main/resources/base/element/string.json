@@ -539,6 +539,10 @@
     {
       "name": "custom_font_size",
       "value": "字号"
+    },
+    {
+      "name": "font_apply",
+      "value": "应用到当前机"
     }
   ]
 }

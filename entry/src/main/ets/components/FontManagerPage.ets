@@ -43,6 +43,9 @@ export struct FontManagerPage {
   @State errKind: number = 0;
   @State importing: boolean = false;
   @State pressedKey: string = '';
+  /** 第 2 批 F3：当前机型 + 应用字体回调（把导入族名写入 custom.font.<machine>.family）。 */
+  @Prop currentMachine: string = '';
+  onApplyFamily: (familyName: string) => void = (familyName: string): void => {};
   onBack: () => void = (): void => {};
 
   aboutToAppear(): void {
@@ -223,6 +226,11 @@ export struct FontManagerPage {
             Text(this.statusText(f))
               .fontSize(12)
               .fontColor(f.status === 'ok' ? 'rgba(232,221,201,0.6)' : '#a33327')
+            Text($r('app.string.font_apply'))
+              .fontSize(14)
+              .fontColor('#c9a45c')
+              .margin({ left: 12 })
+              .onClick(() => { this.onApplyFamily(f.familyName); })
             Text($r('app.string.font_delete'))
               .fontSize(14)
               .fontColor('#a33327')

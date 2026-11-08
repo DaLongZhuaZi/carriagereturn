@@ -40,7 +40,7 @@ test('PaperStage：新增 paperColor/texturePath（默认空串），分支顺�
   assert.ok(textureAt < colorAt && colorAt < rawAt, '分支顺序必须是 纹理 → 纯色 → 默认 JPG');
   // 纯色分支是 Column 背景色（不是 Image 盖不透明 JPG）
   assert.match(paperStage, /backgroundColor\(this\.paperColor\)/);
-  assert.match(paperStage, /Image\(this\.texturePath\)/);
+  assert.match(paperStage, /Image\('file:\/\/' \+ this\.texturePath\)/);
 });
 
 test('FontManagerPage：导入链与失败状态全在（pickFont→校验→copyToSandbox→registerFromFile）', () => {

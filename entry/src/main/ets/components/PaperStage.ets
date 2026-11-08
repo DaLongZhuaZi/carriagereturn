@@ -76,7 +76,7 @@ export struct PaperStage {
       // 第 2 批 F3 优先级：导入纸纹 texturePath → 纯色纸 paperColor → 现有按 paperKind 的 JPG。
       // 两个新 prop 默认空串：默认路径与改造前逐行等价（评审 M-5／R3，1920s 像素不变）。
       if (this.texturePath.length > 0) {
-        Image(this.texturePath).width('100%').height('100%')
+        Image('file://' + this.texturePath).width('100%').height('100%')
           .objectFit(ImageFit.Cover).borderRadius(12)
       } else if (this.paperColor.length > 0) {
         Column().width('100%').height('100%')

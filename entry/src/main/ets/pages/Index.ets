@@ -220,6 +220,8 @@ struct Index {
   @State customMarginB: number = 0;
   @State customPaperColor: string = '';
   @State customPaperTexture: string = '';
+  /** 第 2 批 F3：字体偏好变更计数（触发换装页四机字体行刷新）。 */
+  @State fontPrefsRev: number = 0;
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
   @State hintText: string = '';
   @State docTitle: string = '';
@@ -1414,6 +1416,11 @@ struct Index {
 
   /** 第 2 批 F3：四台机当前字体族（给换装页展示）。 */
   private machineFontsList(): string[] {
+    // 读一下 rev 建立 @State 依赖：字体管理页应用后换装页四行能刷新
+    const rev: number = this.fontPrefsRev;
+    if (rev < 0) {
+      hilog.warn(DOMAIN, TAG, 'fontPrefsRev negative');
+    }
     const out: string[] = [];
     for (let i = 0; i < MACHINES.length; i++) {
       const fam: string = CustomizeStore.fontFamily(MACHINES[i].kind as string);
@@ -1432,6 +1439,12 @@ struct Index {
           break;
         }
       }
+      if (chosen === null) {
+        // 导入字体（imp-*）：直接采用族名，不回落到随包默认
+        this.fontFamily = family + ', Noto Serif SC';
+        hilog.info(DOMAIN, TAG, 'apply imported font family=%{public}s', family);
+        return;
+      }
     }
     if (chosen === null) {
       chosen = findFont(DEFAULT_FONT);
@@ -1442,10 +1455,8 @@ struct Index {
 
   private fontLabelOfCurrentMachine(): string {
     const family: string = CustomizeStore.fontFamily(this.machineKind as string);
-    for (let i = 0; i < FONTS.length; i++) {
-      if (FONTS[i].familyName === family) {
-        return FONTS[i].familyName;
-      }
+    if (family.length > 0) {
+      return family;
     }
     return findFont(DEFAULT_FONT).familyName;
   }
@@ -1457,7 +1468,7 @@ struct Index {
         return FONTS[i].font as string;
       }
     }
-    return DEFAULT_FONT as string;
+    return '';
   }
 
   /** 第 2 批 F3：刷新当前纸的自定义值缓存（默认值来自 catalog，像素零变化）。 */
@@ -3803,6 +3814,7 @@ struct Index {
         FontBar({
           fontFamily: this.fontFamily,
           fontLabel: this.fontLabelOfCurrentMachine(),
+          currentFamilyName: CustomizeStore.fontFamily(this.machineKind as string),
           heightVp: this.fontBarHeight,
           onOpenCustomize: (): void => { this.pushPage('customize'); },
         })
@@ -4008,6 +4020,14 @@ struct Index {
         FontManagerPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          currentMachine: this.machineKind as string,
+          onApplyFamily: (family: string): void => {
+            CustomizeStore.setFontFamily(this.machineKind as string, family);
+            this.applyMachineFont(family);
+            this.fontPrefsRev = this.fontPrefsRev + 1;
+            hilog.info(DOMAIN, TAG, 'font applied machine=%{public}s family=%{public}s',
+              this.machineKind as string, family);
+          },
           onBack: (): void => { this.popPage(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
