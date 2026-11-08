@@ -69,6 +69,8 @@ import { CarriageLayers1930 } from '../machines/1930s/CarriageLayers1930';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
+import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
+import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
 import { BLUEPRINT_1950 } from '../machines/1950s/Blueprint';
@@ -148,8 +150,14 @@ struct Index {
   private readonly ROLLER_K: number = 0.8;
   /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
   private readonly ROLLER_K_PHONE: number = 1.0;
-  /** §18.11：拉杆拖拽状态（拨杆节点不可触摸，改由字车层接管） */
-  @State leverDragRatio: number = 0;
+  /** §18.11：拉杆拖拽状态（拨杆节点不可触摸，改由字车层接管）。
+   *  第 0b 批：按机隔离——四份独立比例状态，切机全清零；不再共享单一 leverDragRatio。 */
+  @State leverRatio1920: number = 0;
+  @State leverRatio1930: number = 0;
+  @State leverRatio1950: number = 0;
+  @State leverRatio1960: number = 0;
+  /** 第 0b 批：切机纪元——渲染件 Watch 到变化立即回静止角（不带动画），切断在途摆动跨机。 */
+  @State leverEpoch: number = 0;
   private leverDragActive: boolean = false;
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
@@ -179,8 +187,11 @@ struct Index {
   private frozenHVp: number = 0;
   @State strikeLineVp: number = 0;
   @State carriageTopVp: number = 0;
-  /** 换行计数：驱动 LeverLayer 摆动。 */
-  @State newlineTick: number = 0;
+  /** 换行计数：驱动 LeverLayer 摆动。第 0b 批：四份独立计数，不再跨机共享。 */
+  @State newlineTick1920: number = 0;
+  @State newlineTick1930: number = 0;
+  @State newlineTick1950: number = 0;
+  @State newlineTick1960: number = 0;
   /** §18.6 第 2 件：退行代际，防上一次 setTimeout 提前清旗 */
   @State backLineTick: number = 0;
   /** 实测单字 advance（vp）：隐藏 Text 量宽得到，中英分开。 */
@@ -1222,7 +1233,13 @@ struct Index {
   private applyMachine(kind: MachineKind): void {
     // 换机时防御性清空预编辑串
     this.cnPreview = '';
+    const prevKind: MachineKind = this.machineKind;
     this.machineKind = kind;
+    // 第 0b 批隔离：换机即清空四份拨杆比例与拖拽旗，并递增纪元让渲染件立即回静止角
+    if (shouldResetOnSwitch(prevKind as string, kind as string)) {
+      this.resetLeverStates();
+      this.leverEpoch = nextEpoch(this.leverEpoch);
+    }
     // §10：机型改成全局偏好——换机即落盘，重启仍记得
     appPreferences.setString(PrefKeys.MACHINE, kind as string);
     this.docModel.setMachine(kind);
@@ -1563,6 +1580,101 @@ struct Index {
   /** §14：支架素材由蓝图提供 —— Index 里不再出现任何机型资产路径 */
   private bracketSrc(): Resource {
     return this.bp().bracketRawfile();
+  }
+
+  /** 当前机型的拨杆拖拽比例（读当前机型那一份，依赖按机建立）。 */
+  private leverRatio(): number {
+    const slot: number = slotOf(this.machineKind as string);
+    if (slot === 0) { return this.leverRatio1920; }
+    if (slot === 1) { return this.leverRatio1930; }
+    if (slot === 2) { return this.leverRatio1950; }
+    return this.leverRatio1960;
+  }
+
+  /** 写当前机型的拨杆拖拽比例（只动本机那一份）。 */
+  private setLeverRatio(v: number): void {
+    const slot: number = slotOf(this.machineKind as string);
+    if (slot === 0) {
+      this.leverRatio1920 = v;
+      return;
+    }
+    if (slot === 1) {
+      this.leverRatio1930 = v;
+      return;
+    }
+    if (slot === 2) {
+      this.leverRatio1950 = v;
+      return;
+    }
+    this.leverRatio1960 = v;
+  }
+
+  /** 当前机型的换行计数（第 0b 批四份独立，不再共享）。 */
+  private newlineTick(): number {
+    const slot: number = slotOf(this.machineKind as string);
+    if (slot === 0) { return this.newlineTick1920; }
+    if (slot === 1) { return this.newlineTick1930; }
+    if (slot === 2) { return this.newlineTick1950; }
+    return this.newlineTick1960;
+  }
+
+  /** 只递增当前机型的换行计数（驱动该机拨杆摆动）。 */
+  private bumpNewlineTick(): void {
+    const slot: number = slotOf(this.machineKind as string);
+    if (slot === 0) {
+      this.newlineTick1920 = this.newlineTick1920 + 1;
+      return;
+    }
+    if (slot === 1) {
+      this.newlineTick1930 = this.newlineTick1930 + 1;
+      return;
+    }
+    if (slot === 2) {
+      this.newlineTick1950 = this.newlineTick1950 + 1;
+      return;
+    }
+    this.newlineTick1960 = this.newlineTick1960 + 1;
+  }
+
+  /** 切机时清空四份比例与拖拽旗（隔离：跨机型不携带任何在途状态）。 */
+  private resetLeverStates(): void {
+    this.leverRatio1920 = 0;
+    this.leverRatio1930 = 0;
+    this.leverRatio1950 = 0;
+    this.leverRatio1960 = 0;
+    this.leverDragActive = false;
+  }
+
+  // ---- 第 0b 批：拖拽处理唯一实现（原三份复制粘贴收敛于此）----
+
+  /** 拖拽开始：active 由调用方按热区判定（字车层按 x，覆盖层恒 true）。 */
+  private leverPanStart(active: boolean, source: string): void {
+    this.leverDragActive = active;
+    this.setLeverRatio(0);
+    hilog.info(DOMAIN, TAG, 'lever pan start src=%{public}s active=%{public}s',
+      source, active ? 'true' : 'false');
+  }
+
+  /** 拖拽更新：dy 截断在 [0, 杆长]，换算比例走纯函数。 */
+  private leverPanUpdate(dyRaw: number): void {
+    if (!this.leverDragActive) {
+      return;
+    }
+    this.setLeverRatio(dragRatioFor(dyRaw, this.leverHForDrag()));
+  }
+
+  /** 拖拽结束：过半换行；不论是否换行都回 0（拨杆弹回）。 */
+  private leverPanEnd(): void {
+    if (!this.leverDragActive) {
+      return;
+    }
+    const pulled: number = this.leverRatio();
+    this.leverDragActive = false;
+    this.setLeverRatio(0);
+    hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s', pulled.toFixed(3));
+    if (pulledEnough(pulled)) {
+      this.onNewline();
+    }
   }
 
   /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
@@ -2488,7 +2600,7 @@ struct Index {
       this.syncRows();
       this.scheduleSave();
       this.newlineBusy = true;
-      this.newlineTick = this.newlineTick + 1;
+      this.bumpNewlineTick();
       this.hintText = '';
       hilog.info(DOMAIN, TAG, 'newlineMoveDown to line=%{public}s col=%{public}s O=%{public}s rows=%{public}s',
         (cur.line + 1).toString(), nextLen.toString(),
@@ -2504,14 +2616,14 @@ struct Index {
       this.newlineMoveDown = false;
       this.newlineCarriageTargetO = 0;
       this.newlineBusy = true;
-      this.newlineTick = this.newlineTick + 1;
+      this.bumpNewlineTick();
       this.hintText = '';
       this.docModel.newline();
       this.syncRows();
       this.scheduleSave();
     }
     // §18.6 第 2 件：捕获本轮换行代际
-    const myNlTick: number = this.newlineTick;
+    const myNlTick: number = this.newlineTick();
     // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
     setTimeout(() => {
       this.animatePaperHeight();
@@ -2551,16 +2663,16 @@ struct Index {
       this.audioService.vibrate();
       hilog.info(DOMAIN, TAG, 'newline choreo bell at %{public}sms offset=%{public}s paperTop=%{public}s tick=%{public}s',
         (t0 + 250).toString(), this.carriageOffsetVp.toFixed(2),
-        this.paperTopVp.toFixed(1), this.newlineTick.toString());
+        this.paperTopVp.toFixed(1), this.newlineTick().toString());
       // 换行完成定位日志 + 释放排队字
       hilog.info(DOMAIN, TAG, 'newlineDone rows=%{public}s paperTop=%{public}s line=%{public}s col=%{public}s O=%{public}s',
         this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
       // §18.6 第 2 件：代际守卫（newlineTick 变了说明已被新一轮接管，本轮不许清旗／释放）
-      if (this.newlineTick !== myNlTick) {
+      if (this.newlineTick() !== myNlTick) {
         hilog.info(DOMAIN, TAG, 'newline release stale tick=%{public}s cur=%{public}s',
-          myNlTick.toString(), this.newlineTick.toString());
+          myNlTick.toString(), this.newlineTick().toString());
         return;
       }
       this.newlineBusy = false;
@@ -3112,10 +3224,11 @@ struct Index {
                     leverPivotX: this.bp().bracketPivotX,
                     leverPivotY: this.bp().leverPivotY,
                   layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick,
-                  restDeg: this.isTablet ? 30 : 15,
-                  swingDeg: this.isTablet ? 35 : 20,
-                  dragRatio: this.leverDragRatio,
+                  newlineTick: this.newlineTick(),
+                  resetEpoch: this.leverEpoch,
+                  restDeg: restDegFor(this.isTablet),
+                  swingDeg: swingDegFor(this.isTablet),
+                  dragRatio: this.leverRatio(),
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
@@ -3130,10 +3243,11 @@ struct Index {
                 LeverLayer1930({
                   machineKind: this.machineKind,
                   layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick,
-                  restDeg: this.isTablet ? 30 : 15,
-                  swingDeg: this.isTablet ? 35 : 20,
-                  dragRatio: this.leverDragRatio,
+                  newlineTick: this.newlineTick(),
+                  resetEpoch: this.leverEpoch,
+                  restDeg: restDegFor(this.isTablet),
+                  swingDeg: swingDegFor(this.isTablet),
+                  dragRatio: this.leverRatio(),
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
@@ -3148,10 +3262,11 @@ struct Index {
                 LeverLayer1950({
                   machineKind: this.machineKind,
                   layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick,
-                  restDeg: this.isTablet ? 30 : 15,
-                  swingDeg: this.isTablet ? 35 : 20,
-                  dragRatio: this.leverDragRatio,
+                  newlineTick: this.newlineTick(),
+                  resetEpoch: this.leverEpoch,
+                  restDeg: restDegFor(this.isTablet),
+                  swingDeg: swingDegFor(this.isTablet),
+                  dragRatio: this.leverRatio(),
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
@@ -3166,10 +3281,11 @@ struct Index {
                 LeverLayer1960({
                   machineKind: this.machineKind,
                   layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick,
-                  restDeg: this.isTablet ? 30 : 15,
-                  swingDeg: this.isTablet ? 35 : 20,
-                  dragRatio: this.leverDragRatio,
+                  newlineTick: this.newlineTick(),
+                  resetEpoch: this.leverEpoch,
+                  restDeg: restDegFor(this.isTablet),
+                  swingDeg: swingDegFor(this.isTablet),
+                  dragRatio: this.leverRatio(),
                   offsetXVp: this.pinXRel() - this.leverW() / 2,
                   offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
@@ -3207,36 +3323,14 @@ struct Index {
                 PanGesture({ direction: PanDirection.Vertical })
                 .onActionStart((e: GestureEvent) => {
                   const sx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
-                  this.leverDragActive = sx > this.stageWidth * 0.78;
-                  this.leverDragRatio = 0;
-                  hilog.info(DOMAIN, TAG, 'lever pan start x=%{public}s active=%{public}s',
-                    sx.toFixed(1), this.leverDragActive ? 'true' : 'false');
+                  hilog.info(DOMAIN, TAG, 'carriage lever zone x=%{public}s', sx.toFixed(1));
+                  this.leverPanStart(sx > this.stageWidth * 0.78, 'carriage');
                 })
                 .onActionUpdate((e: GestureEvent) => {
-                  if (!this.leverDragActive) {
-                    return;
-                  }
-                  const h: number = this.leverHForDrag();
-                  let dy: number = e.offsetY;
-                  if (dy < 0) {
-                    dy = 0;
-                  }
-                  if (dy > h) {
-                    dy = h;
-                  }
-                  this.leverDragRatio = h > 0 ? dy / h : 0;
+                  this.leverPanUpdate(e.offsetY);
                 })
                 .onActionEnd(() => {
-                  if (!this.leverDragActive) {
-                    return;
-                  }
-                  const pulled: number = this.leverDragRatio;
-                  this.leverDragActive = false;
-                  this.leverDragRatio = 0;
-                  hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s', pulled.toFixed(3));
-                  if (pulled >= 0.5) {
-                    this.onNewline();
-                  }
+                  this.leverPanEnd();
                 })
               )
             )
@@ -3319,29 +3413,13 @@ struct Index {
                   // §18.11 拖拽：同一层接纵向拖拽，过半松手＝换行
                   PanGesture({ direction: PanDirection.Vertical })
                     .onActionStart(() => {
-                      this.leverDragActive = true;
-                      this.leverDragRatio = 0;
-                      hilog.info(DOMAIN, TAG, 'lever pan start (overlay)');
+                      this.leverPanStart(true, 'overlay');
                     })
                     .onActionUpdate((e: GestureEvent) => {
-                      const h: number = this.leverHForDrag();
-                      let dy: number = e.offsetY;
-                      if (dy < 0) {
-                        dy = 0;
-                      }
-                      if (dy > h) {
-                        dy = h;
-                      }
-                      this.leverDragRatio = h > 0 ? dy / h : 0;
+                      this.leverPanUpdate(e.offsetY);
                     })
                     .onActionEnd(() => {
-                      const pulled: number = this.leverDragRatio;
-                      this.leverDragActive = false;
-                      this.leverDragRatio = 0;
-                      hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s (overlay)', pulled.toFixed(3));
-                      if (pulled >= 0.5) {
-                        this.onNewline();
-                      }
+                      this.leverPanEnd();
                     })
                 )
               )
@@ -3380,29 +3458,13 @@ struct Index {
                     }),
                   PanGesture({ direction: PanDirection.Vertical })
                     .onActionStart(() => {
-                      this.leverDragActive = true;
-                      this.leverDragRatio = 0;
-                      hilog.info(DOMAIN, TAG, 'lever pan start (overlay)');
+                      this.leverPanStart(true, 'overlay');
                     })
                     .onActionUpdate((e: GestureEvent) => {
-                      const h: number = this.leverHForDrag();
-                      let dy: number = e.offsetY;
-                      if (dy < 0) {
-                        dy = 0;
-                      }
-                      if (dy > h) {
-                        dy = h;
-                      }
-                      this.leverDragRatio = h > 0 ? dy / h : 0;
+                      this.leverPanUpdate(e.offsetY);
                     })
                     .onActionEnd(() => {
-                      const pulled: number = this.leverDragRatio;
-                      this.leverDragActive = false;
-                      this.leverDragRatio = 0;
-                      hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s (overlay)', pulled.toFixed(3));
-                      if (pulled >= 0.5) {
-                        this.onNewline();
-                      }
+                      this.leverPanEnd();
                     })
                 )
               )
