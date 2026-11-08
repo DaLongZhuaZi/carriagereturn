@@ -1086,8 +1086,13 @@ struct Index {
    * 每字行程 = 最大行程 / 每行字数；每行字数按舞台宽算，不用屏幕宽。
    */
   private recalcTravel(): void {
-    const usable: number = this.stageWidth - 2 * findPaper(this.paperKind).marginH;
-    const perLine: number = Math.floor(usable / (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp));
+    // §15 第 4 步：与 charsPerLine() **同口径**——用纸宽（不是舞台宽），否则中文会算成 24 字/行
+    const usable: number = this.paperWidthVp - 2 * findPaper(this.paperKind).marginH;
+    // 中文按 advCjkVp，否则按 advEngVp
+    const adv: number = this.langZh
+      ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
+      : (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp);
+    const perLine: number = Math.floor(usable / adv);
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
     // 物理模型：最大行程 = 可用行宽（舞台宽 − 2×28vp），不许再写回 min(×0.35,180)
     // 小幅纸移动：最大行程 = min(64vp, 纸宽×0.25)
@@ -1505,6 +1510,9 @@ struct Index {
     const knobHalf: number = this.carriageHeight * 0.92 / 2;
     const limit: number = paperRight - knobHalf;
     if (raw > limit) {
+      // §15 第 3 步：钳制是安全网，正常文档里不该触发；触发即说明有超宽行漏网
+      hilog.warn(DOMAIN, TAG, 'strike clamped raw=%{public}s limit=%{public}s',
+        raw.toFixed(2), limit.toFixed(2));
       return limit;
     }
     return raw;
@@ -1535,6 +1543,25 @@ struct Index {
    * §12.2 第 2 条：删后若某逻辑行超纸宽，按纸宽断成多行，恢复不变量「逻辑行不超纸宽」。
    * 光标落到合并点所在那一段的末尾。宽度口径与 commitChar 的位置触发同源（charWidthVp）。
    */
+  /** §15 第 2 步：载入时对全部行跑一遍重排（超宽行按纸宽断开）。 */
+  private rewrapAllOnLoad(): void {
+    let idx: number = 0;
+    let total: number = 0;
+    let guard: number = 0;
+    while (idx < this.docModel.getLines().length && guard < 2000) {
+      guard = guard + 1;
+      if (this.rewrapOverwideLines(idx, -1)) {
+        total = total + 1;
+      } else {
+        idx = idx + 1;
+      }
+    }
+    if (total > 0) {
+      hilog.info(DOMAIN, TAG, 'rewrap on load fixes=%{public}s lines=%{public}s',
+        total.toString(), this.docModel.getLines().length.toString());
+    }
+  }
+
   private rewrapOverwideLines(lineIdx: number, mergeAt: number): boolean {
     const lines: DocLine[] = this.docModel.getLines();
     if (lineIdx < 0 || lineIdx >= lines.length) {
@@ -2077,20 +2104,22 @@ struct Index {
   }
 
   private onDelete(): void {
-    // §14.3 第 6 条：队列非空 → 先取消队尾字（不碰文档）
+    // §15 第 1 步：队列非空 → **先同步落队再正常删除**。
+    // 旧口径「只取消队尾就返回」作废：取消的是看不见的排队字，纸面与拱都不动，
+    // 用户感知为「删了字、拱停在行末」。
     if (this.pendingChars.length > 0) {
-      const tail: string | undefined = this.pendingChars.pop();
-      this.audioService.playBackspace();
-      this.audioService.vibrate();
-      hilog.info(DOMAIN, TAG, 'del cancels queued char=%{public}s left=%{public}s',
-        tail === undefined ? '' : tail, this.pendingChars.length.toString());
-      if (this.pendingChars.length === 0) {
-        if (this.pacerTimer >= 0) {
-          clearInterval(this.pacerTimer);
-          this.pacerTimer = -1;
+      const n: number = this.pendingChars.length;
+      while (this.pendingChars.length > 0) {
+        const ch: string | undefined = this.pendingChars.shift();
+        if (ch !== undefined) {
+          this.commitChar(ch);
         }
       }
-      return;
+      if (this.pacerTimer >= 0) {
+        clearInterval(this.pacerTimer);
+        this.pacerTimer = -1;
+      }
+      hilog.info(DOMAIN, TAG, 'del flush n=%{public}s', n.toString());
     }
     this.audioService.playBackspace();
     this.audioService.vibrate();
@@ -2430,6 +2459,8 @@ struct Index {
     this.ribbon = data.meta.ribbon;
     this.carriageOffsetVp = 0;
     this.paperAnimateNext = false;
+    // §15 第 2 步：旧文档的超宽行进纸即修（不许留着等用户删到才暴露）
+    this.rewrapAllOnLoad();
     this.syncRows();
     this.recalcPaperHeight();
     // 私有 docModel 不是 @State：借 docsRev 触发一次重建，纸面才会换成新文档
@@ -2880,6 +2911,8 @@ struct Index {
             this.applyChineseMode(this.langZh);
             // 语言切换同步改行高与纸高（中文 fs×30/17、英文 fs×28/17）
             this.lineHeightVp = this.langZh ? this.fontSizeVp * (30 / 17) : this.fontSizeVp * (28 / 17);
+            // §15 第 4 步：travelPerChar 分语言，切语言必须重算（否则中文行 O 永不饱和）
+            this.recalcTravel();
             this.recalcPaperHeight();
           },
           onDelete: (): void => {
