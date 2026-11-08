@@ -64,6 +64,7 @@ import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { LeverAssembly1920 } from '../machines/1920s/LeverAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
+import { MetalAssembly1920 } from '../machines/1920s/MetalAssembly1920';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayerM } from '../machines/1930s/TypebarLayerM';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
@@ -2916,34 +2917,52 @@ struct Index {
             // ---- 压纸卷 + 中央件 + 旋钮（纸前）：包在 Stack 里，zIndex 3 盖在纸上 ----
             Stack({ alignContent: Alignment.TopStart }) {
               if (this.hasLayers() && this.useLayers) {
-                CarriageLayers({
-                  machineKind: this.machineKind,
-                  rollerWidthRatio: findMachine(this.machineKind).rollerWidthRatio,
-                  baseRailAspect: findMachine(this.machineKind).baseRailAspect,
-                  basketAspect: findMachine(this.machineKind).basketAspect,
-                  bailRollerLX: findMachine(this.machineKind).bailRollerLX,
-                  bailRollerRX: findMachine(this.machineKind).bailRollerRX,
-                  bailRollerY: findMachine(this.machineKind).bailRollerY,
-                  centralWindowX: findMachine(this.machineKind).centralWindowX,
-                  centralWindowY: findMachine(this.machineKind).centralWindowY,
-                  centralAspect: findMachine(this.machineKind).centralAspect,
-                  stageWidth: this.photoW(),
-                  joltYVp: this.joltYVp,
-                  knobAngleDeg: this.knobAngle,
-                    part: 'metal',
-                  paperWidthVp: this.paperWidthVp,
-                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                  canvasOffsetVp: this.carriageOffsetVp,
-                  paperLeftFixedVp: this.paperLeftFixed(),
-                  texOffsetYVp: this.texOffsetVp,
-                  bailShiftVp: this.isTablet ? -15 : 0,
+                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                  MetalAssembly1920({
+                    stageWidth: this.photoW(),
+                    paperWidthVp: this.paperWidthVp,
+                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                    strikeXVp: this.archXVp,
                     strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
-                })
-                  // 金属组件顶 y = Ht − Hc（滚筒顶），用实测 Ht
-                  // 金属件与滚筒同锚点：旋钮中心 y = 滚筒中心
-                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                    carriageHeight: this.carriageHeight,
+                    carriageTopVp: this.carriageTopVp,
+                    carriageOffsetVp: this.carriageOffsetVp,
+                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                    joltYVp: this.joltYVp,
+                    knobAngleDeg: this.knobAngle,
+                    canvasOffsetVp: this.carriageOffsetVp,
+                    texOffsetYVp: this.texOffsetVp,
+                    paperLeftFixedVp: this.paperLeftFixed(),
+                    bailShiftVp: this.isTablet ? -15 : 0,
+                  })
+                } else {
+                  CarriageLayers({
+                    machineKind: this.machineKind,
+                    rollerWidthRatio: findMachine(this.machineKind).rollerWidthRatio,
+                    baseRailAspect: findMachine(this.machineKind).baseRailAspect,
+                    basketAspect: findMachine(this.machineKind).basketAspect,
+                    bailRollerLX: findMachine(this.machineKind).bailRollerLX,
+                    bailRollerRX: findMachine(this.machineKind).bailRollerRX,
+                    bailRollerY: findMachine(this.machineKind).bailRollerY,
+                    centralWindowX: findMachine(this.machineKind).centralWindowX,
+                    centralWindowY: findMachine(this.machineKind).centralWindowY,
+                    centralAspect: findMachine(this.machineKind).centralAspect,
+                    stageWidth: this.photoW(),
+                    joltYVp: this.joltYVp,
+                    knobAngleDeg: this.knobAngle,
+                    part: 'metal',
+                    paperWidthVp: this.paperWidthVp,
+                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+                    strikeXVp: this.archXVp,
+                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
+                    canvasOffsetVp: this.carriageOffsetVp,
+                    paperLeftFixedVp: this.paperLeftFixed(),
+                    texOffsetYVp: this.texOffsetVp,
+                    bailShiftVp: this.isTablet ? -15 : 0,
+                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
+                  })
+                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
+                }
 
                 if (this.machineKind === MachineKind.UPRIGHT_1920S) {
                   // §14 二分测试：只搬支架，拨杆仍在下面走原路径

@@ -203,8 +203,9 @@ export struct CarriageLayers {
         // 木底座（整机最宽）：宽 = Pw + 2×knobD，左右各出纸缘一个旋钮直径；顶在滚筒中心 + Hc/2 + 2vp
         Image($rawfile('layers/1920s-upright/carriage-base-rail.png'))
           .width(this.baseW())
-          .height(this.baseW() / 7.562)
-          .objectFit(ImageFit.Fill)
+          // §11 D：底座高钳在 Hc 以内（§13 冻结基准含此修复）
+          .height(Math.min(this.baseW() / 7.562, this.hc()))
+          .objectFit(ImageFit.Cover)
           .position({ x: this.baseLeft(), y: this.baseTop() })
           .zIndex(0)
 
