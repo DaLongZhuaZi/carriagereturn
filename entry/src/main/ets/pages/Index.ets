@@ -123,6 +123,8 @@ struct Index {
   @State paperChanging: boolean = false;
   /** §18.7：滚筒横向速度系数（滚筒走 k×O，纸张走满 O）。平板几何上限 0.914，手机 0.612——手机靠 rollX 钳制兜底 */
   private readonly ROLLER_K: number = 0.8;
+  /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
+  private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
   @State paperOpacity: number = 1;
   /** 换纸第①步：纸容器切「整张模式」（高=Ph、不裁），整张纸飞出去。 */
@@ -2929,17 +2931,22 @@ struct Index {
             .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
         }
 
-        // 内置中文常驻候选栏（44vp 占位，不随组词伸缩）：设计稿 §5
-        if (this.isBuiltinCn() && !this.pinyinReady) {
-          // §17.3 第 3 条：词库未就绪时只显示加载态，不许无响应
+        // §18.8：候选栏区**常驻 44vp**（英文/系统态渲染同高空占位），
+        // 切换语言时 Column 总高一根毫毛都不变 → 底板不移位、纸面区不压缩、候选栏无处可挡。
+        if (!this.isBuiltinCn()) {
+          // 英文／系统态：同宽同底色空占位（与中文态视觉一致）
+          Row()
+            .width('100%').height(this.CAND_BAR_HEIGHT_VP)
+            .backgroundColor('#1a1713')
+        } else if (!this.pinyinReady) {
+          // §17.3 第 3 条：词库未就绪只显示加载态；高度与就绪态**同为 44vp**（不许 38/44 两档）
           Row() {
             Text('正在加载…').fontSize(13).fontColor('rgba(232,221,201,0.55)')
           }
-          .width('100%').height(FONT_BAR_HEIGHT_VP)
+          .width('100%').height(this.CAND_BAR_HEIGHT_VP)
           .justifyContent(FlexAlign.Center)
           .backgroundColor('#1a1713')
-        }
-        if (this.isBuiltinCn() && this.pinyinReady) {
+        } else {
           CandidateBar({
             candidates: this.candCurrent,
             pinyin: this.cnPinyin,
@@ -3019,6 +3026,8 @@ struct Index {
             this.lineHeightVp = this.langZh ? this.fontSizeVp * (30 / 17) : this.fontSizeVp * (28 / 17);
             // §15 第 4 步：travelPerChar 分语言，切语言必须重算（否则中文行 O 永不饱和）
             this.recalcTravel();
+            // §18.8 第 2 件：纸顶 300ms 平滑滑到新位置，不许直接赋值跳变
+            this.paperAnimateNext = true;
             this.recalcPaperHeight();
           },
           onDelete: (): void => {
