@@ -1,0 +1,342 @@
+{
+  "generatedAt": "2026-11-09T06:16:34+08:00",
+  "head": "94156c1",
+  "keys": [
+    {
+      "const": "ONBOARDING_SEEN",
+      "key": "onboarding_seen",
+      "type": "boolean",
+      "default": "false",
+      "reads": 1,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "SOUND_ENABLED",
+      "key": "sound_enabled",
+      "type": "boolean",
+      "default": "true",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "VOLUME",
+      "key": "volume",
+      "type": "number",
+      "default": "0.7",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "VIBRATION_ENABLED",
+      "key": "vibration_enabled",
+      "type": "boolean",
+      "default": "true",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CN_ENGINE",
+      "key": "cn_engine",
+      "type": "string",
+      "default": "builtin",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CN_LEARN",
+      "key": "cn_learn",
+      "type": "string",
+      "default": "",
+      "reads": 1,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CN_USERWORDS",
+      "key": "cn_userwords",
+      "type": "string",
+      "default": "",
+      "reads": 2,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CN_FUZZY",
+      "key": "cn_fuzzy",
+      "type": "boolean",
+      "default": "false",
+      "reads": 2,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CN_BIGRAM",
+      "key": "cn_bigram",
+      "type": "string",
+      "default": "",
+      "reads": 1,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "MACHINE",
+      "key": "machine",
+      "type": "string",
+      "default": "1920s",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "PAPER",
+      "key": "paper",
+      "type": "string",
+      "default": "letter",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "DELETE_MODE",
+      "key": "delete_mode",
+      "type": "string",
+      "default": "trash",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "GUIDE_PREFIX",
+      "key": "guide.",
+      "type": "boolean",
+      "default": "false",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "GUIDE_ENABLED",
+      "key": "guide.enabled",
+      "type": "boolean",
+      "default": "true",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check",
+      "removeCommand": "python tools/audit-switches.py --check"
+    },
+    {
+      "const": "GUIDE_TEST_MODE",
+      "key": "guide.testMode",
+      "type": "boolean",
+      "default": "false",
+      "reads": 2,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_FONT_PREFIX",
+      "key": "custom.font.",
+      "type": "string",
+      "default": "",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_PAPER_PREFIX",
+      "key": "custom.paper.",
+      "type": "string",
+      "default": "",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_ENABLED",
+      "key": "custom.enabled",
+      "type": "boolean",
+      "default": "true",
+      "reads": 1,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check",
+      "removeCommand": "python tools/audit-switches.py --check"
+    },
+    {
+      "const": "CUSTOM_FONT_IMPORTED",
+      "key": "custom.font.imported",
+      "type": "string",
+      "default": "",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_PAPER_PRESETS",
+      "key": "custom.paper.presets",
+      "type": "string",
+      "default": "{}",
+      "reads": 4,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_KNOB_ENABLED",
+      "key": "custom.knob.enabled",
+      "type": "boolean",
+      "default": "false",
+      "reads": 1,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check",
+      "removeCommand": "python tools/audit-switches.py --check"
+    },
+    {
+      "const": "CUSTOM_CANDIDATE_COUNT",
+      "key": "custom.candidate.count",
+      "type": "number",
+      "default": "9",
+      "reads": 2,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "CUSTOM_CANDIDATE_SIZE",
+      "key": "custom.candidate.size",
+      "type": "number",
+      "default": "15",
+      "reads": 2,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_PREFIX",
+      "key": "stats.",
+      "type": "number",
+      "default": "0",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_DAY_KEY",
+      "key": "stats.day.key",
+      "type": "string",
+      "default": "",
+      "reads": 3,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_DAY_CHARS",
+      "key": "stats.day.chars",
+      "type": "number",
+      "default": "0",
+      "reads": 3,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_DAILY_GOAL",
+      "key": "stats.daily_goal",
+      "type": "number",
+      "default": "500",
+      "reads": 1,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_PAPER_KINDS",
+      "key": "stats.paper.kinds",
+      "type": "string",
+      "default": "",
+      "reads": 2,
+      "writes": 1,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_EVENT_PREFIX",
+      "key": "stats.event.",
+      "type": "",
+      "default": "(前缀键)",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "ACHIEVE_PREFIX",
+      "key": "achieve.",
+      "type": "boolean",
+      "default": "false",
+      "reads": 0,
+      "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    }
+  ],
+  "testHooks": {
+    "TEST_HOOKS_BUILD": "false",
+    "note": "发布构建须 false；本轮无构建变体，enabled 恒 false（注入/PCM/测试时钟未验证）。"
+  },
+  "problems": [],
+  "verdict": "PASS"
+}

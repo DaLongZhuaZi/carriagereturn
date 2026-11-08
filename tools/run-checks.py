@@ -14,7 +14,7 @@ import sys
 from datetime import datetime
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-OUT = os.path.join(ROOT, "docs", "evidence", "batch0-checks.md")
+OUT = os.path.join(ROOT, "docs", "evidence", "final-checks.md")
 
 
 def run(cmd, cwd=ROOT, timeout=300):
@@ -45,6 +45,10 @@ def main() -> int:
         ("icon-audit", ["python", "tools/audit-icons.py", "--json",
                         "docs/evidence/icon-audit.json"], False),
         ("probes-dry-run", ["python", "tools/probes/run_all.py", "--dry-run"], False),
+        ("switch-audit", ["python", "tools/audit-switches.py", "--json",
+                          "docs/evidence/switches.json"], False),
+        ("audio-verify-all-packs", ["python", "tools/audio-verify.py", "--json",
+                                    "docs/evidence/audio-verify.json"], False),
     ]
     rows = []
     failed = []
@@ -61,7 +65,7 @@ def main() -> int:
                 failed.append(name)
         rows.append((name, " ".join(cmd), code, status, out.strip().splitlines()[-8:]))
 
-    lines = [f"# 第 0 批验证总跑（{datetime.now().astimezone().isoformat(timespec='seconds')}）", ""]
+    lines = [f"# 最终验证总跑（第 7 批，{datetime.now().astimezone().isoformat(timespec='seconds')}）", ""]
     lines.append("| 项 | 命令 | 退出码 | 结果 |")
     lines.append("|---|---|---|---|")
     for name, cmd, code, status, _ in rows:

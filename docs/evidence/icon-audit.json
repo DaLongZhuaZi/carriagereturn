@@ -2,7 +2,7 @@
   "symbolGlyphDirectUses": [],
   "textSymbolIcons": [],
   "emojiHits": [
-    "entry/src/main/ets/pages/Index.ets:116: '＜ ＞ ＂ ＇ ※ ☆ ★ ○ ● ◆'.split(' '),"
+    "entry/src/main/ets/pages/Index.ets:125: '＜ ＞ ＂ ＇ ※ ☆ ★ ○ ● ◆'.split(' '),"
   ],
   "kindsUsed": [
     "back",

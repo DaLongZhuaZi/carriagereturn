@@ -106,6 +106,8 @@ export interface PrefKeySpec {
   defaultValue: string;
   owner: string;
   note: string;
+  /** 第 7 批：移除点（无则空串）；audit-switches --check 核对。 */
+  removeAfter?: string;
 }
 
 /**
@@ -120,22 +122,28 @@ export class PrefRegistry {
       { key: PrefKeys.VOLUME, type: 'number', defaultValue: '0.7', owner: 'F6', note: '音量 0..1（第 6 批接线；首次缺省 0.7）' },
       { key: PrefKeys.VIBRATION_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F6', note: '震动开关' },
       { key: PrefKeys.CN_ENGINE, type: 'string', defaultValue: 'builtin', owner: '既有', note: '中文引擎' },
+      { key: PrefKeys.CN_LEARN, type: 'string', defaultValue: '', owner: '既有', note: '选词学习 JSON' },
+      { key: PrefKeys.CN_USERWORDS, type: 'string', defaultValue: '', owner: '既有', note: '我的词库 JSON' },
+      { key: PrefKeys.CN_FUZZY, type: 'boolean', defaultValue: 'false', owner: '既有', note: '模糊音开关' },
+      { key: PrefKeys.CN_BIGRAM, type: 'string', defaultValue: '', owner: '既有', note: 'bigram JSON' },
       { key: PrefKeys.MACHINE, type: 'string', defaultValue: '1920s', owner: '既有', note: '默认机型（启动机）' },
       { key: PrefKeys.PAPER, type: 'string', defaultValue: 'letter', owner: 'F6', note: '默认纸张 id（启动纸）' },
       { key: PrefKeys.DELETE_MODE, type: 'string', defaultValue: 'trash', owner: 'F10', note: '删除方式：direct/ask/trash（缺省 trash）' },
       { key: PrefKeys.GUIDE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F1／F2', note: '每页首次引导：guide.<page>.seen' },
-      { key: PrefKeys.GUIDE_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F1', note: '引导产品开关（移除点：第 7 批）' },
+      { key: PrefKeys.GUIDE_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F1', note: '引导产品开关（应急回滚）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.GUIDE_TEST_MODE, type: 'boolean', defaultValue: 'false', owner: 'F1', note: '测试模式（仅测试构建可置 true）' },
       { key: PrefKeys.CUSTOM_FONT_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '每机字体搭配：custom.font.<machine>.<field>' },
       { key: PrefKeys.CUSTOM_PAPER_PREFIX, type: 'string', defaultValue: '', owner: 'F3', note: '纸张自定义：custom.paper.<paperKind>.<field>' },
-      { key: PrefKeys.CUSTOM_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F3', note: '自定义功能总开关（批末已开；移除点第 7 批）' },
+      { key: PrefKeys.CUSTOM_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F3', note: '自定义功能总开关（应急回滚）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_FONT_IMPORTED, type: 'string', defaultValue: '', owner: 'F3', note: '导入字体列表 JSON（familyName／path／size／status）' },
       { key: PrefKeys.CUSTOM_PAPER_PRESETS, type: 'string', defaultValue: '{}', owner: 'F3', note: '纸张预设 JSON（{名称: 预设}）' },
-      { key: PrefKeys.CUSTOM_KNOB_ENABLED, type: 'boolean', defaultValue: 'false', owner: 'F13', note: '旋钮视觉开关（默认 off；移除点第 7 批）' },
+      { key: PrefKeys.CUSTOM_KNOB_ENABLED, type: 'boolean', defaultValue: 'false', owner: 'F13', note: '旋钮视觉开关（默认 off；门图基线重拍后开）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_CANDIDATE_COUNT, type: 'number', defaultValue: '9', owner: 'F15', note: '候选数量 5–15，默认 9' },
       { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
       { key: PrefKeys.STATS_DAILY_GOAL, type: 'number', defaultValue: '500', owner: 'F11', note: '每日目标字数，缺省 500' },
+      { key: PrefKeys.STATS_DAY_KEY, type: 'string', defaultValue: '', owner: 'F11', note: '日计数器：当前自然日键' },
+      { key: PrefKeys.STATS_DAY_CHARS, type: 'number', defaultValue: '0', owner: 'F11', note: '日计数器：今日落字数' },
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就解锁状态' },
     ];
