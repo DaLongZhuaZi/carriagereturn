@@ -23,6 +23,7 @@ import { ExportService } from '../services/ExportService';
 import { FileHelper } from '../services/FileHelper';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { ExportTemplate } from './ExportTemplate';
+import { EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
 import { GuideStep } from './GuideOverlay';
 import { common } from '@kit.AbilityKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
@@ -456,12 +457,21 @@ export struct ExportPage {
   /** 离屏模板 builder（createFromBuilder 要求组件作用域的 @Builder，服务拿不到）。 */
   @Builder
   templateBuilder() {
-    ExportTemplate({
-      docId: this.docId,
-      machineKind: this.machineKind,
-      title: this.docTitleState,
-      dateText: this.dateText,
-    })
+    // 第 7 批收尾（F16 修复）：离屏 builder 的根必须是**显式定尺容器**。
+    // 直接放 ExportTemplate（其根已有 1080×1440）时，真机实测离屏渲染会被窗口约束
+    // 成 640×1024vp，截出 1600×2560 px 的窗口图与裁切版式；这里再包一层定尺 Stack
+    // 并把 clip 打开，让 createFromBuilder 拿到 1080×1440 的画布。
+    Stack() {
+      ExportTemplate({
+        docId: this.docId,
+        machineKind: this.machineKind,
+        title: this.docTitleState,
+        dateText: this.dateText,
+      })
+    }
+    .width(EXPORT_TEMPLATE_W)
+    .height(EXPORT_TEMPLATE_H)
+    .clip(true)
   }
 
   /* --------------------------------------------------------------------- *
