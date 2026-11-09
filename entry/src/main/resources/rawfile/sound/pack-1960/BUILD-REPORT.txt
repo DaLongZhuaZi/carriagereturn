@@ -1,0 +1,21 @@
+回车音效包 pack-1960（Freesound 实录）构建记录
+key-01.ogg 来源 bed-secretmojo-224012.flac 偏移 16.19s 长 0.464s 8122B
+key-02.ogg 来源 bed-secretmojo-224012.flac 偏移 24.06s 长 0.215s 6059B
+key-03.ogg 来源 bed-secretmojo-224012.flac 偏移 32.45s 长 0.165s 5953B
+key-04.ogg 来源 bed-secretmojo-224012.flac 偏移 40.52s 长 0.364s 7927B
+key-05.ogg 来源 bed-secretmojo-224012.flac 偏移 47.31s 长 0.160s 5479B
+key-06.ogg 来源 bed-secretmojo-224012.flac 偏移 57.12s 长 0.225s 6332B
+key-07.ogg 来源 bed-secretmojo-224012.flac 偏移 63.50s 长 0.145s 5417B
+key-08.ogg 来源 bed-secretmojo-224012.flac 偏移 73.89s 长 0.145s 5746B
+key-09.ogg 来源 bed-secretmojo-224012.flac 偏移 81.82s 长 0.110s 5125B
+key-10.ogg 来源 bed-secretmojo-224012.flac 偏移 89.37s 长 0.145s 5610B
+key-11.ogg 来源 bed-secretmojo-224012.flac 偏移 95.95s 长 0.210s 5956B
+key-12.ogg 来源 bed-secretmojo-224012.flac 偏移 107.27s 长 0.464s 8284B
+space-01.ogg 来源 bed-secretmojo-224012.flac 偏移 33.05s 长 0.130s 5515B
+bell-01.ogg 来源 bell-carriage-reset-knufds-345955.wav 偏移 0.05s 长 0.600s 8760B
+bell-02.ogg 来源 bell-carriage-reset-knufds-345955.wav 偏移 2.33s 长 0.404s 7654B
+bell-03.ogg 来源 bed-evsecrets-334458.wav 偏移 46.51s 长 1.157s 15235B
+carriage-reset-01.ogg 来源 return-magedu-319945.wav 偏移 0.08s 长 1.596s 19729B
+key-alt-01.ogg 来源 bed-adamj-538796.wav 偏移 50.26s 长 0.125s 5060B
+key-transient.ogg 来源 bed-secretmojo-224012.flac 偏移 19.03s 长 0.105s 5294B
+总计 19 个文件，143257 字节

@@ -1,31 +1,37 @@
-# pack-1950 · 回车每机音效包
-# 上游来源：sound/pack/SOURCE.txt（BigSoundBank CC0；Freesound CC0/CC BY）
-# CC BY 署名：ddohler（Typewriter.wav, https://freesound.org/s/9098/）、
-#              YleArkisto（Kirjoituskone, https://freesound.org/people/YleArkisto/sounds/271525/）
-# 来源：sound/pack 19 个 .ogg 的确定性 DSP 变体（Q6 代决备选 B；非 Freesound 重新采制）
-# 参数：pitch=0.85 treble=2.0dB 时长保持（atempo 补偿）
-# 生成日期：2026-11-09
-# 生成器：tools/make-sound-packs.py（可复现）
-# ffmpeg：ffmpeg version 2026-04-30-git-cc3ca17127-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
-# 说明：1950s streamlined（DSP: pitch -15%, treble +2dB）
+回车音效包 pack-1950（1950s streamlined）来源记录
+采制：Freesound 实录（用户人工下载，2026-11-09）
+切包：tools/cut-sound-packs.py（OGG Vorbis 单声道 44.1kHz，峰值归一化 -1.5dB）
 
-SHA-256:
-44c354a4db27db759a568f138d7b6c3e88eea8411afa7dc8d27a2e404aad3624  bell-01.ogg
-dbca42e1f84c2123a36586557b2fade4960eee8554465942f57f8663eddcda34  bell-02.ogg
-5f9ab595ff153d889f77e9a0238c004aeecd5609ac4ae2638e902ee2b2286679  bell-03.ogg
-ada193acbe8a5e11fb68b479a7c31f9c9e50d49a38329deb37a8cd4defd84955  carriage-reset-01.ogg
-3d7be082e896ef1925052aa11c810296073a10e9a8dffe18c78ccd4d821ddc0d  key-01.ogg
-5ac948271bf4ce509264f06b16ea3b566adf0658fee75907b20e51c9aae92d50  key-02.ogg
-222c1aab44758b6dea1fe3788e690fcf4a67ff477b0a4599be82cdb13c8d86f4  key-03.ogg
-7aaf768463710d0b12614284413d02f0f5ce03756788f8aac2c6ef6e8c28a741  key-04.ogg
-1ebb2cb22e17d7d5fa377ec5daa4136889d241890d6b5ea6e2d7a0a0476046f3  key-05.ogg
-6241116c915af03096944aff49f7249896f66842c7718f097fbfc751f2f9f078  key-06.ogg
-0477d54ccf260ab6ac8e1840426cf034370fb86cf797415cd4721391b6133cfe  key-07.ogg
-6ff8756917988a902a68848300706ae25b93e4d0f15ca62bcf38b39567210c0d  key-08.ogg
-1b35fb3a2b4e78a9686234e91e652f76a2fde1290861ede6aeac0a6a89f74fa0  key-09.ogg
-46ea4fa3340d69a202fb720acb97c57e611c509604581444a83288ff323ea903  key-10.ogg
-aaf05c0d4e6a47e26af89d1f76f54535d42214b1262e3d61e29bd26a5d974223  key-11.ogg
-4841ea41a325e1500ba0f5671712e79d3a5cae74aee4aa20f938a547e8dd43cf  key-12.ogg
-ec433d0aaade2c1db3543acc7f48a9e1fc2dc05b8d12080f6a19d2781a8a38f3  key-alt-01.ogg
-12f90834ad23cc891613237c1919da112cf1c1c428fbae43bf71b770ba384081  key-transient.ogg
-436f7cd47afe1734eedf1ea7569863861597a87cc21478d12c2a9df580df258e  space-01.ogg
+§1 原始素材
+- bed-escritor1-455043.wav
+  作者：escritor1｜标题：Loading Paper and Typewriter Typing.wav｜协议：CC0
+  来源页：https://freesound.org/people/escritor1/sounds/455043/
+  下载日期：2026-11-09｜SHA-256：998b307f14f2425ab15959252df788147e6fe0086a80be442aa1d2fdb99757a1
+- bed-springtide-259498.wav
+  作者：Spring_Tide｜标题：OLD_Typewriter_ALL.wav｜协议：CC0
+  来源页：https://freesound.org/people/Spring_Tide/sounds/259498/
+  下载日期：2026-11-09｜SHA-256：eec9fb8076d4de9723716bca701bda9a7fb72713f53e1bf50dafb7b0263d3cfa
+
+§2 逐文件切分映射（包内文件 → 源素材／源偏移／时长／字节／SHA-256）
+- key-01.ogg ← bed-escritor1-455043.wav @ 11.77s，长 0.464s，7992B，SHA-256：4fb9119a9ed5e1902014e3b16a5e263fa05553edaa8fa4fa33a1cb5b593301ab
+- key-02.ogg ← bed-escritor1-455043.wav @ 61.65s，长 0.464s，8464B，SHA-256：665e630e9e7a4863b2ad3713239c0d3c15ae2394147411644434117b85a153b5
+- key-03.ogg ← bed-escritor1-455043.wav @ 79.54s，长 0.215s，5928B，SHA-256：e35abf3fbfc8a72017b2c4fcd0da5c276d30a6b299c391fd38b62fd66acc1d7f
+- key-04.ogg ← bed-escritor1-455043.wav @ 88.12s，长 0.299s，6838B，SHA-256：91e1448b9fd9518ef497577a813cd515c76fbabde54d8d54195a9f410266926a
+- key-05.ogg ← bed-escritor1-455043.wav @ 99.93s，长 0.234s，6147B，SHA-256：a4cde34317319df5e8cdfa5ef7a8cbcde033926c3a4fd6a030eceef83f34a4a1
+- key-06.ogg ← bed-escritor1-455043.wav @ 112.10s，长 0.155s，5433B，SHA-256：c3f6d7536af13b2a7b708a610359a98eef9e94bb897fd03caf560c6b2355e117
+- key-07.ogg ← bed-escritor1-455043.wav @ 122.41s，长 0.249s，6383B，SHA-256：f3868f0382a1caee141d4cb7b31c85e7a6f37fb07298d573bc7d80352d2cfa1d
+- key-08.ogg ← bed-escritor1-455043.wav @ 145.46s，长 0.464s，7905B，SHA-256：0f230a8d70f7e88fd3f7b4dd077e216804ea85e18e544e8e45677e9bb745195d
+- key-09.ogg ← bed-escritor1-455043.wav @ 172.08s，长 0.304s，6559B，SHA-256：98c54f051078281eef79671cd64ca2d7c3e2469687aabf25af265a295ae0347b
+- key-10.ogg ← bed-escritor1-455043.wav @ 185.97s，长 0.185s，5788B，SHA-256：42748c6a8a10d07465dfa6c1056396c31bdb0174cae2d936957fa0046e7bdf8d
+- key-11.ogg ← bed-escritor1-455043.wav @ 214.02s，长 0.190s，5820B，SHA-256：1e0a2e67cf74b7cb56bcd915c5a5ccce9381ddb68a9ebbeca0f66ce54a1615d2
+- key-12.ogg ← bed-escritor1-455043.wav @ 227.68s，长 0.464s，8030B，SHA-256：2a4a89aa4b6a4f0ffcd353911c718875b006d365d908db8a30ab823ed33d846d
+- space-01.ogg ← bed-escritor1-455043.wav @ 80.83s，长 0.449s，8506B，SHA-256：25631a619a6cbcefb3f2a9e1eb6e4229ec329b74e9547b2a68f988d75ef90011
+- bell-01.ogg ← bed-springtide-259498.wav @ 6.47s，长 1.342s，17885B，SHA-256：09ef2ffd6db539f1616eccfc5dd4517ccc70528a34a0c3c7bcf2448a9624d2d4
+- bell-02.ogg ← bed-springtide-259498.wav @ 27.80s，长 1.500s，19775B，SHA-256：38853ef90d48bcfb38dbd9a473f65282f00a94f61126f18ccdafc388b16136e3
+- bell-03.ogg ← bed-escritor1-455043.wav @ 140.31s，长 1.385s，17125B，SHA-256：b64f1e4c3910ee770665802a942615bb0872f575e61c96008f4d2b017e72c7f1
+- carriage-reset-01.ogg ← bed-springtide-259498.wav @ 28.26s，长 1.140s，15951B，SHA-256：fc3cb17ea945150faeebc57e33b34132e907f350aee3f50834e8d25ea17cb070
+- key-alt-01.ogg ← bed-escritor1-455043.wav @ 170.36s，长 0.464s，8063B，SHA-256：7050d477d0cf6cc7a07874c6c346ee0395239fbf5da76a232fa68f4fb09a45d6
+- key-transient.ogg ← bed-escritor1-455043.wav @ 52.97s，长 0.125s，5065B，SHA-256：c3ef1e5690dfb3e55688d9d943bf00fe6bc2beeef5fbeb0fb50d8571209a9ae8
+
+§3 备注
+- 铃两件取自 spring_tide 全流程录音的行末事件，一件取自 escritor1 床内行末事件；回车复位取自 spring_tide 末段滑架声。

@@ -41,14 +41,24 @@ test('每包五类角色文件齐全（无前缀名）', () => {
   }
 });
 
-test('SOURCE.txt：记录上游协议/CC BY/ffmpeg/哈希', () => {
-  const text = fs.readFileSync(path.join(SOUND, 'pack-1930', 'SOURCE.txt'), 'utf8');
-  for (const needle of ['上游来源', 'CC BY', 'ddohler', 'YleArkisto', 'ffmpeg', 'SHA-256']) {
-    assert.ok(text.includes(needle), `SOURCE 缺 ${needle}`);
+test('SOURCE.txt：新包两半齐全（原始素材＋逐文件切分映射），断言格式非具体作者', () => {
+  // M1：旧断言硬编码 DSP 时代作者 ddohler/YleArkisto，替换后必然挂；改断言格式。
+  // 另：只查 pack-1930 改为三包全查。
+  for (const pack of ['pack-1930', 'pack-1950', 'pack-1960']) {
+    const text = fs.readFileSync(path.join(SOUND, pack, 'SOURCE.txt'), 'utf8');
+    for (const needle of ['§1 原始素材', '§2 逐文件切分映射', 'SHA-256', 'cut-sound-packs.py']) {
+      assert.ok(text.includes(needle), `${pack} SOURCE 缺 ${needle}`);
+    }
+    // 19 条逐文件 SHA-256 映射（§1 原始素材的 SHA 另计，故用 >=19）
+    const mappings = text.match(/SHA-256：[0-9a-f]{64}/g) || [];
+    assert.ok(mappings.length >= 19, `${pack} SHA 映射=${mappings.length}`);
+    // 至少一种许可证记录
+    assert.ok(text.includes('CC0') || text.includes('CC BY') || text.includes('public domain'),
+      `${pack} SOURCE 缺许可证记录`);
+    // DSP 时代作者必须消失（证明包已替换，非改名）
+    assert.ok(!text.includes('ddohler') && !text.includes('YleArkisto'),
+      `${pack} SOURCE 仍含 DSP 时代作者`);
   }
-  // 19 条 SHA 行（64 位十六进制）
-  const hashes = text.split('\n').filter((l) => /^[0-9a-f]{64}\s{2}\S+\.ogg$/.test(l));
-  assert.equal(hashes.length, 19);
 });
 
 test('AudioService：packForMachine 四机映射 + AudioTrace 有 pack 字段', () => {

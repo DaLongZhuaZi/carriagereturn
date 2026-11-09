@@ -1,31 +1,37 @@
-# pack-1930 · 回车每机音效包
-# 上游来源：sound/pack/SOURCE.txt（BigSoundBank CC0；Freesound CC0/CC BY）
-# CC BY 署名：ddohler（Typewriter.wav, https://freesound.org/s/9098/）、
-#              YleArkisto（Kirjoituskone, https://freesound.org/people/YleArkisto/sounds/271525/）
-# 来源：sound/pack 19 个 .ogg 的确定性 DSP 变体（Q6 代决备选 B；非 Freesound 重新采制）
-# 参数：pitch=1.15 treble=-2.0dB 时长保持（atempo 补偿）
-# 生成日期：2026-11-09
-# 生成器：tools/make-sound-packs.py（可复现）
-# ffmpeg：ffmpeg version 2026-04-30-git-cc3ca17127-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
-# 说明：1930s portable（DSP: pitch +15%, treble -2dB）
+回车音效包 pack-1930（1930s portable）来源记录
+采制：Freesound 实录（用户人工下载，2026-11-09）
+切包：tools/cut-sound-packs.py（OGG Vorbis 单声道 44.1kHz，峰值归一化 -1.5dB）
 
-SHA-256:
-b38cb46222c1019fb8e14c1d3cecb4664b55ae5da61b73a539a5dcf365d723aa  bell-01.ogg
-c85b0776523eec9cf53bd571ddaa0649ea1bf6e599afbfeb537008b0f374654b  bell-02.ogg
-b29fe4927167b8ca2f82ce222cbf3e2e40077b2f725bd94a7e8a656ac984cc79  bell-03.ogg
-52610cc753aa6be09b75e0d7b15da5b7116084fbbd30f31e904e0e0d148b89f9  carriage-reset-01.ogg
-736de0b944b9a267cc48551b7dc02f43fa54da9300ff7ccbee272f61d37955b6  key-01.ogg
-fcafe97da4ccec6b846281b48e79bf9573c15de68f25f83fb9a17912609d652c  key-02.ogg
-3a5559daa5d74342b4400f17a34715b1dc985fe4a1bac83e6d5b5021cabb7e7e  key-03.ogg
-17e248e85b53c7eefe74539ddc4dcba70d59868b1a75f409df2e3c938940aa93  key-04.ogg
-3a4405c095ab01c4fd471d4a3aa394f0318e341002f9c74c9abe4154a498470d  key-05.ogg
-3bab369bc8704f6b96d9c57635d0c73160d4f7c83d43797113c7cec2f981624d  key-06.ogg
-ec7719a02dd3802036c188a468d3d1125b1d117c3bb163fba0f65d10d2e7625f  key-07.ogg
-409d6b455932cb72bfe30fa9858715b935a670dcf6a706029f861690d5181901  key-08.ogg
-f50f7e810f061792ef1ae1f3df531d2cc66134cc2be0633817e7c35663b3b16b  key-09.ogg
-13cc8db6562ec26ba1d071ceefc34d9ed74458ddb6342e4f0a2573249d6b4e55  key-10.ogg
-56186a147959e600d623957606ca5a162ad7e0ae877c2a8cdc1d830d9f72e0a4  key-11.ogg
-1546bc947e90e077fb72b864d73b9f5331a8ba8d6535d07df38a35ace51771e0  key-12.ogg
-8a4e298de748b758fca8301da0804099235df8fca4f70cc930fd7923f13a506c  key-alt-01.ogg
-75bbee52de5b6e1c36bd29a156804547ff3010afe01b4a7cae43a9caa34e1f51  key-transient.ogg
-00cd5e96f52f6bebd88b853ad712eb09b522243d7e23af8bc5ab6d3f0e9f81a0  space-01.ogg
+§1 原始素材
+- bed-megashroom-390343.wav
+  作者：megashroom｜标题：Portable typewriter sounds｜协议：CC0
+  来源页：https://freesound.org/people/megashroom/sounds/390343/
+  下载日期：2026-11-09｜SHA-256：7e462c4ca06de60464fb36117039420e107eb8a7b3ff28ff6d63dc2056a7455a
+- bell-fastson-99695.wav
+  作者：fastson｜标题：Typewriter bell.wav｜协议：CC BY
+  来源页：https://freesound.org/people/fastson/sounds/99695/
+  下载日期：2026-11-09｜SHA-256：1853359da4d6d3234904b2c87a86c6960a2965d95c70b147c2301cb3923e0d0c
+
+§2 逐文件切分映射（包内文件 → 源素材／源偏移／时长／字节／SHA-256）
+- key-01.ogg ← bed-megashroom-390343.wav @ 2.59s，长 0.464s，8456B，SHA-256：c88a52f098658377b026f77fbae5f8029675d9ab095001e773f80a3a99e433d3
+- key-02.ogg ← bed-megashroom-390343.wav @ 10.38s，长 0.464s，8691B，SHA-256：77994c2cea39556d24bdce7fbdbdda1af93ca4ce6f624793e1ed2536276dd022
+- key-03.ogg ← bed-megashroom-390343.wav @ 22.72s，长 0.409s，8350B，SHA-256：6629731f29735234a0b1e7388ebb4b2d5846bdc228ba5bacfd99418c69d6b2e3
+- key-04.ogg ← bed-megashroom-390343.wav @ 27.44s，长 0.394s，8260B，SHA-256：923ec0038d3d4af51eaafbdc5978e1eddf778f10fa962722abd10016c14fac12
+- key-05.ogg ← bed-megashroom-390343.wav @ 31.97s，长 0.464s，8913B，SHA-256：a76b7fdc29db82e8e320861c57db5312d77b29d1af41dbea8173cbc153875738
+- key-06.ogg ← bed-megashroom-390343.wav @ 41.98s，长 0.195s，5949B，SHA-256：b11c97b0225001209cb88518251835e8cda4366d2f1cc15bff24b95abcf344a1
+- key-07.ogg ← bed-megashroom-390343.wav @ 45.43s，长 0.155s，5626B，SHA-256：60b7ae91ac0388f8a7b3f6dd8ff7d2f85e785cc5a8306f77032642455eab62e4
+- key-08.ogg ← bed-megashroom-390343.wav @ 52.62s，长 0.145s，5270B，SHA-256：317a064443ab5b868aa11f6199a062e41ffa60cc5619c231521b7a251b941d2b
+- key-09.ogg ← bed-megashroom-390343.wav @ 56.28s，长 0.464s，8401B，SHA-256：8d740fa8be907b4ce6ac3301eae67e2cf33965cfd7f282d21b155ad63fdf9ada
+- key-10.ogg ← bed-megashroom-390343.wav @ 67.54s，长 0.180s，6177B，SHA-256：73fab83222d7f6e6738ddc978b72d28edb8bb5bb22e85fbd900bb890e69e5820
+- key-11.ogg ← bed-megashroom-390343.wav @ 74.62s，长 0.464s，9193B，SHA-256：9c72e3ba14758b881d08272f07847ba06e74575456d69e4145e16bb26b4909f9
+- key-12.ogg ← bed-megashroom-390343.wav @ 87.16s，长 0.155s，5665B，SHA-256：af8e690aad1f9025007e4c69bda009b86ae361ffe3b7cbe47ab4fe8442794566
+- space-01.ogg ← bed-megashroom-390343.wav @ 77.66s，长 0.464s，9133B，SHA-256：90c15d6e1ef3d4e694f7b54663c34746543a4cee1edac6a78ecc6c4274922b9b
+- bell-01.ogg ← bell-fastson-99695.wav @ 0.31s，长 0.554s，7399B，SHA-256：dad79561ab75858d685d34fe2487e8e5849798c9e27df3ccc47726c3ede70e2e
+- bell-02.ogg ← bed-megashroom-390343.wav @ 34.29s，长 1.377s，18924B，SHA-256：39a34e71536a41b934849e9d3e9d486045b047e06ec22ad64ac2cef3d0819ddc
+- bell-03.ogg ← bed-megashroom-390343.wav @ 20.72s，长 1.267s，17685B，SHA-256：ca31454767852d832284d29641ea79ab01c146bfc86fc9e175b84833ae5e35c5
+- carriage-reset-01.ogg ← bed-megashroom-390343.wav @ 49.00s，长 1.462s，19318B，SHA-256：b60b794902d4e631d9b7a9e8b92fa196b0b04b1a953cc65d766c4de7ff413b43
+- key-alt-01.ogg ← bed-megashroom-390343.wav @ 44.30s，长 0.180s，5959B，SHA-256：fa74f0399c0c291b60a760fa87425024fa117bed3f4d8435b4f0b19c0f9eba2b
+- key-transient.ogg ← bed-megashroom-390343.wav @ 52.09s，长 0.115s，5015B，SHA-256：7e8cc225feae30ea3bb427e3dc928ba011a56b73e0cfbeae443089f627896c44
+
+§3 备注
+- 铃一件为 fastson 单音，两件取自 megashroom 床内行末大声事件（带衰减尾）；回车复位取自床内行末长空隙的滑架声。

@@ -45,3 +45,41 @@
 
 未到齐（403 三处，用户侧未提供，跳过不影响整套）：ramsamba 318686、tams_kp 43558、OGA《typewriter-sounds》。
 待处理：床切分（BigSoundBank 床 10–15 变体 + 本批床料）与转 OGG，App 内总预算 <2MB。
+
+---
+第二批（F8 回 Freesound 采制，2026-11-09）：用户在 Freesound 网站人工下载后上传至 Google Drive 文件“音效补充.zip”，由 Muse 经 Drive 连接下载归档。用户已逐条试听选型：1930s 取 megashroom（monotraum 太糊不用）、1950s 取 escritor1（另两条太糊不用）、1960s 三条都好。协议：CC0 件无需署名，CC BY 件进设置→关于→音效致谢页署名（fastson、AdamJ、magedu）。
+
+9. bed-megashroom-390343.wav
+   来源：https://freesound.org/people/megashroom/sounds/390343/
+   作者/标题：megashroom / Portable typewriter sounds；协议：CC0；时长 88.57 秒（1:28），含换行铃；原 Drive 名：megashroom__typewriter-170428_1482.wav
+   SHA-256：7e462c4ca06de60464fb36117039420e107eb8a7b3ff28ff6d63dc2056a7455a
+
+10. bell-fastson-99695.wav
+    来源：https://freesound.org/people/fastson/sounds/99695/
+    作者/标题：fastson / Typewriter bell.wav；协议：CC BY（需致谢页署名）；时长 3.29 秒，实测为单次铃（起音 0.31s，衰减约 1s）；原 Drive 名：fastson__royal_ping.wav
+    SHA-256：1853359da4d6d3234904b2c87a86c6960a2965d95c70b147c2301cb3923e0d0c
+
+11. bed-escritor1-455043.wav
+    来源：https://freesound.org/people/escritor1/sounds/455043/
+    作者/标题：escritor1 / Loading Paper and Typewriter Typing.wav；协议：CC0；时长 234.35 秒（3:54），前约 30 秒为装纸段，打字自约 35 秒起；原 Drive 名：escritor1__loading-paper-and-typewriter-typing.wav
+    SHA-256：998b307f14f2425ab15959252df788147e6fe0086a80be442aa1d2fdb99757a1
+
+12. bed-springtide-259498.wav
+    来源：https://freesound.org/people/Spring_Tide/sounds/259498/
+    作者/标题：Spring_Tide / OLD_Typewriter_ALL.wav；协议：CC0；时长 30.16 秒，卷纸＋打字＋行末铃＋取纸全流程；原 Drive 名：spring_tide__old_typewriter_all.wav
+    SHA-256：eec9fb8076d4de9723716bca701bda9a7fb72713f53e1bf50dafb7b0263d3cfa
+
+13. bed-secretmojo-224012.flac
+    来源：https://freesound.org/people/secretmojo/sounds/224012/
+    作者/标题：secretmojo / IBM Selectric II；协议：CC0；时长 122.92 秒（2:02），电机嗡鸣明确，铃已坏（故本包铃复用 v1 CC0 单音）；原 Drive 名：secretmojo__typewriter-ibm-selectric-ii.flac
+    SHA-256：941f40f15d77983541a520e0be6aeb85d98a043bfc24060b978943343973697b
+
+14. bed-adamj-538796.wav
+    来源：https://freesound.org/people/AdamJ/sounds/538796/
+    作者/标题：AdamJ / Olympia Typewriter；协议：CC BY（需致谢页署名）；时长 71.04 秒（1:11），开机、打字、换行、单键、修正带、进纸、开关机结构化录音；原 Drive 名：adamj__olympia-carrera-de-luxe-electronic-typewriter.wav
+    SHA-256：03e89a5696b4d57bd26ae0cc361513ccf2c849c43c04eece8ed7336107ec70d0
+
+15. return-magedu-319945.wav
+    来源：https://freesound.org/people/magedu/sounds/319945/
+    作者/标题：magedu / typewriter_electric_return.wav；协议：CC BY（需致谢页署名）；时长 2.25 秒，电动回车键声；原 Drive 名：magedu__typewriter_electric_return.wav
+    SHA-256：4ec085dc0d6da36d956e06660fad4764689a368bd23562af7cbdc51dc75481cc
