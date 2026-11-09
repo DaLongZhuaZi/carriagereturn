@@ -167,7 +167,7 @@ export class CustomizeStore {
     appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, clampCandidateSize(n));
   }
 
-  // ---- 产品开关（M-14：默认 off；批末改 on，移除点＝第 7 批）----
+  // ---- 产品开关（M-14：开发期默认 off，静态验收全过后批末改 on；移除点＝第 8 轮）----
 
   static enabled(): boolean {
     return appPreferences.getBool(PrefKeys.CUSTOM_ENABLED, true);

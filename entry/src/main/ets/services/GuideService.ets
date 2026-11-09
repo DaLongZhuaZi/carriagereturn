@@ -10,7 +10,7 @@ import { allPages, isValidPage } from '../model/GuideCore';
 import { TestHooks } from './TestHooks';
 
 export class GuideService {
-  /** 产品开关（默认 on；移除点：第 7 批）。 */
+  /** 产品开关（默认 on；F1 批内一次交付完整、无半成品窗口，见 1-引导与拨杆跟手-增量设计 §1.6；移除点：第 8 轮）。 */
   static enabled(): boolean {
     return appPreferences.getBool(PrefKeys.GUIDE_ENABLED, true);
   }
