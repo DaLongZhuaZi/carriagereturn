@@ -8,7 +8,8 @@
   python tools/probes/run_all.py               # 自动：有 hdc 走 device，否则 dry-run
 
 落点：
-  docs/evidence/probe-results-<YYYY-MM-DD>.json
+  docs/evidence/probe-results-<YYYY-MM-DD>.json        # --device
+  docs/evidence/probe-results-<YYYY-MM-DD>-dryrun.json # --dry-run（门控忽略）
   docs/evidence/探针结论.md（仅生成"运行记录"节，供人工补环境事实）
 退出码：0=全部跑完（含 UNVERIFIED）；1=有 FAIL。
 """
@@ -67,7 +68,9 @@ def main(argv) -> int:
     results = [run_one(p, mode) for p in PROBES]
     stamp = datetime.now().astimezone().strftime("%Y-%m-%d")
     os.makedirs(EVIDENCE, exist_ok=True)
-    json_path = os.path.join(EVIDENCE, f"probe-results-{stamp}.json")
+    # 干跑与 device 写不同文件名：同日干跑不得覆盖 device 结论（门控只读 device 文件）。
+    json_name = f"probe-results-{stamp}-dryrun.json" if mode == "--dry-run" else f"probe-results-{stamp}.json"
+    json_path = os.path.join(EVIDENCE, json_name)
     payload = {"date": stamp, "mode": mode, "results": results}
     with open(json_path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
@@ -94,7 +97,7 @@ def main(argv) -> int:
         tail = ""
     lines = [marker, f"* 运行时间：{datetime.now().astimezone().isoformat(timespec='seconds')}",
              f"* 模式：`{mode}`",
-             f"* 原始 JSON：`docs/evidence/probe-results-{stamp}.json`", "",
+             f"* 原始 JSON：`docs/evidence/{json_name}`", "",
              "| 探针 | 状态 | 判定标准 | 失败 fallback | 原因 / 替代证据 |",
              "|---|---|---|---|---|"]
     for r in results:

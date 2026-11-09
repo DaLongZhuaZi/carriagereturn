@@ -46,6 +46,7 @@ def main() -> int:
         ("icon-audit", ["python", "tools/audit-icons.py", "--json",
                         "docs/evidence/icon-audit.json"], False),
         ("probes-dry-run", ["python", "tools/probes/run_all.py", "--dry-run"], False),
+        ("probe-gates", ["python", "tools/probes/check-gates.py"], False),
         ("switch-audit", ["python", "tools/audit-switches.py", "--json",
                           "docs/evidence/switches.json"], False),
         ("audio-verify-all-packs", ["python", "tools/audio-verify.py", "--json",
