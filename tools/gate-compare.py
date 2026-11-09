@@ -3,7 +3,7 @@
 """回车 · 1920s 回归门比对工具（第 0 批固化口径，2026-11-09）。
 
 口径（总纲写死，不许在本工具外另立一套）：
-  基线：docs/shots/332_metal3.jpeg（1920s 冻结基准）
+  基线：docs/shots/560_1920s_baseline30.png（1920s 冻结基准，2026-11-09 重拍；332_metal3.jpeg 仅留档）
   阈值：30（max 通道差 |dR|/|dG|/|dB| 的最大值 > 30 即该像素算"不同"）
   区域（按整图归一化坐标，左闭右开）：
     键盘区     y 0.62–0.98，x 全宽
@@ -211,7 +211,7 @@ def self_test() -> int:
 
 def main(argv: List[str]) -> int:
     ap = argparse.ArgumentParser(description="1920s 回归门比对（阈值 30、四区、纸面排除）")
-    ap.add_argument("baseline", nargs="?", help="基线图（docs/shots/332_metal3.jpeg）")
+    ap.add_argument("baseline", nargs="?", help="基线图（默认口径 docs/shots/560_1920s_baseline30.png）")
     ap.add_argument("current", nargs="?", help="当前截图")
     ap.add_argument("--scale", default=None, help="统一缩放，例如 400x640（历史口径）")
     ap.add_argument("--threshold", type=int, default=THRESHOLD)
