@@ -1,0 +1,8 @@
+{
+  "app_pid": 23702,
+  "process_start": "17:15:32",
+  "fold_transitions": "17:40:57 EXPAND->HALF_FOLD(angle 90), 17:46:04 HALF_FOLD->FOLDED(angle 0)",
+  "process_alive_in_FOLDED": true,
+  "crash_logs": "none (jscrash/appfreeze/cppcrash grep empty)",
+  "document_title_unchanged": "未命名 (same doc, never reloaded)"
+}

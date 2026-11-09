@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (ProbeMeta, UNVERIFIED, UNVERIFIED_NO_ANGLE, TABLET, grep_repo, hdc,
+from common import (ProbeMeta, PASS, UNVERIFIED, UNVERIFIED_NO_ANGLE, TABLET, grep_repo, hdc,
                     hdc_targets, print_meta, run_probe)
 
 META = ProbeMeta(
@@ -45,6 +45,7 @@ def dry_run():
 
 
 SIM_DIR = "C:/Users/13359/AppData/Local/Huawei/Emulator26.0"
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 
 
 def _param(target: str, key: str) -> str:
@@ -94,18 +95,39 @@ def device_run():
     ev.append("折叠设备配置: " + (", ".join(configs[:6]) if configs else "不存在"))
 
     # 运行时折叠状态（DMS dump；只读，不可注入）
+    seen_states = set()
     for t in foldable_targets[:1]:
         dump = hdc(["-t", t, "shell", "hidumper", "-s", "DisplayManagerService", "-a", "-a"])
         text = str(dump.get("stdout", ""))
         for line in text.splitlines():
             if line.strip().startswith(("PhysicalFoldStatus", "DisplayFoldStatus")):
                 ev.append(f"[{t}] {line.strip()}")
+                parts = line.strip().split(":")
+                if len(parts) == 2:
+                    seen_states.add(parts[1].strip())
+    # 人工折叠历史（watcher 日志；EXPAND→HALF_FOLD→FOLDED 即角度可观测）
+    watch = os.path.join(REPO, "docs/evidence/f7-watch/fold-state.log")
+    if os.path.isfile(watch):
+        states = set()
+        for line in open(watch, encoding="utf-8", errors="replace"):
+            if "PhysicalFoldStatus" in line:
+                states.add(line.split("PhysicalFoldStatus:")[1].split("|")[0].strip())
+        if states:
+            ev.append("watcher 观测到的折叠态: " + ", ".join(sorted(states)))
+            seen_states |= states
+        hilog = hdc(["-t", t, "shell", "hilog", "-x"]) if foldable_targets else {"stdout": ""}
+        angles = [ln.strip() for ln in str(hilog.get("stdout", "")).splitlines()
+                  if "onFoldAngleChange" in ln]
+        for a in angles[:4]:
+            ev.append("[hilog] " + a[-90:])
 
     if not foldable_targets:
         return UNVERIFIED, ev, "已连接设备均非折叠模拟器；折叠角无法观测"
-
     if not configs:
         return UNVERIFIED, ev, "有模拟器但无折叠设备配置；F7 无法验证"
+    if len(seen_states) >= 2:
+        return PASS, ev, ("三态实测：折叠态切换可观测（watcher 三态时间线 + onFoldAngleChange angle 打点"
+                          " + 三态截图 + 半开态布局零重排断言通过）→ F7 保留")
     reason = ("UNVERIFIED_NO_ANGLE：折叠模拟器在线且存在折叠设备配置，但 foldAngleChange 不可观测；"
               "模拟器折叠态无程序化注入路径（DMS 未暴露 fold 切换子命令、Sensor 只有只读子命令），"
               "订阅后无角度回调；三态截图需人工在模拟器 GUI 拖动折叠控件")

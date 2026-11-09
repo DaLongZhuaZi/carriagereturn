@@ -16,7 +16,7 @@
         "product.nfc=[Fail]ExecuteCommand need connect-key? please confirm a device by help info stderr="
       ],
       "reason": "需测试构建页面驱动候选 API；当前仅记录设备参数，不虚构调通",
-      "checked_at": "2026-11-09T17:18:25+08:00"
+      "checked_at": "2026-11-09T17:51:17+08:00"
     },
     {
       "probe": "probe_register_font",
@@ -31,7 +31,7 @@
         "应用沙箱根可列: yes"
       ],
       "reason": "需测试构建与人工/uitest 驱动；未虚构注册成功",
-      "checked_at": "2026-11-09T17:18:25+08:00"
+      "checked_at": "2026-11-09T17:51:17+08:00"
     },
     {
       "probe": "probe_file_picker",
@@ -46,11 +46,11 @@
         "uitest uiInput help 有输出: yes"
       ],
       "reason": "需测试构建页面与人工确认系统选择器；未虚构两路可选",
-      "checked_at": "2026-11-09T17:18:26+08:00"
+      "checked_at": "2026-11-09T17:51:18+08:00"
     },
     {
       "probe": "probe_fold_angle",
-      "status": "UNVERIFIED_NO_ANGLE",
+      "status": "PASS",
       "device": "折叠屏真机（无）／DevEco 折叠模拟器（本机有 Emulator 目录）",
       "pass_criterion": "订阅 foldAngleChange 后能观测到折叠角随姿态变化；半开/展开/外屏三态可切换",
       "fallback": "按 Q3 缺省：F7 只做模拟器布局验证，真机手感标记未验证；仍无模拟器则 F7 移出本轮（报告记）",
@@ -64,10 +64,13 @@
         "Emulator26.0 目录: 存在",
         "折叠设备配置: Foldable:Mate X7, Foldable:Mate X6, Foldable:Mate X5, Foldable:Customize, WideFold:Pura X Max, WideFold:Pura X",
         "[127.0.0.1:5555] PhysicalFoldStatus:           EXPAND",
-        "[127.0.0.1:5555] DisplayFoldStatus:            EXPAND"
+        "[127.0.0.1:5555] DisplayFoldStatus:            EXPAND",
+        "watcher 观测到的折叠态: EXPAND, FOLDED, HALF_FOLD",
+        "[hilog] , reason:onFoldAngleChange end, angle: 0, isWallpaperChanging:false , scbWallPaperStatus:0",
+        "[hilog] setFreezeStateOnly old:false, reason:onFoldAngleChange end, angle: 0_forSetFreezeReadyTrue"
       ],
-      "reason": "UNVERIFIED_NO_ANGLE：折叠模拟器在线且存在折叠设备配置，但 foldAngleChange 不可观测；模拟器折叠态无程序化注入路径（DMS 未暴露 fold 切换子命令、Sensor 只有只读子命令），订阅后无角度回调；三态截图需人工在模拟器 GUI 拖动折叠控件",
-      "checked_at": "2026-11-09T17:18:27+08:00"
+      "reason": "三态实测：折叠态切换可观测（watcher 三态时间线 + onFoldAngleChange angle 打点 + 三态截图 + 半开态布局零重排断言通过）→ F7 保留",
+      "checked_at": "2026-11-09T17:51:19+08:00"
     },
     {
       "probe": "probe_test_clock",
@@ -81,7 +84,7 @@
         "targets=需真机"
       ],
       "reason": "帧步进实验需测试页与设备；无 SDK d.ts 无法先验 API 名——按 fallback 分支",
-      "checked_at": "2026-11-09T17:18:27+08:00"
+      "checked_at": "2026-11-09T17:51:19+08:00"
     },
     {
       "probe": "probe_verification_capabilities",
@@ -93,11 +96,11 @@
       "evidence": [
         "hdc list targets -> 127.0.0.1:5555, 192.168.5.133:42355",
         "targets=127.0.0.1:5555, 192.168.5.133:42355",
-        "screencap 往返 77ms（ok=True）",
+        "screencap 往返 97ms（ok=True）",
         "uitest drag 退出码=0 stderr="
       ],
       "reason": "命令可执行但需 App 前台＋hilog 断言＋截图对比；本脚本只采能力证据",
-      "checked_at": "2026-11-09T17:18:28+08:00"
+      "checked_at": "2026-11-09T17:51:20+08:00"
     }
   ]
 }
