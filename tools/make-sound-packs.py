@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""回车 · 每机音效包生成（第 4 批 F8，Q6 缺省替代方案）。
+"""回车 · 每机音效包生成（第 4 批 F8，Q6 缺省替代方案）——已退役。
+
+已退役：DSP 包已由 Freesound 实录替换（2026-11-09，见 tools/cut-sound-packs.py），
+本脚本仅供复现旧包（git 历史 8effa32 时的三包 DSP 变体）。
 
 Q6 缺省是 Freesound 采制；本机无网络，改为**仓库既有 23 个 OGG 的确定性 DSP 变体**：
   pack      → 1920s 基线（不动）
-  pack-1930 → 音高 +3%、时长保持（asetrate + atempo）
-  pack-1950 → 音高 -3%、时长保持
-  pack-1960 → 音高 +5%、高频 +2dB、时长保持
+  pack-1930 → 音高 +15%、高频 -2dB、时长保持（asetrate + atempo）
+  pack-1950 → 音高 -15%、高频 +2dB、时长保持
+  pack-1960 → 音高 +20%、高频 +6dB、时长保持
+（注：头注释旧写 +3%/−3%/+5% 已过期，实为 ±15%/+20%，2026-11-09 退役时修正。）
 每包写 SOURCE.txt：生成参数、日期、逐文件 SHA-256。脚本可重复执行（输出确定）。
 
 用法：python tools/make-sound-packs.py [--force]
