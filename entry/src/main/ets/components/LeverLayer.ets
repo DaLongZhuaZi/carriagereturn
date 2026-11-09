@@ -31,7 +31,11 @@ export struct LeverLayer {
   @Prop offsetXVp: number = 0;
   @Prop offsetYVp: number = 0;
   /** §19.1：静止角／摆幅（度）。平板 30/35，手机 15/20 */
-  @Prop restDeg: number = LEVER_REST_DEG_TABLET;
+  // 首帧 isTablet 可能仍为 false（初值）→ 构造时拿到手机静止角 15°；
+  // 平板定稿后 @Prop 会更新，但 aboutToAppear 只跑一次、angle 不会自动同步 →
+  // 静止位卡在 15°，与 1920s 基线（30°）差 15°（门图车架中/右区可见差异）。
+  // 故 restDeg 变化时重同步（拖拽中不抢角）。
+  @Prop @Watch('onRestDegChanged') restDeg: number = LEVER_REST_DEG_TABLET;
   @Prop swingDeg: number = LEVER_SWING_DEG_TABLET;
   /** §18.11：外部驱动的拉杆比例 0..1（拨杆节点自身收不到触摸，改由 Index 在字车层接手势） */
   @Prop @Watch('onDragRatio') dragRatio: number = 0;
@@ -44,6 +48,15 @@ export struct LeverLayer {
     // §19.1：初始静止角跟随传入值（手机 15°，平板 30°）
     this.angle = this.restDeg;
   }
+  /** restDeg 变化（手机↔平板布局分级切换）→ 静止时重同步角度。 */
+  onRestDegChanged(): void {
+    if (this.dragRatio > 0.001) {
+      return;
+    }
+    this.angle = this.restDeg;
+    hilog.info(LDOMAIN, LTAG, 'restDeg synced -> %{public}s', this.restDeg.toFixed(1));
+  }
+
   private lastTick: number = 0;
 
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
