@@ -1,0 +1,1076 @@
+[17:38:21] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:24] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:27] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:30] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:31] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:33] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:34] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:36] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:36] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:38] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:38] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:41] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:41] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:43] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:44] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:45] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:46] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:48] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:49] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:50] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:52] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:52] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:55] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:54] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:57] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:57] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:38:59] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:00] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:01] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:02] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:04] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:05] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:06] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:07] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:08] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:10] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:10] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:13] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:13] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:15] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:15] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:17] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:18] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:19] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:20] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:22] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:23] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:24] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:25] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:26] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:28] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:28] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:31] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:31] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:33] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:33] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:35] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:36] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:37] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:40] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:42] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:44] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:47] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:49] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:51] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:53] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:56] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:39:58] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:00] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:02] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:05] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:07] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:09] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:11] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:14] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:16] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:18] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:21] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:23] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:25] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:27] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:30] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:32] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:34] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:36] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:39] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:41] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:43] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:46] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:48] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:50] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:53] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:55] PhysicalFoldStatus: EXPAND
+|DisplayFoldStatus: EXPAND
+|TentMode: false
+|
+[17:40:57] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:40:59] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:02] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:04] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:06] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:08] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:11] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:13] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:15] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:18] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:20] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:22] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:24] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:27] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:29] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:31] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:33] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:36] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:38] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:40] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:42] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:45] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:47] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:49] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:52] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:54] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:56] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:41:58] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:01] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:03] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:05] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:08] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:10] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:12] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:14] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:17] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:19] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:21] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:24] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:26] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:28] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:30] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:33] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:35] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:37] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:40] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:42] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:44] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:46] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:49] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:51] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:53] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:56] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:42:58] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:00] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:02] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:05] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:07] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:09] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:12] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:14] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:16] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:19] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:21] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:23] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:25] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:28] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:30] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:32] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:34] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:37] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:39] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:41] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:43] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:46] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:48] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:50] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:53] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:55] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:57] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:43:59] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:02] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:04] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:06] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:08] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:11] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:13] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:15] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:17] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:20] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:22] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:24] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:26] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:29] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:31] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:33] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:36] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:38] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:40] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:42] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:45] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:47] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:49] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:51] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:54] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:56] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:44:58] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:00] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:02] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:05] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:07] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:09] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:12] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:14] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:16] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:18] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:20] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:23] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:25] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:27] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:29] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:32] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:34] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:36] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:38] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:41] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:43] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:45] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:47] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:49] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:52] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:54] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:56] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:45:58] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:46:01] PhysicalFoldStatus: HALF_FOLD
+|DisplayFoldStatus: HALF_FOLD
+|TentMode: false
+|
+[17:46:03] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:05] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:07] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:10] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:12] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:14] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:16] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:19] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:21] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:23] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:26] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:28] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:30] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:32] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:35] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:37] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:40] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:42] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:44] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:46] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:49] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:51] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:53] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:55] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:46:58] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:00] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:02] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:05] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:07] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:09] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:11] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:14] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:16] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:18] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:21] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:23] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:25] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:27] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:30] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:32] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
+[17:47:34] PhysicalFoldStatus: FOLDED
+|DisplayFoldStatus: FOLDED
+|TentMode: false
+|
