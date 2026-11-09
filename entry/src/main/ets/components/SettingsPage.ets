@@ -165,7 +165,7 @@ export struct SettingsPage {
             label: $r('app.string.settings_delete_mode'),
             mode: 'value',
             value: this.deleteModeText(),
-            onClick: (): void => { this.onDeleteMode(this.nextMode()); },
+            onRowClick: (): void => { this.onDeleteMode(this.nextMode()); },
           })
           this.divider()
           // 中文输入：内置拼音（默认）｜系统输入法。必须落 AppPreferences（设计稿 §1／§7）
@@ -173,7 +173,7 @@ export struct SettingsPage {
             label: '中文输入',
             mode: 'value',
             value: this.cnEngine === 'builtin' ? '内置拼音' : '系统输入法',
-            onClick: (): void => { this.onPickCnEngine(); },
+            onRowClick: (): void => { this.onPickCnEngine(); },
           })
           this.divider()
           // 拼音设置（模糊音／我的词库／学习记录／词库信息）：设计稿 §11.6
@@ -181,7 +181,7 @@ export struct SettingsPage {
             label: '拼音设置',
             mode: 'link',
             value: '',
-            onClick: (): void => { this.onOpenPinyinSettings(); },
+            onRowClick: (): void => { this.onOpenPinyinSettings(); },
           })
         }
         .width('100%')
@@ -216,21 +216,21 @@ export struct SettingsPage {
             label: $r('app.string.settings_default_machine'),
             mode: 'link',
             value: this.machineLabel,
-            onClick: (): void => { this.onPickMachine(); },
+            onRowClick: (): void => { this.onPickMachine(); },
           })
           this.divider()
           SettingsRow({
             label: $r('app.string.settings_default_paper'),
             mode: 'link',
             value: this.paperLabel,
-            onClick: (): void => { this.onPickPaper(); },
+            onRowClick: (): void => { this.onPickPaper(); },
           })
           this.divider()
           SettingsRow({
             label: $r('app.string.settings_trash'),
             mode: 'link',
             value: '',
-            onClick: (): void => { this.onOpenTrash(); },
+            onRowClick: (): void => { this.onOpenTrash(); },
           })
         }
         .width('100%')
@@ -244,14 +244,14 @@ export struct SettingsPage {
             label: '重播页面引导',
             mode: 'link',
             value: '',
-            onClick: (): void => { this.onReplayPageGuide(); },
+            onRowClick: (): void => { this.onReplayPageGuide(); },
           })
           this.divider()
           SettingsRow({
             label: '重播启动引导',
             mode: 'link',
             value: '',
-            onClick: (): void => { this.onReplayOnboarding(); },
+            onRowClick: (): void => { this.onReplayOnboarding(); },
           })
           this.divider()
           Row() {

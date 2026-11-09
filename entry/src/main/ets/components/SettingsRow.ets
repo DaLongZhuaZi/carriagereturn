@@ -30,7 +30,7 @@ export struct SettingsRow {
   @Prop reveal: boolean = true;
   onToggle: () => void = (): void => {};
   onSlide: (v: number) => void = (v: number): void => {};
-  onClick: () => void = (): void => {};
+  onRowClick: () => void = (): void => {};
 
   @State pressed: boolean = false;
 
@@ -88,7 +88,7 @@ export struct SettingsRow {
       }
     })
     .onClick(() => {
-      this.onClick();
+      this.onRowClick();
     })
   }
 }

@@ -111,7 +111,7 @@ export struct CustomizePage {
                 mode: 'link',
                 value: '',
                 reveal: this.revealN > 0,
-                onClick: (): void => { this.onOpenFontManager(); },
+                onRowClick: (): void => { this.onOpenFontManager(); },
               })
               Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
               SettingsRow({
@@ -119,7 +119,7 @@ export struct CustomizePage {
                 mode: 'link',
                 value: '',
                 reveal: this.revealN > 0,
-                onClick: (): void => { this.onOpenPaperCustom(); },
+                onRowClick: (): void => { this.onOpenPaperCustom(); },
               })
               Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
             }

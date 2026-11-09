@@ -1329,7 +1329,7 @@ struct Index {
       hilog.info(DOMAIN, TAG,
         'layout dev=%{public}s diag=%{public}s availW=%{public}s availH=%{public}s tablet=%{public}s stageW=%{public}s region=%{public}s fs=%{public}s paper=%{public}s kmW=%{public}s kmH=%{public}s cap=%{public}s',
         dev, diagInch.toFixed(2), availW.toFixed(1), availH.toFixed(1), newTablet ? 'true' : 'false',
-        stageW.toFixed(1), this.regionHeightVp.toFixed(1), fs.toFixed(2),
+        stageW.toFixed(1), this.regionHeightVp.toFixed(1), this.fontSizeVp.toFixed(2),
         this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
         this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
     } catch (e) {

@@ -468,7 +468,7 @@ export struct DossierDetailPage {
               .height(this.widthVp < 600 ? 50 : 74)
               .borderRadius(8).objectFit(ImageFit.Cover)
           } else {
-            Column().id('hdr_cover')
+            Column().id('hdr_cover_empty')
               .width(this.widthVp < 600 ? 72 : 110)
               .height(this.widthVp < 600 ? 50 : 74)
               .borderRadius(8).backgroundColor('#eee4ce')
