@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want, common } from '@kit.AbilityKit';
 import { font, window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { FoldService } from '../services/FoldService';
 import { FileUtils, logger, ngfDeviceAdaptationFacade, ngfI18nManagerFacade, ngfPlatformWindowManagerFacade, ngfStarterKernel, ngfThemeManagerFacade, uiContextManager } from 'ngf_framework';
 import { docStore } from '../services/DocStore';
 import { dossierStore } from '../services/DossierStore';
@@ -31,6 +32,8 @@ export default class EntryAbility extends UIAbility {
     docStore.housekeeping(Date.now());
     dossierStore.init(this.context.filesDir);
     appPreferences.init(this.context as common.UIAbilityContext);
+    // 第 5 批回批 F7（D2）：折叠订阅挂 Ability onCreate 一次；onDestroy 全量 off
+    FoldService.subscribe();
 
     let bootstrapped: boolean = false;
     try {
@@ -51,6 +54,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    FoldService.unsubscribeAll();
     uiContextManager.clearAbilityContext();
     hilog.info(DOMAIN, TAG, '%{public}s', 'EntryAbility onDestroy');
   }

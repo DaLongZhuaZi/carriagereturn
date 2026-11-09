@@ -52,6 +52,7 @@ import { AudioService } from '../services/AudioService';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { statsService, StatsEvents } from '../services/StatsService';
+import { FoldService, FoldState } from '../services/FoldService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
 import { GuideService } from '../services/GuideService';
 import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM, GUIDE_PAGE_TRASH } from '../model/GuideCore';
@@ -98,6 +99,8 @@ const DESIGN_W: number = 390;
 const DESIGN_H: number = 844;
 /** 键带手机宽高比 2048/975；字车条 2048/287。 */
 const KEYBAND_ASPECT: number = 2048 / 975;
+// 第 5 批回批 F7：折叠带比值（1920s/1950s/1960s 折叠带 2048×853；1930s 复用手机带 2.101，设计稿 §2.5）
+const KEYBAND_ASPECT_FOLD: number = 2048 / 853;
 const CARRIAGE_STRIP_ASPECT: number = 2048 / 287;
 const GROW_DURATION_MS: number = 60; // 硬曲线：纸移动 50–70ms，写死
 const BELL_REMAINING: number = 8;
@@ -246,6 +249,11 @@ struct Index {
   @State availableHeightVp: number = 720;
   /** 平板级（可用宽 ≥600vp）。 */
   @State isTablet: boolean = false;
+  /** 第 5 批回批 F7：折叠布局模式（单一派生值，D0b-1）。初值 phone，首帧 aboutToAppear 派生。 */
+  @State layoutMode: string = 'phone';
+  /** 折痕带 vp（窗口坐标）：desk 模式下 region/Spacer 的分界（D0b-2/D1）。 */
+  private creaseTopVp: number = 0;
+  private creaseBottomVp: number = 0;
   /** 大屏独立设计宽：平板 min(stageWidth, 440)，手机 = stageWidth（原样）。 */
   private geoWidthVp(): number {
     if (this.isTablet) {
@@ -992,6 +1000,7 @@ struct Index {
 
   private pushPage(k: string): void {
     statsService.flushPending();
+    statsService.flushFoldTyped();
     this.leaveChinese();
     this.navAnimated = true;
     // 同 key 已在栈顶时不重复压栈（返回少走一步）
@@ -1007,6 +1016,7 @@ struct Index {
   /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
   private popTo(k: string): void {
     statsService.flushPending();
+    statsService.flushFoldTyped();
     const idx: number = this.navStack.indexOf(k);
     if (idx < 0) { return; }
     this.leaveChinese();
@@ -1020,6 +1030,7 @@ struct Index {
   private popPage(): boolean {
     if (this.navStack.length <= 1) { return false; }
     statsService.flushPending();
+    statsService.flushFoldTyped();
     this.leaveChinese();
     this.navAnimated = true;
     const s: string[] = this.navStack.slice();
@@ -1106,9 +1117,9 @@ struct Index {
       window.getLastWindow(this.getUIContext().getHostContext() as common.Context)
         .then((win: window.Window) => {
           win.on('keyboardHeightChange', (h: number) => {
-            const kbVp: number = this.getUIContext().px2vp(h);
-            const top: number = this.stageHeight - kbVp;
-            this.kbShift = h > 0 ? Math.max(0, this.strikeLineVp + 40 - top) : 0;
+            // 第 5 批回批 F7（D4 kbShift 行）：缓存 h，折叠回调与监听共用同一缓存
+            this.kbHeightCachedPx = h;
+            this.recalcKbShift();
             hilog.info(DOMAIN, TAG, 'kb height=%{public}s shift=%{public}s',
               h.toString(), this.kbShift.toFixed(1));
           });
@@ -1133,6 +1144,13 @@ struct Index {
     if (host !== undefined && host !== null) {
       this.audioService.attachContext(host as common.Context);
     }
+    // 第 5 批回批 F7（D0b-4）：注入 px2vp 换算系数（px2vp(100)/100 = 每像素 vp 数的倒数即 px/vp）
+    // + 注册折叠回调一次（Index 不留 foldState 镜像，单一事实源 FoldService）
+    const pxPerVp: number = this.getUIContext().px2vp(1);
+    FoldService.setPxPerVp(pxPerVp > 0 ? pxPerVp : 0);
+    FoldService.onFoldChange((st: FoldState): void => {
+      this.onFoldStateChanged(st);
+    });
     this.docTitle = this.resolveString($r('app.string.doc_untitled'));
     // 第 6 批 F6：启动灌 prefs 音量/开关（AudioService 私有默认 0.8/全开）
     this.volume0to100 = prefToVolume(appPreferences.getNumber(PrefKeys.VOLUME, 0.7));
@@ -1162,6 +1180,7 @@ struct Index {
 
   aboutToDisappear(): void {
     statsService.flushPending();
+    statsService.flushFoldTyped();
     this.audioService.release();
   }
 
@@ -1197,6 +1216,61 @@ struct Index {
     } catch (e) {
       return 'unknown';
     }
+  }
+
+  /**
+   * 第 5 批回批 F7（D0b-3/4）：折叠回调。依次 deriveLayoutMode() → measureStage()（内含 derive
+   * 幂等重算 + recalcPaperHeight）；折叠切换走瞬时赋值（paperAnimateNext=false，不新起编排动画）；
+   * kbShift 按 D4 状态表重算。HALF_FOLD 时窗口不变 onAreaChange 不 fire，必须显式触发；
+   * FOLDED/EXPAND 的重算由 onAreaChange 驱动，回调不为这两态强制立即重算（避免旧窗+新态杂交帧）。
+   */
+  private onFoldStateChanged(st: FoldState): void {
+    hilog.info(DOMAIN, TAG, 'onFoldChange state=%{public}s mode(before)=%{public}s',
+      st, this.layoutMode);
+    this.layoutMode = this.deriveLayoutMode();
+    if (this.layoutMode === 'desk') {
+      // 折叠切换走瞬时赋值：先置 false 再重算，换行中途折叠时不新起编排动画
+      this.paperAnimateNext = false;
+      this.measureStage();
+      this.recalcKbShift();
+    }
+  }
+
+  /** 第 5 批回批 F7（D0b-1）：layoutMode 单一派生。唯一判定式；几何函数只读本 @State。 */
+  private deriveLayoutMode(): string {
+    const st: FoldState = FoldService.state();
+    if (st === 'FOLDED') {
+      return 'phone';
+    }
+    if (st === 'HALF_FOLD' && FoldService.isCreaseHorizontal()) {
+      return 'desk';
+    }
+    if (st === 'HALF_FOLD') {
+      // 纵向折痕：状态如实报 HALF_FOLD，布局回退展开态（D2 真值表）
+      return this.isTablet ? 'tablet' : 'phone';
+    }
+    return this.isTablet ? 'tablet' : 'phone';
+  }
+
+  /** 折痕带 vp 重读（measureStage 内、derive 之前调；D1 顺序）。 */
+  private refreshCreaseVp(winH: number): void {
+    FoldService.refreshCrease();
+    this.creaseTopVp = FoldService.creaseTopVp(winH);
+    this.creaseBottomVp = FoldService.creaseBottomVp(winH);
+  }
+
+  /** 键盘避让重算（D4 状态表 kbShift 行）：折叠回调与 keyboardHeightChange 共用上次缓存 h。 */
+  private kbHeightCachedPx: number = 0;
+
+  private recalcKbShift(): void {
+    const hPx: number = this.kbHeightCachedPx;
+    if (hPx <= 0) {
+      this.kbShift = 0;
+      return;
+    }
+    const kbVp: number = this.getUIContext().px2vp(hPx);
+    const top: number = this.stageHeight - kbVp;
+    this.kbShift = Math.max(0, this.strikeLineVp + 40 - top);
   }
 
   private measureStage(): void {
@@ -1235,6 +1309,10 @@ struct Index {
       const prevTablet: boolean = this.isTablet;
       const prevRegion: number = this.regionHeightVp;
       this.isTablet = newTablet;
+      // 第 5 批回批 F7（D1/D0b-1 顺序）：newTablet 定稿 → refreshCrease 重读折痕 → derive → 分支
+      this.refreshCreaseVp(winH);
+      const prevMode: string = this.layoutMode;
+      this.layoutMode = this.deriveLayoutMode();
       this.stageWidth = stageW;
       // 舞台高改回窗口高（region 仍按可用高算）
       this.stageHeight = winH;
@@ -1250,10 +1328,32 @@ struct Index {
       const carriageConsumed: number = this.carriageHeight - CARRIAGE_PAPER_OVERLAP_VP;
       // §18.8／§19：候选栏区**常驻 44vp**，已含在布局里——手机 region 必须减掉它，
       // 否则总成溢出、底座被候选栏盖住。平板公式不动。
-      const candBarVp: number = this.isTablet ? 0 : CANDIDATE_BAR_HEIGHT_VP;
-      const region: number = availH - this.topBarHeight - this.paperTopGap - carriageConsumed
-        - this.fontBarHeight - this.keybedHeight - this.functionRowHeight - candBarVp;
+      // 第 5 批回批 F7（D0b-2）：desk 模式按折痕重排——纸区=上半区，candBar 平板口径（0），
+      // keybed 用折叠带比值（1920s/1950s/1960s=2.401；1930s 复用手机带 2.101）。
+      const isDesk: boolean = this.layoutMode === 'desk';
+      const isFoldPhone: boolean = this.layoutMode === 'phone';
+      let keybedAspect: number = KEYBAND_ASPECT;
+      if (isDesk) {
+        keybedAspect = this.machineKind === MachineKind.PORTABLE_1930S ? KEYBAND_ASPECT : KEYBAND_ASPECT_FOLD;
+        this.keybedHeight = stageW / keybedAspect;
+      }
+      const candBarVp: number = (this.isTablet || isDesk) ? 0 : CANDIDATE_BAR_HEIGHT_VP;
+      let region: number;
+      if (isDesk) {
+        // 纸区 = 上半区（D0b-2 原式）：region = creaseTop − topInset − topBar − paperTopGap
+        //   − carriageConsumed（fontBar/functionRow/candBar 在下半区/布局尾段，不从上半区扣）
+        region = this.creaseTopVp - this.topInset - this.topBarHeight - this.paperTopGap
+          - carriageConsumed;
+      } else {
+        region = availH - this.topBarHeight - this.paperTopGap - carriageConsumed
+          - this.fontBarHeight - this.keybedHeight - this.functionRowHeight - candBarVp;
+      }
       this.regionHeightVp = region > 120 ? region : 120;
+      if (isDesk !== (prevMode === 'desk') || isFoldPhone) {
+        hilog.info(DOMAIN, TAG, 'fold layout mode=%{public}s creaseTop=%{public}s creaseBottom=%{public}s region=%{public}s keybed=%{public}s aspect=%{public}s',
+          this.layoutMode, this.creaseTopVp.toFixed(1), this.creaseBottomVp.toFixed(1),
+          this.regionHeightVp.toFixed(1), this.keybedHeight.toFixed(1), keybedAspect.toFixed(3));
+      }
 
       // ③字号保 DPI：目标物理 57px（= 手机 17vp×3.375）÷ vp2px
       //    平板 vp2px=2.375 → 24vp；手机 3.375 → 16.9 钳到 17（与改前一致）
@@ -1276,7 +1376,10 @@ struct Index {
       this.photoWidthCap = (availW * vp2px > 2048) ? 2048 / vp2px : 0;
       if (this.photoWidthCap > 0 && stageW > this.photoWidthCap) {
         const capped: number = this.photoWidthCap;
-        this.keybedHeight = capped / KEYBAND_ASPECT;
+        // 第 5 批回批 F7：desk 时 guard 同步用折叠带比值，否则折叠带图被压扁约 14%（D0b-2）
+        const guardAspect: number = this.layoutMode === 'desk'
+          && this.machineKind !== MachineKind.PORTABLE_1930S ? KEYBAND_ASPECT_FOLD : KEYBAND_ASPECT;
+        this.keybedHeight = capped / guardAspect;
         this.carriageHeight = (capped + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
       }
 
@@ -1551,6 +1654,7 @@ struct Index {
   /** 第 3 批：导出前 flush 保存并判定非空（M-6）。 */
   private prepareExport(): boolean {
     statsService.flushPending();
+    statsService.flushFoldTyped();
     this.flushSave();
     if (this.docId.length === 0) {
       return false;
@@ -1729,32 +1833,38 @@ struct Index {
    */
   private recalcPaperHeight(): void {
     // H 冻结：只用首次稳定测到的 availableHeightVp，不每轮重读 live inset
-    if (this.frozenHVp <= 0 && this.availableHeightVp > 0) {
+    // 第 5 批回批 F7（D0b-2）：冻结只适用于非折叠态；desk 用上半区高，frozenHVp 不清零
+    // （切回 EXPAND 继续用冻结值，避免反复冻结/解冻）。
+    const isDesk: boolean = this.layoutMode === 'desk';
+    if (this.frozenHVp <= 0 && this.availableHeightVp > 0 && !isDesk) {
       this.frozenHVp = this.availableHeightVp;
     }
-    // §19：手机 H 用 region（纸面区真高），平板沿用冻结的 availableHeightVp
-    const H: number = this.isTablet
-      ? (this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp)
-      : this.regionHeightVp;
+    // §19：手机 H 用 region（纸面区真高），平板沿用冻结的 availableHeightVp；desk 用上半区高
+    const H: number = isDesk
+      ? (this.creaseTopVp - this.topInset)
+      : (this.isTablet
+        ? (this.frozenHVp > 0 ? this.frozenHVp : this.availableHeightVp)
+        : this.regionHeightVp);
     const rows: number = this.docModel.getLines().length;
     // §19 定案：手机系数 0.64（平板 0.56 不动）。下限：carriageTopVp 不得小于 10×行高，
     // 否则字车会顶到顶栏。真机量底部余量，仍 >40vp 就继续往上调（上限 0.75）。
-    const kTop: number = this.isTablet ? 0.56 : 0.64;
+    // 第 5 批回批 F7（D0b-2）：desk 时 kTop 沿用平板 0.56、strikeShift/bandShift 取 15
+    const kTop: number = (this.isTablet || isDesk) ? 0.56 : 0.64;
     let top: number = kTop * H;
     const topFloor: number = 10 * this.lineHeightVp;
-    if (!this.isTablet && top < topFloor) {
+    if (!this.isTablet && !isDesk && top < topFloor) {
       top = topFloor;
     }
     this.carriageTopVp = top;
     // 打击行固定：字车条顶 − 底边距 20 − 行高/2，行数变化也不动
     // 平板：打击行上移 15vp（与横杆上移联动，横杆不挡字）；手机走原值
-    const strikeShift: number = this.isTablet ? 15 : 0;
+    const strikeShift: number = (this.isTablet || isDesk) ? 15 : 0;
     this.strikeLineVp = this.carriageTopVp - this.marginB() - this.lineHeightVp / 2 - strikeShift;
     // 纸高定值（唯一一处）：Ph = Pw × 1.414，行数变了不动
     this.paperHeightVp = this.paperWidthVp * 1.414;
     // 纸顶动、纸底藏：纸顶每换行上移一个行高，纸底始终在滚筒下方（被容器裁掉）
     // 纸带基数随字号同步变：20（底边距）+ 行高 + 44（内容顶）
-    const bandShift: number = this.isTablet ? 15 : 0;
+    const bandShift: number = (this.isTablet || isDesk) ? 15 : 0;
     const paperBandBase: number = this.marginB() + this.lineHeightVp + 44 + bandShift;
     // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
@@ -1762,6 +1872,14 @@ struct Index {
     // 纸片容器高 = 纸顶到滚筒
     // 纸底伸到 carriageTop 下 2vp：纸叠进滚筒 40vp（滚筒顶 = carriageTop − Hc/2），同一张纸
     this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp + 2;
+    // 第 5 批回批 F7（D4 裁剪机制）：半开时纸容器在 creaseTop 处裁剪（容器即裁剪区，不加 .clip()）；
+    // 安全网：D1 公式下容器本已在折痕之上，cap 仅防折痕值误读
+    if (isDesk && this.creaseTopVp > 0) {
+      const cap: number = this.creaseTopVp - this.paperTopTargetVp;
+      if (this.paperContainerTargetVp > cap && cap > 0) {
+        this.paperContainerTargetVp = cap;
+      }
+    }
     if (this.paperAnimateNext) {
       // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
       this.paperAnimateNext = false;
@@ -2645,6 +2763,10 @@ struct Index {
     this.scheduleSave();
     // 第 4 批 F11：落字成功即内存自增（不写盘；离页/导出前批量 flush）
     statsService.recordChar();
+    // 第 5 批回批 F7（D5）：半开桌台态落字 → fold_typed 发射（内存计数＋hilog；批量落盘在 flush）
+    if (this.layoutMode === 'desk') {
+      statsService.recordFoldTyped();
+    }
     if (outcome.marginBell) {
       this.audioService.playBell();
     }
@@ -3893,7 +4015,11 @@ struct Index {
           }
           .width('100%')
           // §19：手机总成按 region 算（内层不许溢出容器）；平板仍用 availableHeightVp
-          .height(this.isTablet ? this.availableHeightVp : this.regionHeightVp)
+          // 第 5 批回批 F7（D0b-2）：desk 时取上半区高（creaseTop − topInset − topBar − paperTopGap，
+          // 与 region 公式同源）→ Stack 底边 = creaseTopVp；tablet/phone 沿用现行表达式
+          .height(this.layoutMode === 'desk'
+            ? Math.max(120, this.creaseTopVp - this.topInset - this.topBarHeight - this.paperTopGap)
+            : (this.isTablet ? this.availableHeightVp : this.regionHeightVp))
           .clip(false)
           .onAreaChange((oldA: Area, newA: Area) => {
             this.stackTopGlobalYVp = newA.globalPosition.y as number;
@@ -3949,6 +4075,15 @@ struct Index {
         }
         .width('100%')
         .layoutWeight(1)
+
+        // 第 5 批回批 F7（D0b-2）：折痕带避让 Spacer——高度直接用折痕值（creaseBottom − creaseTop），
+        // 求值无循环：measureStage（refresh→derive→分支）→ recalcPaperHeight → build 读 layoutMode。
+        // 折痕 rect 退化（h≤0）时 Spacer=0 并走 50% 回退（creaseTop==creaseBottom==winH/2）。
+        // 仅 desk 模式插入；tablet/phone 模式不占位（现行纵向构成不变）。
+        if (this.layoutMode === 'desk') {
+          Column().width('100%')
+            .height(Math.max(0, this.creaseBottomVp - this.creaseTopVp))
+        }
 
         if (this.hasLayers() && this.useLayers) {
           // 1920s 的滚筒/中央件已在总成 Stack 内渲染；此处只占位保持纵向构成高度
@@ -4015,7 +4150,8 @@ struct Index {
 
         PhotoKeybed({
           machineKind: this.machineKind,
-          foldBand: false,
+          // 第 5 批回批 F7（D0b-2）：desk 用折叠带图（1930s 无折叠分支恒用手机带，组件内静态分支）
+          foldBand: this.layoutMode === 'desk',
           widthVp: this.photoW(),
           heightVp: this.keybedHeight,
           layout: this.displayLayout(),

@@ -11,11 +11,15 @@
  * flushPending() 批量写 `stats.day.*`。其它事件计数仍在保存／导出时更新。
  */
 
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { appPreferences, PrefKeys } from './AppPreferences';
 import { docStore } from './DocStore';
 import { DocSummary } from '../model/DocModel';
 import { consecutiveDays as statsConsecutiveDays, dayKey, progressRatio, dayIndex, sumCounts,
   clampDailyGoal, mergeDailyChars, paperKindsMerge } from '../model/StatsCore';
+
+const DOMAIN: number = 0x0000;
+const TAG: string = 'StatsService';
 
 /**
  * 纸张种类集合（逗号分隔）：applyPaper 成功时由 Index 调 recordPaperKind 写入。
@@ -48,6 +52,8 @@ export class StatsService {
   private static pendingBuf: number = 0;
   /** pending 所属自然日；跨日后 recordChar 先 flush 旧日，避免把昨天的字记到今天。 */
   private static pendingDayKey: string = '';
+  /** 第 5 批回批 F7（D5）：fold_typed 内存计数（逐字 +1 不写盘；保存/导出时批量落 prefs）。 */
+  private static foldTypedBuf: number = 0;
   /** 本地自然日的时区偏移（分钟）：Asia/Hong_Kong = 480。 */
   tzOffsetMinutes(): number {
     return -new Date().getTimezoneOffset();
@@ -95,6 +101,31 @@ export class StatsService {
   }
 
   /** 落字成功一次 +1（只进内存，不写盘；删除字不扣减）。 */
+  /** 第 5 批回批 F7（D5）：半开落字一次 +1（内存 + hilog；prefs 批量在 flushFoldTyped）。 */
+  recordFoldTyped(): void {
+    StatsService.foldTypedBuf = StatsService.foldTypedBuf + 1;
+    hilog.info(DOMAIN, TAG, 'fold_typed +1 buf=%{public}s',
+      StatsService.foldTypedBuf.toString());
+  }
+
+  /** fold_typed 内存读数（验收：半开落字 10 字 → +10）。 */
+  foldTypedPending(): number {
+    return StatsService.foldTypedBuf;
+  }
+
+  /** 批量落 prefs（保存/导出时调；总纲 L134 计数不走打字热路径）。 */
+  flushFoldTyped(): void {
+    const n: number = StatsService.foldTypedBuf;
+    if (n <= 0) {
+      return;
+    }
+    const key: string = PrefKeys.statsEvent('fold_typed');
+    const cur: number = appPreferences.getNumber(key, 0);
+    appPreferences.setNumber(key, (isFinite(cur) ? cur : 0) + n);
+    StatsService.foldTypedBuf = 0;
+    hilog.info(DOMAIN, TAG, 'fold_typed flush +%{public}s', n.toString());
+  }
+
   recordChar(): void {
     const key: string = dayKey(this.nowMs(), this.tzOffsetMinutes());
     if (StatsService.pendingDayKey.length > 0 && StatsService.pendingDayKey !== key) {
