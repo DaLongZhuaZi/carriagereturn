@@ -95,8 +95,8 @@ test('CustomizePage：两个入口行 + 字号滑杆 + 每机字体（不破坏�
   assert.match(customizePage, /@Prop fontSize: number = 0/);
   assert.match(customizePage, /@Prop machineFonts: string\[\] = \[\]/);
   assert.match(customizePage, /SettingsRow\(\{/);
-  assert.match(customizePage, /onClick: \(\): void => \{ this\.onOpenFontManager\(\); \}/);
-  assert.match(customizePage, /onClick: \(\): void => \{ this\.onOpenPaperCustom\(\); \}/);
+  assert.match(customizePage, /onRowClick: \(\): void => \{ this\.onOpenFontManager\(\); \}/);
+  assert.match(customizePage, /onRowClick: \(\): void => \{ this\.onOpenPaperCustom\(\); \}/);
   assert.match(customizePage, /onSlide: \(v: number\): void => \{ this\.onFontSize\(v\); \}/);
   assert.match(customizePage, /this\.machineFamily\(index\)/);
   assert.match(customizePage, /export function guideStepsForCustomize/);

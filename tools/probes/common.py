@@ -29,6 +29,8 @@ EVIDENCE_DIR = os.path.join(REPO_ROOT, "docs", "evidence")
 PASS = "PASS"
 FAIL = "FAIL"
 UNVERIFIED = "UNVERIFIED_NO_DEVICE"
+# 有设备但目标 API 不可观测（如折叠模拟器无角度注入路径）
+UNVERIFIED_NO_ANGLE = "UNVERIFIED_NO_ANGLE"
 
 # 本仓回归设备（总纲验证计划）
 TABLET = "MLR-AL10"

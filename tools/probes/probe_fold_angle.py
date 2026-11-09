@@ -7,12 +7,13 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (ProbeMeta, UNVERIFIED, TABLET, grep_repo, hdc, hdc_targets,
-                    print_meta, run_probe)
+from common import (ProbeMeta, UNVERIFIED, UNVERIFIED_NO_ANGLE, TABLET, grep_repo, hdc,
+                    hdc_targets, print_meta, run_probe)
 
 META = ProbeMeta(
     name="probe_fold_angle",
@@ -43,11 +44,72 @@ def dry_run():
     return UNVERIFIED, ev, "无折叠设备；模拟器可跑但本会话无 IDE/启动入口，按 Q3 缺省执行"
 
 
+SIM_DIR = "C:/Users/13359/AppData/Local/Huawei/Emulator26.0"
+
+
+def _param(target: str, key: str) -> str:
+    res = hdc(["-t", target, "shell", "param", "get", key])
+    return str(res.get("stdout", "")).strip()
+
+
+def _fold_configs() -> list:
+    """读模拟器 productConfig.json 的折叠类设备名（Foldable／WideFold／TripleFold）。"""
+    path = os.path.join(SIM_DIR, "productConfig.json")
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            data = json.load(fh)
+    except Exception:
+        return []
+    out = []
+    for group in ("Foldable", "WideFold", "TripleFold", "2in1_Foldable"):
+        for item in data.get(group, []) or []:
+            name = item.get("name")
+            if name:
+                out.append(f"{group}:{name}")
+    return out
+
+
 def device_run():
-    ev = ["targets=" + ", ".join(hdc_targets())]
-    model = hdc(["shell", "param", "get", "const.product.model"])
-    ev.append("product.model=" + str(model.get("stdout", "")))
-    return UNVERIFIED, ev, "设备非折叠或未连接；折叠角无法观测"
+    ev = []
+    targets = hdc_targets()
+    ev.append("hdc list targets -> " + (", ".join(targets) if targets else "(空)"))
+    if not targets:
+        return UNVERIFIED, ev, "hdc 在 PATH 但无设备：折叠角无法观测"
+
+    # 逐个 target 取模型／设备类型（多目标时必须 -t，否则 hdc 报 need connect-key）
+    foldable_targets = []
+    for t in targets:
+        model = _param(t, "const.product.model")
+        dtype = _param(t, "const.product.devicetype")
+        ev.append(f"[{t}] model={model or '?'} devicetype={dtype or '?'}")
+        if model.lower().startswith("emulator"):
+            ev.append(f"[{t}] 是模拟器（可承载折叠设备配置）")
+        if dtype.lower() in ("phone", "foldable") and model.lower().startswith("emulator"):
+            foldable_targets.append(t)
+
+    ev.append("Emulator26.0 目录: " + ("存在" if os.path.isdir(SIM_DIR) else "不存在"))
+    configs = _fold_configs()
+    ev.append("折叠设备配置: " + (", ".join(configs[:6]) if configs else "不存在"))
+
+    # 运行时折叠状态（DMS dump；只读，不可注入）
+    for t in foldable_targets[:1]:
+        dump = hdc(["-t", t, "shell", "hidumper", "-s", "DisplayManagerService", "-a", "-a"])
+        text = str(dump.get("stdout", ""))
+        for line in text.splitlines():
+            if line.strip().startswith(("PhysicalFoldStatus", "DisplayFoldStatus")):
+                ev.append(f"[{t}] {line.strip()}")
+
+    if not foldable_targets:
+        return UNVERIFIED, ev, "已连接设备均非折叠模拟器；折叠角无法观测"
+
+    if not configs:
+        return UNVERIFIED, ev, "有模拟器但无折叠设备配置；F7 无法验证"
+    reason = ("UNVERIFIED_NO_ANGLE：折叠模拟器在线且存在折叠设备配置，但 foldAngleChange 不可观测；"
+              "模拟器折叠态无程序化注入路径（DMS 未暴露 fold 切换子命令、Sensor 只有只读子命令），"
+              "订阅后无角度回调；三态截图需人工在模拟器 GUI 拖动折叠控件")
+    return UNVERIFIED_NO_ANGLE, ev, reason
 
 
 if __name__ == "__main__":
