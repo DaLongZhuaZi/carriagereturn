@@ -20,7 +20,7 @@ import {
   CARRIAGE_PAPER_OVERLAP_VP, DEFAULT_FONT, DEFAULT_MACHINE, DEFAULT_PAPER, DEFAULT_RIBBON,
   CANDIDATE_BAR_HEIGHT_VP,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP, PAPER_TOP_GAP_VP, TOP_BAR_HEIGHT_VP,
-  findFont, findMachine, findPaper, findRibbon, fontDisplayName,
+  findFont, findMachine, findPaper, findRibbon, fontDisplayName, fontDisplayNameByFamily,
   FONTS, MACHINES, FontSpec,
 } from '../model/MachineCatalog';
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
@@ -1596,12 +1596,13 @@ struct Index {
     this.docModel.setFont(chosen.font);
   }
 
+  /** 字体条显示名（'Courier Prime'）：族名无空格，不能直接当界面文字（第 5 批回批修正）。 */
   private fontLabelOfCurrentMachine(): string {
     const family: string = CustomizeStore.fontFamily(this.machineKind as string);
     if (family.length > 0) {
-      return family;
+      return fontDisplayNameByFamily(family);
     }
-    return findFont(DEFAULT_FONT).familyName;
+    return fontDisplayName(findFont(DEFAULT_FONT).font);
   }
 
   private fontKindOfCurrentMachine(): string {

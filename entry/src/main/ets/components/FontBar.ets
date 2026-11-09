@@ -17,7 +17,8 @@ export struct FontBar {
   build() {
     Column() {
       Column().width('100%').height(1).backgroundColor('#3a332b')
-      Text(this.currentFamilyName.length > 0 ? this.currentFamilyName : this.fontLabel)
+      // 第 5 批回批：文字用显示名（'Courier Prime'），字体族仍用传入族名（M-1：机器偏好是唯一渲染来源）
+      Text(this.fontLabel.length > 0 ? this.fontLabel : this.currentFamilyName)
         .fontSize(13)
         .fontColor('#beb4a8')
         .fontFamily(this.currentFamilyName.length > 0 ? this.currentFamilyName : this.fontFamily)

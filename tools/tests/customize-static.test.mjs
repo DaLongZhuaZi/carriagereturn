@@ -144,9 +144,11 @@ test('AppPreferences：custom.enabled / custom.font.imported / custom.paper.pres
   assert.match(prefs, /key: PrefKeys\.CUSTOM_PAPER_PRESETS/);
 });
 
-test('FontBar：currentFamilyName 非空时优先，空时走原逻辑', () => {
+test('FontBar：字体族用 currentFamilyName，显示名用 fontLabel（第 5 批回批修正）', () => {
   assert.match(fontBar, /@Prop currentFamilyName: string = ''/);
-  assert.match(fontBar, /this\.currentFamilyName\.length > 0 \? this\.currentFamilyName : this\.fontLabel/);
+  // 第 5 批回批：F3 起文字优先渲染族名（'CourierPrime'），基线显示名是 'Courier Prime'（有空格），
+  // 属显示回归（门图车架中区 0.94%）。改为文字优先 fontLabel（显示名），字体族仍用族名。
+  assert.match(fontBar, /Text\(this\.fontLabel\.length > 0 \? this\.fontLabel : this\.currentFamilyName\)/);
   assert.match(fontBar, /fontFamily\(this\.currentFamilyName\.length > 0 \? this\.currentFamilyName : this\.fontFamily\)/);
 });
 

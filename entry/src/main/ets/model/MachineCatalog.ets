@@ -301,6 +301,23 @@ export function fontDisplayName(font: PaperFont): string {
   return 'Courier Prime';
 }
 
+/**
+ * 字体族名 → 界面显示名（第 5 批回批补：F3 起字体条改渲染「当前字体族名」，
+ * 但族名是 'CourierPrime' 这类无空格形式，界面上应显示 'Courier Prime'。
+ * 未登记的族名（用户导入字体）原样返回。
+ */
+export function fontDisplayNameByFamily(family: string): string {
+  if (family.length === 0) {
+    return family;
+  }
+  for (const f of FONTS) {
+    if (f.familyName === family) {
+      return fontDisplayName(f.font);
+    }
+  }
+  return family;
+}
+
 export function findMachine(kind: MachineKind): MachineSpec {
   for (const m of MACHINES) {
     if (m.kind === kind) {
