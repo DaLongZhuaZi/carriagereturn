@@ -3739,6 +3739,7 @@ struct Index {
                     texOffsetYVp: this.texOffsetVp,
                     paperLeftFixedVp: this.paperLeftFixed(),
                     bailShiftVp: this.isTablet ? -15 : 0,
+                    knobVisible: this.knobEnabled,
                   })
                 } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
                   CarriageLayers1930({
@@ -4077,19 +4078,8 @@ struct Index {
                 )
               )
 
-            // 第 5 批 F13：旋钮视觉层（随 knobAngle 转动，非触摸目标；仅 1920s）
-            // 第 8 批 R4：与拨杆同因——旋钮层若在布局定稿前挂载，会拿到手机档尺寸/位置
-            // （实测 mount size=37.5 left=33.5 right=319.0，而 iPad 档 knobD()=69.5），故同样等 stageReady。
-            if (this.stageReady && this.machineKind === MachineKind.UPRIGHT_1920S && this.hasLayers()
-              && this.useLayers && this.knobEnabled) {
-              KnobLayer({
-                sizeVp: this.knobD(),
-                angleDeg: this.knobAngle,
-                leftXVp: this.paperLeftFixed() - this.knobD() - 4,
-                rightXVp: this.paperLeftFixed() + this.paperWidthVp + 4,
-                topYVp: this.carriageTopVp - this.knobD() / 2,
-              })
-            }
+            // 第 8 批 R4：旋钮视觉件已移入 CarriageLayers 的 metal 分支（本层独立子栈实测整棵子树不出像素），
+            // 开关经 MetalAssembly1920.knobVisible 透传，此处不再重复挂载。
         }
         .width('100%')
         .layoutWeight(1)
