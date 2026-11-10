@@ -3,7 +3,7 @@
 """回车 · 1920s 回归门比对工具（第 0 批固化口径，2026-11-09）。
 
 口径（总纲写死，不许在本工具外另立一套）：
-  基线：docs/shots/560_1920s_baseline30.png（1920s 冻结基准，2026-11-09 重拍；332_metal3.jpeg 仅留档）
+  基线：当前有效基线见 AGENTS.md「回归门测量口径」（本工具不内置默认基线：不传 <基线图> 就直接报用法错误）
   阈值：30（max 通道差 |dR|/|dG|/|dB| 的最大值 > 30 即该像素算"不同"）
   区域（按整图归一化坐标，左闭右开）：
     键盘区     y 0.62–0.98，x 全宽
@@ -70,7 +70,22 @@ def region_box(size: Tuple[int, int], region: Tuple[str, float, float, float, fl
     return left, top, right, bottom
 
 
-def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD) -> Dict[str, dict]:
+def parse_band(text: str | None) -> Tuple[float, float] | None:
+    """解析 `--exclude-band y0:y1`（归一化，0–1，y 向下）。空/None 返回 None。"""
+    if text is None or text.strip() == "":
+        return None
+    try:
+        a, b = text.split(":")
+        y0, y1 = float(a), float(b)
+    except Exception:
+        raise ValueError("--exclude-band 需要 y0:y1（例如 0.46:0.54）")
+    if not (0.0 <= y0 < y1 <= 1.0):
+        raise ValueError("--exclude-band 需满足 0 ≤ y0 < y1 ≤ 1")
+    return (y0, y1)
+
+
+def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD,
+                   exclude_band: Tuple[float, float] | None = None) -> Dict[str, dict]:
     if base.shape != cur.shape:
         raise ValueError(f"shape mismatch: {base.shape} vs {cur.shape}")
     # max 通道差
@@ -82,6 +97,12 @@ def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD
         name = region[0]
         left, top, right, bottom = region_box((w, h), region)
         block = maxdiff[top:bottom, left:right]
+        if exclude_band is not None:
+            # 把归一化纵带内的行从统计里扣掉（半开态折痕带等已知非回归带）
+            by0, by1 = exclude_band
+            rows = np.arange(top, bottom) / float(h)
+            keep = ~((rows >= by0) & (rows <= by1))
+            block = maxdiff[top:bottom][keep][:, left:right]
         total = int(block.size)
         bad = int((block > threshold).sum())
         pct = (bad / total * 100.0) if total else 0.0
@@ -98,7 +119,8 @@ def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD
     return out
 
 
-def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHOLD) -> dict:
+def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHOLD,
+        exclude_band: Tuple[float, float] | None = None) -> dict:
     base_img = load_rgb(baseline)
     cur_img = load_rgb(current)
     if scale:
@@ -113,7 +135,7 @@ def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHO
         cur_img = resize_to(cur_img, base_img.size)
     base = np.asarray(base_img)
     cur = np.asarray(cur_img)
-    regions = compare_arrays(base, cur, threshold)
+    regions = compare_arrays(base, cur, threshold, exclude_band)
     passed = all(v["passed"] for v in regions.values())
     return {
         "baseline": os.path.abspath(baseline),
@@ -121,6 +143,7 @@ def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHO
         "size": [base_img.size[0], base_img.size[1]],
         "scale": scale,
         "threshold": threshold,
+        "exclude_band": list(exclude_band) if exclude_band is not None else None,
         "regions": regions,
         "verdict": "PASS" if passed else "FAIL",
         "criterion": "四区超阈值像素占比全部为 0.00% 才通过",
@@ -205,15 +228,28 @@ def self_test() -> int:
           boxes["frame_left"][2] == boxes["frame_mid"][0] and
           boxes["frame_mid"][2] == boxes["frame_right"][0])
 
+    # 8 排除纵带：车架三区 y 0.46–0.54 全宽 +60 → 不排除时 FAIL；排除后四区 0.00%
+    cur = base.copy()
+    # 只改带内「严格内部」的行，避免 0.46/0.54 的取整边界行落在带外
+    by0, by1 = int(h * 0.46) + 2, int(h * 0.54) - 2
+    cur[by0:by1, :] = np.clip(cur[by0:by1, :].astype(np.int16) + 60, 0, 255).astype(np.uint8)
+    regions_no = compare_arrays(base, cur)
+    check("band-not-excluded-detected",
+          sum(1 for v in regions_no.values() if v["over_threshold"] > 0) >= 2)
+    regions_band = compare_arrays(base, cur, exclude_band=(0.46, 0.54))
+    check("band-excluded-ignored", all(v["percent"] == 0.0 for v in regions_band.values()))
+
     print(f"[self-test] {'PASS' if not failures else 'FAIL'} ({len(failures)} 项失败)")
     return 0 if not failures else 1
 
 
 def main(argv: List[str]) -> int:
     ap = argparse.ArgumentParser(description="1920s 回归门比对（阈值 30、四区、纸面排除）")
-    ap.add_argument("baseline", nargs="?", help="基线图（默认口径 docs/shots/560_1920s_baseline30.png）")
+    ap.add_argument("baseline", nargs="?", help="基线图（当前有效基线见 AGENTS.md 回归门口径）")
     ap.add_argument("current", nargs="?", help="当前截图")
     ap.add_argument("--scale", default=None, help="统一缩放，例如 400x640（历史口径）")
+    ap.add_argument("--exclude-band", default=None,
+                    help="排除归一化纵带 y0:y1（例如半开态 0.46:0.54），该带不参与四区统计")
     ap.add_argument("--threshold", type=int, default=THRESHOLD)
     ap.add_argument("--json", default=None, help="结果写入 JSON 路径")
     ap.add_argument("--self-test", action="store_true", help="合成图自测")
@@ -229,7 +265,8 @@ def main(argv: List[str]) -> int:
         ap.print_help()
         return 2
     try:
-        result = run(args.baseline, args.current, args.scale, args.threshold)
+        result = run(args.baseline, args.current, args.scale, args.threshold,
+                     parse_band(args.exclude_band))
     except Exception as exc:
         print(f"[gate-compare] 失败: {exc}", file=sys.stderr)
         return 2
