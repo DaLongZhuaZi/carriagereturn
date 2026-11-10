@@ -106,8 +106,8 @@ const KEYBAND_ASPECT_FOLD: number = 2048 / 853;
 const CARRIAGE_STRIP_ASPECT: number = 2048 / 287;
 const GROW_DURATION_MS: number = 60; // 硬曲线：纸移动 50–70ms，写死
 const BELL_REMAINING: number = 8;
-/** 换纸计时打点开关（第 0 批；默认 false＝零成本关闭；测试构建/排查时改 true）。 */
-const PAPER_CHANGE_TRACE: boolean = false;
+/** 换纸计时打点开关（第 0 批；第 9 批 F12 起默认 true＝随正常构建开启；只写 hilog，不写 prefs、不上传；排查完也不回滚）。 */
+const PAPER_CHANGE_TRACE: boolean = true;
 
 function emptyLayout(): KeymapLayout {
   return {
@@ -160,6 +160,10 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
+  /** 第 9 批 F12：换纸恢复打点起点（换纸入口写 pcT0；锁放开后首个被接受的 commitChar 记 dt 并清零）。 */
+  private pcResumeT0: number = 0;
+  /** 第 9 批 F12：onDelete 的「先落队再删」循环期间为 true——该循环触发的 commitChar 不算恢复。 */
+  private pcDelFlushActive: boolean = false;
   /** §18.7：滚筒横向速度系数（滚筒走 k×O，纸张走满 O）。平板几何上限 0.914，手机 0.612——手机靠 rollX 钳制兜底 */
   private readonly ROLLER_K: number = 0.8;
   /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
@@ -2758,6 +2762,12 @@ struct Index {
         ch, this.queuedChars.length.toString());
       return;
     }
+    // 第 9 批 F12：resume——锁放开后第一个被接受的落字（自换纸入口 pcT0 起算）。
+    // 排除 onDelete 的「先落队再删」循环：那是删除动作的副作用，不是用户恢复打字。
+    if (this.pcResumeT0 > 0 && !this.pcDelFlushActive) {
+      this.pcTrace('resume', this.pcResumeT0, 'firstKeystroke=1');
+      this.pcResumeT0 = 0;
+    }
     this.hintText = '';
     // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
     //    raw > limit 与 clampedStrikeXVp 同一判据
@@ -2878,12 +2888,15 @@ struct Index {
     // 用户感知为「删了字、拱停在行末」。
     if (this.pendingChars.length > 0) {
       const n: number = this.pendingChars.length;
+      // 第 9 批 F12：该循环触发的 commitChar 是删除副作用，不得记为 resume
+      this.pcDelFlushActive = true;
       while (this.pendingChars.length > 0) {
         const ch: string | undefined = this.pendingChars.shift();
         if (ch !== undefined) {
           this.commitChar(ch);
         }
       }
+      this.pcDelFlushActive = false;
       if (this.pacerTimer >= 0) {
         clearInterval(this.pacerTimer);
         this.pacerTimer = -1;
@@ -3014,7 +3027,7 @@ struct Index {
   }
 
   /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
-  private onPaperChange(): void {
+  private onPaperChange(entry: string = 'manual'): void {
     // 换纸时防御性清空预编辑串
     this.cnPreview = '';
     if (this.paperChanging) {
@@ -3022,7 +3035,11 @@ struct Index {
     }
     const pcT0: number = Date.now();
     this.paperChanging = true;
-    this.pcTrace('start', pcT0, 'trace=on');
+    // 第 9 批 F12：记录恢复打点起点（锁放开后首个被接受的 commitChar 用它算 resume dt）
+    this.pcResumeT0 = pcT0;
+    this.pcTrace('start', pcT0,
+      'trace=on entry=' + entry + ' lines=' + this.docModel.getLines().length.toString() +
+      ' paperH=' + this.paperHeightVp.toFixed(1));
     const startTop: number = this.paperTopVp;
     hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s', startTop.toFixed(1), this.paperContainerVp.toFixed(1));
     // ① 整张模式：容器高 = Ph、不裁，整张纸才能整片飞出（不再只露一截）
@@ -3041,9 +3058,16 @@ struct Index {
       this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
     this.pcTrace('step1', pcT0, 'targetTop=' + this.paperTopVp.toFixed(1));
     setTimeout(() => {
+      // 第 9 批 F12：step1-settled——300ms 定时器回调第一行，dt 即定时器漂移量（期望 ≈300ms，允 ±50）
+      this.pcTrace('step1-settled', pcT0, 'expect=300');
       // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
+      const work0: number = Date.now();
       this.docModel.clear();
+      const work1: number = Date.now();
       this.syncRows();
+      const work2: number = Date.now();
+      // 第 9 批 F12：step2-work——clear() 与 syncRows() 各自计时（期望合计 ＜50ms）
+      this.pcTrace('step2-work', pcT0, 'clear=' + (work1 - work0).toString() + ' sync=' + (work2 - work1).toString() + ' total=' + (work2 - work0).toString());
       this.hintText = '';
       this.carriageOffsetVp = 0;
       // §18.10：换纸后拱必须滑回行首。此处 clear()+syncRows()+O=0 已就绪，
@@ -3114,7 +3138,7 @@ struct Index {
       const maxRows: number = Math.max(1, Math.floor((this.paperHeightVp - 44 - 20) / this.lineHeightVp));
       if (allLines.length >= maxRows) {
         hilog.info(DOMAIN, TAG, 'newlineAtLastRow -> paperChange maxRows=%{public}s', maxRows.toString());
-        this.onPaperChange();
+        this.onPaperChange('newline-auto');
         return;
       }
       this.newlineMoveDown = false;
