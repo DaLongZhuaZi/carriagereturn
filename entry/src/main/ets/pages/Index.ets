@@ -4078,7 +4078,9 @@ struct Index {
               )
 
             // 第 5 批 F13：旋钮视觉层（随 knobAngle 转动，非触摸目标；仅 1920s）
-            if (this.machineKind === MachineKind.UPRIGHT_1920S && this.hasLayers()
+            // 第 8 批 R4：与拨杆同因——旋钮层若在布局定稿前挂载，会拿到手机档尺寸/位置
+            // （实测 mount size=37.5 left=33.5 right=319.0，而 iPad 档 knobD()=69.5），故同样等 stageReady。
+            if (this.stageReady && this.machineKind === MachineKind.UPRIGHT_1920S && this.hasLayers()
               && this.useLayers && this.knobEnabled) {
               KnobLayer({
                 sizeVp: this.knobD(),
