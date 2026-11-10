@@ -66,7 +66,6 @@ import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
-import { KnobLayer } from '../components/KnobLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
