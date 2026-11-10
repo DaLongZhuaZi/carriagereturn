@@ -795,6 +795,162 @@
     {
       "name": "keyboard_shift",
       "value": "Shift"
+    },
+    {
+      "name": "ach_list_title",
+      "value": "成就"
+    },
+    {
+      "name": "ach_section_progress",
+      "value": "进度"
+    },
+    {
+      "name": "ach_unlocked",
+      "value": "已达成"
+    },
+    {
+      "name": "ach_locked",
+      "value": "未达成"
+    },
+    {
+      "name": "ach_fold_only",
+      "value": "仅折叠设备"
+    },
+    {
+      "name": "ach_dialog_title",
+      "value": "成就达成"
+    },
+    {
+      "name": "ach_dialog_close",
+      "value": "知道了"
+    },
+    {
+      "name": "ach_summary_title",
+      "value": "已达成 %d 项成就"
+    },
+    {
+      "name": "ach_summary_body",
+      "value": "这些成就按你已有的使用记录追认，之后照常按行为判定。"
+    },
+    {
+      "name": "ach_summary_goto",
+      "value": "去看收藏页"
+    },
+    {
+      "name": "ach_name_words_1000",
+      "value": "初试锋芒"
+    },
+    {
+      "name": "ach_desc_words_1000",
+      "value": "累计落字 1,000 字"
+    },
+    {
+      "name": "ach_name_words_5000",
+      "value": "笔耕不辍"
+    },
+    {
+      "name": "ach_desc_words_5000",
+      "value": "累计落字 5,000 字"
+    },
+    {
+      "name": "ach_name_words_20000",
+      "value": "万字长卷"
+    },
+    {
+      "name": "ach_desc_words_20000",
+      "value": "累计落字 20,000 字"
+    },
+    {
+      "name": "ach_name_streak_3",
+      "value": "三日不辍"
+    },
+    {
+      "name": "ach_desc_streak_3",
+      "value": "连续 3 天有落字"
+    },
+    {
+      "name": "ach_name_streak_7",
+      "value": "七日不辍"
+    },
+    {
+      "name": "ach_desc_streak_7",
+      "value": "连续 7 天有落字"
+    },
+    {
+      "name": "ach_name_goal_1",
+      "value": "首达目标"
+    },
+    {
+      "name": "ach_desc_goal_1",
+      "value": "单日达成每日目标"
+    },
+    {
+      "name": "ach_name_share_1",
+      "value": "分享初体验"
+    },
+    {
+      "name": "ach_desc_share_1",
+      "value": "导出分享 1 次"
+    },
+    {
+      "name": "ach_name_share_10",
+      "value": "乐于分享"
+    },
+    {
+      "name": "ach_desc_share_10",
+      "value": "导出分享 10 次"
+    },
+    {
+      "name": "ach_name_paper_2",
+      "value": "纸尽其用"
+    },
+    {
+      "name": "ach_desc_paper_2",
+      "value": "用过 2 种纸"
+    },
+    {
+      "name": "ach_name_paper_4",
+      "value": "纸有千面"
+    },
+    {
+      "name": "ach_desc_paper_4",
+      "value": "用过 4 种纸"
+    },
+    {
+      "name": "ach_name_font_1",
+      "value": "换过字体 1 次"
+    },
+    {
+      "name": "ach_desc_font_1",
+      "value": "换过字体 1 次"
+    },
+    {
+      "name": "ach_name_ribbon_1",
+      "value": "色带一新"
+    },
+    {
+      "name": "ach_desc_ribbon_1",
+      "value": "换过色带 1 次"
+    },
+    {
+      "name": "ach_name_fold_1",
+      "value": "折叠桌台"
+    },
+    {
+      "name": "ach_desc_fold_1",
+      "value": "半开落字 ≥1 字（仅折叠设备）"
+    },
+    {
+      "name": "ach_name_docs_10",
+      "value": "卷帙初成"
+    },
+    {
+      "name": "ach_desc_docs_10",
+      "value": "累计保存 10 次"
+    },
+    {
+      "name": "collection_owned",
+      "value": "已拥有"
     }
   ]
 }

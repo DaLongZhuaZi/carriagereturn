@@ -33,10 +33,13 @@ export class StatsEvents {
   static readonly RIBBON_CHANGED: string = 'ribbon_changed';
   static readonly PAPER_CHANGED: string = 'paper_changed';
   static readonly FOLD_TYPED: string = 'fold_typed';
+  /** 第 9 批 F5：分享面板调起（与 DOC_EXPORTED 分开计，否则只保存不分享也会触发分享成就）。 */
+  static readonly DOC_SHARED: string = 'doc_shared';
   static all(): string[] {
     return [
       StatsEvents.DOC_SAVED, StatsEvents.DOC_EXPORTED, StatsEvents.FONT_CHANGED,
       StatsEvents.RIBBON_CHANGED, StatsEvents.PAPER_CHANGED, StatsEvents.FOLD_TYPED,
+      StatsEvents.DOC_SHARED,
     ];
   }
 }
@@ -158,6 +161,8 @@ export class StatsService {
     const next: number = mergeDailyChars(storedKey, stored, key, pending);
     appPreferences.setString(PrefKeys.STATS_DAY_KEY, key);
     appPreferences.setNumber(PrefKeys.STATS_DAY_CHARS, next);
+    // 第 9 批 F5：累计落字计数器（只增不减；删除/改短文档不影响）——在**落盘**时累加
+    this.addTotalChars(pending);
     StatsService.pendingBuf = 0;
     StatsService.pendingDayKey = '';
   }
@@ -173,6 +178,33 @@ export class StatsService {
     const stored: number = appPreferences.getNumber(PrefKeys.STATS_DAY_CHARS, 0);
     appPreferences.setString(PrefKeys.STATS_DAY_KEY, key);
     appPreferences.setNumber(PrefKeys.STATS_DAY_CHARS, mergeDailyChars(storedKey, stored, key, count));
+    this.addTotalChars(count);
+  }
+
+  /** 累计落字计数器 +n（只增不减；成就 A1–A3 的判定口径）。 */
+  addTotalChars(n: number): void {
+    if (!isFinite(n) || n <= 0) {
+      return;
+    }
+    const cur: number = this.totalChars();
+    appPreferences.setNumber(PrefKeys.STATS_TOTAL_CHARS, cur + n);
+  }
+
+  /** 持久化累计落字数（0 起；不是 totalWords——后者是 active 文档字数之和，会随删除下降）。 */
+  totalChars(): number {
+    const n: number = appPreferences.getNumber(PrefKeys.STATS_TOTAL_CHARS, 0);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  /** 一次性写入累计落字初值（迁移追认用；已有值不覆盖）。 */
+  initTotalCharsIfAbsent(value: number): boolean {
+    if (this.totalChars() > 0 || !isFinite(value) || value <= 0) {
+      return false;
+    }
+    appPreferences.setNumber(PrefKeys.STATS_TOTAL_CHARS, Math.floor(value));
+    hilog.info(DOMAIN, TAG, 'totalChars seeded = %{public}s (approx from totalWords)',
+      Math.floor(value).toString());
+    return true;
   }
 
   // ---- 第 4 批 F14：纸张种类（数据源 prefs `stats.paper.kinds`）----

@@ -68,7 +68,7 @@ export struct CustomizePage {
     }
   }
 
-  /** 临时全解锁（2026-11-08 用户定，成就系统未做前四台全开；成就系统落地时改回按条件判定）。 */
+  /** 机器永不锁定：第 9 批 F5 起**永久全开**（成就只奖行为、不再开机器；旧「改回按条件判定」的临时口径已作废）。 */
   private unlockedMachine(kind: string): boolean {
     return true;
   }

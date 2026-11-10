@@ -52,6 +52,9 @@ import { AudioService } from '../services/AudioService';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { statsService, StatsEvents } from '../services/StatsService';
+import { AchievementService, AchieveNotice } from '../services/AchievementService';
+import { achievementById } from '../model/AchievementDefs';
+import { AppDialog } from '../components/AppDialog';
 import { FoldService, FoldState } from '../services/FoldService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
 import { GuideService } from '../services/GuideService';
@@ -829,6 +832,12 @@ struct Index {
   @State openDocId: string = '';
   /** 收藏页（§3）开合。 */
   @State collectionOpen: boolean = false;
+  /** 第 9 批 F5：成就弹窗（一次只一条；kind='' 表示没有）。 */
+  @State achNoticeKind: string = '';
+  @State achNoticeId: string = '';
+  @State achNoticeCount: number = 0;
+  /** 成就/事件变化计数（传给收藏页，触发重读进度）。 */
+  @State achieveRev: number = 0;
   /** 换装页（§4）开合。 */
   @State customizeOpen: boolean = false;
   /** 第 2 批 F3：换装子页。 */
@@ -1089,6 +1098,8 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // 第 9 批 F5：成就服务变化 → 刷新弹窗与收藏页进度
+    AchievementService.setListener((): void => { this.refreshAchieveNotice(); });
     // 落字兜底基准：进入页面即视为「刚刚落过」，避免首字被兜底直接闪现
     this.lastArriveMs = Date.now();
     // §17.3 第 3 条：首帧画完再后台预加载词库（延迟 3s，避免和首屏渲染抢 UI 线程）
@@ -1187,6 +1198,7 @@ struct Index {
   }
 
   aboutToDisappear(): void {
+    AchievementService.setListener(null);
     statsService.flushPending();
     statsService.flushFoldTyped();
     this.audioService.release();
@@ -1713,12 +1725,16 @@ struct Index {
     this.fadeSwitch();
   }
 
-  private applyPaper(kind: PaperKind): void {
+  private applyPaper(kind: PaperKind, userAction: boolean = false): void {
     this.paperKind = kind;
     // 字号/行高由 measureStage 的公式统一决定（§2.6），换纸不再覆盖
     // 第 2 批 F3：换纸不重置字体（字体跟机器走，applyPaper 不再碰 fontFamily）
     this.refreshPaperCustom();
     statsService.recordPaperKind(kind as string);
+    // 第 9 批 F5：纸张事件只记**用户主动换纸**（启动恢复不算换纸，否则每次冷启动都 +1）
+    if (userAction) {
+      statsService.recordEvent(StatsEvents.PAPER_CHANGED);
+    }
     this.docModel.setPaper(kind);
     this.recalcPaperHeight();
     this.fadeSwitch();
@@ -1726,7 +1742,11 @@ struct Index {
     this.flushSave();
   }
 
-  private applyRibbon(kind: RibbonKind): void {
+  private applyRibbon(kind: RibbonKind, userAction: boolean = false): void {
+    // 第 9 批 F5：换色带事件只记用户主动切换（启动恢复不算，否则 A12 会被冷启动白送）
+    if (userAction) {
+      statsService.recordEvent(StatsEvents.RIBBON_CHANGED);
+    }
     this.ribbon = kind;
     this.inkColor = findRibbon(kind).inkColor;
     this.docModel.setRibbon(kind);
@@ -3215,17 +3235,105 @@ struct Index {
     }
   }
 
+  /** 第 9 批 F5：把成就服务当前该弹的那条同步到 UI（一次只弹一个）。 */
+  private refreshAchieveNotice(): void {
+    const n: AchieveNotice | null = AchievementService.pending();
+    this.achieveRev = this.achieveRev + 1;
+    if (n === null) {
+      this.achNoticeKind = '';
+      this.achNoticeId = '';
+      this.achNoticeCount = 0;
+      return;
+    }
+    this.achNoticeKind = n.kind;
+    this.achNoticeId = n.id;
+    this.achNoticeCount = n.count;
+  }
+
+  /** 第 9 批 F5：成就弹窗内容（单项：名＋说明；汇总：已达成 N 项＋去收藏页）。 */
+  @Builder
+  achDialogBody() {
+    Column() {
+      Text($r('app.string.ach_dialog_title'))
+        .fontSize(13).fontColor('rgba(232,221,201,0.55)')
+      if (this.achNoticeKind === 'summary') {
+        Text($r('app.string.ach_summary_title', this.achNoticeCount))
+          .fontSize(19).fontColor('#e8ddc9').margin({ top: 10 })
+        Text($r('app.string.ach_summary_body'))
+          .fontSize(12).fontColor('rgba(232,221,201,0.65)')
+          .margin({ top: 8 }).maxLines(2)
+      } else {
+        Text(this.achNameOf(this.achNoticeId))
+          .fontSize(19).fontColor('#c9a45c').margin({ top: 10 })
+        Text(this.achDescOf(this.achNoticeId))
+          .fontSize(12).fontColor('rgba(232,221,201,0.65)')
+          .margin({ top: 8 }).maxLines(2)
+      }
+      Row({ space: 12 }) {
+        if (this.achNoticeKind === 'summary') {
+          Button($r('app.string.ach_summary_goto'))
+            .fontSize(13).fontColor('#c9a45c').backgroundColor('#2a211a')
+            .height(36).layoutWeight(1)
+            .onClick(() => {
+              AchievementService.dismiss();
+              this.refreshAchieveNotice();
+              this.pushPage('collection');
+            })
+        }
+        Button($r('app.string.ach_dialog_close'))
+          .fontSize(13).fontColor('#1a1713').backgroundColor('#c9a45c')
+          .height(36).layoutWeight(1)
+          .onClick(() => {
+            AchievementService.dismiss();
+            this.refreshAchieveNotice();
+          })
+      }
+      .width('100%').margin({ top: 16 })
+    }
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 成就名（资源名 → 字符串；动态 $r 不允许，走 resourceManager 按名取）。 */
+  private achNameOf(id: string): string {
+    return this.achTextByKey('ach_name_' + id);
+  }
+
+  /** 成就说明（资源名 → 字符串）。 */
+  private achDescOf(id: string): string {
+    return this.achTextByKey('ach_desc_' + id);
+  }
+
+  /** 按资源名取字符串（取不到返回空串，不抛）。 */
+  private achTextByKey(name: string): string {
+    try {
+      const host = this.getUIContext().getHostContext();
+      if (host === undefined || host === null) {
+        return '';
+      }
+      return host.resourceManager.getStringByNameSync(name);
+    } catch (e) {
+      return '';
+    }
+  }
+
   private flushSave(): void {
     if (!docStore.isReady() || this.docModel.isEmpty()) {
+      // 第 9 批 F5：即使没有内容可存，也要跑一次成就判定——consecutiveDays／goalReached 是
+      // 当日快照，跨日后必须靠这个边界补判，否则会漏判（设计 §3 不变量）
+      AchievementService.evaluate();
       return;
     }
     try {
       this.docId = docStore.save(this.docId, this.docModel.toDocData(),
         this.resolveString($r('app.string.doc_untitled')));
       hilog.info(DOMAIN, TAG, 'saved doc id=%{public}s', this.docId);
+      // 第 9 批 F5：保存计数（A14）＋在 flush 完成之后跑一次成就判定
+      // （判定不走打字热路径；consecutiveDays/goalReached 都是当日快照，跨日后靠这里补判）
+      statsService.recordEvent(StatsEvents.DOC_SAVED);
     } catch (e) {
       hilog.error(DOMAIN, TAG, 'flushSave failed');
     }
+    AchievementService.evaluate();
   }
 
   /** 启动时恢复上一次编辑的文档（JSON + 元数据），光标一并恢复。 */
@@ -3406,7 +3514,7 @@ struct Index {
     const idx: number = all.indexOf(this.paperKind as string);
     const next: PaperKind = all[(idx + 1) % all.length] as PaperKind;
     appPreferences.setString(PrefKeys.PAPER, next as string);
-    this.applyPaper(next);
+    this.applyPaper(next, true);
   }
 
   private deleteDossier(id: string, mode: string): void {
@@ -4328,11 +4436,11 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'customize machine -> %{public}s', k);
           },
           onPickPaper: (k: string): void => {
-            this.applyPaper(k as PaperKind);
+            this.applyPaper(k as PaperKind, true);
             hilog.info(DOMAIN, TAG, 'customize paper -> %{public}s', k);
           },
           onPickRibbon: (k: string): void => {
-            this.applyRibbon(k as RibbonKind);
+            this.applyRibbon(k as RibbonKind, true);
             hilog.info(DOMAIN, TAG, 'customize ribbon -> %{public}s ink=%{public}s',
               k, this.inkColor);
           },
@@ -4340,6 +4448,8 @@ struct Index {
             // §4 换装即时生效：切换纸面字体（docModel + 渲染族名）
             for (let i = 0; i < FONTS.length; i++) {
               if ((FONTS[i].font as string) === f) {
+                // 第 9 批 F5：换字体事件（A11）——换装页选字体与字体管理页「应用到当前机」两处都记
+                statsService.recordEvent(StatsEvents.FONT_CHANGED);
                 this.docModel.setFont(FONTS[i].font);
                 this.fontFamily = FONTS[i].familyName + ', Noto Serif SC';
                 this.flushSave();
@@ -4360,6 +4470,8 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
           onApplyFamily: (family: string): void => {
+            // 第 9 批 F5：换字体事件（A11）
+            statsService.recordEvent(StatsEvents.FONT_CHANGED);
             CustomizeStore.setFontFamily(this.machineKind as string, family);
             this.applyMachineFont(family);
             this.fontPrefsRev = this.fontPrefsRev + 1;
@@ -4390,6 +4502,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
+          achieveRev: this.achieveRev,
           totalWords: statsService.totalWords(),
           streakDays: statsService.consecutiveDays(),
           onBack: (): void => { this.popPage(); },
@@ -4497,10 +4610,15 @@ struct Index {
           onBeforeExport: (): boolean => { return this.prepareExport(); },
           onSaved: (format: string): void => {
             statsService.recordEvent(StatsEvents.DOC_EXPORTED);
+            // 第 9 批 F5：导出即边界——记完事件立刻判定一次（不等下一次保存）
+            AchievementService.evaluate();
             hilog.info(DOMAIN, TAG, 'export saved format=%{public}s', format);
           },
           onShared: (format: string): void => {
-            statsService.recordEvent(StatsEvents.DOC_EXPORTED);
+            // 第 9 批 F5：分享单独计（A7/A8 用 doc_shared；此前与 doc_exported 共用会导致
+            // 只保存不分享也触发分享成就）；记完立刻判定一次
+            statsService.recordEvent(StatsEvents.DOC_SHARED);
+            AchievementService.evaluate();
             hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
           },
           onBusyChange: (busy: boolean): void => { this.exportBusy = busy; },
@@ -4652,6 +4770,17 @@ struct Index {
         steps: this.guideSteps,
         onNext: (): void => { this.closePageGuide(); },
         onClose: (): void => { this.closePageGuide(); },
+      })
+      // 第 9 批 F5：成就达成弹窗（挂在最上层；一次只弹一条，关掉再弹下一条）
+      AppDialog({
+        visible: this.achNoticeKind.length > 0,
+        widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+        heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+        onClose: (): void => {
+          AchievementService.dismiss();
+          this.refreshAchieveNotice();
+        },
+        content: (): void => { this.achDialogBody() },
       })
     }
     .width('100%')

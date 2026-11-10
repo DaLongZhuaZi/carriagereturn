@@ -88,12 +88,16 @@ export class PrefKeys {
     return PrefKeys.CUSTOM_PAPER_PREFIX + paperKind + '.' + field;
   }
 
+  /** 第 9 批 F5：持久化累计落字计数器（只增不减；用于成就 A1–A3，不是 totalWords）。 */
+  static readonly STATS_TOTAL_CHARS: string = 'stats.total.chars';
+  /** 第 9 批 F5：上线首次全量评估的「追认已完成」标志（只写一次）。 */
+  static readonly ACHIEVE_MIGRATED: string = 'achieve.migrated';
   /** 统计事件计数键。 */
   static statsEvent(event: string): string {
     return PrefKeys.STATS_EVENT_PREFIX + event;
   }
 
-  /** 成就键（kind 例：machine_1950s）。 */
+  /** 成就键（kind 例：`words_1000`——第 9 批起成就按**行为**绑定，不再是 `machine_1950s`）。 */
   static achieve(kind: string): string {
     return PrefKeys.ACHIEVE_PREFIX + kind;
   }
@@ -145,7 +149,7 @@ export class PrefRegistry {
       { key: PrefKeys.STATS_DAY_KEY, type: 'string', defaultValue: '', owner: 'F11', note: '日计数器：当前自然日键' },
       { key: PrefKeys.STATS_DAY_CHARS, type: 'number', defaultValue: '0', owner: 'F11', note: '日计数器：今日落字数' },
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
-      { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就解锁状态' },
+      { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
     ];
   }
 
