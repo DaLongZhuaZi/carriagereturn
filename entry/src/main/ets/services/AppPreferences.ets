@@ -137,7 +137,7 @@ export class PrefRegistry {
       { key: PrefKeys.CUSTOM_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F3', note: '自定义功能总开关（应急回滚；开发期默认 off，静态验收后批末改 on：第 2 批 M-14）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_FONT_IMPORTED, type: 'string', defaultValue: '', owner: 'F3', note: '导入字体列表 JSON（familyName／path／size／status）' },
       { key: PrefKeys.CUSTOM_PAPER_PRESETS, type: 'string', defaultValue: '{}', owner: 'F3', note: '纸张预设 JSON（{名称: 预设}）' },
-      { key: PrefKeys.CUSTOM_KNOB_ENABLED, type: 'boolean', defaultValue: 'false', owner: 'F13', note: '旋钮视觉开关（默认 off；门图基线重拍后开）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
+      { key: PrefKeys.CUSTOM_KNOB_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F13', note: '旋钮视觉开关（第 8 批 R4 起默认 on：1920s 基线已于 bc6edce 重拍，前置条件满足；关闭即回退为无旋钮渲染）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_CANDIDATE_COUNT, type: 'number', defaultValue: '9', owner: 'F15', note: '候选数量 5–15，默认 9' },
       { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
@@ -180,6 +180,17 @@ export class PrefRegistry {
 
 /** 偏好读写门面。初始化失败时全部走内存默认值，不阻断主屏。 */
 export class AppPreferences {
+  /** 按登记表取默认值（布尔）。未登记的键返回 false —— 让“默认值”只在 PrefRegistry 里写一次。 */
+  static defaultBool(key: string): boolean {
+    const specs: PrefKeySpec[] = PrefRegistry.specs();
+    for (const sp of specs) {
+      if (sp.key === key) {
+        return sp.defaultValue === 'true';
+      }
+    }
+    return false;
+  }
+
   private static instance: AppPreferences | null = null;
   private store: preferences.Preferences | null = null;
   private memory: Map<string, string> = new Map<string, string>();

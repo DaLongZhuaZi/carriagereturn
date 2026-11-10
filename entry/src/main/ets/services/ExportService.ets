@@ -31,6 +31,10 @@ const TAG: string = 'ExportService';
 const PDF_PAGE_W: number = 595;
 const PDF_PAGE_H: number = 842;
 const PDF_MARGIN_X: number = 48;
+// R1（第 8 批）：pdfService 的 TextStyle 必须带 fontInfo，缺它 addTextObject 静默不落笔，
+// 导出的 PDF 会没有 /Contents（整页空白）。用系统 CJK 字体（含中文字形）。
+const PDF_FONT_PATH: string = '/system/fonts/HarmonyOS_Sans.ttf';
+const PDF_FONT_NAME: string = 'HarmonyOS Sans';
 const PDF_HEAD_Y: number = 806;
 const PDF_BODY_TOP_Y: number = 754;
 const PDF_BODY_LINE: number = 16;
@@ -72,6 +76,17 @@ export class ExportService {
    * @param dateText 日期文本（页面已格式化）
    * @param outPath 沙箱内目标路径
    */
+  /** R1：构造带 fontInfo 的文字样式（缺 fontInfo 时 pdfService 不落笔，见 PDF_FONT_PATH 注释）。 */
+  private static pdfTextStyle(size: number): pdfService.TextStyle {
+    const st: pdfService.TextStyle = new pdfService.TextStyle();
+    st.textSize = size;
+    const fi: pdfService.FontInfo = new pdfService.FontInfo();
+    fi.fontPath = PDF_FONT_PATH;
+    fi.fontName = PDF_FONT_NAME;
+    st.fontInfo = fi;
+    return st;
+  }
+
   static buildPdf(docId: string, machineLabel: string, title: string, dateText: string,
     outPath: string): ExportResult {
     let pdf: pdfService.PdfDocument | null = null;
@@ -87,17 +102,14 @@ export class ExportService {
       const page: pdfService.PdfPage = doc.getPage(0);
 
       // 信纸头：机名（12pt）／标题（12pt）／日期＋页码（9pt），只画文字
-      const headStyle: pdfService.TextStyle = new pdfService.TextStyle();
-      headStyle.textSize = 12;
+      const headStyle: pdfService.TextStyle = ExportService.pdfTextStyle(12);
       page.addTextObject(machineLabel, PDF_MARGIN_X, PDF_HEAD_Y, headStyle);
       page.addTextObject(title, PDF_MARGIN_X, PDF_HEAD_Y - 18, headStyle);
-      const subStyle: pdfService.TextStyle = new pdfService.TextStyle();
-      subStyle.textSize = 9;
+      const subStyle: pdfService.TextStyle = ExportService.pdfTextStyle(9);
       page.addTextObject(dateText + '  ·  1', PDF_MARGIN_X, PDF_HEAD_Y - 34, subStyle);
 
       // 正文（与第 0 批同口径：写到页底为止，不分页）
-      const bodyStyle: pdfService.TextStyle = new pdfService.TextStyle();
-      bodyStyle.textSize = 11;
+      const bodyStyle: pdfService.TextStyle = ExportService.pdfTextStyle(11);
       let y: number = PDF_BODY_TOP_Y;
       let drawn: number = 0;
       for (let i = 0; i < lines.length && y > PDF_BODY_MIN_Y; i++) {

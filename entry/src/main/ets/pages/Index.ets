@@ -44,7 +44,7 @@ import { chineseInput } from '../services/ChineseInput';
 import { PinyinEngine, PinyinSession, Candidate, PickResult } from '../services/PinyinEngine';
 import { CandidateBar } from '../components/CandidateBar';
 import { PinyinSettingsPage, guideStepsForPinyinSettings } from '../components/PinyinSettingsPage';
-import { appPreferences, PrefKeys } from '../services/AppPreferences';
+import { AppPreferences, appPreferences, PrefKeys } from '../services/AppPreferences';
 import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocSummary } from '../model/DocModel';
@@ -249,6 +249,10 @@ struct Index {
   @State availableHeightVp: number = 720;
   /** 平板级（可用宽 ≥600vp）。 */
   @State isTablet: boolean = false;
+  /** 第 8 批 R2：首帧布局是否已定稿。拨杆按“布局分级”取常量（平板 30°/手机 15°、杆长按 stageW），
+   *  若在定稿前挂载就会拿到手机档（实测 DIAG init rest=15.0 size=21.6），能否同步回来取决于时序 →
+   *  跨会话抖动。故等 measureStage 定稿后再挂载拨杆。 */
+  @State stageReady: boolean = false;
   /** 第 5 批回批 F7：折叠布局模式（单一派生值，D0b-1）。初值 phone，首帧 aboutToAppear 派生。 */
   @State layoutMode: string = 'phone';
   /** 折痕带 vp（窗口坐标）：desk 模式下 region/Spacer 的分界（D0b-2/D1）。 */
@@ -1102,8 +1106,13 @@ struct Index {
     if (!GuideService.onboardingSeen()) {
       setTimeout(() => { this.onboardingVisible = true; }, 600);
     }
-    // 第 5 批 F13：旋钮开关（默认 off）
-    this.knobEnabled = appPreferences.getBool(PrefKeys.CUSTOM_KNOB_ENABLED, false);
+    // 第 5 批 F13／第 8 批 R4：旋钮开关（默认值唯一来源＝登记表；R4 起登记表为 on）
+    this.knobEnabled = appPreferences.getBool(PrefKeys.CUSTOM_KNOB_ENABLED,
+      AppPreferences.defaultBool(PrefKeys.CUSTOM_KNOB_ENABLED));
+    hilog.info(DOMAIN, TAG, 'knobEnabled=%{public}s def=%{public}s has=%{public}s use=%{public}s',
+      this.knobEnabled ? 'true' : 'false',
+      AppPreferences.defaultBool(PrefKeys.CUSTOM_KNOB_ENABLED) ? 'true' : 'false',
+      this.hasLayers() ? 'true' : 'false', this.useLayers ? 'true' : 'false');
     // 第 2 批 F15：候选栏选项（缺省 9／15）
     this.candPageSize = clampCandidateCount(
       appPreferences.getNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, CANDIDATE_COUNT_DEFAULT));
@@ -1435,6 +1444,11 @@ struct Index {
         stageW.toFixed(1), this.regionHeightVp.toFixed(1), this.fontSizeVp.toFixed(2),
         this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
         this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
+      // R2：布局定稿后放开拨杆挂载（同一帧完成，不引入额外可见帧）
+      if (!this.stageReady) {
+        this.stageReady = true;
+        hilog.info(DOMAIN, TAG, 'stageReady set (isTablet=%{public}s)', this.isTablet ? 'true' : 'false');
+      }
     } catch (e) {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'measureStage failed: %{public}s', JSON.stringify(err));
@@ -3804,7 +3818,8 @@ struct Index {
                 }
 
                 // 拨杆：§14 按机型选各自蓝图件（各件自带本机型素材与几何）
-                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+                // 第 8 批 R2：等布局定稿再挂载，避免首帧拿到手机档常量
+                if (this.stageReady && this.machineKind === MachineKind.UPRIGHT_1920S) {
                   LeverLayer({
                     machineKind: this.machineKind,
                     leverAspect: this.bp().leverAspect,

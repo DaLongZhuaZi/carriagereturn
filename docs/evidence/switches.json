@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-09T06:35:21+08:00",
-  "head": "ab23da4",
+  "generatedAt": "2026-11-10T14:41:23+08:00",
+  "head": "f05e750",
   "keys": [
     {
       "const": "ONBOARDING_SEEN",
@@ -226,7 +226,7 @@
       "const": "CUSTOM_KNOB_ENABLED",
       "key": "custom.knob.enabled",
       "type": "boolean",
-      "default": "false",
+      "default": "true",
       "reads": 1,
       "writes": 0,
       "registered": true,
