@@ -18,6 +18,7 @@ import { PageShell } from './PageShell';
 import { GuideStep } from './GuideOverlay';
 import { PickedFile, FileHelper } from '../services/FileHelper';
 import { FontService } from '../services/FontService';
+import { MachineKind } from '../model/DocModel';
 import { CustomizeStore } from '../services/CustomizeStore';
 import { ImportedFont, fontListAdd, fontListOf, fontListRemove, fontListToJson, validFamilyName }
   from '../model/CustomizeCore';
@@ -166,6 +167,17 @@ export struct FontManagerPage {
       fontListRemove(fontListToJson(list), familyName));
     this.fonts = next;
     CustomizeStore.setImportedFonts(next);
+    // 第 8 批 R3：删掉的字体若正被任何一台机引用，必须把该机回退到默认字体，
+    // 否则机器继续指向已删 family（真机实测：删除后打字机标签仍显示 imp-1729…）。
+    const kinds: string[] = [MachineKind.UPRIGHT_1920S as string, MachineKind.PORTABLE_1930S as string,
+      MachineKind.STREAMLINED_1950S as string, MachineKind.ELECTRIC_1960S as string];
+    for (let i = 0; i < kinds.length; i++) {
+      if (CustomizeStore.fontFamily(kinds[i]) === familyName) {
+        CustomizeStore.setFontFamily(kinds[i], '');
+        hilog.info(DOMAIN, TAG, 'machine %{public}s font reverted (deleted %{public}s)',
+          kinds[i], familyName);
+      }
+    }
   }
 
   @Builder
