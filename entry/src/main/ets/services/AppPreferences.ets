@@ -148,7 +148,9 @@ export class PrefRegistry {
       { key: PrefKeys.STATS_DAILY_GOAL, type: 'number', defaultValue: '500', owner: 'F11', note: '每日目标字数，缺省 500' },
       { key: PrefKeys.STATS_DAY_KEY, type: 'string', defaultValue: '', owner: 'F11', note: '日计数器：当前自然日键' },
       { key: PrefKeys.STATS_DAY_CHARS, type: 'number', defaultValue: '0', owner: 'F11', note: '日计数器：今日落字数' },
+      { key: PrefKeys.STATS_TOTAL_CHARS, type: 'number', defaultValue: '0', owner: 'F5', note: '持久化累计落字数（只增不减；成就 A1–A3 判定口径；≠ totalWords）' },
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
+      { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
     ];
   }
