@@ -3317,6 +3317,10 @@ struct Index {
   }
 
   private flushSave(): void {
+    // 第 9 批 F5：判定必须在 flush **完成之后**（设计 §3 不变量）——先把内存里的落字数
+    // 落进 stats.day.*／累计计数器，再跑成就判定；否则首次越过阈值那一下会被漏判。
+    statsService.flushPending();
+    statsService.flushFoldTyped();
     if (!docStore.isReady() || this.docModel.isEmpty()) {
       // 第 9 批 F5：即使没有内容可存，也要跑一次成就判定——consecutiveDays／goalReached 是
       // 当日快照，跨日后必须靠这个边界补判，否则会漏判（设计 §3 不变量）
