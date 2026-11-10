@@ -431,6 +431,28 @@ export struct ExportPage {
         return { ok: false, bytes: null, path: '', error: 'no tmp dir' };
       }
       const path: string = dir + '/' + safeFileName(this.docTitleState, 'pdf', Date.now());
+      // 第 9 批 P1（用户真机反馈）：PDF 要**和图片导出同一视觉**（本机纸张＋机器框＋抬头），
+      // 不再是一页默认字体的纯文本。做法＝先出 F16 模板 PNG，再把它铺进 A4 首页。
+      const ui: UIContext = this.getUIContext();
+      const t: ExportResult = await ExportService.buildPngTemplate(ui, this.docId, this.machineKind,
+        this.docTitleState, this.dateText, (): void => { this.templateBuilder(); });
+      if (t.ok && t.bytes !== null) {
+        const pngPath: string = dir + '/' + safeFileName(this.docTitleState, 'pngimg', Date.now());
+        if (ExportService.writeBytes(pngPath, t.bytes)) {
+          const r2: ExportResult = ExportService.buildPdfFromImage(pngPath, path);
+          if (r2.ok) {
+            this.tmpFiles.push(path);
+            this.tmpFiles.push(pngPath);
+            return { ok: true, bytes: r2.bytes, path: path, error: '' };
+          }
+          hilog.warn(DOMAIN, TAG, 'pdf image build failed, fallback to text: %{public}s', r2.error);
+        } else {
+          hilog.warn(DOMAIN, TAG, 'pdf template png write failed, fallback to text');
+        }
+      } else {
+        hilog.warn(DOMAIN, TAG, 'pdf template failed, fallback to text: %{public}s', t.error);
+      }
+      // 回退：仍用文字版（保证不会退化成空白页）
       const r: ExportResult = ExportService.buildPdf(this.docId, this.machineLabel(),
         this.docTitleState, this.dateText, path);
       if (r.ok) {

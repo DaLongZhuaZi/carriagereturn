@@ -22,7 +22,7 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { docStore } from './DocStore';
-import { ExportResult } from '../model/ExportCore';
+import { ExportResult, EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'ExportService';
@@ -62,6 +62,53 @@ export class ExportService {
       const err: BusinessError = e as BusinessError;
       hilog.error(DOMAIN, TAG, 'buildTxt failed: %{public}s', ExportService.errText(err));
       return { ok: false, bytes: null, error: ExportService.errText(err) };
+    }
+  }
+
+  /**
+   * PDF 导出（图文版，第 9 批 P1）：把 F16 的离屏模板 PNG（1080×1440，含机器框／纸张／抬头）
+   * 铺进 A4 首页——PDF 与「图片」导出**同一视觉**，不再是一页默认字体的纯文本。
+   * 版式：A4 595×842pt，两侧各留 24pt，图按 1080:1440 等比缩放后纵向居中。
+   *
+   * @param pngPath 沙箱内已落盘的模板 PNG 绝对路径（addImageObject 只认真实路径）
+   * @param outPath 沙箱内目标 PDF 路径
+   */
+  static buildPdfFromImage(pngPath: string, outPath: string): ExportResult {
+    let pdf: pdfService.PdfDocument | null = null;
+    try {
+      const doc: pdfService.PdfDocument = new pdfService.PdfDocument();
+      pdf = doc;
+      if (!doc.createDocument(PDF_PAGE_W, PDF_PAGE_H)) {
+        hilog.error(DOMAIN, TAG, 'buildPdfFromImage createDocument failed');
+        return { ok: false, bytes: null, error: 'createDocument failed' };
+      }
+      const page: pdfService.PdfPage = doc.getPage(0);
+      const imgW: number = PDF_PAGE_W - 2 * PDF_MARGIN_X;
+      const imgH: number = imgW * (EXPORT_TEMPLATE_H / EXPORT_TEMPLATE_W);
+      const top: number = (PDF_PAGE_H - imgH) / 2;
+      page.addImageObject(pngPath, PDF_MARGIN_X, top, imgW, imgH);
+      const ok: boolean = doc.saveDocument(outPath);
+      if (!ok) {
+        hilog.error(DOMAIN, TAG, 'buildPdfFromImage saveDocument failed path=%{public}s', outPath);
+        return { ok: false, bytes: null, error: 'saveDocument failed' };
+      }
+      const bytes: ArrayBuffer | null = ExportService.readFileBytes(outPath);
+      hilog.info(DOMAIN, TAG, 'buildPdfFromImage ok img=%{public}s bytes=%{public}s',
+        pngPath, bytes === null ? 'null' : bytes.byteLength.toString());
+      return { ok: true, bytes: bytes, error: '' };
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.error(DOMAIN, TAG, 'buildPdfFromImage failed: %{public}s', ExportService.errText(err));
+      return { ok: false, bytes: null, error: ExportService.errText(err) };
+    } finally {
+      if (pdf !== null) {
+        try {
+          pdf.releaseDocument();
+        } catch (e) {
+          const err2: BusinessError = e as BusinessError;
+          hilog.warn(DOMAIN, TAG, 'releaseDocument: %{public}s', ExportService.errText(err2));
+        }
+      }
     }
   }
 
@@ -213,6 +260,24 @@ export class ExportService {
   }
 
   /** 读整个文件为 ArrayBuffer；读不到返回 null（不抛）。 */
+  /** 把字节写到沙箱文件（供「先出模板 PNG、再铺进 PDF」用）。 */
+  static writeBytes(filePath: string, bytes: ArrayBuffer): boolean {
+    try {
+      const f: fs.File = fs.openSync(filePath, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+      try {
+        fs.writeSync(f.fd, bytes);
+      } finally {
+        fs.closeSync(f);
+      }
+      return true;
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.error(DOMAIN, TAG, 'writeBytes failed %{public}s: %{public}s', filePath,
+        ExportService.errText(err));
+      return false;
+    }
+  }
+
   private static readFileBytes(filePath: string): ArrayBuffer | null {
     let file: fs.File | null = null;
     try {
