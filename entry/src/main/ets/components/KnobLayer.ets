@@ -57,8 +57,11 @@ export struct KnobLayer {
       this.knobAt(this.leftXVp)
       this.knobAt(this.rightXVp)
     }
-    .width('100%')
-    .height('100%')
+    // 第 8 批 R4 修复：父 Stack 的子节点全用 .position 绝对定位 → 父高度塌成 0，
+    // 这里若写 '100%' 就得到 0×0，旋钮层整棵子树不参与绘制（实测：涂纯红也 0 像素）。
+    // 改为按最远旋钮显式定尺（原点在父 Stack 左上角，与 position 坐标系一致）。
+    .width(this.rightXVp + this.sizeVp)
+    .height(this.topYVp + this.sizeVp)
     // 视觉件：不吃触摸
     .hitTestBehavior(HitTestMode.None)
     .zIndex(30)
