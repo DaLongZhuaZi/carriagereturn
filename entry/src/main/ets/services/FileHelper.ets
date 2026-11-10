@@ -206,7 +206,17 @@ export class FileHelper {
         }
         const name: string = FileHelper.nameOf(uri);
         const dest: string = dir + '/' + Date.now().toString() + '-' + name;
-        fs.copyFileSync(uri, dest);
+        // 第 8 批 R3 修复：picker 给的是 `file://` URI，`copyFileSync(uri, dest)` 只认真实路径，
+        // 真机实测直接抛 13900002「No such file or directory」→ 页面显示「文件无法写入沙箱」。
+        // 改为「按 URI 打开源 fd → 目标 fd → 按 fd 复制」，这是文档给的 URI 读写方式。
+        const src: fs.File = fs.openSync(uri, fs.OpenMode.READ_ONLY);
+        const dst: fs.File = fs.openSync(dest, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
+        try {
+          fs.copyFileSync(src.fd, dst.fd);
+        } finally {
+          fs.closeSync(src);
+          fs.closeSync(dst);
+        }
         resolve(dest);
       } catch (e) {
         const err: BusinessError = e as BusinessError;
