@@ -7,7 +7,7 @@
   "note": "53 caps (14/13/13/12 + space). Top-left corner is now a full square cap, fixing the c2k0 narrow-sliver defect. Tentative labels: top-row extras = and ?; wide caps: row2-left extra, row2-right Backspace, row3-left Shift, row3-right Return, row4 both Shift. Extra caps carry no overlay letter.",
   "rows": [
     {
-      "y": 819,
+      "y": 786,
       "caps": [
         {
           "x": 158,
@@ -68,7 +68,7 @@
       ]
     },
     {
-      "y": 973,
+      "y": 919,
       "caps": [
         {
           "x": 190,
@@ -125,7 +125,7 @@
       ]
     },
     {
-      "y": 1128,
+      "y": 1050,
       "caps": [
         {
           "x": 213,
@@ -182,7 +182,7 @@
       ]
     },
     {
-      "y": 1282,
+      "y": 1180,
       "caps": [
         {
           "x": 236,
