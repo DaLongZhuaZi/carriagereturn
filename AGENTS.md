@@ -44,7 +44,7 @@
 
 | 机型 | 设备 | 状态 | 基线文件 | 空纸 parts（paperTop／paperBox） | --scale | 四区归一化坐标 | 折痕带 |
 |---|---|---|---|---|---|---|---|
-| 1920s 直立式 | 平板 MLR-AL10 | **第 12 批重拍（待批准人确认）** | `docs/shots/1026_1920s_baseline30_tablet_v12.png` | 281.8／123.4 | 400x640 | keyboard x0–1,y0.62–0.98；frame_left x0–0.33；frame_mid 0.33–0.67；frame_right 0.67–1（y 均 0.40–0.62） | 无（非折叠） |
+| 1920s 直立式 | 平板 MLR-AL10 | **现行（第 12 批重拍，批准人 2026-11-12 确认；旧 917 作废留档）** | `docs/shots/1026_1920s_baseline30_tablet_v12.png` | 281.8／123.4 | 400x640 | keyboard x0–1,y0.62–0.98；frame_left x0–0.33；frame_mid 0.33–0.67；frame_right 0.67–1（y 均 0.40–0.62） | 无（非折叠） |
 | 1930s 便携式 | 平板 MLR-AL10 | 新建 | `docs/shots/957_1930s_baseline30_tablet.png` | 281.8／123.4 | 400x640 | 同 1920s 四区 | 无 |
 | 1950s 流线型 | 平板 MLR-AL10 | 新建 | `docs/shots/959_1950s_baseline30_tablet.png` | 281.8／123.4 | 400x640 | 同 1920s 四区 | 无 |
 | 1960s 电动式 | 平板 MLR-AL10 | 新建 | `docs/shots/955_1960s_baseline30_tablet.png` | 281.8／123.4 | 400x640 | 同 1920s 四区 | 无 |
@@ -57,7 +57,7 @@
 
 | 机型 | 设备 | 状态 | 基线文件 | 空纸 parts（paperTop／paperBox） | --scale | 四区归一化坐标 | 折痕带 |
 |---|---|---|---|---|---|---|---|
-| 1920s 直立式 | 手机 Nova ADA-AL00U | **第 12 批重拍（待批准人确认）** | `docs/shots/1027_1920s_baseline30_phone_v12.png` | 206.0／96.0 | 1224x2776（同尺寸直比） | keyboard x0–1,y0.62–0.98；frame_left x0–0.33；frame_mid 0.33–0.67；frame_right 0.67–1（y 均 0.40–0.62），实测落点见下注 | 无 |
+| 1920s 直立式 | 手机 Nova ADA-AL00U | **现行（第 12 批重拍，批准人 2026-11-12 确认；旧 1016 作废留档）** | `docs/shots/1027_1920s_baseline30_phone_v12.png` | 206.0／96.0 | 1224x2776（同尺寸直比） | keyboard x0–1,y0.62–0.98；frame_left x0–0.33；frame_mid 0.33–0.67；frame_right 0.67–1（y 均 0.40–0.62），实测落点见下注 | 无 |
 | 1930s 便携式 | 手机 Nova ADA-AL00U | 新建 | `docs/shots/1017_1930s_baseline30_phone.png` | 206.0／96.0 | 1224x2776 | 同上 | 无 |
 | 1950s 流线型 | 手机 Nova ADA-AL00U | 新建 | `docs/shots/1018_1950s_baseline30_phone.png` | 206.0／96.0 | 1224x2776 | 同上 | 无 |
 | 1960s 电动式 | 手机 Nova ADA-AL00U | 新建 | `docs/shots/1019_1960s_baseline30_phone.png` | 206.0／96.0 | 1224x2776 | 同上 | 无 |
