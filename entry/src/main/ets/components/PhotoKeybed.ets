@@ -38,6 +38,8 @@ export struct PhotoKeybed {
   @Prop overlayFontFamily: string = 'CourierPrime';
   /** 落字计数：Index 每次 commitChar +1，用于「Up 与落字较晚者才清」的落字侧。 */
   @Prop @Watch('onCommitSeqChanged') commitSeq: number = 0;
+  /** 第 12 批 ③：Shift 常驻高亮（独立于瞬时 heldIds；落字清 heldIds 时仍保持）。 */
+  @Prop shiftActive: boolean = false;
 
   @State heldIds: string[] = [];
 
@@ -49,6 +51,14 @@ export struct PhotoKeybed {
   onCapUp: (cap: CapDef) => void = (cap: CapDef): void => {};
   /** 滑入新帽：只发声，不上屏。 */
   onCapSlide: (cap: CapDef) => void = (cap: CapDef): void => {};
+
+  /** 第 12 批 ③：按下态渲染条件——Shift 帽由 shiftActive 常驻点亮，其余帽只认瞬时触点。 */
+  private capPressed(cap: CapDef): boolean {
+    if (this.capIndex(cap.id) >= 0) {
+      return true;
+    }
+    return this.shiftActive && cap.label === 'Shift';
+  }
 
   private capIndex(id: string): number {
     const arr: string[] = this.heldIds;
@@ -226,7 +236,7 @@ export struct PhotoKeybed {
       ForEach(this.layout.caps, (cap: CapDef) => {
         // 一个 item 只能有一个根节点：叠字与按下高亮都放进这个 Stack
         Stack({ alignContent: Alignment.Center }) {
-          if (this.capIndex(cap.id) >= 0) {
+          if (this.capPressed(cap)) {
             // 圆形叠加层：直径 = 视觉帽径(2×hitRadius)、圆角 = 半径、黑 0.30、居中、无描边无底条
             Column()
               .width(this.layout.hitRadius * 2)
@@ -243,7 +253,7 @@ export struct PhotoKeybed {
               .maxLines(1)
               .textAlign(TextAlign.Center)
               // 叠字下移 3vp（只在按下时）
-              .translate({ y: this.capIndex(cap.id) >= 0 ? 2 : 0 })
+              .translate({ y: this.capPressed(cap) ? 2 : 0 })
           }
         }
         .width(this.layout.hitRadius * 2)
@@ -255,6 +265,19 @@ export struct PhotoKeybed {
         })
         .hitTestBehavior(HitTestMode.None)
       }, (cap: CapDef) => cap.id + ':' + cap.label)
+
+      // 第 12 批 ⑥：空格条按下叠加层（合成帽 id = machine + ':space'；几何直接取空格命中区，不乘比例）
+      // 新行为：黑底 0.30＋整条下沉 2vp（空格条无叠字可沉，故整条沉；键帽只沉叠字）
+      if (this.capIndex(this.layout.machine + ':space') >= 0) {
+        Column()
+          .width(this.layout.spaceXMax - this.layout.spaceXMin)
+          .height(this.layout.spaceYMax - this.layout.spaceYMin)
+          .borderRadius(8)
+          .backgroundColor('#000000')
+          .opacity(0.30)
+          .position({ x: this.layout.spaceXMin, y: this.layout.spaceYMin + 2 })
+          .hitTestBehavior(HitTestMode.None)
+      }
     }
     .width(this.widthVp)
     .height(this.heightVp)

@@ -45,6 +45,7 @@ export struct PaperStage {
   /** 墨色（色带）。 */
   @Prop inkColor: string = '#1a1a1a';
   @Prop pageNo: number = 1;
+  @Prop pageCount: number = 1;
   /** 小三角光标：x 相对纸片左缘、y 相对纸片顶（vn），尖朝下悬在下一字正上方。 */
   @Prop cursorXVp: number = 28;
   @Prop cursorYVp: number = 0;
@@ -108,9 +109,9 @@ export struct PaperStage {
             .height(1)
             .backgroundColor('#c8b9a6')
             .margin({ top: this.marginTopVp + 4 })
-          // 页码：右上角（§2.2）
+          // 页码：右上角（§2.2；第 12 批 ② 改为真实页码 n / m，按换纸计数）
           Row() {
-            Text(this.pageNo.toString())
+            Text(`${this.pageNo} / ${this.pageCount}`)
               .fontSize(12)
               .fontColor('#8a7f70')
           }

@@ -39,7 +39,6 @@ export struct CarriageLayers {
   /** 压纸卷竖向偏移（vp）：平板 -15（横杆上移），手机 0。 */
   @Prop bailShiftVp: number = 0;
   /** 第 8 批 R4：旋钮视觉件开关（F13；默认 on，关闭时不画旋钮）。 */
-  @Prop knobVisible: boolean = true;
 
   private hc(): number {
     return this.paperWidthVp * 0.17;
@@ -252,25 +251,8 @@ export struct CarriageLayers {
         .zIndex(3)
 
         // 压纸卷：x = 纸屏左 − 旋钮直径
-        // 第 8 批 R4：旋钮视觉件（随纸转、非触摸）。此前挂在 Index 的独立子栈里整棵子树不出像素，
-        // 改到本层（metal 分支已实证能出像素）用与其它机件一致的 .position 画法。
-        if (this.knobVisible) {
-          Image($rawfile('layers/1920s-upright/knob.png'))
-            .width(this.knobD())
-            .height(this.knobD())
-            .objectFit(ImageFit.Fill)
-            .position({ x: this.paperLeftVp - this.knobD() - 4, y: this.hc() / 2 - this.knobD() / 2 })
-            .rotate({ angle: this.knobAngleDeg, centerX: this.knobD() / 2, centerY: this.knobD() / 2 })
-            .zIndex(6)
-          Image($rawfile('layers/1920s-upright/knob.png'))
-            .width(this.knobD())
-            .height(this.knobD())
-            .objectFit(ImageFit.Fill)
-            .position({ x: this.paperLeftVp + this.paperWidthVp + 4, y: this.hc() / 2 - this.knobD() / 2 })
-            .rotate({ angle: this.knobAngleDeg, centerX: this.knobD() / 2, centerY: this.knobD() / 2 })
-            .zIndex(6)
-        }
-
+        // 第 12 批 ①：旋钮视觉件已删除（用户 2026-11-11「1920s 的机器，把那两个轮子删掉」）。
+        // knobAngle／knobD 几何仍保留（滚筒转角与底座宽照旧用它们），只是不再画旋钮图。
         // 压纸卷 v2（深色钢杆＋两个黑滚轮，素材 2736×283）：杆宽 = 纸宽、对齐纸缘
         Image($rawfile('layers/1920s-upright/paper-bail-v2.png'))
           .width(this.bailW())

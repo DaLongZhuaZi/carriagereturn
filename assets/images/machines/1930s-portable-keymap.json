@@ -4,7 +4,7 @@
     2048,
     2048
   ],
-  "note": "58 caps (11/11/12/11/11 + 2 Shift flanking space bar) + space bar. Row 5 (y649) is an extra row in this mother image, all labelled extra pending user decision on its use. Overlay colour is light on dark caps.",
+  "note": "58 caps (11/11/12/11/11 + 2 Shift flanking space bar) + space bar. 第 12 批 ④：row5(y1335) 11 个与 y951/y1205 行末 2 个 extra 已改为标点字符（! ? ( ) \" : + = [ ] { } \\），符号模式下 row5 锁定为标点。",
   "rows": [
     {
       "y": 814,
@@ -100,7 +100,7 @@
         },
         {
           "x": 1675,
-          "label": "extra"
+          "label": "}"
         }
       ]
     },
@@ -202,7 +202,7 @@
         },
         {
           "x": 1679,
-          "label": "extra"
+          "label": "\\"
         }
       ]
     },
@@ -211,47 +211,47 @@
       "caps": [
         {
           "x": 344,
-          "label": "extra"
+          "label": "!"
         },
         {
           "x": 481,
-          "label": "extra"
+          "label": "?"
         },
         {
           "x": 618,
-          "label": "extra"
+          "label": "("
         },
         {
           "x": 756,
-          "label": "extra"
+          "label": ")"
         },
         {
           "x": 893,
-          "label": "extra"
+          "label": "\""
         },
         {
           "x": 1030,
-          "label": "extra"
+          "label": ":"
         },
         {
           "x": 1167,
-          "label": "extra"
+          "label": "+"
         },
         {
           "x": 1305,
-          "label": "extra"
+          "label": "="
         },
         {
           "x": 1442,
-          "label": "extra"
+          "label": "["
         },
         {
           "x": 1579,
-          "label": "extra"
+          "label": "]"
         },
         {
           "x": 1714,
-          "label": "extra"
+          "label": "{"
         }
       ]
     },

@@ -21,8 +21,6 @@ export struct MetalAssembly1920 {
   @Prop texOffsetYVp: number = 0;
   @Prop paperLeftFixedVp: number = 0;
   @Prop bailShiftVp: number = 0;
-  /** 第 8 批 R4：旋钮视觉件开关（透传给 CarriageLayers）。 */
-  @Prop knobVisible: boolean = true;
 
   build() {
     CarriageLayers({
@@ -38,7 +36,6 @@ export struct MetalAssembly1920 {
       paperLeftFixedVp: this.paperLeftFixedVp,
       texOffsetYVp: this.texOffsetYVp,
       bailShiftVp: this.bailShiftVp,
-      knobVisible: this.knobVisible,
       strikeYVp: this.strikeYVp,
     })
       // 金属件顶 y = Ht − Hc（与滚筒同锚点）

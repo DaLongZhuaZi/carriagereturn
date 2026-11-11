@@ -73,6 +73,10 @@ export interface DocMeta {
   font: PaperFont;
   createdAt: number;
   updatedAt: number;
+  /** 第 12 批 ②：当前纸序号（1 起，换纸+1；老文档缺省按 1 计）。 */
+  sheetNo?: number;
+  /** 第 12 批 ②：本篇文档用过的纸总数（无翻页时恒等于 sheetNo）。 */
+  sheetCount?: number;
 }
 
 /** 刻度光标。line 为 lines 下标，offset 为该行内字符偏移（0..text.length）。 */

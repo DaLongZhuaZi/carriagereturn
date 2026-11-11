@@ -47,7 +47,7 @@ import { PinyinSettingsPage, guideStepsForPinyinSettings } from '../components/P
 import { AppPreferences, appPreferences, PrefKeys } from '../services/AppPreferences';
 import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext';
 import { AppMenu } from '../components/AppMenu';
-import { DocData, DocSummary } from '../model/DocModel';
+import { DocData, DocMeta, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
@@ -66,7 +66,6 @@ import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
 import { PhotoKeybed } from '../components/PhotoKeybed';
 import { FunctionRow } from '../components/FunctionRow';
-import { PageRail } from '../components/PageRail';
 import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -225,6 +224,9 @@ struct Index {
 
   @State rows: PaperRow[] = [];
   @State machineKind: MachineKind = DEFAULT_MACHINE;
+  /** 第 12 批 ②：真实页码（按换纸计数；无翻页时 sheetCount===sheetNo）。 */
+  @State sheetNo: number = 1;
+  @State sheetCount: number = 1;
   @State paperKind: PaperKind = DEFAULT_PAPER;
   /** 第 2 批 F3：当前纸的自定义值缓存（paperKind 变/自定义页保存时刷新）。 */
   @State customMarginH: number = 0;
@@ -859,8 +861,6 @@ struct Index {
   @State exportBusy: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
-  /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 8 轮移除）。 */
-  @State knobEnabled: boolean = false;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
   @State deleteMode: string = 'trash';
   @State volume0to100: number = 70;
@@ -1171,13 +1171,6 @@ struct Index {
         }
       }, 450);
     }
-    // 第 5 批 F13／第 8 批 R4：旋钮开关（默认值唯一来源＝登记表；R4 起登记表为 on）
-    this.knobEnabled = appPreferences.getBool(PrefKeys.CUSTOM_KNOB_ENABLED,
-      AppPreferences.defaultBool(PrefKeys.CUSTOM_KNOB_ENABLED));
-    hilog.info(DOMAIN, TAG, 'knobEnabled=%{public}s def=%{public}s has=%{public}s use=%{public}s',
-      this.knobEnabled ? 'true' : 'false',
-      AppPreferences.defaultBool(PrefKeys.CUSTOM_KNOB_ENABLED) ? 'true' : 'false',
-      this.hasLayers() ? 'true' : 'false', this.useLayers ? 'true' : 'false');
     // 第 2 批 F15：候选栏选项（缺省 9／15）
     this.candPageSize = clampCandidateCount(
       appPreferences.getNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, CANDIDATE_COUNT_DEFAULT));
@@ -2442,7 +2435,8 @@ struct Index {
       let label: string = c.label;
       if (this.symbolMode) {
         // 符号模式：Shift 位保持 'Shift'（布局稳定），其余按行内序号取符号
-        if (c.label !== 'Shift' && !c.isExtra) {
+        // 第 12 批 ④：第 5 行（rowIndex 4）锁定为标点，不参与符号重映射
+        if (c.label !== 'Shift' && !c.isExtra && c.rowIndex < 4) {
           const arr: string[] = sym[ri];
           const k: number = ri === 3 ? inRow - 1 : inRow;
           if (k >= 0 && k < arr.length) {
@@ -3090,6 +3084,27 @@ struct Index {
   private onPaperChange(entry: string = 'manual'): void {
     // 换纸时防御性清空预编辑串
     this.cnPreview = '';
+    // 第 12 批 ②：换纸计数——判定必须在 clear() 之前；逐行看 text.length>0（不复用 isEmpty()：
+    // 多空行纸会误判为空），有内容才 +1；只打空格也算有内容（空格进落字队列、计入字符）。
+    let sheetHasContent: boolean = false;
+    const sheetLines = this.docModel.getLines();
+    for (let si = 0; si < sheetLines.length; si++) {
+      if (sheetLines[si].text.length > 0) {
+        sheetHasContent = true;
+        break;
+      }
+    }
+    if (sheetHasContent) {
+      this.sheetNo = this.sheetNo + 1;
+      if (this.sheetCount < this.sheetNo) {
+        this.sheetCount = this.sheetNo;
+      }
+      const meta0 = this.docModel.getMeta();
+      meta0.sheetNo = this.sheetNo;
+      meta0.sheetCount = this.sheetCount;
+      hilog.info(DOMAIN, TAG, 'sheet count -> %{public}s/%{public}s entry=%{public}s',
+        this.sheetNo.toString(), this.sheetCount.toString(), entry);
+    }
     if (this.paperChanging) {
       return;
     }
@@ -3441,6 +3456,9 @@ struct Index {
       }
       this.docId = list[0].id;
       this.docModel = new DocModel(data);
+      // 第 12 批 ②：冷启动恢复路径同样要恢复页码（不经过 loadDocument）
+      this.sheetNo = data.meta.sheetNo === undefined ? 1 : data.meta.sheetNo;
+      this.sheetCount = data.meta.sheetCount === undefined ? 1 : data.meta.sheetCount;
       this.hintText = '';
       hilog.info(DOMAIN, TAG, 'restored doc id=%{public}s lines=%{public}s',
         this.docId, data.lines.length.toString());
@@ -3469,6 +3487,9 @@ struct Index {
     }
     this.docId = id;
     this.docModel = new DocModel(data);
+    // 第 12 批 ②：载入恢复页码（老文档缺省 1／1）
+    this.sheetNo = data.meta.sheetNo === undefined ? 1 : data.meta.sheetNo;
+    this.sheetCount = data.meta.sheetCount === undefined ? 1 : data.meta.sheetCount;
     // §10：文档不再驱动机型——沿用当前全局机型，下次保存时写回 meta.machine
     this.docModel.setMachine(this.machineKind);
     this.paperKind = data.meta.paper;
@@ -3938,7 +3959,6 @@ struct Index {
                     texOffsetYVp: this.texOffsetVp,
                     paperLeftFixedVp: this.paperLeftFixed(),
                     bailShiftVp: this.isTablet ? -15 : 0,
-                    knobVisible: this.knobEnabled,
                   })
                 } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
                   CarriageLayers1930({
@@ -4144,7 +4164,8 @@ struct Index {
                 paperColor: this.customPaperColor,
                 texturePath: this.customPaperTexture,
                 inkColor: this.inkColor,
-                pageNo: 1,
+                pageNo: this.sheetNo,
+                pageCount: this.sheetCount,
                 // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
                 offsetXVp: 0,
                 cursorXVp: this.marginH() + this.currentLineWidthVp(),
@@ -4160,15 +4181,6 @@ struct Index {
                 .width('100%')
                 .height(this.paperHeightVp)
 
-              Row() {
-                PageRail({ pageNo: 1, pageCount: 1 })
-              }
-              .width('100%')
-              .height(this.paperHeightVp)
-              .justifyContent(FlexAlign.End)
-              .alignItems(VerticalAlign.Top)
-              .padding({ right: 2, top: 6 })
-              .hitTestBehavior(HitTestMode.Transparent)
             }
 
             // 纸片容器：高 = 纸顶到滚筒，clip(true) 把纸底裁掉，不许在字体条/键盘区露出
@@ -4267,8 +4279,7 @@ struct Index {
                 )
               )
 
-            // 第 8 批 R4：旋钮视觉件已移入 CarriageLayers 的 metal 分支（本层独立子栈实测整棵子树不出像素），
-            // 开关经 MetalAssembly1920.knobVisible 透传，此处不再重复挂载。
+            // 第 12 批 ①：1920s 旋钮视觉件已整体删除（含开关链），本层不再挂载任何旋钮件。
         }
         .width('100%')
         .layoutWeight(1)
@@ -4347,6 +4358,7 @@ struct Index {
 
         PhotoKeybed({
           machineKind: this.machineKind,
+          shiftActive: this.shiftActive,
           // 第 5 批回批 F7（D0b-2）：desk 用折叠带图（1930s 无折叠分支恒用手机带，组件内静态分支）
           foldBand: this.layoutMode === 'desk',
           widthVp: this.photoW(),
@@ -4462,7 +4474,14 @@ struct Index {
           },
           onStartTyping: (): void => {
             // 新建一张空白纸并进入打字机
-            const meta = this.docModel.toDocData().meta;
+            // 第 12 批 ②：展开复制 meta 并重置 sheet 字段（不许直接改原 meta 对象，否则连旧文档内存 meta 一起改）
+            // ArkTS 禁对象展开（arkts-no-spread），按字段逐个复制并重置 sheet 字段（语义等同展开复制，不改原对象）
+            const srcMeta: DocMeta = this.docModel.toDocData().meta;
+            const meta: DocMeta = {
+              machine: srcMeta.machine, paper: srcMeta.paper, ribbon: srcMeta.ribbon,
+              font: srcMeta.font, createdAt: srcMeta.createdAt, updatedAt: srcMeta.updatedAt,
+              sheetNo: 1, sheetCount: 1,
+            };
             const fresh: DocData = {
               lines: [{ text: '', ribbon: this.ribbon }],
               cursor: { line: 0, offset: 0 },

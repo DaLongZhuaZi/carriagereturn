@@ -27,22 +27,22 @@ function registryDefault(constName) {
   return m[1];
 }
 
-test('登记值：三项均为 true（各有已评审依据）', () => {
+test('登记值：两项均为 true（各有已评审依据；旋钮开关第 12 批 ① 删除）', () => {
   assert.equal(registryDefault('GUIDE_ENABLED'), 'true', 'guide.enabled 默认 on：F1 批内一次交付完整');
   assert.equal(registryDefault('CUSTOM_ENABLED'), 'true', 'custom.enabled 批末改 on：第 2 批 M-14');
-  // 第 8 批 R4：1920s 基线已于 bc6edce 重拍，登记表 note 写明的开启前置已满足 → 默认改 on
-  assert.equal(registryDefault('CUSTOM_KNOB_ENABLED'), 'true', '旋钮默认 on：第 8 批 R4，基线重拍前置已满足');
+  // 第 12 批 ①：旋钮已删除，CUSTOM_KNOB_ENABLED 不再存在于登记表
+  assert.ok(!/CUSTOM_KNOB_ENABLED/.test(prefs), '旋钮开关应已整体删除');
 });
 
-test('消费方 fallback 必须与登记值一致（防漂移；旋钮改读登记表默认值）', () => {
+test('消费方 fallback 必须与登记值一致（防漂移）', () => {
   assert.match(guideService, /getBool\(PrefKeys\.GUIDE_ENABLED, true\)/);
   assert.match(customizeStore, /getBool\(PrefKeys\.CUSTOM_ENABLED, true\)/);
-  // 第 8 批 R4：旋钮不再硬编码 false，改为读登记表（默认值只在 PrefRegistry 写一次）
-  assert.match(index, /getBool\(PrefKeys\.CUSTOM_KNOB_ENABLED,\s*\n?\s*AppPreferences\.defaultBool\(PrefKeys\.CUSTOM_KNOB_ENABLED\)\)/);
+  // 第 12 批 ①：旋钮开关删除后，Index 不再有该读取
+  assert.ok(!index.includes('CUSTOM_KNOB_ENABLED'), 'Index 不许再读旋钮开关');
 });
 
 test('登记 note 必须写明开启依据（读登记表就能知道为什么不是 off）', () => {
   assert.match(prefs, /GUIDE_ENABLED[\s\S]{0,200}F1 批内一次交付完整/);
   assert.match(prefs, /CUSTOM_ENABLED[\s\S]{0,200}第 2 批 M-14/);
-  assert.match(prefs, /CUSTOM_KNOB_ENABLED[\s\S]{0,240}第 8 批 R4 起默认 on/);
+  assert.ok(!/CUSTOM_KNOB_ENABLED/.test(prefs), '旋钮开关登记项应删除（第 12 批 ①）');
 });

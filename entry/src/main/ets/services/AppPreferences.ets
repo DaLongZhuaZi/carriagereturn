@@ -53,7 +53,6 @@ export class PrefKeys {
   /** 第 2 批 F3：纸张预设 JSON（`{名称: 预设}`）。 */
   static readonly CUSTOM_PAPER_PRESETS: string = 'custom.paper.presets';
   /** 第 5 批 F13：旋钮视觉开关（默认 off；基线重拍批准后第 8 轮移除）。 */
-  static readonly CUSTOM_KNOB_ENABLED: string = 'custom.knob.enabled';
   /** 第 2 批 F15：候选栏选项。 */
   static readonly CUSTOM_CANDIDATE_COUNT: string = 'custom.candidate.count';
   static readonly CUSTOM_CANDIDATE_SIZE: string = 'custom.candidate.size';
@@ -141,7 +140,6 @@ export class PrefRegistry {
       { key: PrefKeys.CUSTOM_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F3', note: '自定义功能总开关（应急回滚；开发期默认 off，静态验收后批末改 on：第 2 批 M-14）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_FONT_IMPORTED, type: 'string', defaultValue: '', owner: 'F3', note: '导入字体列表 JSON（familyName／path／size／status）' },
       { key: PrefKeys.CUSTOM_PAPER_PRESETS, type: 'string', defaultValue: '{}', owner: 'F3', note: '纸张预设 JSON（{名称: 预设}）' },
-      { key: PrefKeys.CUSTOM_KNOB_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'F13', note: '旋钮视觉开关（第 8 批 R4 起默认 on：1920s 基线已于 bc6edce 重拍，前置条件满足；关闭即回退为无旋钮渲染）', removeAfter: '用户真机验收签字后（第 8 轮）；核对：python tools/audit-switches.py --check' },
       { key: PrefKeys.CUSTOM_CANDIDATE_COUNT, type: 'number', defaultValue: '9', owner: 'F15', note: '候选数量 5–15，默认 9' },
       { key: PrefKeys.CUSTOM_CANDIDATE_SIZE, type: 'number', defaultValue: '15', owner: 'F15', note: '候选字号 12–20，默认 15' },
       { key: PrefKeys.STATS_PREFIX, type: 'number', defaultValue: '0', owner: 'F11／F5', note: '统计计数器（事件计数／日字数）' },
@@ -163,7 +161,7 @@ export class PrefRegistry {
       PrefKeys.CN_USERWORDS, PrefKeys.CN_FUZZY, PrefKeys.CN_BIGRAM, PrefKeys.MACHINE,
       PrefKeys.STATS_DAY_KEY, PrefKeys.STATS_DAY_CHARS, PrefKeys.STATS_DAILY_GOAL,
       PrefKeys.GUIDE_ENABLED, PrefKeys.GUIDE_TEST_MODE,
-      PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE, PrefKeys.CUSTOM_KNOB_ENABLED,
+      PrefKeys.CUSTOM_CANDIDATE_COUNT, PrefKeys.CUSTOM_CANDIDATE_SIZE,
       PrefKeys.PAPER, PrefKeys.DELETE_MODE,
       PrefKeys.STATS_PAPER_KINDS,
       PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
