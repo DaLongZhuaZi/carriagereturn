@@ -283,6 +283,7 @@ export struct CustomizePage {
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
+        .id('customize__options')
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
   }
 

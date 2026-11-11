@@ -407,6 +407,7 @@ export struct PaperCustomPage {
     }
     .layoutWeight(1)
     .width('100%')
+    .id('paper_custom__controls')
     .scrollBar(BarState.Off)
   }
 

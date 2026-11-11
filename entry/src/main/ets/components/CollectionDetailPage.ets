@@ -110,6 +110,7 @@ export struct CollectionDetailPage {
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
+        .id('collection_detail__intro')
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
 
         // 底部「设为当前机器」（底距交给 PageShell）

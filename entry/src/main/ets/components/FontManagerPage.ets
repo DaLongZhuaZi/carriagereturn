@@ -266,6 +266,7 @@ export struct FontManagerPage {
     }
     .layoutWeight(1)
     .width('100%')
+    .id('font_manager__list')
     .scrollBar(BarState.Off)
   }
 

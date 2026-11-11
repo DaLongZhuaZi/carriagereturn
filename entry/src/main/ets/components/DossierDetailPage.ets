@@ -589,6 +589,7 @@ export struct DossierDetailPage {
               }
             }, (p: DocSummary) => p.id + ':' + p.updatedAt.toString())
           }
+          .id('dossier_detail__list')
           .columnsTemplate(this.colsTemplate())
           .columnsGap(16).rowsGap(16)
           .width('100%').layoutWeight(1)

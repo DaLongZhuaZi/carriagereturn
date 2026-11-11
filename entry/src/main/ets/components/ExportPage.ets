@@ -741,6 +741,7 @@ export struct ExportPage {
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
+        .id('export__formats')
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
 
         this.statusArea()

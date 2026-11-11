@@ -130,6 +130,7 @@ export struct PinyinSettingsPage {
       .opacity(this.revealN > 0 ? 1 : 0)
       .animation({ duration: 180, curve: Curve.EaseOut })
     }
+    .id('pinyin__engine')
     .layoutWeight(1).width('100%').scrollBar(BarState.Off)
   }
 

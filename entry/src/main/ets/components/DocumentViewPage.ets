@@ -160,6 +160,7 @@ export struct DocumentViewPage {
           })
         }
         .width('100%').layoutWeight(1)
+        .id('document_view__content')
         .padding({ left: 20, right: 20 })
 
 
@@ -183,7 +184,9 @@ export struct DocumentViewPage {
             // 第 6 批 F10：先二次确认（文案按 deleteMode），确认后才 onDelete
             .onClick(() => { this.confirmDel = true; })
         }
-        .width('100%').height(56).padding({ left: 20, right: 20 })
+        .width('100%').height(56)
+        .id('document_view__delete_btn')
+        .padding({ left: 20, right: 20 })
     }
     .width('100%').height('100%')
   }
