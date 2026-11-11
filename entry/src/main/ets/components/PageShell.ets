@@ -75,7 +75,7 @@ export struct PageShell {
             if (this.showTrailing) {
               this.trailing()
             }
-            if (this.guideEnabled && this.guidePage.length > 0) {
+            if (GuideBridge.enabled && this.guidePage.length > 0) {
               Stack() {
                 AppIcon({ kind: 'help', iconSize: 24, color: '#e8ddc9' })
               }
