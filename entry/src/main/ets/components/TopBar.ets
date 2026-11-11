@@ -40,8 +40,8 @@ export struct TopBar {
       // 第 10 批：引导 "?"
       if (this.guideEnabled) {
         Stack() {
-          Text('?')
-            .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#dbccb3')
+          SymbolGlyph($r('sys.symbol.questionmark_circle'))
+            .fontSize(24).fontColor(['#dbccb3'])
         }
         .width(44)
         .height(44)

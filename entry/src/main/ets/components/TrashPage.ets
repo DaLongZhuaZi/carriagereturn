@@ -153,10 +153,12 @@ export struct TrashPage {
           .width('100%').padding({ left: 20, right: 20, top: 4 })
         }
         .width('100%').layoutWeight(1).scrollBar(BarState.Off)
+        .id('trash__list')
       }
 
       // 底部常驻保留期说明（30 天＝TRASH_RETENTION_DAYS）
       Text($r('app.string.trash_keep_days'))
+        .id('trash__hint')
         .fontSize(12).fontColor('rgba(232,221,201,0.4)')
         .width('100%').textAlign(TextAlign.Center)
         .padding({ left: 20, right: 20, top: 8, bottom: 12 })

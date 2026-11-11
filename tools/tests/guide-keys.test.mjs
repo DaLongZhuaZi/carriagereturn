@@ -98,7 +98,7 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
       assert.ok(!seen.has(id) || seen.get(id) === page, `anchorId 跨页重名 ${id}`);
       seen.set(id, page);
       // 已挂 .id() 的页（home/settings/dossier）必须真的挂上；其余按 §2.4 fallback，列 miss 清单
-      const implemented = ['home', 'settings', 'dossier'];
+      const implemented = ['home', 'settings', 'dossier', 'collection', 'trash'];
       if (implemented.includes(page)) {
         assert.ok(text.includes(`.id('${id}')`), `${page} 的 ${id} 没有挂 .id()`);
       }

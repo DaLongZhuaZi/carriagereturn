@@ -280,6 +280,7 @@ export struct CollectionPage {
           }
         }, (k: string) => k)
       }
+      .id('collection__grid')
       .columnsTemplate(this.colsTemplate())
       .columnsGap(16).rowsGap(16)
       .width('100%').layoutWeight(1)
