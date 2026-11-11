@@ -1,9 +1,5 @@
 {
-  "symbolGlyphDirectUses": [
-    "entry/src/main/ets/components/HomePage.ets:92: SymbolGlyph($r('sys.symbol.questionmark_circle'))",
-    "entry/src/main/ets/components/PageShell.ets:80: SymbolGlyph($r('sys.symbol.questionmark_circle'))",
-    "entry/src/main/ets/components/TopBar.ets:43: SymbolGlyph($r('sys.symbol.questionmark_circle'))"
-  ],
+  "symbolGlyphDirectUses": [],
   "textSymbolIcons": [],
   "emojiHits": [
     "entry/src/main/ets/pages/Index.ets:132: '＜ ＞ ＂ ＇ ※ ☆ ★ ○ ● ◆'.split(' '),"
@@ -15,6 +11,7 @@
     "chevron_up",
     "delete",
     "folder",
+    "help",
     "menu",
     "more",
     "plus"
@@ -27,6 +24,7 @@
     "delete",
     "export",
     "folder",
+    "help",
     "lock",
     "menu",
     "more",
@@ -34,10 +32,6 @@
     "rename",
     "settings"
   ],
-  "violations": [
-    "SymbolGlyph 直用（应走 AppIcon）: entry/src/main/ets/components/HomePage.ets:92",
-    "SymbolGlyph 直用（应走 AppIcon）: entry/src/main/ets/components/PageShell.ets:80",
-    "SymbolGlyph 直用（应走 AppIcon）: entry/src/main/ets/components/TopBar.ets:43"
-  ],
-  "verdict": "FAIL"
+  "violations": [],
+  "verdict": "PASS"
 }

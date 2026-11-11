@@ -40,8 +40,7 @@ export struct TopBar {
       // 第 10 批：引导 "?"
       if (this.guideEnabled) {
         Stack() {
-          SymbolGlyph($r('sys.symbol.questionmark_circle'))
-            .fontSize(24).fontColor(['#dbccb3'])
+          AppIcon({ kind: 'help', iconSize: 24, color: '#dbccb3' })
         }
         .width(44)
         .height(44)

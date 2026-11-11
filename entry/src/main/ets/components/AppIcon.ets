@@ -21,13 +21,15 @@ export class IconKind {
   static readonly RENAME: string = 'rename';
   static readonly DELETE: string = 'delete';
   static readonly LOCK: string = 'lock';
+  /** 第 10 批：引导 "?" 入口。 */
+  static readonly HELP: string = 'help';
 
   /** 全部已登记 kind（审计与断言用）。 */
   static all(): string[] {
     return [
       IconKind.BACK, IconKind.CHEVRON_UP, IconKind.PLUS, IconKind.CHEVRON,
       IconKind.FOLDER, IconKind.MENU, IconKind.MORE, IconKind.CHECK,
-      IconKind.SETTINGS, IconKind.EXPORT, IconKind.RENAME, IconKind.DELETE, IconKind.LOCK,
+      IconKind.SETTINGS, IconKind.EXPORT, IconKind.RENAME, IconKind.DELETE, IconKind.LOCK, IconKind.HELP,
     ];
   }
 
@@ -52,6 +54,7 @@ export function iconResourceOf(kind: string): Resource {
   if (kind === IconKind.RENAME) { return $r('sys.symbol.square_and_pencil'); }
   if (kind === IconKind.DELETE) { return $r('sys.symbol.trash'); }
   if (kind === IconKind.LOCK) { return $r('sys.symbol.lock'); }
+  if (kind === IconKind.HELP) { return $r('sys.symbol.questionmark_circle'); }
   return $r('sys.symbol.chevron_left');
 }
 

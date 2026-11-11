@@ -1,4 +1,4 @@
-# 最终验证总跑（第 7 批，2026-11-11T15:55:28+08:00）
+# 最终验证总跑（第 7 批，2026-11-11T16:12:49+08:00）
 
 | 项 | 命令 | 退出码 | 结果 |
 |---|---|---|---|
@@ -11,7 +11,7 @@
 | gate-500-vs-332 | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/gate-compare.py docs/shots/332_metal3.jpeg docs/shots/500_gate.jpeg --scale 400x640` | 0 | **PASS** |
 | gate-540-vs-332 | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/gate-compare.py docs/shots/332_metal3.jpeg docs/shots/540_1920s_gate.jpeg --scale 400x640` | 1 | **EXPECTED-FAIL** |
 | audio-verify | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/audio-verify.py --json docs/evidence/audio-verify.json` | 0 | **PASS** |
-| icon-audit | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/audit-icons.py --json docs/evidence/icon-audit.json` | 1 | **FAIL** |
+| icon-audit | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/audit-icons.py --json docs/evidence/icon-audit.json` | 0 | **PASS** |
 | probes-dry-run | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/probes/run_all.py --dry-run` | 0 | **PASS** |
 | probe-gates | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/probes/check-gates.py` | 0 | **PASS** |
 | switch-audit | `C:\Users\13359\AppData\Local\Programs\Python\Python310\python.exe tools/audit-switches.py --json docs/evidence/switches.json` | 0 | **PASS** |
@@ -25,14 +25,14 @@
 [self-test] PASS（0 项失败）
 
 [stderr]
-(node:15772) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:26304) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
 ## arkts-structural — PASS
 ```
 [stderr]
-(node:39132) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:36216) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -53,10 +53,10 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 2327.1121
+# duration_ms 1824.4599
 
 [stderr]
-(node:5340) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:39592) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -113,15 +113,14 @@ space-01              pack-1960    0.127   0.0460  0.559
 JSON: docs/evidence/audio-verify.json
 ```
 
-## icon-audit — FAIL
+## icon-audit — PASS
 ```
-AppIcon kind��ʹ�� 9 �� / ע�� 13 ��
+== ͼ����ƣ�O1��==
+SymbolGlyph ֱ�õ�: 0�������� AppIcon.ets��
+AppIcon kind��ʹ�� 10 �� / ע�� 14 ��
 emoji/�����ַ����� 1 �������˹�ȷ�������ݻ���ͼ�ꣻ���� �������� �����ݣ�
   - entry/src/main/ets/pages/Index.ets:132: '�� �� �� �� �� �� �� �� �� ��'.split(' '),
-  FAIL SymbolGlyph ֱ�ã�Ӧ�� AppIcon��: entry/src/main/ets/components/HomePage.ets:92
-  FAIL SymbolGlyph ֱ�ã�Ӧ�� AppIcon��: entry/src/main/ets/components/PageShell.ets:80
-  FAIL SymbolGlyph ֱ�ã�Ӧ�� AppIcon��: entry/src/main/ets/components/TopBar.ets:43
-����: FAIL
+����: PASS
 JSON: docs/evidence/icon-audit.json
 ```
 
@@ -151,7 +150,7 @@ Markdown: D:\HarmonyAPP\carriagereturn\docs\evidence\̽�����.md
 
 ## switch-audit — PASS
 ```
-keys=32 switches=3 problems=0 head=e170ce0
+keys=32 switches=3 problems=0 head=d6e6b51
 д�� docs/evidence/�����嵥-��7��.md
 �˶� PASS
 ```

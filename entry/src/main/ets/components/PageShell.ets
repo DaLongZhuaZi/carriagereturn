@@ -77,8 +77,7 @@ export struct PageShell {
             }
             if (this.guideEnabled && this.guidePage.length > 0) {
               Stack() {
-                SymbolGlyph($r('sys.symbol.questionmark_circle'))
-                  .fontSize(24).fontColor(['#e8ddc9'])
+                AppIcon({ kind: 'help', iconSize: 24, color: '#e8ddc9' })
               }
               .width(44).height(44)
               .onClick(() => { GuideBridge.request(this.guidePage); })

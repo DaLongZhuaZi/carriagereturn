@@ -10,12 +10,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.dirname(path.dirname(here));
 const text = fs.readFileSync(path.join(root, 'entry/src/main/ets/components/AppIcon.ets'), 'utf8');
 
-test('13 种 kind 全部登记', () => {
+test('14 种 kind 全部登记（第 10 批新增 help）', () => {
   const kinds = [...text.matchAll(/static readonly [A-Z_]+: string = '([^']+)'/g)].map((m) => m[1]);
-  assert.equal(kinds.length, 13);
+  assert.equal(kinds.length, 14);
   assert.deepEqual(kinds, [
     'back', 'chevron_up', 'plus', 'chevron', 'folder', 'menu', 'more',
-    'check', 'settings', 'export', 'rename', 'delete', 'lock',
+    'check', 'settings', 'export', 'rename', 'delete', 'lock', 'help',
   ]);
 });
 
@@ -28,13 +28,13 @@ test('iconResourceOf 对每个 kind 都有分支', () => {
   }
 });
 
-test('系统符号名未被改动（13 个映射）', () => {
+test('系统符号名未被改动（14 个映射）', () => {
   const symbols = [...text.matchAll(/\$r\('sys\.symbol\.([a-z0-9_]+)'\)/g)].map((m) => m[1]);
   const unique = [...new Set(symbols)];
   assert.deepEqual(unique.sort(), [
     'checkmark', 'chevron_left', 'chevron_right', 'chevron_up', 'dot_grid_2x2',
     'folder', 'gearshape', 'line_3_horizontal', 'lock', 'plus', 'share',
-    'square_and_pencil', 'trash',
+    'square_and_pencil', 'trash', 'questionmark_circle',
   ].sort());
 });
 

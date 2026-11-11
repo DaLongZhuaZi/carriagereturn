@@ -12,6 +12,7 @@ import { statsService } from '../services/StatsService';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { SpotlightStep } from './SpotlightOverlay';
+import { AppIcon } from './AppIcon';
 import { GuideBridge } from '../services/GuideBridge';
 
 @Component
@@ -89,8 +90,7 @@ export struct HomePage {
         Row() {
           Blank()
           Stack() {
-            SymbolGlyph($r('sys.symbol.questionmark_circle'))
-              .fontSize(24).fontColor(['#e8ddc9'])
+            AppIcon({ kind: 'help', iconSize: 24, color: '#e8ddc9' })
           }
           .width(44).height(44)
           .onClick(() => { GuideBridge.request('home'); })
