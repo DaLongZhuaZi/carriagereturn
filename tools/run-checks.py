@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""第 0 批验证总跑：一次跑完所有本机可执行证据，落 docs/evidence/batch0-checks.md。
+"""第 0 批验证总跑：一次跑完所有本机可执行证据，落 docs/evidence/final-checks.md（第 7 批起不再写 batch0-checks.md；batch0 为第 0 批冻结存档，U+FFFD 为有损读取产物，原文不可恢复，不重生成、不覆盖）。
 
 每项记录：命令、退出码、结果（PASS/FAIL/EXPECTED-FAIL）、输出尾部。
 EXPECTED-FAIL 用于记录"已知不应通过"的对照（540 vs 332 门图），不算本批失败。
@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import glob
 import os
+import shutil
+import sys
 import subprocess
 import sys
 from datetime import datetime
@@ -26,30 +28,35 @@ def run(cmd, cwd=ROOT, timeout=300):
         return -1, repr(exc)
 
 
+_py3 = shutil.which("python3")
+# Windows 应用商店的 python3.EXE 是占位 stub（exit 9009），必须回退到当前解释器
+PY = sys.executable if (_py3 is None or "WindowsApps" in _py3) else _py3
+
+
 def main() -> int:
     tests = sorted(glob.glob(os.path.join(ROOT, "tools", "tests", "*.test.mjs")))
     checks = [
         ("arkts-self-test", ["node", "tools/check-arkts.mjs", "--self-test"], False),
         ("arkts-structural", ["node", "tools/check-arkts.mjs", "--quiet"], False),
-        ("contracts", ["python", "tools/check-contracts.py"], False),
+        ("contracts", [PY, "tools/check-contracts.py"], False),
         ("unit-tests", ["node", "--experimental-strip-types", "--test"] + tests, False),
-        ("model-tsc", ["python", "tools/check-model-types.py"], False),
-        ("gate-self-test", ["python", "tools/gate-compare.py", "--self-test"], False),
-        ("gate-500-vs-332", ["python", "tools/gate-compare.py",
+        ("model-tsc", [PY, "tools/check-model-types.py"], False),
+        ("gate-self-test", [PY, "tools/gate-compare.py", "--self-test"], False),
+        ("gate-500-vs-332", [PY, "tools/gate-compare.py",
                              "docs/shots/332_metal3.jpeg", "docs/shots/500_gate.jpeg",
                              "--scale", "400x640"], False),
-        ("gate-540-vs-332", ["python", "tools/gate-compare.py",
+        ("gate-540-vs-332", [PY, "tools/gate-compare.py",
                              "docs/shots/332_metal3.jpeg", "docs/shots/540_1920s_gate.jpeg",
                              "--scale", "400x640"], True),
-        ("audio-verify", ["python", "tools/audio-verify.py", "--json",
+        ("audio-verify", [PY, "tools/audio-verify.py", "--json",
                           "docs/evidence/audio-verify.json"], False),
-        ("icon-audit", ["python", "tools/audit-icons.py", "--json",
+        ("icon-audit", [PY, "tools/audit-icons.py", "--json",
                         "docs/evidence/icon-audit.json"], False),
-        ("probes-dry-run", ["python", "tools/probes/run_all.py", "--dry-run"], False),
-        ("probe-gates", ["python", "tools/probes/check-gates.py"], False),
-        ("switch-audit", ["python", "tools/audit-switches.py", "--json",
+        ("probes-dry-run", [PY, "tools/probes/run_all.py", "--dry-run"], False),
+        ("probe-gates", [PY, "tools/probes/check-gates.py"], False),
+        ("switch-audit", [PY, "tools/audit-switches.py", "--json",
                           "docs/evidence/switches.json"], False),
-        ("audio-verify-all-packs", ["python", "tools/audio-verify.py", "--json",
+        ("audio-verify-all-packs", [PY, "tools/audio-verify.py", "--json",
                                     "docs/evidence/audio-verify.json"], False),
     ]
     rows = []

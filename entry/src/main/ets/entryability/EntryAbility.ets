@@ -60,13 +60,6 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // 注册 Courier Prime（此前全仓无一处 registerFont，纸面 Text 回落系统比例字体）
-    try {
-      font.registerFont({ familyName: 'CourierPrime', familySrc: '/font/CourierPrime-Regular.ttf' });
-      hilog.info(DOMAIN, TAG, 'registerFont CourierPrime ok');
-    } catch (e) {
-      hilog.error(DOMAIN, TAG, 'registerFont failed');
-    }
     // §2.9 沉浸式按 NGF 标准接线（照源仓 af-app）：两行都要有，否则 NGF 沉浸式栈是死代码。
     // 本批只调用已有门面，不改 vendored 框架副本（AGENTS.md）。
     ngfPlatformWindowManagerFacade.bindWindowStage(windowStage);

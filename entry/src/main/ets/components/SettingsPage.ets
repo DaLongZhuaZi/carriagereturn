@@ -141,6 +141,7 @@ export struct SettingsPage {
           })
         }
         .width('100%')
+        .id('settings__sound_row')
         .opacity(this.revealN > 0 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
@@ -234,6 +235,7 @@ export struct SettingsPage {
           })
         }
         .width('100%')
+        .id('settings__defaults')
         .opacity(this.revealN > 4 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
@@ -272,6 +274,7 @@ export struct SettingsPage {
           Column().width('100%').height(24)
         }
         .width('100%')
+        .id('settings__replay')
         .opacity(this.revealN > 5 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 

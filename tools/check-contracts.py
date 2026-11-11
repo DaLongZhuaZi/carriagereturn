@@ -9,7 +9,7 @@
   4) Index 不再直接 import systemShare，分享走 ShareService；
   5) 字体注册循环在 FontService，Index 调 registerBundled；
   6) DocStore 有 trash/restore/rename/search/listTrashed；第 6 批起 remove() 已翻转为移入回收站；
-  7) GuideOverlay 的语义锚类型存在。
+  7) SpotlightOverlay／SpotlightStep 契约存在；GuideOverlay 只保留启动引导用的 GuideStep（无锚）。
 
 退出码：0=全过；1=有失败。
 """
@@ -46,13 +46,16 @@ CHECKS = [
         r"TEST_HOOKS_BUILD", r"static enabled", r"static audioTraceEnabled", r"static leverInjectEnabled",
     ]),
     ("entry/src/main/ets/services/AudioTrace.ets", [
-        r"export interface AudioEmitTrace", r"static onEmit", r"static onPcmChunk", r"static emitTrace",
+        r"export interface AudioEmitTrace", r"static onEmit", r"static emitTrace",
     ]),
     ("entry/src/main/ets/components/SettingsRow.ets", [
         r"export struct SettingsRow", r"@Prop label", r"@Prop mode", r"onToggle", r"onSlide",
     ]),
+    ("entry/src/main/ets/components/SpotlightOverlay.ets", [
+        r"export interface SpotlightStep", r"export struct SpotlightOverlay",
+    ]),
     ("entry/src/main/ets/components/GuideOverlay.ets", [
-        r"export interface GuideAnchor", r"export interface GuideStep", r"export struct GuideOverlay",
+        r"export interface GuideStep", r"export struct GuideOverlay",
         r"@Prop visible", r"@Prop title: ResourceStr", r"text: ResourceStr",
         r"guide_btn_skip", r"guide_btn_ok", r"onNext", r"onSkip", r"onClose",
     ]),

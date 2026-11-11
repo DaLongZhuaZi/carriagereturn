@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-10T14:41:23+08:00",
-  "head": "f05e750",
+  "generatedAt": "2026-11-11T14:53:32+08:00",
+  "head": "6fd4c98",
   "keys": [
     {
       "const": "ONBOARDING_SEEN",
@@ -328,6 +328,28 @@
       "default": "false",
       "reads": 0,
       "writes": 0,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "STATS_TOTAL_CHARS",
+      "key": "stats.total.chars",
+      "type": "number",
+      "default": "0",
+      "reads": 1,
+      "writes": 2,
+      "registered": true,
+      "removeAfter": "",
+      "removeCommand": ""
+    },
+    {
+      "const": "ACHIEVE_MIGRATED",
+      "key": "achieve.migrated",
+      "type": "boolean",
+      "default": "false",
+      "reads": 1,
+      "writes": 1,
       "registered": true,
       "removeAfter": "",
       "removeCommand": ""

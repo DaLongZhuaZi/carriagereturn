@@ -52,7 +52,6 @@ export struct LeverLayer1930 {
   /** 摆动开始回调（铃/复位音与回位开始同帧）。 */
   onSwingStart: () => void = (): void => {};
   /** 点拨杆 = 换行一次（与底部换行键同义）。 */
-  onLeverTap: () => void = (): void => {};
 
   /** 外部拖拽比例变化：跟手控角（不套动画）；回到 0 时弹回静止角 */
   onDragRatio(): void {

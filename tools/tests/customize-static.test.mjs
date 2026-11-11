@@ -58,7 +58,7 @@ test('FontManagerPage：导入链与失败状态全在（pickFont→校验→cop
   assert.match(fontPage, /'\.otf'/);
   assert.match(fontPage, /getHostContext\(\)/);
   assert.match(fontPage, /common\.UIAbilityContext/);
-  assert.match(fontPage, /export function guideStepsForFontManager\(\): GuideStep\[\]/);
+  assert.match(fontPage, /export function guideStepsForFontManager\(\): SpotlightStep\[\]/);
   for (let i = 1; i <= 3; i++) {
     assert.ok(fontPage.includes(`$r('app.string.guide_font_manager_${i}')`), `缺引导条 ${i}`);
   }
@@ -78,7 +78,7 @@ test('PaperCustomPage：色板/横线/三滑杆/纸纹/预设 + PaperStage 小�
   assert.match(paperPage, /CustomizeStore\.savePreset\(/);
   assert.match(paperPage, /CustomizeStore\.deletePreset\(/);
   assert.match(paperPage, /SettingsRow\(\{/);
-  assert.match(paperPage, /export function guideStepsForPaperCustom\(\): GuideStep\[\]/);
+  assert.match(paperPage, /export function guideStepsForPaperCustom\(\): SpotlightStep\[\]/);
   for (let i = 1; i <= 3; i++) {
     assert.ok(paperPage.includes(`$r('app.string.guide_paper_custom_${i}')`), `缺引导条 ${i}`);
   }

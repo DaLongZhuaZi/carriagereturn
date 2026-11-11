@@ -95,6 +95,7 @@ export struct DossierPage {
   @Builder
   trailingBtn() {
     Text('新建卷宗').fontSize(12).fontColor('#e8ddc9')
+      .id('dossier__new_btn')
       .padding({ left: 14, right: 14, top: 7, bottom: 7 })
       .borderRadius(28)
       .backgroundColor('#2e2620')
@@ -168,6 +169,7 @@ export struct DossierPage {
             }
           }, (d: Dossier) => d.id + ':' + d.updatedAt.toString())
         }
+        .id('dossier__list')
         .columnsTemplate(this.colsTemplate())
         .columnsGap(16).rowsGap(16)
         .width('100%').layoutWeight(1)

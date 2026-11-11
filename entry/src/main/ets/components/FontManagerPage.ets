@@ -47,6 +47,8 @@ export struct FontManagerPage {
   /** 第 2 批 F3：当前机型 + 应用字体回调（把导入族名写入 custom.font.<machine>.family）。 */
   @Prop currentMachine: string = '';
   onApplyFamily: (familyName: string) => void = (familyName: string): void => {};
+  /** 第 10 批 R3：删除字体后通知 Index 同会话刷新当前机型字体。 */
+  onFontDeleted: () => void = (): void => {};
   onBack: () => void = (): void => {};
 
   aboutToAppear(): void {
@@ -178,6 +180,8 @@ export struct FontManagerPage {
           kinds[i], familyName);
       }
     }
+    // 第 10 批 R3：通知 Index 重读当前机型字体并 apply（同会话立即刷新）
+    this.onFontDeleted();
   }
 
   @Builder

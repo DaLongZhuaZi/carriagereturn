@@ -1653,6 +1653,15 @@ struct Index {
   }
 
   /** 第 2 批 F3：按机器偏好应用字体（familyName 为空回落默认）。 */
+  /** 第 10 批 R3：删字体后同会话刷新当前机型字体（重读 store＋apply，不轮询）。 */
+  private refreshFontAfterDelete(): void {
+    const family: string = CustomizeStore.fontFamily(this.machineKind as string);
+    this.applyMachineFont(family);
+    this.fontPrefsRev = this.fontPrefsRev + 1;
+    hilog.info(DOMAIN, TAG, 'font refresh after delete machine=%{public}s family=%{public}s',
+      this.machineKind as string, family);
+  }
+
   private applyMachineFont(family: string): void {
     let chosen: FontSpec | null = null;
     if (family.length > 0) {
@@ -4028,9 +4037,6 @@ struct Index {
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
-                  onLeverTap: (): void => {
-                    this.onNewline();
-                  },
                   })
                 } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
                 LeverLayer1930({
@@ -4046,9 +4052,6 @@ struct Index {
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
-                  },
-                  onLeverTap: (): void => {
-                    this.onNewline();
                   },
                 })
                 } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
@@ -4066,9 +4069,6 @@ struct Index {
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
                   },
-                  onLeverTap: (): void => {
-                    this.onNewline();
-                  },
                 })
                 } else {
                 LeverLayer1960({
@@ -4084,9 +4084,6 @@ struct Index {
                     - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
                   onSwingStart: (): void => {
                     this.audioService.playCarriageReset();
-                  },
-                  onLeverTap: (): void => {
-                    this.onNewline();
                   },
                 })
                 }
@@ -4562,6 +4559,7 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'font applied machine=%{public}s family=%{public}s',
               this.machineKind as string, family);
           },
+          onFontDeleted: (): void => { this.refreshFontAfterDelete(); },
           onBack: (): void => { this.popPage(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))

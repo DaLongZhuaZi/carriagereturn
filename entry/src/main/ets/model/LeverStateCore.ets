@@ -21,16 +21,6 @@ export function slotOf(machine: string): number {
   return 0;
 }
 
-/** 四份比例状态的初值（全 0）。 */
-export function zeroRatios(): number[] {
-  return [0, 0, 0, 0];
-}
-
-/** 四份换行计数的初值（全 0）。 */
-export function zeroTicks(): number[] {
-  return [0, 0, 0, 0];
-}
-
 /** 切机纪元递增（渲染件 Watch 到变化立即回静止角、不带动画）。 */
 export function nextEpoch(epoch: number): number {
   return (isFinite(epoch) ? epoch : 0) + 1;

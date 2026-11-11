@@ -25,8 +25,8 @@ def main() -> int:
     keep = "--keep" in sys.argv
     tsc = shutil.which("tsc")
     if not tsc:
-        print("SKIP: tsc not found")
-        return 0
+        print("FAIL: tsc not found（model 类型检查未执行）")
+        return 2
     tmp = tempfile.mkdtemp(prefix="cr-tscheck-")
     models = os.path.join(tmp, "model")
     os.makedirs(models)

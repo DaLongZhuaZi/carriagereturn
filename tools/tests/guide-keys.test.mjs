@@ -25,7 +25,7 @@ test('string.json：guide 资源键齐全且非空', () => {
   }
 });
 
-test('11 个页面源码都有对应 guideSteps 导出且引用字面量资源键', () => {
+test('13 个页面源码都有对应 guideSteps 导出且引用字面量资源键', () => {
   const pages = core.allPages();
   const files = {
     home: 'entry/src/main/ets/components/HomePage.ets',
@@ -45,7 +45,7 @@ test('11 个页面源码都有对应 guideSteps 导出且引用字面量资源�
   for (const p of pages) {
     if (p === 'typewriter') continue; // 打字机引导在 Index 内联（下方单独断言）
     const text = fs.readFileSync(path.join(root, files[p]), 'utf8');
-    assert.ok(/export function guideStepsFor[A-Za-z]+\(\): GuideStep\[\]/.test(text), `${p} 缺 guideSteps 导出`);
+    assert.ok(/export function guideStepsFor[A-Za-z]+\(\): SpotlightStep\[\]/.test(text), `${p} 缺 guideSteps 导出`);
     for (let i = 1; i <= core.stepsExpected(p); i++) {
       assert.ok(text.includes(`$r('app.string.${core.pageStepKey(p, i)}')`), `${p} 缺 ${i} 条`);
     }
@@ -78,4 +78,35 @@ test('Index：typewriter 引导函数与启动引导 4 条键在 Index', () => {
   }
   assert.ok(index.includes("$r('app.string.guide_typewriter_1')") ||
     index.includes('guideStepsForTypewriter'), 'Index 缺打字机引导');
+});
+
+test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => {
+  const pageFiles = {
+    home: 'HomePage.ets', dossier: 'DossierPage.ets', dossier_detail: 'DossierDetailPage.ets',
+    document_view: 'DocumentViewPage.ets', collection: 'CollectionPage.ets',
+    collection_detail: 'CollectionDetailPage.ets', customize: 'CustomizePage.ets',
+    settings: 'SettingsPage.ets', export: 'ExportPage.ets',
+    pinyin_settings: 'PinyinSettingsPage.ets', font_manager: 'FontManagerPage.ets',
+    paper_custom: 'PaperCustomPage.ets', trash: 'TrashPage.ets',
+  };
+  const seen = new Map();
+  for (const [page, file] of Object.entries(pageFiles)) {
+    const text = fs.readFileSync(path.join(root, 'entry/src/main/ets/components', file), 'utf8');
+    const ids = [...text.matchAll(/anchorId: '([^']+)'/g)].map((m) => m[1]);
+    assert.ok(ids.length >= 1, `${page} 缺 anchorId`);
+    for (const id of ids) {
+      assert.ok(!seen.has(id) || seen.get(id) === page, `anchorId 跨页重名 ${id}`);
+      seen.set(id, page);
+      // 已挂 .id() 的页（home/settings/dossier）必须真的挂上；其余按 §2.4 fallback，列 miss 清单
+      const implemented = ['home', 'settings', 'dossier'];
+      if (implemented.includes(page)) {
+        assert.ok(text.includes(`.id('${id}')`), `${page} 的 ${id} 没有挂 .id()`);
+      }
+    }
+  }
+  // 打字机三条在 Index 内联
+  const idx = fs.readFileSync(path.join(root, 'entry/src/main/ets/pages/Index.ets'), 'utf8');
+  for (const id of ['typewriter__lever', 'typewriter__paper_change_btn', 'typewriter__paper']) {
+    assert.ok(idx.includes(`anchorId: '${id}'`), `Index 缺 ${id}`);
+  }
 });

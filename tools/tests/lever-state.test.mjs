@@ -27,15 +27,6 @@ test('slotOf：未知机型回落 0（不抛）', () => {
   assert.equal(mod.slotOf('unknown'), 0);
 });
 
-test('zeroRatios / zeroTicks：四份全 0 且互不共享引用', () => {
-  const r1 = mod.zeroRatios();
-  const r2 = mod.zeroRatios();
-  assert.deepEqual(r1, [0, 0, 0, 0]);
-  assert.deepEqual(mod.zeroTicks(), [0, 0, 0, 0]);
-  r1[0] = 9;
-  assert.equal(r2[0], 0);
-});
-
 test('nextEpoch：递增且容错', () => {
   assert.equal(mod.nextEpoch(0), 1);
   assert.equal(mod.nextEpoch(41), 42);

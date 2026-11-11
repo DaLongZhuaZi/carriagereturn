@@ -74,8 +74,8 @@ export function allResourceKeys(): string[] {
       out.push(pageStepKey(pages[i], k));
     }
     out.push(pageTitleKey(pages[i]));
-    // 打字机页不加常驻说明行（总纲），因此无 hint 键
-    if (pages[i] !== GUIDE_PAGE_TYPEWRITER) {
+    // 打字机页不加常驻说明行（总纲）；主页常驻说明行是死键（第 10 批 D5 删除），均无 hint 键
+    if (pages[i] !== GUIDE_PAGE_TYPEWRITER && pages[i] !== GUIDE_PAGE_HOME) {
       out.push(pageHintKey(pages[i]));
     }
   }

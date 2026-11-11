@@ -1,6 +1,6 @@
 {
   "tool": "audio-verify",
-  "soundRoot": "entry/src/main/resources/rawfile/sound",
+  "soundRoot": "entry\\src\\main\\resources\\rawfile\\sound",
   "files": 80,
   "packs": [
     "pack",

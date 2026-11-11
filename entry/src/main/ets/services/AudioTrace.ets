@@ -22,12 +22,10 @@ export interface AudioEmitTrace {
 }
 
 export type AudioEmitCallback = (t: AudioEmitTrace) => void;
-export type PcmChunkCallback = (role: string, pcm: ArrayBuffer) => void;
 
 /** 音效观测（静态，无 UI 依赖）。 */
 export class AudioTrace {
   private static emitCb: AudioEmitCallback | null = null;
-  private static pcmCb: PcmChunkCallback | null = null;
 
   /** 注册发射记录回调（仅测试构建有效）。 */
   static onEmit(cb: AudioEmitCallback): void {
@@ -35,14 +33,6 @@ export class AudioTrace {
       return;
     }
     AudioTrace.emitCb = cb;
-  }
-
-  /** 注册 PCM 块回调（设备侧空输出捕获接入点；仅测试构建有效）。 */
-  static onPcmChunk(cb: PcmChunkCallback): void {
-    if (!TestHooks.audioTraceEnabled()) {
-      return;
-    }
-    AudioTrace.pcmCb = cb;
   }
 
   /** AudioService.emit() 调用；发布构建立即返回。 */
@@ -58,13 +48,5 @@ export class AudioTrace {
       rate: rate,
       atMs: Date.now(),
     });
-  }
-
-  /** 测试侧推入解码后的 PCM（空输出捕获管线调用）。 */
-  static pushPcm(role: string, pcm: ArrayBuffer): void {
-    if (!TestHooks.audioTraceEnabled() || AudioTrace.pcmCb === null) {
-      return;
-    }
-    AudioTrace.pcmCb(role, pcm);
   }
 }

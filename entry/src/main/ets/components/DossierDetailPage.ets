@@ -494,6 +494,7 @@ export struct DossierDetailPage {
           // D13：手机端「新建纸张」收进 ⋯ 菜单，不再挤页眉
           if (this.widthVp >= 600) {
             Text('新建纸张').fontSize(12).fontColor('#e8ddc9')
+              .id('dossier_detail__new_btn')
               .padding({ left: 14, right: 14, top: 7, bottom: 7 })
               .borderRadius(28).backgroundColor('#2e2620')
               .margin({ left: 8 })
