@@ -49,6 +49,7 @@ export struct PinyinSettingsPage {
     Scroll() {
       Column() {
         Text('候选栏').fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .id('pinyin__candidate')
           .width('100%').margin({ top: 18, bottom: 6 })
         SettingsRow({
           label: '候选数量',
@@ -107,6 +108,7 @@ export struct PinyinSettingsPage {
           AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' }).margin({ left: 6 })
         }
         .width('100%').height(52)
+        .id('pinyin__userwords')
         .onClick(() => { this.managing = true; })
         Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
 

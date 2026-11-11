@@ -198,6 +198,7 @@ export struct FontManagerPage {
         }
         .width('100%')
         .height(52)
+        .id('font_manager__import_btn')
         .scale({ x: this.pressedKey === 'import' ? 0.97 : 1,
           y: this.pressedKey === 'import' ? 0.97 : 1 })
         .animation({ duration: 120, curve: Curve.EaseOut })

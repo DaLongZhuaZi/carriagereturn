@@ -124,6 +124,7 @@ export struct CustomizePage {
               Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
             }
             .width('100%')
+            .id('customize__manage_entry')
             .margin({ bottom: 8 })
 
             // ① 机器：四枚圆角胶囊
@@ -163,6 +164,7 @@ export struct CustomizePage {
               }.width('100%')
             }
             .width('100%')
+            .id('customize__machine')
             .opacity(this.revealN > 0 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })
 

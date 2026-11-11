@@ -17,7 +17,7 @@
         "hdc 可用: False；targets: （空）"
       ],
       "reason": "无 NFC 第二台设备且无 SDK：按 Q5 缺省走 ShareKit＋指引；API 命名待有设备时补",
-      "checked_at": "2026-11-11T14:53:29+08:00"
+      "checked_at": "2026-11-11T15:55:12+08:00"
     },
     {
       "probe": "probe_register_font",
@@ -34,7 +34,7 @@
         "是否出现 file:// 或 filesDir 拼 fontSrc: False"
       ],
       "reason": "判定标准需真机＋测试构建；本机无设备，静态部分已记录",
-      "checked_at": "2026-11-11T14:53:30+08:00"
+      "checked_at": "2026-11-11T15:55:12+08:00"
     },
     {
       "probe": "probe_file_picker",
@@ -50,7 +50,7 @@
         "uitest 是否可驱动系统选择器：需真机；系统选择器是独立进程 UI，历史经验只能截图判存在"
       ],
       "reason": "无设备：两路选择与保存可见性无法取证",
-      "checked_at": "2026-11-11T14:53:30+08:00"
+      "checked_at": "2026-11-11T15:55:12+08:00"
     },
     {
       "probe": "probe_fold_angle",
@@ -69,7 +69,7 @@
         "设备：无折叠真机（既有 MLR-AL10 平板／ADA-AL00U 手机均非折叠）"
       ],
       "reason": "无折叠设备；模拟器可跑但本会话无 IDE/启动入口，按 Q3 缺省执行",
-      "checked_at": "2026-11-11T14:53:30+08:00"
+      "checked_at": "2026-11-11T15:55:13+08:00"
     },
     {
       "probe": "probe_test_clock",
@@ -87,7 +87,7 @@
         "SDK 是否存在公开手动步进 API：本机无 SDK 目录，无法核对 d.ts；结论不能写成“支持”"
       ],
       "reason": "无设备与 SDK：帧步进无法实验；按 fallback 先走曲线纯函数单测＋AGENTS 口径",
-      "checked_at": "2026-11-11T14:53:30+08:00"
+      "checked_at": "2026-11-11T15:55:13+08:00"
     },
     {
       "probe": "probe_verification_capabilities",
@@ -106,7 +106,7 @@
         "结论：ShareController.show().then 只证“面板已调起”，证不了“对方已接收/完成分享”——分享完成不可观测，文案不得写“已分享成功”"
       ],
       "reason": "四项中“能”的两项来自仓库既有真机记录；本轮无设备，未复现，不记 PASS",
-      "checked_at": "2026-11-11T14:53:31+08:00"
+      "checked_at": "2026-11-11T15:55:13+08:00"
     }
   ]
 }

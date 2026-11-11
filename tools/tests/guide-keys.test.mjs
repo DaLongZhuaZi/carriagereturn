@@ -113,6 +113,12 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
         'paper_custom__controls',
         'document_view__content', 'document_view__delete_btn',
         'typewriter__lever', 'typewriter__paper', 'typewriter__paper_change_btn',
+        'collection_detail__progress', 'collection_detail__set_btn',
+        'customize__machine', 'customize__manage_entry',
+        'export__actions', 'export__share_btn',
+        'pinyin__candidate', 'pinyin__userwords',
+        'font_manager__import_btn',
+        'paper_custom__texture_import', 'paper_custom__preset',
       ]);
       if (attached.has(id)) {
         assert.ok(text.includes(`.id('${id}')`), `${page} 的 ${id} 没有挂 .id()`);

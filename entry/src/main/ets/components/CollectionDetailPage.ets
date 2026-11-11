@@ -105,6 +105,7 @@ export struct CollectionDetailPage {
               .width('100%').height(32)
             }
             .width('100%').margin({ top: 16 })
+            .id('collection_detail__progress')
             .opacity(this.revealN > 3 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })
           }
@@ -115,6 +116,7 @@ export struct CollectionDetailPage {
 
         // 底部「设为当前机器」（底距交给 PageShell）
         Text('设为当前机器')
+          .id('collection_detail__set_btn')
           .fontSize(17).fontColor('#e8ddc9')
           .width('100%').height(56).textAlign(TextAlign.Center)
           .borderRadius(28).backgroundColor('#2e2620')

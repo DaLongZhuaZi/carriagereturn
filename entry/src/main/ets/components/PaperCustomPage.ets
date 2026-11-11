@@ -346,6 +346,7 @@ export struct PaperCustomPage {
         .scale({ x: this.pressedKey === 'texture' ? 0.97 : 1,
           y: this.pressedKey === 'texture' ? 0.97 : 1 })
         .animation({ duration: 120, curve: Curve.EaseOut })
+        .id('paper_custom__texture_import')
         .onTouch((e: TouchEvent) => {
           if (e.type === TouchType.Down) {
             this.pressedKey = 'texture';
@@ -373,6 +374,7 @@ export struct PaperCustomPage {
             .onClick(() => { this.savePreset(); })
         }
         .width('100%')
+        .id('paper_custom__preset')
         .height(52)
 
         ForEach(this.presetNames, (n: string) => {

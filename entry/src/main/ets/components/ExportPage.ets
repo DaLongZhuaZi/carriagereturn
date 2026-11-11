@@ -694,8 +694,10 @@ export struct ExportPage {
           this.failWith('export_share_failed', e.message === undefined ? '' : e.message);
         });
       })
+      .id('export__share_btn')
     }
     .width('100%').padding({ left: 20, right: 20 }).margin({ bottom: 8 })
+    .id('export__actions')
   }
 
   private pressBtn(kind: string, e: TouchEvent): void {
