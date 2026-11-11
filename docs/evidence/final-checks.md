@@ -1,4 +1,4 @@
-# 最终验证总跑（第 7 批，2026-11-11T17:15:29+08:00）
+# 最终验证总跑（第 7 批，2026-11-11T17:22:04+08:00）
 
 | 项 | 命令 | 退出码 | 结果 |
 |---|---|---|---|
@@ -25,14 +25,14 @@
 [self-test] PASS（0 项失败）
 
 [stderr]
-(node:48148) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:48008) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
 ## arkts-structural — PASS
 ```
 [stderr]
-(node:30284) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:50764) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -53,10 +53,10 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 2146.3302
+# duration_ms 1959.2685
 
 [stderr]
-(node:41656) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(node:41544) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -150,7 +150,7 @@ Markdown: D:\HarmonyAPP\carriagereturn\docs\evidence\̽�����.md
 
 ## switch-audit — PASS
 ```
-keys=32 switches=3 problems=0 head=62aeb8f
+keys=32 switches=3 problems=0 head=f1cafa4
 д�� docs/evidence/�����嵥-��7��.md
 �˶� PASS
 ```

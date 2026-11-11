@@ -131,3 +131,19 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
     assert.ok(idx.includes(`anchorId: '${id}'`), `Index 缺 ${id}`);
   }
 });
+
+
+test('Index 触发守卫（第 10 批 §4.1/§4.3/§4.6）：栈深、浮层抑制、手动重入', () => {
+  const idx = fs.readFileSync(path.join(root, 'entry/src/main/ets/pages/Index.ets'), 'utf8');
+  // §4.1 只在前进时弹
+  assert.ok(idx.includes('const grew: boolean = depth > this.lastStackDepth;'), '缺栈深比较');
+  assert.ok(idx.includes('if (grew) {'), '缺 grew 守卫');
+  assert.ok(idx.includes('this.lastStackDepth = this.navStack.length;'), '缺栈深初始化');
+  // §4.3 浮层开着不弹
+  assert.ok(idx.includes('if (this.onboardingVisible || this.guideVisible)'), '缺浮层抑制');
+  assert.ok(idx.includes('if (this.achNoticeKind.length > 0)'), '缺成就弹窗抑制');
+  // §4.6 手动入口重入守卫
+  assert.ok(idx.includes('if (this.guideVisible || this.onboardingVisible)'), '缺手动重入守卫');
+  // §4.2 启动引导关闭后直接补跑（无 force 参数）
+  assert.ok(idx.includes("this.maybeShowPageGuide();") && idx.includes('closeOnboarding'), '缺 onboarding 链路');
+});
