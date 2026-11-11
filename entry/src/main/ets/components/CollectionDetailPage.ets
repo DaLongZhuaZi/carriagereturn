@@ -9,7 +9,7 @@
  */
 
 import { PageShell } from './PageShell';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 
 // P2-5：史实文字走 string.json
 const M_INFO: Record<string, Resource> = {
@@ -125,6 +125,7 @@ export struct CollectionDetailPage {
 
   build() {
     PageShell({
+        guidePage: 'collection_detail',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: '收藏',
@@ -137,10 +138,10 @@ export struct CollectionDetailPage {
 }
 
 /** CollectionDetail 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForCollectionDetail(): GuideStep[] {
+export function guideStepsForCollectionDetail(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_collection_detail_1') },
-    { text: $r('app.string.guide_collection_detail_2') },
-    { text: $r('app.string.guide_collection_detail_3') },
+    { text: $r('app.string.guide_collection_detail_1'), anchorId: 'collection_detail__intro' },
+    { text: $r('app.string.guide_collection_detail_2'), anchorId: 'collection_detail__progress' },
+    { text: $r('app.string.guide_collection_detail_3'), anchorId: 'collection_detail__set_btn' },
   ];
 }

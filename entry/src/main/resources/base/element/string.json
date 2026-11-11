@@ -951,6 +951,14 @@
     {
       "name": "collection_owned",
       "value": "已拥有"
+    },
+    {
+      "name": "guide_btn_prev",
+      "value": "上一步"
+    },
+    {
+      "name": "guide_btn_next",
+      "value": "下一步"
     }
   ]
 }

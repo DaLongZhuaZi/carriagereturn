@@ -17,7 +17,7 @@
 
 import { PageShell } from './PageShell';
 import { SettingsRow } from './SettingsRow';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { clampDailyGoal } from '../model/StatsCore';
 import { DELETE_MODE_DIRECT, DELETE_MODE_ASK, deleteModeOf, nextDeleteMode } from '../model/SettingsCore';
 import { common } from '@kit.AbilityKit';
@@ -288,6 +288,7 @@ export struct SettingsPage {
 
   build() {
     PageShell({
+        guidePage: 'settings',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: $r('app.string.page_settings'),
@@ -300,10 +301,10 @@ export struct SettingsPage {
 }
 
 /** Settings 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForSettings(): GuideStep[] {
+export function guideStepsForSettings(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_settings_1') },
-    { text: $r('app.string.guide_settings_2') },
-    { text: $r('app.string.guide_settings_3') },
+    { text: $r('app.string.guide_settings_1'), anchorId: 'settings__sound_row' },
+    { text: $r('app.string.guide_settings_2'), anchorId: 'settings__defaults' },
+    { text: $r('app.string.guide_settings_3'), anchorId: 'settings__replay' },
   ];
 }

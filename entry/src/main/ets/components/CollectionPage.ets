@@ -10,7 +10,7 @@ import { PageShell } from './PageShell';
 import { HintBar } from './HintBar';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { common } from '@kit.AbilityKit';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { AchievementDef, ACHIEVEMENTS } from '../model/AchievementDefs';
 import { AchievementInputs } from '../model/AchievementCore';
 import { AchievementService } from '../services/AchievementService';
@@ -306,6 +306,7 @@ export struct CollectionPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
+        guidePage: 'collection',
         widthVp: this.widthVp,
         heightVp: this.heightVp,
         title: $r('app.string.page_collection'),
@@ -327,10 +328,10 @@ export struct CollectionPage {
 }
 
 /** Collection 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForCollection(): GuideStep[] {
+export function guideStepsForCollection(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_collection_1') },
-    { text: $r('app.string.guide_collection_2') },
-    { text: $r('app.string.guide_collection_3') },
+    { text: $r('app.string.guide_collection_1'), anchorId: 'collection__grid' },
+    { text: $r('app.string.guide_collection_2'), anchorId: 'collection__grid' },
+    { text: $r('app.string.guide_collection_3'), anchorId: 'collection__grid' },
   ];
 }

@@ -16,7 +16,7 @@ import { AppIcon } from './AppIcon';
 import { AppMenu } from './AppMenu';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { componentUtils } from '@kit.ArkUI';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -710,6 +710,7 @@ export struct DossierDetailPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
+        guidePage: 'dossier_detail',
         widthVp: this.widthVp,
         heightVp: this.heightVp,
         title: '',
@@ -767,10 +768,10 @@ export struct DossierDetailPage {
 }
 
 /** DossierDetail 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForDossierDetail(): GuideStep[] {
+export function guideStepsForDossierDetail(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_dossier_detail_1') },
-    { text: $r('app.string.guide_dossier_detail_2') },
-    { text: $r('app.string.guide_dossier_detail_3') },
+    { text: $r('app.string.guide_dossier_detail_1'), anchorId: 'dossier_detail__list' },
+    { text: $r('app.string.guide_dossier_detail_2'), anchorId: 'dossier_detail__new_btn' },
+    { text: $r('app.string.guide_dossier_detail_3'), anchorId: 'dossier_detail__list' },
   ];
 }

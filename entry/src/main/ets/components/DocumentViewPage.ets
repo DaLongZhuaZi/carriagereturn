@@ -11,7 +11,7 @@ import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 
 const PAPER_RAW: Record<string, string> = {
   'letter': 'paper/paper-letter.jpg',
@@ -215,6 +215,7 @@ export struct DocumentViewPage {
     // D2：根节点多余的 backgroundColor('#171310') 已删（渐变由 PageShell 统一给）
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
+        guidePage: 'document_view',
         widthVp: this.widthVp,
         heightVp: this.heightVp,
         title: $r('app.string.page_document'),
@@ -236,10 +237,10 @@ export struct DocumentViewPage {
 }
 
 /** DocumentView 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForDocumentView(): GuideStep[] {
+export function guideStepsForDocumentView(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_document_view_1') },
-    { text: $r('app.string.guide_document_view_2') },
-    { text: $r('app.string.guide_document_view_3') },
+    { text: $r('app.string.guide_document_view_1'), anchorId: 'document_view__content' },
+    { text: $r('app.string.guide_document_view_2'), anchorId: 'document_view__edit_btn' },
+    { text: $r('app.string.guide_document_view_3'), anchorId: 'document_view__delete_btn' },
   ];
 }

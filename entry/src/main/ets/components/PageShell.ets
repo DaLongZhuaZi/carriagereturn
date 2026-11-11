@@ -9,6 +9,7 @@
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppIcon } from './AppIcon';
+import { GuideBridge } from '../services/GuideBridge';
 
 @Component
 export struct PageShell {
@@ -24,6 +25,10 @@ export struct PageShell {
   @State topInset: number = 28;
   @State bottomInset: number = 0;
   onBack: () => void = (): void => {};
+  /** 第 10 批：本页 page id（"?" 入口用）。空串则不显示 "?"。 */
+  @Prop guidePage: string = '';
+  /** 第 10 批：引导总开关（false 时 "?" 隐藏）。 */
+  @Prop guideEnabled: boolean = true;
   /** 自定义页眉（卷宗内页需要小封面+名字+⋯，用这个槽替换默认返回+标题行）。 */
   @Prop customHeader: boolean = false;
   @BuilderParam content: () => void;
@@ -69,6 +74,14 @@ export struct PageShell {
             Blank()
             if (this.showTrailing) {
               this.trailing()
+            }
+            if (this.guideEnabled && this.guidePage.length > 0) {
+              Stack() {
+                Text('?')
+                  .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+              }
+              .width(44).height(44)
+              .onClick(() => { GuideBridge.request(this.guidePage); })
             }
           }.width('100%').height(56).padding({ left: 12, right: 12 })
         }

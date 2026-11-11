@@ -8,18 +8,10 @@
  * 点卡片不关闭（卡片自己吞点击）。
  */
 
-/** 语义锚：优先 id，其次 role（role 的解析由第 1 批的页面注册表提供）。 */
-export interface GuideAnchor {
-  id?: string;
-  role?: string;
-}
-
 /** 一条提示。 */
 export interface GuideStep {
   /** 文案资源（string.json）；第 1 批起统一走 ResourceStr（修改第 0 批 string 契约） */
   text: ResourceStr;
-  /** 该条提示指向的语义锚（可选）。 */
-  anchor?: GuideAnchor;
 }
 
 @Component
@@ -27,22 +19,13 @@ export struct GuideOverlay {
   @Prop visible: boolean = false;
   @Prop title: ResourceStr = '';
   @Prop steps: GuideStep[] = [];
-  @Prop anchor: GuideAnchor = {};
   /** 第 1 批接入 seen-state 后由页面传入；本批默认只显示"知道了"。 */
   @Prop showSkip: boolean = false;
   onNext: () => void = (): void => {};
   onSkip: () => void = (): void => {};
   onClose: () => void = (): void => {};
 
-  private anchorText(): string {
-    if (this.anchor.id !== undefined && this.anchor.id.length > 0) {
-      return 'id=' + this.anchor.id;
-    }
-    if (this.anchor.role !== undefined && this.anchor.role.length > 0) {
-      return 'role=' + this.anchor.role;
-    }
-    return 'none';
-  }
+
 
   build() {
     if (this.visible) {

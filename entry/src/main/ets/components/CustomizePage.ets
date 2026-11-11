@@ -12,7 +12,7 @@ import { PageShell } from './PageShell';
 import { AppIcon } from './AppIcon';
 import { SettingsRow } from './SettingsRow';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 
 const MACHINE_LABEL: Record<string, string> = {
   '1920s-upright': '1920s',
@@ -288,6 +288,7 @@ export struct CustomizePage {
 
   build() {
     PageShell({
+        guidePage: 'customize',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: $r('app.string.page_customize'),
@@ -300,10 +301,10 @@ export struct CustomizePage {
 }
 
 /** Customize 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForCustomize(): GuideStep[] {
+export function guideStepsForCustomize(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_customize_1') },
-    { text: $r('app.string.guide_customize_2') },
-    { text: $r('app.string.guide_customize_3') },
+    { text: $r('app.string.guide_customize_1'), anchorId: 'customize__machine' },
+    { text: $r('app.string.guide_customize_2'), anchorId: 'customize__options' },
+    { text: $r('app.string.guide_customize_3'), anchorId: 'customize__manage_entry' },
   ];
 }

@@ -3,6 +3,7 @@
  * 图标全部用 Path 画线形，不用图片、不用文字符号。
  */
 import { AppIcon } from './AppIcon';
+import { GuideBridge } from '../services/GuideBridge';
 
 @Component
 export struct TopBar {
@@ -10,6 +11,8 @@ export struct TopBar {
   @Prop heightVp: number = 56;
   /** §11：左文件夹回主页（卷宗入口在主页内）。 */
   onOpenHome: () => void = (): void => {};
+  /** 第 10 批：引导 "?"（guideEnabled=false 时隐藏）。 */
+  @Prop guideEnabled: boolean = true;
   /** 右汉堡：下拉菜单（收藏／设置／导出）。 */
   onOpenMenu: () => void = (): void => {};
 
@@ -33,6 +36,17 @@ export struct TopBar {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
+
+      // 第 10 批：引导 "?"
+      if (this.guideEnabled) {
+        Stack() {
+          Text('?')
+            .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#dbccb3')
+        }
+        .width(44)
+        .height(44)
+        .onClick(() => { GuideBridge.request('typewriter'); })
+      }
 
       // 右：汉堡菜单（系统 symbol）—— §2.1 三件套
       Stack() {

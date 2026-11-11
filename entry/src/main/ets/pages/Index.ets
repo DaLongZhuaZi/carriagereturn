@@ -57,7 +57,9 @@ import { achievementById } from '../model/AchievementDefs';
 import { AppDialog } from '../components/AppDialog';
 import { FoldService, FoldState } from '../services/FoldService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
+import { SpotlightOverlay, SpotlightStep } from '../components/SpotlightOverlay';
 import { GuideService } from '../services/GuideService';
+import { GuideBridge } from '../services/GuideBridge';
 import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM, GUIDE_PAGE_TRASH } from '../model/GuideCore';
 import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
@@ -873,8 +875,14 @@ struct Index {
   @State guideVisible: boolean = false;
   @State guidePage: string = '';
   @State guideTitle: ResourceStr = '';
-  @State guideSteps: GuideStep[] = [];
+  @State guideSteps: SpotlightStep[] = [];
   @State onboardingVisible: boolean = false;
+  /** 第 10 批：引导总开关（冷启动读 GuideService.enabled；false 时三处 "?" 隐藏）。 */
+  @State guideEnabled: boolean = true;
+  /** 第 10 批：上次栈深（普通 private 字段，不触发重渲染）；只在变深时弹引导。 */
+  private lastStackDepth: number = 1;
+  /** 第 10 批：冷启动主页引导只补跑一次。 */
+  private coldStartGuideChecked: boolean = false;
 
   /** 导航栈（AGENTS「导航」）：栈底永远是 'home'。页内返回与系统返回都走弹栈。 */
   @State navStack: string[] = ['home'];
@@ -899,7 +907,13 @@ struct Index {
     this.exportOpen = has('export');
     hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
       this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
-    this.maybeShowPageGuide();
+    // §4.1：只在栈深变大（前进）时弹；返回/不变不弹
+    const depth: number = this.navStack.length;
+    const grew: boolean = depth > this.lastStackDepth;
+    this.lastStackDepth = depth;
+    if (grew) {
+      this.maybeShowPageGuide();
+    }
     // 第 2 批 F3：从纸张自定义页返回时刷新自定义值缓存（系统返回也覆盖）
     this.refreshPaperCustom();
   }
@@ -907,7 +921,7 @@ struct Index {
   // ---- 第 1 批：引导（Index 单挂载点）----
 
   /** 页面 id → guideSteps 数据（页面各自声明，Index 只做映射）。 */
-  private guideStepsOf(page: string): GuideStep[] {
+  private guideStepsOf(page: string): SpotlightStep[] {
     if (page === GUIDE_PAGE_HOME) { return guideStepsForHome(); }
     if (page === GUIDE_PAGE_DOSSIER) { return guideStepsForDossier(); }
     if (page === GUIDE_PAGE_DOSSIER_DETAIL) { return guideStepsForDossierDetail(); }
@@ -923,9 +937,9 @@ struct Index {
     if (page === GUIDE_PAGE_PINYIN_SETTINGS) { return guideStepsForPinyinSettings(); }
     if (page === GUIDE_PAGE_TYPEWRITER) {
       return [
-        { text: $r('app.string.guide_typewriter_1') },
-        { text: $r('app.string.guide_typewriter_2') },
-        { text: $r('app.string.guide_typewriter_3') },
+        { text: $r('app.string.guide_typewriter_1'), anchorId: 'typewriter__lever' },
+        { text: $r('app.string.guide_typewriter_2'), anchorId: 'typewriter__paper_change_btn' },
+        { text: $r('app.string.guide_typewriter_3'), anchorId: 'typewriter__paper' },
       ];
     }
     return [];
@@ -949,33 +963,56 @@ struct Index {
     return '';
   }
 
-  /** 当前可见页 → page id（覆盖层优先于底座）。 */
+  /** 当前页只认导航栈栈顶（第 10 批：不再读布尔标志优先级链）。 */
   private currentGuidePage(): string {
-    if (this.trashOpen) { return GUIDE_PAGE_TRASH; }
-    if (this.pinyinSettingsOpen) { return GUIDE_PAGE_PINYIN_SETTINGS; }
-    if (this.settingsOpen) { return GUIDE_PAGE_SETTINGS; }
-    if (this.exportOpen) { return GUIDE_PAGE_EXPORT; }
-    if (this.fontManagerOpen) { return GUIDE_PAGE_FONT_MANAGER; }
-    if (this.paperCustomOpen) { return GUIDE_PAGE_PAPER_CUSTOM; }
-    if (this.collectionOpen && this.collectionDetailKind.length > 0) { return GUIDE_PAGE_COLLECTION_DETAIL; }
-    if (this.collectionOpen) { return GUIDE_PAGE_COLLECTION; }
-    if (this.customizeOpen) { return GUIDE_PAGE_CUSTOMIZE; }
-    if (this.dossierOpen && this.openDocId.length > 0) { return GUIDE_PAGE_DOCUMENT_VIEW; }
-    if (this.dossierOpen && this.detailOpen) { return GUIDE_PAGE_DOSSIER_DETAIL; }
-    if (this.dossierOpen) { return GUIDE_PAGE_DOSSIER; }
-    if (this.navStack[this.navStack.length - 1] === 'typewriter') { return GUIDE_PAGE_TYPEWRITER; }
-    if (this.homeOpen) { return GUIDE_PAGE_HOME; }
-    return '';
+    const top: string = this.navStack.length > 0 ? this.navStack[this.navStack.length - 1] : 'home';
+    if (top === 'home') { return GUIDE_PAGE_HOME; }
+    if (top === 'typewriter') { return GUIDE_PAGE_TYPEWRITER; }
+    if (top === 'dossier') { return GUIDE_PAGE_DOSSIER; }
+    if (top === 'detail') { return GUIDE_PAGE_DOSSIER_DETAIL; }
+    if (top === 'docview') { return GUIDE_PAGE_DOCUMENT_VIEW; }
+    if (top === 'collection') { return GUIDE_PAGE_COLLECTION; }
+    if (top === 'collectiondetail') { return GUIDE_PAGE_COLLECTION_DETAIL; }
+    if (top === 'customize') { return GUIDE_PAGE_CUSTOMIZE; }
+    if (top === 'settings') { return GUIDE_PAGE_SETTINGS; }
+    if (top === 'pinyinsettings') { return GUIDE_PAGE_PINYIN_SETTINGS; }
+    if (top === 'export') { return GUIDE_PAGE_EXPORT; }
+    if (top === 'fontmanager') { return GUIDE_PAGE_FONT_MANAGER; }
+    if (top === 'papercustom') { return GUIDE_PAGE_PAPER_CUSTOM; }
+    if (top === 'trash') { return GUIDE_PAGE_TRASH; }
+    return GUIDE_PAGE_HOME;
   }
 
   private maybeShowPageGuide(): void {
     if (this.onboardingVisible || this.guideVisible) {
       return;
     }
+    // §4.3：成就弹窗开着时不弹（等关掉也不补弹）
+    if (this.achNoticeKind.length > 0) {
+      return;
+    }
     const page: string = this.currentGuidePage();
     if (page.length === 0 || !GuideService.shouldShow(page)) {
       return;
     }
+    this.openGuide(page);
+  }
+
+  /** 手动 "?" 或自动弹的共用入口；manual 时不看 seen，只看总开关与重入守卫。 */
+  private showPageGuide(page: string, manual: boolean = false): void {
+    if (!this.guideEnabled) {
+      return;
+    }
+    if (this.guideVisible || this.onboardingVisible) {
+      return;
+    }
+    if (!manual && !GuideService.shouldShow(page)) {
+      return;
+    }
+    this.openGuide(page);
+  }
+
+  private openGuide(page: string): void {
     this.guidePage = page;
     this.guideTitle = this.guideTitleOf(page);
     this.guideSteps = this.guideStepsOf(page);
@@ -1117,8 +1154,22 @@ struct Index {
     // 读取持久化的中文引擎（默认内置拼音）
     this.readCnEngine();
     // 第 1 批：首启启动引导（ONBOARDING_SEEN 控制；延迟到首帧后）
+    this.guideEnabled = GuideService.enabled();
+    GuideBridge.set(this.guideEnabled, (page: string): void => { this.showPageGuide(page, true); });
+    this.lastStackDepth = this.navStack.length;
     if (!GuideService.onboardingSeen()) {
       setTimeout(() => { this.onboardingVisible = true; }, 600);
+    } else {
+      // 第 10 批 §4.1 冷启动例外：回访用户主页是栈底、永不被 push → 首次布局稳定后补跑一次主页引导
+      setTimeout(() => {
+        if (!this.coldStartGuideChecked) {
+          this.coldStartGuideChecked = true;
+          if (this.guideEnabled && !this.guideVisible && !this.onboardingVisible &&
+            GuideService.shouldShow(GUIDE_PAGE_HOME)) {
+            this.maybeShowPageGuide();
+          }
+        }
+      }, 450);
     }
     // 第 5 批 F13／第 8 批 R4：旋钮开关（默认值唯一来源＝登记表；R4 起登记表为 on）
     this.knobEnabled = appPreferences.getBool(PrefKeys.CUSTOM_KNOB_ENABLED,
@@ -3262,6 +3313,10 @@ struct Index {
   /** 第 9 批 F5：把成就服务当前该弹的那条同步到 UI（一次只弹一个）。 */
   private refreshAchieveNotice(): void {
     const n: AchieveNotice | null = AchievementService.pending();
+    // 第 10 批 §4.5：成就弹窗要出现时，引导先关（记 seen），不许被引导盖住
+    if (n !== null && this.guideVisible) {
+      this.closePageGuide();
+    }
     this.achieveRev = this.achieveRev + 1;
     if (n === null) {
       this.achNoticeKind = '';
@@ -3682,7 +3737,7 @@ struct Index {
       Column() {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
-        TopBar({ title: this.docTitle, heightVp: this.topBarHeight,
+        TopBar({ title: this.docTitle, heightVp: this.topBarHeight, guideEnabled: this.guideEnabled,
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; } })
 
@@ -4396,6 +4451,7 @@ struct Index {
         HomePage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          guideEnabled: this.guideEnabled,
           statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();
@@ -4792,12 +4848,17 @@ struct Index {
         onSkip: (): void => { this.closeOnboarding(); },
         onClose: (): void => { this.closeOnboarding(); },
       })
-      GuideOverlay({
+      // 第 10 批：页面引导改挂聚光灯浮层（启动引导仍是 GuideOverlay 底部卡片）
+      SpotlightOverlay({
         visible: this.guideVisible && !this.onboardingVisible,
-        title: this.guideTitle,
+        page: this.guidePage,
         steps: this.guideSteps,
-        onNext: (): void => { this.closePageGuide(); },
-        onClose: (): void => { this.closePageGuide(); },
+        screenW: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+        screenH: this.winHeightVp > 0 ? this.winHeightVp : 720,
+        creaseTop: this.creaseTopVp,
+        creaseBottom: this.creaseBottomVp,
+        keyboardTop: this.winHeightVp - this.keybedHeight - FUNCTION_ROW_HEIGHT_VP,
+        onClose: (page: string): void => { this.closePageGuide(); },
       })
       // 第 9 批 F5：成就达成弹窗（挂在最上层；一次只弹一条，关掉再弹下一条）
       AppDialog({

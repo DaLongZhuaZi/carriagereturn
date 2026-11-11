@@ -15,7 +15,7 @@ import { common } from '@kit.AbilityKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { PageShell } from './PageShell';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { PickedFile, FileHelper } from '../services/FileHelper';
 import { FontService } from '../services/FontService';
 import { MachineKind } from '../model/DocModel';
@@ -267,6 +267,7 @@ export struct FontManagerPage {
 
   build() {
     PageShell({
+        guidePage: 'font_manager',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: $r('app.string.font_manager_title'),
@@ -279,10 +280,10 @@ export struct FontManagerPage {
 }
 
 /** 字体管理页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForFontManager(): GuideStep[] {
+export function guideStepsForFontManager(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_font_manager_1') },
-    { text: $r('app.string.guide_font_manager_2') },
-    { text: $r('app.string.guide_font_manager_3') },
+    { text: $r('app.string.guide_font_manager_1'), anchorId: 'font_manager__import_btn' },
+    { text: $r('app.string.guide_font_manager_2'), anchorId: 'font_manager__list' },
+    { text: $r('app.string.guide_font_manager_3'), anchorId: 'font_manager__list' },
   ];
 }

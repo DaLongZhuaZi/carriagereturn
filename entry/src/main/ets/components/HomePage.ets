@@ -11,7 +11,8 @@ import { docStore } from '../services/DocStore';
 import { statsService } from '../services/StatsService';
 import { applyImmersive, Insets } from '../services/Immersive';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
+import { GuideBridge } from '../services/GuideBridge';
 
 @Component
 export struct HomePage {
@@ -29,6 +30,8 @@ export struct HomePage {
   @State dailyGoal: number = 500;
   @State goalProgress: number = 0;
   @State op: number = 0;
+  /** 第 10 批：引导入口总开关（false 时隐藏）。 */
+  @Prop guideEnabled: boolean = true;
   onContinue: () => void = (): void => {};
   onStartTyping: () => void = (): void => {};
   onOpen: (key: string) => void = (): void => {};
@@ -82,6 +85,17 @@ export struct HomePage {
   build() {
     Column() {
       Column().width('100%').height(this.topInset)
+      if (this.guideEnabled) {
+        Row() {
+          Blank()
+          Stack() {
+            Text('?')
+              .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+          }
+          .width(44).height(44)
+          .onClick(() => { GuideBridge.request('home'); })
+        }.width('100%').height(44).padding({ left: 12, right: 12 })
+      }
 
       Scroll() {
         Column() {
@@ -89,6 +103,7 @@ export struct HomePage {
           Image($rawfile('machine/1920s-upright-side.jpg'))
             .width('100%').height(220).objectFit(ImageFit.Cover)
             .opacity(0.9)
+            .id('home__hero')
 
           // ② 回车大字
           Text('回车').fontSize(44).fontFamily('Noto Serif SC')
@@ -102,6 +117,7 @@ export struct HomePage {
 
           // ④ 金色按钮
           Text(this.latestId.length > 0 ? '继续写作' : '开始打字')
+            .id('home__start_btn')
             .fontSize(17).fontWeight(FontWeight.Bold).fontColor('#171310')
             .width('100%').height(56).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#c9a45c')
@@ -167,6 +183,7 @@ export struct HomePage {
         this.entryLink('设置', 'settings')
         this.entryLink('导出', 'export')
       }
+      .id('home__bottom_nav')
       .width('100%').height(56)
       .padding({ left: 8, right: 8 })
       .margin({ bottom: this.bottomInset })
@@ -179,10 +196,10 @@ export struct HomePage {
 }
 
 /** Home 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForHome(): GuideStep[] {
+export function guideStepsForHome(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_home_1') },
-    { text: $r('app.string.guide_home_2') },
-    { text: $r('app.string.guide_home_3') },
+    { text: $r('app.string.guide_home_1'), anchorId: 'home__hero' },
+    { text: $r('app.string.guide_home_2'), anchorId: 'home__start_btn' },
+    { text: $r('app.string.guide_home_3'), anchorId: 'home__bottom_nav' },
   ];
 }

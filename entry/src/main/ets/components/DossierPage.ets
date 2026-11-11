@@ -10,7 +10,7 @@ import { Dossier, CoverStyle, dossierStore } from '../services/DossierStore';
 import { DocSummary } from '../model/DocModel';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -214,6 +214,7 @@ export struct DossierPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
+        guidePage: 'dossier',
         widthVp: this.widthVp,
         heightVp: this.heightVp,
         title: $r('app.string.page_dossier'),
@@ -246,10 +247,10 @@ export struct DossierPage {
 }
 
 /** Dossier 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForDossier(): GuideStep[] {
+export function guideStepsForDossier(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_dossier_1') },
-    { text: $r('app.string.guide_dossier_2') },
-    { text: $r('app.string.guide_dossier_3') },
+    { text: $r('app.string.guide_dossier_1'), anchorId: 'dossier__list' },
+    { text: $r('app.string.guide_dossier_2'), anchorId: 'dossier__new_btn' },
+    { text: $r('app.string.guide_dossier_3'), anchorId: 'dossier__list' },
   ];
 }

@@ -24,7 +24,7 @@ import { FileHelper } from '../services/FileHelper';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { ExportTemplate } from './ExportTemplate';
 import { EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { common } from '@kit.AbilityKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { UIContext } from '@kit.ArkUI';
@@ -764,6 +764,7 @@ export struct ExportPage {
 
   build() {
     PageShell({
+        guidePage: 'export',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: $r('app.string.page_export'),
@@ -776,10 +777,10 @@ export struct ExportPage {
 }
 
 /** Export 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForExport(): GuideStep[] {
+export function guideStepsForExport(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_export_1') },
-    { text: $r('app.string.guide_export_2') },
-    { text: $r('app.string.guide_export_3') },
+    { text: $r('app.string.guide_export_1'), anchorId: 'export__formats' },
+    { text: $r('app.string.guide_export_2'), anchorId: 'export__actions' },
+    { text: $r('app.string.guide_export_3'), anchorId: 'export__share_btn' },
   ];
 }

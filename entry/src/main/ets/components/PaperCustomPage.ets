@@ -16,7 +16,7 @@ import { PaperRow } from '../ui/PaperSheet';
 import { PageShell } from './PageShell';
 import { SettingsRow } from './SettingsRow';
 import { PaperStage } from './PaperStage';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { PickedFile, FileHelper } from '../services/FileHelper';
 import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
 import {
@@ -412,6 +412,7 @@ export struct PaperCustomPage {
 
   build() {
     PageShell({
+        guidePage: 'paper_custom',
       widthVp: this.widthVp,
       heightVp: this.heightVp,
       title: $r('app.string.paper_custom_title'),
@@ -424,10 +425,10 @@ export struct PaperCustomPage {
 }
 
 /** 纸张自定义页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForPaperCustom(): GuideStep[] {
+export function guideStepsForPaperCustom(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_paper_custom_1') },
-    { text: $r('app.string.guide_paper_custom_2') },
-    { text: $r('app.string.guide_paper_custom_3') },
+    { text: $r('app.string.guide_paper_custom_1'), anchorId: 'paper_custom__controls' },
+    { text: $r('app.string.guide_paper_custom_2'), anchorId: 'paper_custom__texture_import' },
+    { text: $r('app.string.guide_paper_custom_3'), anchorId: 'paper_custom__preset' },
   ];
 }

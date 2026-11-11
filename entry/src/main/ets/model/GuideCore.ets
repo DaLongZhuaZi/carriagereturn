@@ -86,5 +86,7 @@ export function allResourceKeys(): string[] {
   out.push('guide_onboarding_title');
   out.push('guide_btn_skip');
   out.push('guide_btn_ok');
+  out.push('guide_btn_prev');
+  out.push('guide_btn_next');
   return out;
 }

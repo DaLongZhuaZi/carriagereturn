@@ -17,7 +17,7 @@ import { DocSummary } from '../model/DocModel';
 import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
 import { AppDialog } from './AppDialog';
-import { GuideStep } from './GuideOverlay';
+import { SpotlightStep } from './SpotlightOverlay';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { common } from '@kit.AbilityKit';
 
@@ -192,6 +192,7 @@ export struct TrashPage {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
+        guidePage: 'trash',
         widthVp: this.widthVp,
         heightVp: this.heightVp,
         title: $r('app.string.trash_title'),
@@ -216,10 +217,10 @@ export struct TrashPage {
 }
 
 /** Trash 页首次引导（与功能同处一源；文案键见 string.json）。 */
-export function guideStepsForTrash(): GuideStep[] {
+export function guideStepsForTrash(): SpotlightStep[] {
   return [
-    { text: $r('app.string.guide_trash_1') },
-    { text: $r('app.string.guide_trash_2') },
-    { text: $r('app.string.guide_trash_3') },
+    { text: $r('app.string.guide_trash_1'), anchorId: 'trash__list' },
+    { text: $r('app.string.guide_trash_2'), anchorId: 'trash__list' },
+    { text: $r('app.string.guide_trash_3'), anchorId: 'trash__hint' },
   ];
 }
