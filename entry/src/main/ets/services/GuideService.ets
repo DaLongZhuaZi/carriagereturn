@@ -8,6 +8,7 @@
 import { appPreferences, PrefKeys } from './AppPreferences';
 import { allPages, isValidPage } from '../model/GuideCore';
 import { TestHooks } from './TestHooks';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 export class GuideService {
   /** 产品开关（默认 on；F1 批内一次交付完整、无半成品窗口，见 1-引导与拨杆跟手-增量设计 §1.6；移除点：第 8 轮）。 */
@@ -55,12 +56,13 @@ export class GuideService {
     }
   }
 
-  /** 清 11 页的 seen（不动 ONBOARDING_SEEN）。 */
+  /** 清 14 页的 seen（不动 ONBOARDING_SEEN）。 */
   static resetPages(): void {
     const pages: string[] = allPages();
     for (let i = 0; i < pages.length; i++) {
       appPreferences.setBool(PrefKeys.guideSeen(pages[i]), false);
     }
+    hilog.info(0x0000, 'GuideService', 'guide reset pages count=%{public}s', pages.length.toString());
   }
 
   // ---- 启动引导 ----

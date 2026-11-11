@@ -4156,6 +4156,7 @@ struct Index {
                 // 字杆层与拨杆层在纸之上渲染（E 项）
 
               })
+                .id('typewriter__paper')
                 .width('100%')
                 .height(this.paperHeightVp)
 
@@ -4188,6 +4189,7 @@ struct Index {
             Column()
               .width(this.stageWidth * 0.22)
               .height(this.carriageHeight * 1.6)
+              .id('typewriter__lever')
               .position({
                 x: this.stageWidth * 0.78,
                 y: this.carriageTopVp - this.carriageHeight * 1.3,
@@ -4430,6 +4432,7 @@ struct Index {
             this.onNewline();
           },
         })
+        .id('typewriter__paper_change_btn')
 
         // 功能行 52vp 本体不变，底距 = 动态 bottomInset
         Column().width('100%').height(this.bottomInset)

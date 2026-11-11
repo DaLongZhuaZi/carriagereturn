@@ -112,6 +112,7 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
         'font_manager__list',
         'paper_custom__controls',
         'document_view__content', 'document_view__delete_btn',
+        'typewriter__lever', 'typewriter__paper', 'typewriter__paper_change_btn',
       ]);
       if (attached.has(id)) {
         assert.ok(text.includes(`.id('${id}')`), `${page} 的 ${id} 没有挂 .id()`);
