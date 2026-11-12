@@ -226,7 +226,7 @@
     },
     {
       "name": "export_fmt_pdf_desc",
-      "value": "文本路径，可打印、可存档"
+      "value": "图文版，可打印、可存档"
     },
     {
       "name": "export_fmt_text",
