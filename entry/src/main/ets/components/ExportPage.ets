@@ -678,6 +678,12 @@ export struct ExportPage {
       const ui: UIContext = this.getUIContext();
       const plans: PagePlan[] = this.pagePlans();
       const total: number = plans.length;
+      // 第 13 批 ⑥：自定义开关效果取证点（导出物验收用；开关不随预览）
+      hilog.info(DOMAIN, TAG, 'export template vis=%{public}s machine=%{public}s date=%{public}s body=%{public}s page=%{public}s paper=%{public}s font=%{public}s ink=%{public}s pages=%{public}s',
+        this.optTitle ? '1' : '0', this.optMachine ? '1' : '0', this.optDate ? '1' : '0',
+        this.optBody ? '1' : '0', this.optPageNo ? '1' : '0',
+        this.optPaper ? '1' : '0', this.optFont ? '1' : '0', this.optInk ? '1' : '0',
+        total.toString());
       const pngPaths: string[] = [];
       let allOk: boolean = true;
       for (let pi = 0; pi < total; pi++) {
