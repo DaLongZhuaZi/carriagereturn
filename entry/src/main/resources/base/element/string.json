@@ -1015,6 +1015,46 @@
     {
       "name": "export_range_png_hint",
       "value": "多页请用 PDF"
+    },
+    {
+      "name": "export_custom_title",
+      "value": "自定义"
+    },
+    {
+      "name": "export_opt_title",
+      "value": "标题"
+    },
+    {
+      "name": "export_opt_machine",
+      "value": "机器框"
+    },
+    {
+      "name": "export_opt_date",
+      "value": "日期"
+    },
+    {
+      "name": "export_opt_body",
+      "value": "正文"
+    },
+    {
+      "name": "export_opt_pageno",
+      "value": "页码"
+    },
+    {
+      "name": "export_opt_paper",
+      "value": "纸张底色"
+    },
+    {
+      "name": "export_opt_font",
+      "value": "书写字体"
+    },
+    {
+      "name": "export_opt_ink",
+      "value": "墨色"
+    },
+    {
+      "name": "export_opt_filename",
+      "value": "文件名"
     }
   ]
 }

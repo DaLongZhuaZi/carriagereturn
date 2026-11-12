@@ -22,6 +22,7 @@ import { docStore } from '../services/DocStore';
 import { ExportService } from '../services/ExportService';
 import { FileHelper } from '../services/FileHelper';
 import { dossierStore } from '../services/DossierStore';
+import { CustomizeStore } from '../services/CustomizeStore';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { ExportTemplate } from './ExportTemplate';
 import { EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
@@ -40,6 +41,9 @@ import {
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'ExportPage';
+/** 第 13 批 ⑥：外观组缺省值（与 ExportTemplate 默认纸色/墨色一致）。 */
+const PLATE_BG_DEFAULT: string = '#eee4ce';
+const INK_DEFAULT: string = '#2a231d';
 
 const PHASE_IDLE: string = 'idle';
 const PHASE_BUILDING: string = 'building';
@@ -124,6 +128,18 @@ export struct ExportPage {
   /** 第 13 批 ⑥：导出范围；由入口与空态决定（0=整篇首纸 / 1=逐纸……，见设计稿 §8.4）。 */
   /** 第 13 批 ⑥：范围 'paper' | 'doc' | 'dossier'，初值取 scope（'' → 'doc' 整篇）。 */
   @State range: string = '';
+  /** 第 13 批 ⑥：自定义区——内容组 5 开关。 */
+  @State optTitle: boolean = true;
+  @State optMachine: boolean = true;
+  @State optDate: boolean = true;
+  @State optBody: boolean = true;
+  @State optPageNo: boolean = true;
+  /** 第 13 批 ⑥：自定义区——外观组 3 开关。 */
+  @State optPaper: boolean = true;
+  @State optFont: boolean = true;
+  @State optInk: boolean = true;
+  /** 第 13 批 ⑥：自定义文件名（空＝用自动名）。 */
+  @State nameDraft: string = '';
   @State picked: number = 1;
   @State previewOp: number = 0;
   @State rowN: number = 0;
@@ -164,6 +180,7 @@ export struct ExportPage {
     this.phase = PHASE_IDLE;
     // 第 13 批 ⑥：范围缺省整篇；非「当前纸」时 PNG 置灰并强制回 PDF（picked 0 → 1）
     this.range = this.scope.length === 0 ? 'doc' : this.scope;
+    this.nameDraft = '';
     hilog.info(DOMAIN, TAG, 'export target scope=%{public}s dossier=%{public}s docId=%{public}s',
       this.scope, this.dossierId, this.docId);
     if (this.range !== 'paper' && this.picked === 0) {
@@ -262,6 +279,35 @@ export struct ExportPage {
       parts.push(first[i].text);
     }
     return parts.join('\n') + '\n\n共 ' + (sheets.length + 1).toString() + ' 纸';
+  }
+
+  /** 第 13 批 ⑥：最终文件名——自定义草稿优先（非法字符由 safeFileName 清掉，空则回落 '回车'）。 */
+  private fileNameFor(ext: string): string {
+    const draft: string = this.nameDraft.trim();
+    const base: string = draft.length > 0 ? draft : this.docTitleState;
+    return safeFileName(base.length > 0 ? base : '回车', ext, Date.now());
+  }
+
+  /** 第 13 批 ⑥：外观组——纸张底色（关＝白纸）。 */
+  private templatePaperBg(): string {
+    return this.optPaper ? PLATE_BG_DEFAULT : '#ffffff';
+  }
+
+  /** 第 13 批 ⑥：外观组——书写字体（关＝系统默认）。 */
+  private templateFont(): string {
+    return this.optFont ? this.fontFamilyOf() : '';
+  }
+
+  /** 第 13 批 ⑥：外观组——墨色（关＝纯黑）。 */
+  private templateInk(): string {
+    return this.optInk ? INK_DEFAULT : '#000000';
+  }
+
+  /** 当前机型的书写字体族名（与打字机页一致；取不到回空串＝系统默认）。 */
+  private fontFamilyOf(): string {
+    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const kind: string = d === null ? this.machineKind : (d.meta.machine as string);
+    return CustomizeStore.fontFamily(kind);
   }
 
   /** 第 13 批 ⑥：整卷宗名（模板抬头用；非卷宗导出为空串）。 */
@@ -506,7 +552,7 @@ export struct ExportPage {
         return;
       }
       this.phase = PHASE_SAVING;
-      const name: string = safeFileName(this.docTitleState, fmt.ext, Date.now());
+      const name: string = this.fileNameFor(fmt.ext);
       const r: SaveResult = await FileHelper.saveBytes(ctx, name, fmt.ext, data);
       if (r.status === 'ok') {
         this.phase = PHASE_RESULT;
@@ -615,7 +661,7 @@ export struct ExportPage {
       if (dir.length === 0) {
         return { ok: false, bytes: null, path: '', error: 'no tmp dir' };
       }
-      const path: string = dir + '/' + safeFileName(this.docTitleState, 'pdf', Date.now());
+      const path: string = dir + '/' + this.fileNameFor('pdf');
       // 第 9 批 P1（用户真机反馈）：PDF 要**和图片导出同一视觉**（本机纸张＋机器框＋抬头），
       // 不再是一页默认字体的纯文本。做法＝先出 F16 模板 PNG，再把它铺进 A4 首页。
       // 第 13 批 ⑥：逐纸渲染（归档纸＋当前纸各一页），多页走 insertPageFromDocument 合并。
@@ -711,6 +757,14 @@ export struct ExportPage {
         sheetLines: this.pageLines,
         pageNo: this.pageNo,
         pageTotal: this.pageTotal,
+        paperBg: this.templatePaperBg(),
+        fontFamily: this.templateFont(),
+        inkColor: this.templateInk(),
+        visTitle: this.optTitle,
+        visMachine: this.optMachine,
+        visDate: this.optDate,
+        visBody: this.optBody,
+        visPageNo: this.optPageNo,
       })
     }
     .width(EXPORT_TEMPLATE_W)
@@ -816,6 +870,48 @@ export struct ExportPage {
   /* --------------------------------------------------------------------- *
    * 视图
    * --------------------------------------------------------------------- */
+
+  /** 第 13 批 ⑥：自定义区（内容组 5 ＋ 外观组 3 ＋ 文件名），格式行之下、双按钮之上。 */
+  @Builder
+  customSection() {
+    Column() {
+      Text($r('app.string.export_custom_title')).fontSize(13)
+        .fontColor('rgba(232,221,201,0.55)').width('100%').margin({ top: 14, bottom: 6 })
+      // 文件名（可改；留空＝自动名）
+      Row() {
+        Text($r('app.string.export_opt_filename')).fontSize(14).fontColor('#e8ddc9').width(96)
+        TextInput({ text: this.nameDraft, placeholder: this.docTitleState })
+          .layoutWeight(1).height(36).fontSize(13)
+          .backgroundColor('#241c16').borderRadius(10).fontColor('#e8ddc9')
+          .placeholderColor('rgba(232,221,201,0.35)')
+          .onChange((v: string) => { this.nameDraft = v === undefined ? '' : v; })
+          .id('export__filename')
+      }
+      .width('100%').height(54)
+      this.optRow($r('app.string.export_opt_title'), this.optTitle, (v: boolean) => { this.optTitle = v; })
+      this.optRow($r('app.string.export_opt_machine'), this.optMachine, (v: boolean) => { this.optMachine = v; })
+      this.optRow($r('app.string.export_opt_date'), this.optDate, (v: boolean) => { this.optDate = v; })
+      this.optRow($r('app.string.export_opt_body'), this.optBody, (v: boolean) => { this.optBody = v; })
+      this.optRow($r('app.string.export_opt_pageno'), this.optPageNo, (v: boolean) => { this.optPageNo = v; })
+      Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.10)').margin({ top: 4, bottom: 4 })
+      this.optRow($r('app.string.export_opt_paper'), this.optPaper, (v: boolean) => { this.optPaper = v; })
+      this.optRow($r('app.string.export_opt_font'), this.optFont, (v: boolean) => { this.optFont = v; })
+      this.optRow($r('app.string.export_opt_ink'), this.optInk, (v: boolean) => { this.optInk = v; })
+    }
+    .width('100%').alignItems(HorizontalAlign.Start)
+    .id('export__custom')
+  }
+
+  @Builder
+  optRow(label: ResourceStr, on: boolean, setter: (v: boolean) => void) {
+    Row() {
+      Text(label).fontSize(14).fontColor('#e8ddc9').layoutWeight(1)
+      Toggle({ type: ToggleType.Switch, isOn: on })
+        .selectedColor('#c9a45c')
+        .onChange((v: boolean) => { setter(v); })
+    }
+    .width('100%').height(46)
+  }
 
   /** 第 13 批 ⑥：范围选择（当前纸／整篇／整卷宗；缺省整篇）。 */
   @Builder
@@ -929,6 +1025,8 @@ export struct ExportPage {
       .enabled(this.canExport())
       .onTouch((e: TouchEvent) => { this.pressBtn('save', e); })
       .onClick(() => {
+        hilog.info(DOMAIN, TAG, 'save btn click can=%{public}s phase=%{public}s range=%{public}s',
+          this.canExport() ? 'y' : 'n', this.phase, this.range);
         this.runSave().catch((e: BusinessError) => {
           this.failWith('export_save_failed', e.message === undefined ? '' : e.message);
         });
@@ -1001,6 +1099,8 @@ export struct ExportPage {
             this.rangeRow()
 
             this.formatRows()
+
+            this.customSection()
           }
           .width('100%').padding({ left: 20, right: 20 })
         }
