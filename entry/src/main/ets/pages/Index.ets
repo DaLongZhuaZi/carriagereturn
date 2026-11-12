@@ -1132,6 +1132,8 @@ struct Index {
   private docsCacheRev: number = -1;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
+  /** 第 13 批：大写锁定（Caps Lock 键切换；与 Shift 的按住态互相独立）。 */
+  @State capsLock: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
   @State symbolMode: boolean = false;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
@@ -2454,7 +2456,7 @@ struct Index {
             label = arr[k];
           }
         }
-      } else if (this.shiftActive) {
+      } else if (this.shiftActive || this.capsLock) {
         // Shift 模式：数字/标点换上档符号；字母帽本来就是大写，不变
         const up: string | undefined = SHIFT_MAP[c.label];
         if (up !== undefined) {
@@ -2586,6 +2588,20 @@ struct Index {
       this.shiftActive = true;
       return true;
     }
+    if (label === 'Caps Lock') {
+      this.capsLock = !this.capsLock;
+      hilog.info(DOMAIN, TAG, 'caps lock (cn) -> %{public}s', this.capsLock ? 'on' : 'off');
+      return true;
+    }
+    if (label === 'Tab') {
+      if (composing) {
+        this.pinyinCommitTop();
+      }
+      for (let ti = 0; ti < 4; ti++) {
+        this.queueChar(' ');
+      }
+      return true;
+    }
     if (label === 'Backspace') {
       if (composing) {
         s.backspace();
@@ -2677,6 +2693,20 @@ struct Index {
       }
       return;
     }
+    if (cap.label === 'Caps Lock') {
+      // 第 13 批：大写锁定——按一次锁存、再按一次解除（与 Shift 的按住态独立）
+      this.capsLock = !this.capsLock;
+      hilog.info(DOMAIN, TAG, 'caps lock -> %{public}s', this.capsLock ? 'on' : 'off');
+      return;
+    }
+    if (cap.label === 'Tab') {
+      // 第 13 批：制表键——插入 4 个空格（走同一落字队列，不直落）
+      this.audioService.vibrate();
+      for (let ti = 0; ti < 4; ti++) {
+        this.queueChar(' ');
+      }
+      return;
+    }
     // Down 只给高亮 + 震动；主击打音移到 onArrive（与落字、纸移动同帧）
     this.audioService.vibrate();
     if (this.symbolMode) {
@@ -2684,7 +2714,8 @@ struct Index {
       this.queueChar(cap.label);
       return;
     }
-    const ch: string = this.shiftActive ? cap.label : cap.label.toLowerCase();
+    const up: boolean = this.shiftActive || this.capsLock;
+    const ch: string = up ? cap.label : cap.label.toLowerCase();
     this.queueChar(ch);
   }
 
@@ -4392,6 +4423,7 @@ struct Index {
         PhotoKeybed({
           machineKind: this.machineKind,
           shiftActive: this.shiftActive,
+          capsActive: this.capsLock,
           // 第 5 批回批 F7（D0b-2）：desk 用折叠带图（1930s 无折叠分支恒用手机带，组件内静态分支）
           foldBand: this.layoutMode === 'desk',
           widthVp: this.photoW(),

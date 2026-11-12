@@ -115,7 +115,7 @@
         },
         {
           "x": 1853,
-          "label": "extra",
+          "label": "Backspace",
           "shape": "rounded-rect",
           "wRatio": 0.0659,
           "hRatio": 0.0985,
@@ -128,7 +128,7 @@
       "caps": [
         {
           "x": 190,
-          "label": "extra",
+          "label": "Tab",
           "shape": "rounded-rect",
           "wRatio": 0.0679,
           "hRatio": 0.0985,
@@ -216,7 +216,7 @@
         },
         {
           "x": 1612,
-          "label": "extra",
+          "label": "|",
           "shape": "rounded-rect",
           "wRatio": 0.0449,
           "hRatio": 0.0995,
@@ -224,7 +224,7 @@
         },
         {
           "x": 1821,
-          "label": "Backspace",
+          "label": "\\",
           "shape": "rounded-rect",
           "wRatio": 0.0938,
           "hRatio": 0.0995,
@@ -237,7 +237,7 @@
       "caps": [
         {
           "x": 213,
-          "label": "Shift",
+          "label": "Caps Lock",
           "shape": "rounded-rect",
           "wRatio": 0.085,
           "hRatio": 0.0985,

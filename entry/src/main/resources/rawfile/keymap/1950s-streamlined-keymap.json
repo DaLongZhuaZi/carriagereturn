@@ -112,7 +112,7 @@
       "caps": [
         {
           "x": 215,
-          "label": "extra",
+          "label": "Tab",
           "shape": "rounded-rect",
           "wRatio": 0.0713,
           "hRatio": 0.1856,
@@ -221,7 +221,7 @@
       "caps": [
         {
           "x": 240,
-          "label": "Shift",
+          "label": "Caps Lock",
           "shape": "rounded-rect",
           "wRatio": 0.0479,
           "hRatio": 0.1005,
@@ -410,7 +410,7 @@
         },
         {
           "x": 1765,
-          "label": "extra",
+          "label": "Shift",
           "shape": "rounded-rect",
           "wRatio": 0.064,
           "hRatio": 0.1077,

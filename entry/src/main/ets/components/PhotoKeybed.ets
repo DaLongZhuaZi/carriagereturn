@@ -40,6 +40,8 @@ export struct PhotoKeybed {
   @Prop @Watch('onCommitSeqChanged') commitSeq: number = 0;
   /** 第 12 批 ③：Shift 常驻高亮（独立于瞬时 heldIds；落字清 heldIds 时仍保持）。 */
   @Prop shiftActive: boolean = false;
+  /** 第 13 批：大写锁定态（Caps Lock 帽常亮）。 */
+  @Prop capsActive: boolean = false;
 
   @State heldIds: string[] = [];
 
@@ -57,7 +59,10 @@ export struct PhotoKeybed {
     if (this.capIndex(cap.id) >= 0) {
       return true;
     }
-    return this.shiftActive && cap.label === 'Shift';
+    if (this.shiftActive && cap.label === 'Shift') {
+      return true;
+    }
+    return this.capsActive && cap.label === 'Caps Lock';
   }
 
   private capIndex(id: string): number {
