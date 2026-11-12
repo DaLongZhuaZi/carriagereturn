@@ -4842,36 +4842,6 @@ struct Index {
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
 
-      // §6.2 导出页（第 3 批：双按钮/进度/结果态；构建与分享在 ExportPage 内部）
-      if (this.exportOpen) {
-        ExportPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
-          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          docId: this.exportDocId.length > 0 ? this.exportDocId : this.docId,
-          dossierId: this.exportDossierId,
-          scope: this.exportScope,
-          machineKind: this.machineKind as string,
-          onBack: (): void => { this.popPage(); },
-          onBeforeExport: (scope: string, dossierId: string): boolean => {
-            return this.prepareExport(scope, dossierId);
-          },
-          onSaved: (format: string): void => {
-            statsService.recordEvent(StatsEvents.DOC_EXPORTED);
-            // 第 9 批 F5：导出即边界——记完事件立刻判定一次（不等下一次保存）
-            AchievementService.evaluate();
-            hilog.info(DOMAIN, TAG, 'export saved format=%{public}s', format);
-          },
-          onShared: (format: string): void => {
-            // 第 9 批 F5：分享单独计（A7/A8 用 doc_shared；此前与 doc_exported 共用会导致
-            // 只保存不分享也触发分享成就）；记完立刻判定一次
-            statsService.recordEvent(StatsEvents.DOC_SHARED);
-            AchievementService.evaluate();
-            hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
-          },
-          onBusyChange: (busy: boolean): void => { this.exportBusy = busy; },
-        })
-          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
-      }
 
       if (this.dossierOpen && this.detailOpen) {
         DossierDetailPage({
@@ -4938,6 +4908,37 @@ struct Index {
                 id, data.lines.length.toString());
             }
           },
+        })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // §6.2 导出页（第 3 批：双按钮/进度/结果态；构建与分享在 ExportPage 内部）
+      if (this.exportOpen) {
+        ExportPage({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          docId: this.exportDocId.length > 0 ? this.exportDocId : this.docId,
+          dossierId: this.exportDossierId,
+          scope: this.exportScope,
+          machineKind: this.machineKind as string,
+          onBack: (): void => { this.popPage(); },
+          onBeforeExport: (scope: string, dossierId: string): boolean => {
+            return this.prepareExport(scope, dossierId);
+          },
+          onSaved: (format: string): void => {
+            statsService.recordEvent(StatsEvents.DOC_EXPORTED);
+            // 第 9 批 F5：导出即边界——记完事件立刻判定一次（不等下一次保存）
+            AchievementService.evaluate();
+            hilog.info(DOMAIN, TAG, 'export saved format=%{public}s', format);
+          },
+          onShared: (format: string): void => {
+            // 第 9 批 F5：分享单独计（A7/A8 用 doc_shared；此前与 doc_exported 共用会导致
+            // 只保存不分享也触发分享成就）；记完立刻判定一次
+            statsService.recordEvent(StatsEvents.DOC_SHARED);
+            AchievementService.evaluate();
+            hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
+          },
+          onBusyChange: (busy: boolean): void => { this.exportBusy = busy; },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
