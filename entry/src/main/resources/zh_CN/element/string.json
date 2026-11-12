@@ -71,6 +71,22 @@
     {
       "name": "keyboard_shift",
       "value": "Shift"
+    },
+    {
+      "name": "export_range_paper",
+      "value": "当前纸"
+    },
+    {
+      "name": "export_range_doc",
+      "value": "整篇"
+    },
+    {
+      "name": "export_range_dossier",
+      "value": "整卷宗"
+    },
+    {
+      "name": "export_range_png_hint",
+      "value": "多页请用 PDF"
     }
   ]
 }

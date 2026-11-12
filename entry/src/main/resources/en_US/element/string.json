@@ -71,6 +71,22 @@
     {
       "name": "keyboard_shift",
       "value": "Shift"
+    },
+    {
+      "name": "export_range_paper",
+      "value": "Current paper"
+    },
+    {
+      "name": "export_range_doc",
+      "value": "Whole document"
+    },
+    {
+      "name": "export_range_dossier",
+      "value": "Whole dossier"
+    },
+    {
+      "name": "export_range_png_hint",
+      "value": "Use PDF for multiple pages"
     }
   ]
 }

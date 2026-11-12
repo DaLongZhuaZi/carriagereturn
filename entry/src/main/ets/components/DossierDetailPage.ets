@@ -71,6 +71,8 @@ export struct DossierDetailPage {
   onRenamed: () => void = (): void => {};
   /** 删卷宗：mode='unfile' 纸移出（变未归档）｜'purge' 连纸一起删。 */
   onDeleteDossier: (mode: string) => void = (): void => {};
+  /** 第 13 批 ⑥：卷宗导出入口（Index 置 exportTarget 后压导出页）。 */
+  onExport: (dossierId: string) => void = (): void => {};
   @State confirmDel: boolean = false;
   /** P1-1：待确认删除的纸 id（空＝无）。 */
   @State pendingDelPaper: string = '';
@@ -491,6 +493,15 @@ export struct DossierDetailPage {
           }
           .width(36).height(36)
           .onClick(() => { this.moreOpen = true; })
+          // 第 13 批 ⑥：导出按钮（与「新建纸张」并列）
+          if (this.widthVp >= 600) {
+            Text($r('app.string.page_export')).fontSize(12).fontColor('#e8ddc9')
+              .id('dossier_detail__export_btn')
+              .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+              .borderRadius(28).backgroundColor('#2e2620')
+              .margin({ left: 8 })
+              .onClick(() => { this.onExport(this.dossierId); })
+          }
           // D13：手机端「新建纸张」收进 ⋯ 菜单，不再挤页眉
           if (this.widthVp >= 600) {
             Text('新建纸张').fontSize(12).fontColor('#e8ddc9')

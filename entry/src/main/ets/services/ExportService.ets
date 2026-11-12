@@ -46,6 +46,24 @@ export class ExportService {
    * 纯文本导出：读文档 .txt → UTF-8 字节。
    * 文本为空也返回 ok（由导出页的 onBeforeExport 负责“空文档”判定）。
    */
+  /** 第 13 批 ⑥：任意纯文本 → UTF-8 字节（整卷宗 TXT 组装后走这条）。 */
+  static buildTxtFromText(text: string): ExportResult {
+    try {
+      const encoded: Uint8Array = new util.TextEncoder().encodeInto(text);
+      const words: ArrayBuffer = new ArrayBuffer(encoded.length);
+      const view: Uint8Array = new Uint8Array(words);
+      for (let i = 0; i < encoded.length; i++) {
+        view[i] = encoded[i];
+      }
+      hilog.info(DOMAIN, TAG, 'buildTxtFromText ok bytes=%{public}s', encoded.length.toString());
+      return { ok: true, bytes: words, error: '' };
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.error(DOMAIN, TAG, 'buildTxtFromText failed: %{public}s', ExportService.errText(err));
+      return { ok: false, bytes: null, error: ExportService.errText(err) };
+    }
+  }
+
   static buildTxt(docId: string): ExportResult {
     try {
       const text: string = docStore.readPlainText(docId);

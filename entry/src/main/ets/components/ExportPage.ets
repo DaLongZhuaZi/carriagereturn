@@ -17,10 +17,11 @@
 
 import { PageShell } from './PageShell';
 import { AppIcon } from './AppIcon';
-import { DocData, DocLine } from '../model/DocModel';
+import { DocData, DocLine, DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { ExportService } from '../services/ExportService';
 import { FileHelper } from '../services/FileHelper';
+import { dossierStore } from '../services/DossierStore';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { ExportTemplate } from './ExportTemplate';
 import { EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
@@ -34,6 +35,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import {
   ExportResult, SaveResult, safeFileName, resultText, machineTitleKey,
   EXPORT_PROGRESS_MIN_MS, EXPORT_TMP_DIR, EXPORT_BODY_LINES,
+  assembleSheetText, assembleDossierText,
 } from '../model/ExportCore';
 
 const DOMAIN: number = 0x0000;
@@ -79,6 +81,17 @@ const FORMATS: FormatSpec[] = [
     utd: 'general.plain-text',
   },
 ];
+
+/** 第 13 批 ⑥：一页的渲染计划（整篇/整卷宗统一口径；页码全局连续）。 */
+interface PagePlan {
+  docId: string;
+  title: string;
+  dateText: string;
+  dossierName: string;
+  lines: string[];
+  pageNo: number;
+  pageTotal: number;
+}
 
 /** 一次构建的产物：字节＋（pdf 才有）沙箱内临时文件路径。 */
 interface BuildOutcome {
@@ -138,6 +151,9 @@ export struct ExportPage {
   private pageLines: string[] = [];
   private pageNo: number = 1;
   private pageTotal: number = 1;
+  private pageTitle: string = '';
+  private pageDate: string = '';
+  private pageDossier: string = '';
   private progTimer: number = -1;
   private opStartMs: number = 0;
   private progressShownAt: number = 0;
@@ -152,7 +168,7 @@ export struct ExportPage {
       this.picked = 1;
     }
     const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
-    this.previewText = this.previewOf(d);
+    this.refreshPreview();
     this.docTitleState = this.titleOf(d);
     this.dateText = this.templateDateText();
     // D6：入场 预览 200ms，三行格式间隔 60ms
@@ -197,19 +213,72 @@ export struct ExportPage {
     return this.resolveString($r('app.string.doc_untitled'));
   }
 
-  /** 第 13 批 ⑥：模板日期取文档 meta.createdAt（已批准的行为变更；无文档时回落当天）。 */
-  private templateDateText(): string {
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
-    if (d === null) {
-      return this.todayText();
-    }
-    return formatDateText(d.meta.createdAt);
+  /** 第 13 批 ⑥：PNG 只在「当前纸」范围可用（整篇/整卷宗置灰）。 */
+  private fmtDisabled(id: string): boolean {
+    return id === 'image' && this.range !== 'paper';
   }
 
-  /** 第 13 批 ⑥：本篇逐纸行分组（归档纸在前、当前纸最后；空白纸也算一页）。 */
-  private pageGroups(): string[][] {
-    const groups: string[][] = [];
+  /** 第 13 批 ⑥：范围切换后重算预览，并把 PNG 从「非当前纸」范围强制回 PDF。 */
+  private refreshPreview(): void {
     const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    this.previewText = this.previewForRange(d);
+    if (this.range !== 'paper' && this.picked === 0) {
+      this.picked = 1;
+    }
+  }
+
+  /** 第 13 批 ⑥：预览跟随范围（当前纸 / 整篇 / 整卷宗；不跟随自定义开关）。 */
+  private previewForRange(d: DocData | null): string {
+    if (this.range === 'dossier' && this.dossierId.length > 0) {
+      const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+      const lines: string[] = [];
+      for (const sum of docs) {
+        const dd: DocData | null = docStore.load(sum.id);
+        const sheets: DocLine[][] = dd === null || dd.sheets === undefined ? [] : dd.sheets;
+        lines.push(sum.title + ' · ' + (sheets.length + 1).toString() + ' 纸');
+      }
+      if (lines.length > 16) {
+        const head: string[] = [];
+        for (let i = 0; i < 15; i++) {
+          head.push(lines[i]);
+        }
+        head.push('……共 ' + lines.length.toString() + ' 篇');
+        return head.join('\n');
+      }
+      return lines.join('\n') + (lines.length > 0 ? '\n\n共 ' + lines.length.toString() + ' 篇' : '');
+    }
+    if (d === null) {
+      return '';
+    }
+    if (this.range === 'paper') {
+      return this.previewOf(d);
+    }
+    const sheets: DocLine[][] = d.sheets === undefined ? [] : d.sheets;
+    const first: DocLine[] = sheets.length > 0 ? sheets[0] : d.lines;
+    const parts: string[] = [];
+    for (let i = 0; i < first.length; i++) {
+      parts.push(first[i].text);
+    }
+    return parts.join('\n') + '\n\n共 ' + (sheets.length + 1).toString() + ' 纸';
+  }
+
+  /** 第 13 批 ⑥：整卷宗名（模板抬头用；非卷宗导出为空串）。 */
+  private dossierNameOf(): string {
+    if (this.dossierId.length === 0) {
+      return '';
+    }
+    const list = dossierStore.list();
+    for (const ds of list) {
+      if (ds.id === this.dossierId) {
+        return ds.name;
+      }
+    }
+    return '';
+  }
+
+  /** 拆分一篇的逐纸行（归档纸在前＋当前纸最后）。 */
+  private groupsOf(d: DocData | null): string[][] {
+    const groups: string[][] = [];
     const sheets: DocLine[][] = d === null || d.sheets === undefined ? [] : d.sheets;
     for (let si = 0; si < sheets.length; si++) {
       const rows: string[] = [];
@@ -226,6 +295,58 @@ export struct ExportPage {
     }
     groups.push(cur);
     return groups;
+  }
+
+  /** 第 13 批 ⑥：逐页计划（整篇＝归档纸＋当前纸；整卷宗＝逐篇逐纸，页码全局连续）。 */
+  private pagePlans(): PagePlan[] {
+    const plans: PagePlan[] = [];
+    if (this.range === 'dossier' && this.dossierId.length > 0) {
+      const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+      const dn: string = this.dossierNameOf();
+      for (const sum of docs) {
+        const dd: DocData | null = docStore.load(sum.id);
+        const groups: string[][] = this.groupsOf(dd);
+        const dateText: string = formatDateText(dd === null ? sum.createdAt : dd.meta.createdAt);
+        for (let pi = 0; pi < groups.length; pi++) {
+          plans.push({
+            docId: sum.id, title: sum.title, dateText: dateText, dossierName: dn,
+            lines: groups[pi], pageNo: 0, pageTotal: 0,
+          });
+        }
+      }
+    } else if (this.docId.length > 0) {
+      const dd: DocData | null = docStore.load(this.docId);
+      const groups: string[][] = this.groupsOf(dd);
+      const title: string = this.docTitleState.length > 0 ? this.docTitleState : this.titleOf(dd);
+      const dateText: string = this.templateDateText();
+      for (let pi = 0; pi < groups.length; pi++) {
+        plans.push({
+          docId: this.docId, title: title, dateText: dateText, dossierName: '',
+          lines: groups[pi], pageNo: 0, pageTotal: 0,
+        });
+      }
+    }
+    const total: number = plans.length;
+    for (let i = 0; i < total; i++) {
+      plans[i].pageNo = i + 1;
+      plans[i].pageTotal = total;
+    }
+    return plans;
+  }
+
+  /** 第 13 批 ⑥：模板日期取文档 meta.createdAt（已批准的行为变更；无文档时回落当天）。 */
+  private templateDateText(): string {
+    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    if (d === null) {
+      return this.todayText();
+    }
+    return formatDateText(d.meta.createdAt);
+  }
+
+  /** 第 13 批 ⑥：本篇逐纸行分组（归档纸在前、当前纸最后；空白纸也算一页）。 */
+  private pageGroups(): string[][] {
+    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    return this.groupsOf(d);
   }
 
   private todayText(): string {
@@ -470,6 +591,19 @@ export struct ExportPage {
    */
   private async buildFor(fmt: FormatSpec): Promise<BuildOutcome> {
     if (fmt.id === 'text') {
+      if (this.range === 'dossier' && this.dossierId.length > 0) {
+        const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+        const texts: string[] = [];
+        for (const sum of docs) {
+          const dd: DocData | null = docStore.load(sum.id);
+          const groups: string[][] = this.groupsOf(dd);
+          const archived: string[][] = groups.length > 0 ? groups.slice(0, groups.length - 1) : [];
+          const cur: string[] = groups.length > 0 ? groups[groups.length - 1] : [];
+          texts.push(assembleSheetText(archived, cur));
+        }
+        const rt: ExportResult = ExportService.buildTxtFromText(assembleDossierText(texts));
+        return { ok: rt.ok, bytes: rt.bytes, path: '', error: rt.error };
+      }
       const r: ExportResult = ExportService.buildTxt(this.docId);
       return { ok: r.ok, bytes: r.bytes, path: '', error: r.error };
     }
@@ -484,16 +618,20 @@ export struct ExportPage {
       // 不再是一页默认字体的纯文本。做法＝先出 F16 模板 PNG，再把它铺进 A4 首页。
       // 第 13 批 ⑥：逐纸渲染（归档纸＋当前纸各一页），多页走 insertPageFromDocument 合并。
       const ui: UIContext = this.getUIContext();
-      const groups: string[][] = this.pageGroups();
-      const total: number = groups.length;
+      const plans: PagePlan[] = this.pagePlans();
+      const total: number = plans.length;
       const pngPaths: string[] = [];
       let allOk: boolean = true;
       for (let pi = 0; pi < total; pi++) {
-        this.pageLines = groups[pi].slice(0, EXPORT_BODY_LINES);
-        this.pageNo = pi + 1;
-        this.pageTotal = total;
-        const t: ExportResult = await ExportService.buildPngTemplate(ui, this.docId, this.machineKind,
-          this.docTitleState, this.dateText, (): void => { this.templateBuilder(); });
+        const plan: PagePlan = plans[pi];
+        this.pageLines = plan.lines.slice(0, EXPORT_BODY_LINES);
+        this.pageNo = plan.pageNo;
+        this.pageTotal = plan.pageTotal;
+        this.pageTitle = plan.title;
+        this.pageDate = plan.dateText;
+        this.pageDossier = plan.dossierName;
+        const t: ExportResult = await ExportService.buildPngTemplate(ui, plan.docId, this.machineKind,
+          plan.title, plan.dateText, (): void => { this.templateBuilder(); });
         if (!t.ok || t.bytes === null) {
           hilog.warn(DOMAIN, TAG, 'pdf page %{public}s template failed: %{public}s',
             (pi + 1).toString(), t.error);
@@ -533,10 +671,13 @@ export struct ExportPage {
     }
     // 图片：F16 模板优先（含机器框）；整篇/整卷宗时 PNG 只出首纸
     const ui: UIContext = this.getUIContext();
-    const imgGroups: string[][] = this.pageGroups();
-    this.pageLines = imgGroups.length > 0 ? imgGroups[0].slice(0, EXPORT_BODY_LINES) : [];
+    const imgPlans: PagePlan[] = this.pagePlans();
+    this.pageLines = imgPlans.length > 0 ? imgPlans[0].lines.slice(0, EXPORT_BODY_LINES) : [];
     this.pageNo = 1;
-    this.pageTotal = Math.max(1, imgGroups.length);
+    this.pageTotal = Math.max(1, imgPlans.length);
+    this.pageTitle = imgPlans.length > 0 ? imgPlans[0].title : this.docTitleState;
+    this.pageDate = imgPlans.length > 0 ? imgPlans[0].dateText : this.dateText;
+    this.pageDossier = imgPlans.length > 0 ? imgPlans[0].dossierName : '';
     const t: ExportResult = await ExportService.buildPngTemplate(ui, this.docId, this.machineKind,
       this.docTitleState, this.dateText, (): void => { this.templateBuilder(); });
     if (t.ok) {
@@ -562,8 +703,9 @@ export struct ExportPage {
       ExportTemplate({
         docId: this.docId,
         machineKind: this.machineKind,
-        title: this.docTitleState,
-        dateText: this.dateText,
+        title: this.pageTitle,
+        dateText: this.pageDate,
+        dossierName: this.pageDossier,
         sheetLines: this.pageLines,
         pageNo: this.pageNo,
         pageTotal: this.pageTotal,
@@ -673,14 +815,51 @@ export struct ExportPage {
    * 视图
    * --------------------------------------------------------------------- */
 
+  /** 第 13 批 ⑥：范围选择（当前纸／整篇／整卷宗；缺省整篇）。 */
+  @Builder
+  rangeRow() {
+    Row() {
+      this.rangeChip('paper', $r('app.string.export_range_paper'))
+      this.rangeChip('doc', $r('app.string.export_range_doc'))
+      if (this.dossierId.length > 0) {
+        this.rangeChip('dossier', $r('app.string.export_range_dossier'))
+      }
+    }
+    .width('100%')
+    .margin({ top: 12, bottom: 4 })
+  }
+
+  @Builder
+  rangeChip(key: string, label: ResourceStr) {
+    Text(label)
+      .fontSize(14)
+      .fontColor(this.range === key ? '#e8ddc9' : 'rgba(232,221,201,0.55)')
+      .layoutWeight(1).height(40).textAlign(TextAlign.Center)
+      .borderRadius(20)
+      .backgroundColor(this.range === key ? '#2e2620' : '#241c16')
+      .border({ width: 1, color: this.range === key ? '#c9a45c' : 'rgba(232,221,201,0.12)' })
+      .onClick(() => {
+        if (this.isBusy() || this.range === key) {
+          return;
+        }
+        this.range = key;
+        this.refreshPreview();
+      })
+  }
+
   @Builder
   formatRows() {
     Column() {
       ForEach(FORMATS, (f: FormatSpec, idx: number) => {
         Row() {
           Column() {
-            Text(f.label).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
+            Text(f.label).fontSize(17).fontWeight(FontWeight.Bold)
+              .fontColor(this.fmtDisabled(f.id) ? 'rgba(232,221,201,0.3)' : '#e8ddc9')
             Text(f.desc).fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 4 })
+            if (this.fmtDisabled(f.id)) {
+              Text($r('app.string.export_range_png_hint')).fontSize(11)
+                .fontColor('rgba(232,221,201,0.4)').margin({ top: 2 })
+            }
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           AppIcon({ kind: 'chevron', iconSize: 18, color: 'rgba(232,221,201,0.6)' })
         }
@@ -699,7 +878,7 @@ export struct ExportPage {
         .opacity(this.rowN > idx ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
         .onClick(() => {
-          if (this.isBusy()) {
+          if (this.isBusy() || this.fmtDisabled(f.id)) {
             return;
           }
           this.picked = idx;
@@ -816,6 +995,8 @@ export struct ExportPage {
             .animation({ duration: 200, curve: Curve.EaseOut })
 
             Column().width('100%').height(16)
+
+            this.rangeRow()
 
             this.formatRows()
           }

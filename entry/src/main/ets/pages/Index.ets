@@ -4878,6 +4878,7 @@ struct Index {
             this.popTo('typewriter');
           },
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
+          onExport: (dossierId: string): void => { this.onExportDossier(dossierId); },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onRenamePaper: (id: string, name: string): void => { this.renameDocument(id, name); },
           onOpenDoc: (id: string): void => { this.openDocId = id; this.pushPage('docview'); },

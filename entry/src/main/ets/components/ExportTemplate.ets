@@ -95,12 +95,22 @@ export struct ExportTemplate {
     Stack({ alignContent: Alignment.TopStart }) {
       // 标题（可隐藏）
       if (this.visTitle) {
-        Text(this.title)
-        .fontSize(EXPORT_TITLE_SIZE).fontWeight(FontWeight.Bold).fontColor(INK)
-        .width(FRAME_W).height(EXPORT_TITLE_H).maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Column() {
+          Text(this.title)
+            .fontSize(EXPORT_TITLE_SIZE).fontWeight(FontWeight.Bold)
+            .fontColor(this.inkColor.length > 0 ? this.inkColor : INK)
+            .fontFamily(this.fontFamily)
+            .width('100%').maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (this.dossierName.length > 0) {
+            Text(this.dossierName)
+              .fontSize(22).fontColor(INK_SOFT).fontFamily(this.fontFamily)
+              .width('100%').maxLines(1).margin({ top: 2 })
+          }
+        }
+        .alignItems(HorizontalAlign.Start)
+        .width(FRAME_W).height(EXPORT_TITLE_H)
         .position({ x: EXPORT_MARGIN_X, y: this.layout().titleY })
-
       }
       // 机器框图（顶部；有边框，含机器照片；可隐藏）
       if (this.visMachine) {
@@ -117,7 +127,7 @@ export struct ExportTemplate {
       // 日期（可隐藏）
       if (this.visDate) {
         Text(this.dateText)
-        .fontSize(EXPORT_DATE_SIZE).fontColor(INK_SOFT)
+        .fontSize(EXPORT_DATE_SIZE).fontColor(INK_SOFT).fontFamily(this.fontFamily)
         .width(FRAME_W).height(EXPORT_DATE_H).maxLines(1)
         .position({ x: EXPORT_MARGIN_X, y: this.layout().dateY })
       }
@@ -126,7 +136,9 @@ export struct ExportTemplate {
       if (this.visBody) {
         Column() {
         Text(this.bodyText())
-          .fontSize(EXPORT_BODY_SIZE).lineHeight(EXPORT_BODY_LINE).fontColor(INK)
+          .fontSize(EXPORT_BODY_SIZE).lineHeight(EXPORT_BODY_LINE)
+          .fontColor(this.inkColor.length > 0 ? this.inkColor : INK)
+          .fontFamily(this.fontFamily)
           .width('100%').maxLines(EXPORT_BODY_LINES)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
