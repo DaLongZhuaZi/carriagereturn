@@ -71,10 +71,16 @@ test('12 个 PageShell 页有常驻说明行 subtitle（打字机/首页除外�
   }
 });
 
-test('Index：typewriter 引导函数与启动引导 4 条键在 Index', () => {
+test('Index：typewriter 引导函数；启动引导 4 条旧键已随旧卡片删除，新引导 11 键在新组件', () => {
   const index = fs.readFileSync(path.join(root, 'entry/src/main/ets/pages/Index.ets'), 'utf8');
-  for (const key of core.onboardingKeys()) {
-    assert.ok(index.includes(`$r('app.string.${key}')`), `Index 缺 ${key}`);
+  const onboarding = fs.readFileSync(
+    path.join(root, 'entry/src/main/ets/components/OnboardingGuide.ets'), 'utf8');
+  // 第 13 批 ④：onboardingSteps() 删除，Index 只挂新组件
+  assert.ok(!index.includes('onboardingSteps'), 'Index 不应再有旧 onboardingSteps()');
+  assert.ok(!index.includes("$r('app.string.guide_onboarding_1')"), '旧 4 行文案应随旧卡片删除');
+  assert.ok(index.includes('OnboardingGuide({'), 'Index 缺新引导挂载');
+  for (const key of core.onboarding2Keys()) {
+    assert.ok(onboarding.includes(`$r('app.string.${key}')`), `OnboardingGuide 缺 ${key}`);
   }
   assert.ok(index.includes("$r('app.string.guide_typewriter_1')") ||
     index.includes('guideStepsForTypewriter'), 'Index 缺打字机引导');

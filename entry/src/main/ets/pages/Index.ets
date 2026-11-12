@@ -58,6 +58,7 @@ import { achievementById } from '../model/AchievementDefs';
 import { AppDialog } from '../components/AppDialog';
 import { FoldService, FoldState } from '../services/FoldService';
 import { GuideOverlay, GuideStep } from '../components/GuideOverlay';
+import { OnboardingGuide } from '../components/OnboardingGuide';
 import { SpotlightOverlay, SpotlightStep } from '../components/SpotlightOverlay';
 import { GuideService } from '../services/GuideService';
 import { GuideBridge } from '../services/GuideBridge';
@@ -878,6 +879,8 @@ struct Index {
   @State guideTitle: ResourceStr = '';
   @State guideSteps: SpotlightStep[] = [];
   @State onboardingVisible: boolean = false;
+  /** 第 13 批 ④：新引导当前页（@Link 给 OnboardingGuide，供返回键做「上一页／首屏跳过」）。 */
+  @State onboardingPage: number = 0;
   /** 第 10 批：引导总开关（冷启动读 GuideService.enabled；false 时三处 "?" 隐藏）。 */
   @State guideEnabled: boolean = true;
   /** 第 10 批：上次栈深（普通 private 字段，不触发重渲染）；只在变深时弹引导。 */
@@ -1027,19 +1030,12 @@ struct Index {
     this.guideVisible = false;
   }
 
-  private onboardingSteps(): GuideStep[] {
-    return [
-      { text: $r('app.string.guide_onboarding_1') },
-      { text: $r('app.string.guide_onboarding_2') },
-      { text: $r('app.string.guide_onboarding_3') },
-      { text: $r('app.string.guide_onboarding_4') },
-    ];
-  }
-
   private closeOnboarding(): void {
     GuideService.markOnboardingSeen();
+    // 第 13 批 ④：新引导已介绍主页 → 关闭时直接落主页 seen，不再 120ms 补弹主页聚光灯
+    GuideService.markSeen(GUIDE_PAGE_HOME);
     this.onboardingVisible = false;
-    setTimeout(() => { this.maybeShowPageGuide(); }, 120);
+    this.onboardingPage = 0;
   }
 
   private replayPageGuide(): void {
@@ -1049,6 +1045,7 @@ struct Index {
 
   private replayOnboarding(): void {
     GuideService.resetOnboarding();
+    this.onboardingPage = 0;
     this.onboardingVisible = true;
   }
 
@@ -1102,7 +1099,12 @@ struct Index {
   onBackPress(): boolean {
     hilog.info(DOMAIN, TAG, 'onBackPress depth=%{public}s', this.navStack.length.toString());
     if (this.onboardingVisible) {
-      this.closeOnboarding();
+      // 第 13 批 ④：返回＝上一页；第一页返回＝跳过（关闭）
+      if (this.onboardingPage > 0) {
+        this.onboardingPage = this.onboardingPage - 1;
+      } else {
+        this.closeOnboarding();
+      }
       return true;
     }
     if (this.guideVisible) {
@@ -1159,7 +1161,15 @@ struct Index {
     GuideBridge.set(this.guideEnabled, (page: string): void => { this.showPageGuide(page, true); });
     this.lastStackDepth = this.navStack.length;
     if (!GuideService.onboardingSeen()) {
-      setTimeout(() => { this.onboardingVisible = true; }, 600);
+      setTimeout(() => {
+        // 第 13 批 ④：成就弹窗优先——开着即跳过本次冷启动，不重试（与聚光灯同口径）
+        if (this.achNoticeKind.length > 0) {
+          hilog.info(DOMAIN, TAG, 'onboarding skipped: achievement notice open');
+          return;
+        }
+        this.onboardingPage = 0;
+        this.onboardingVisible = true;
+      }, 600);
     } else {
       // 第 10 批 §4.1 冷启动例外：回访用户主页是栈底、永不被 push → 首次布局稳定后补跑一次主页引导
       setTimeout(() => {
@@ -4876,15 +4886,12 @@ struct Index {
           })
       }
 
-      // 第 1 批：引导浮层（唯一挂载点；启动引导优先，页面引导次之）
-      GuideOverlay({
+      // 第 13 批 ④：启动引导改为新全屏组件（GuideOverlay.ets 保留作回滚对照）
+      OnboardingGuide({
         visible: this.onboardingVisible,
-        title: $r('app.string.guide_onboarding_title'),
-        steps: this.onboardingSteps(),
-        showSkip: true,
-        onNext: (): void => { this.closeOnboarding(); },
+        page: $onboardingPage,
         onSkip: (): void => { this.closeOnboarding(); },
-        onClose: (): void => { this.closeOnboarding(); },
+        onStart: (): void => { this.closeOnboarding(); },
       })
       // 第 10 批：页面引导改挂聚光灯浮层（启动引导仍是 GuideOverlay 底部卡片）
       SpotlightOverlay({

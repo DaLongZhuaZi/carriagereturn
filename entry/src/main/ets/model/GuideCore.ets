@@ -64,6 +64,18 @@ export function onboardingKeys(): string[] {
   ];
 }
 
+/** 第 13 批 ④：新全屏启动引导 5 页的资源键（10 键＋开始写作按钮）。 */
+export function onboarding2Keys(): string[] {
+  return [
+    'guide_onboarding2_p1_title', 'guide_onboarding2_p1_body',
+    'guide_onboarding2_p2_title', 'guide_onboarding2_p2_body',
+    'guide_onboarding2_p3_title', 'guide_onboarding2_p3_body',
+    'guide_onboarding2_p4_title', 'guide_onboarding2_p4_body',
+    'guide_onboarding2_p5_title', 'guide_onboarding2_p5_body',
+    'guide_onboarding2_start',
+  ];
+}
+
 /** 所有页面提示资源键（含启动与按钮；供 guide-keys 测试）。 */
 export function allResourceKeys(): string[] {
   const out: string[] = [];
@@ -82,6 +94,11 @@ export function allResourceKeys(): string[] {
   const onboard: string[] = onboardingKeys();
   for (let i = 0; i < onboard.length; i++) {
     out.push(onboard[i]);
+  }
+  // 第 13 批 ④：新引导 11 键
+  const onboard2: string[] = onboarding2Keys();
+  for (let i = 0; i < onboard2.length; i++) {
+    out.push(onboard2[i]);
   }
   out.push('guide_onboarding_title');
   out.push('guide_btn_skip');

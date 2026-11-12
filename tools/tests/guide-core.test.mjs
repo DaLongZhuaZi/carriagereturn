@@ -43,8 +43,8 @@ test('资源键命名规则', () => {
   ]);
 });
 
-test('allResourceKeys 覆盖 14 页×3＋12 hint＋14 title＋4+1＋4 且无重复', () => {
+test('allResourceKeys 覆盖 14 页×3＋12 hint＋14 title＋4+1＋4＋新引导 11 且无重复', () => {
   const keys = mod.allResourceKeys();
   assert.equal(new Set(keys).size, keys.length);
-  assert.equal(keys.length, 14 * 3 + 12 + 14 + 4 + 1 + 4);
+  assert.equal(keys.length, 14 * 3 + 12 + 14 + 4 + 1 + 4 + 11);
 });

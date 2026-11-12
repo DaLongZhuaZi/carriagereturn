@@ -23,6 +23,12 @@ export class IconKind {
   static readonly LOCK: string = 'lock';
   /** 第 10 批：引导 "?" 入口。 */
   static readonly HELP: string = 'help';
+  /** 第 13 批 ④：新启动引导 5 页图标。 */
+  static readonly ONBOARD_TYPE: string = 'onboard_type';
+  static readonly ONBOARD_MACHINE: string = 'onboard_machine';
+  static readonly ONBOARD_PAPER: string = 'onboard_paper';
+  static readonly ONBOARD_EXPORT: string = 'onboard_export';
+  static readonly ONBOARD_INPUT: string = 'onboard_input';
 
   /** 全部已登记 kind（审计与断言用）。 */
   static all(): string[] {
@@ -30,6 +36,8 @@ export class IconKind {
       IconKind.BACK, IconKind.CHEVRON_UP, IconKind.PLUS, IconKind.CHEVRON,
       IconKind.FOLDER, IconKind.MENU, IconKind.MORE, IconKind.CHECK,
       IconKind.SETTINGS, IconKind.EXPORT, IconKind.RENAME, IconKind.DELETE, IconKind.LOCK, IconKind.HELP,
+      IconKind.ONBOARD_TYPE, IconKind.ONBOARD_MACHINE, IconKind.ONBOARD_PAPER,
+      IconKind.ONBOARD_EXPORT, IconKind.ONBOARD_INPUT,
     ];
   }
 
@@ -55,6 +63,12 @@ export function iconResourceOf(kind: string): Resource {
   if (kind === IconKind.DELETE) { return $r('sys.symbol.trash'); }
   if (kind === IconKind.LOCK) { return $r('sys.symbol.lock'); }
   if (kind === IconKind.HELP) { return $r('sys.symbol.questionmark_circle'); }
+  // 第 13 批 ④：新引导 5 页（P1–P4 复用仓内已证实符号；P5 取 SDK resources.txt id:125832099 'keyboard'）
+  if (kind === IconKind.ONBOARD_TYPE) { return $r('sys.symbol.square_and_pencil'); }
+  if (kind === IconKind.ONBOARD_MACHINE) { return $r('sys.symbol.dot_grid_2x2'); }
+  if (kind === IconKind.ONBOARD_PAPER) { return $r('sys.symbol.folder'); }
+  if (kind === IconKind.ONBOARD_EXPORT) { return $r('sys.symbol.share'); }
+  if (kind === IconKind.ONBOARD_INPUT) { return $r('sys.symbol.keyboard'); }
   return $r('sys.symbol.chevron_left');
 }
 

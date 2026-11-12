@@ -955,6 +955,50 @@
     {
       "name": "guide_btn_next",
       "value": "下一步"
+    },
+    {
+      "name": "guide_onboarding2_p1_title",
+      "value": "打字"
+    },
+    {
+      "name": "guide_onboarding2_p1_body",
+      "value": "敲下去，字就落在纸上；拉拨杆换行。"
+    },
+    {
+      "name": "guide_onboarding2_p2_title",
+      "value": "机器与换装"
+    },
+    {
+      "name": "guide_onboarding2_p2_body",
+      "value": "1920s／1930s／1950s／1960s 四台时代机在「收藏」里随时换；信纸／色带／字体在换装里选，即时生效，字体、纸张可导入自定义。"
+    },
+    {
+      "name": "guide_onboarding2_p3_title",
+      "value": "纸与卷宗"
+    },
+    {
+      "name": "guide_onboarding2_p3_body",
+      "value": "写过的纸存在卷宗里，同一类纸收在一起；删除的纸暂存回收站 30 天，可恢复。"
+    },
+    {
+      "name": "guide_onboarding2_p4_title",
+      "value": "导出与成就"
+    },
+    {
+      "name": "guide_onboarding2_p4_body",
+      "value": "导出成图片、PDF 或纯文本，可只存本地或直接分享；14 项行为成就，打字、分享、换装都会解锁。"
+    },
+    {
+      "name": "guide_onboarding2_p5_title",
+      "value": "中文输入"
+    },
+    {
+      "name": "guide_onboarding2_p5_body",
+      "value": "内置拼音输入法，候选栏、「我的词库」随手调。"
+    },
+    {
+      "name": "guide_onboarding2_start",
+      "value": "开始写作"
     }
   ]
 }
