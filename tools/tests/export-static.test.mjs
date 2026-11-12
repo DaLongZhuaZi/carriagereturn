@@ -60,7 +60,7 @@ test('ExportPage：保存与分享前都先调 onBeforeExport', () => {
   const saveBlock = between(page, 'private async runSave', 'private async runShare');
   const shareBlock = between(page, 'private async runShare', 'private async buildFor');
   for (const [name, block] of [['runSave', saveBlock], ['runShare', shareBlock]]) {
-    const guard = block.indexOf('this.onBeforeExport()');
+    const guard = block.indexOf('this.onBeforeExport(this.range, this.dossierId)');
     const build = block.indexOf('await this.buildFor(');
     assert.ok(guard >= 0, `${name} 缺 onBeforeExport`);
     assert.ok(build > guard, `${name}：onBeforeExport 必须在 buildFor 之前`);
