@@ -6,7 +6,8 @@
  * 这里不再自算（latestId/latestTitle 仍从 docStore.list() 第一条取）。
  */
 
-import { DocSummary } from '../model/DocModel';
+import { DocSummary, MachineKind } from '../model/DocModel';
+import { findMachine } from '../model/MachineCatalog';
 import { docStore } from '../services/DocStore';
 import { statsService } from '../services/StatsService';
 import { applyImmersive, Insets } from '../services/Immersive';
@@ -19,6 +20,8 @@ import { GuideBridge } from '../services/GuideBridge';
 export struct HomePage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
+  /** 第 13 批 ⑤：当前启用机型（Index 挂载时传入），决定 hero 图与渐变底色。 */
+  @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
   /** F11 刷新时机（M-7）：Index 在改目标/返回主页/导出保存后递增，触发 refresh。 */
   @Prop @Watch('onStatsRev') statsRev: number = 0;
   @State topInset: number = 28;
@@ -99,11 +102,32 @@ export struct HomePage {
 
       Scroll() {
         Column() {
-          // ① 机器图区（现有 rawfile，全宽 Cover）
-          Image($rawfile('machine/1920s-upright-side.jpg'))
-            .width('100%').height(220).objectFit(ImageFit.Cover)
-            .opacity(0.9)
-            .id('home__hero')
+          // ① 机器图区（第 13 批 ⑤：随当前启用机型变整机全图，Contain 不裁切，暖灰渐变底承接两侧留白）
+          Stack({ alignContent: Alignment.Center }) {
+            Column()
+              .width('100%')
+              .height('100%')
+              .linearGradient({
+                direction: GradientDirection.Bottom,
+                colors: [[findMachine(this.machineKind).bodyColor, 0.0], ['#8d7b68', 0.55], ['#cdc0af', 1.0]],
+              })
+            if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+              Image($rawfile('machine/1920s-upright-front.jpg'))
+                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+            } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+              Image($rawfile('machine/1930s-portable-front.jpg'))
+                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+            } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+              Image($rawfile('machine/1950s-streamlined-front.jpg'))
+                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+            } else {
+              Image($rawfile('machine/1960s-electric-front.jpg'))
+                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+            }
+          }
+          .width('100%')
+          .height(220)
+          .id('home__hero')
 
           // ② 回车大字
           Text('回车').fontSize(44).fontFamily('Noto Serif SC')

@@ -299,6 +299,29 @@ export class AudioService implements AudioEngineExposed {
     this.playByRole(SoundRole.BACKSPACE);
   }
 
+  /**
+   * 第 13 批 ②：定向停掉某角色最新一路流（退行音效拖尾处理；找不到静默返回）。
+   * 只动该角色，不影响其它流；playCarriageReset 仍返回 void。
+   */
+  stopRole(role: SoundRole): void {
+    const pool: media.SoundPool | null = this.pool;
+    if (pool === null) {
+      return;
+    }
+    let victim: number = -1;
+    for (let i = this.streams.length - 1; i >= 0; i--) {
+      const sid: number = this.streams[i];
+      if (this.streamRole.get(sid) === role) {
+        victim = sid;
+        break;
+      }
+    }
+    if (victim < 0) {
+      return;
+    }
+    this.stopAndForget(pool, victim);
+  }
+
   /** 按角色播放（契约外的通用入口，语义与上面五个方法一致，同步返回）。 */
   playByRole(role: SoundRole): void {
     if (!this.ready || !this.soundEnabled) {

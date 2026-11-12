@@ -14,8 +14,8 @@ import { MachineKind, PaperFont, PaperKind, RibbonKind } from './DocModel';
 /** 一台机器的资源与字形参数。 */
 export interface MachineSpec {
   kind: MachineKind;
-  /** 解锁庆祝背景（主屏不用，见 §8.1）。 */
-  heroRawfile: string;
+  /** 第 13 批 ⑤：主页 hero 整机全图（正面全貌，Contain 呈现；运行期按静态分支取字面量）。 */
+  frontRawfile: string;
   /** 主屏照片键区：手机带（2048×975，2.1:1）。 */
   keybandPhoneRawfile: string;
   /** 主屏照片键区：折叠半开下半屏带（2048×853，2.4:1；1930s 复用手机带）。 */
@@ -115,7 +115,7 @@ export const KEYBOARD_HEIGHT_VP: number = KEYBED_HEIGHT_VP + FUNCTION_ROW_HEIGHT
 export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.UPRIGHT_1920S,
-    heroRawfile: 'machine/1920s-upright-hero-3q.jpg',
+    frontRawfile: 'machine/1920s-upright-front.jpg',
     keybandPhoneRawfile: 'machine/1920s-upright-keyband-phone.jpg',
     keybandFoldRawfile: 'machine/1920s-upright-keyband-fold.jpg',
     keymapRawfile: 'keymap/1920s-upright-keymap.json',
@@ -147,7 +147,7 @@ export const MACHINES: MachineSpec[] = [
   },
   {
     kind: MachineKind.PORTABLE_1930S,
-    heroRawfile: 'machine/1930s-portable-hero.jpg',
+    frontRawfile: 'machine/1930s-portable-front.jpg',
     keybandPhoneRawfile: 'machine/1930s-portable-keyband-phone.jpg',
     // §4：fold 图已入仓（machine/1930s-portable-keyband-fold.jpg），改指 fold 带
     keybandFoldRawfile: 'machine/1930s-portable-keyband-fold.jpg',
@@ -181,7 +181,7 @@ export const MACHINES: MachineSpec[] = [
   },
   {
     kind: MachineKind.STREAMLINED_1950S,
-    heroRawfile: 'machine/1950s-streamlined-hero.jpg',
+    frontRawfile: 'machine/1950s-streamlined-front.jpg',
     keybandPhoneRawfile: 'machine/1950s-streamlined-keyband-phone.jpg',
     keybandFoldRawfile: 'machine/1950s-streamlined-keyband-fold.jpg',
     keymapRawfile: 'keymap/1950s-streamlined-keymap.json',
@@ -213,7 +213,7 @@ export const MACHINES: MachineSpec[] = [
   },
   {
     kind: MachineKind.ELECTRIC_1960S,
-    heroRawfile: 'machine/1960s-electric-hero.jpg',
+    frontRawfile: 'machine/1960s-electric-front.jpg',
     keybandPhoneRawfile: 'machine/1960s-electric-keyband-phone.jpg',
     keybandFoldRawfile: 'machine/1960s-electric-keyband-fold.jpg',
     keymapRawfile: 'keymap/1960s-electric-keymap.json',

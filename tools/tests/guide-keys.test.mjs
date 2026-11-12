@@ -112,7 +112,7 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
         'font_manager__list',
         'paper_custom__controls',
         'document_view__content', 'document_view__delete_btn',
-        'typewriter__lever', 'typewriter__paper', 'typewriter__paper_change_btn',
+        'typewriter__lever', 'typewriter__paper', 'typewriter__function_row',
         'collection_detail__progress', 'collection_detail__set_btn',
         'customize__machine', 'customize__manage_entry',
         'export__actions', 'export__share_btn',
@@ -127,7 +127,7 @@ test('anchorId 全仓唯一且每页按 §6 配对表挂到目标组件', () => 
   }
   // 打字机三条在 Index 内联
   const idx = fs.readFileSync(path.join(root, 'entry/src/main/ets/pages/Index.ets'), 'utf8');
-  for (const id of ['typewriter__lever', 'typewriter__paper_change_btn', 'typewriter__paper']) {
+  for (const id of ['typewriter__lever', 'typewriter__function_row', 'typewriter__paper']) {
     assert.ok(idx.includes(`anchorId: '${id}'`), `Index 缺 ${id}`);
   }
 });

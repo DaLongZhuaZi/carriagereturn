@@ -49,6 +49,7 @@ import { KeyboardAvoidMode as UcKeyboardAvoidMode } from '@ohos.arkui.UIContext'
 import { AppMenu } from '../components/AppMenu';
 import { DocData, DocMeta, DocSummary } from '../model/DocModel';
 import { AudioService } from '../services/AudioService';
+import { SoundRole } from '../ui/AudioEngine';
 import { FontService, FontRegisterResult } from '../services/FontService';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { statsService, StatsEvents } from '../services/StatsService';
@@ -186,7 +187,7 @@ struct Index {
   @State paperFullSheet: boolean = false;
   /** 滚筒纹理纵向滚动量（vp）：随纸上滑同步，换纸两段各滚半圈。 */
   @State texOffsetVp: number = 0;
-  /** 换行 600ms 编排进行中：落字先排队，编排完成后再落（不丢字、不错位）。 */
+  /** 换行 700ms 编排（t0=450＋250）进行中：落字先排队，编排完成后再落（不丢字、不错位）。 */
   @State newlineBusy: boolean = false;
   /** 退行动画进行中（纸 200ms + O 250ms）：落字先排队。 */
   @State backBusy: boolean = false;
@@ -938,7 +939,7 @@ struct Index {
     if (page === GUIDE_PAGE_TYPEWRITER) {
       return [
         { text: $r('app.string.guide_typewriter_1'), anchorId: 'typewriter__lever' },
-        { text: $r('app.string.guide_typewriter_2'), anchorId: 'typewriter__paper_change_btn' },
+        { text: $r('app.string.guide_typewriter_2'), anchorId: 'typewriter__function_row' },
         { text: $r('app.string.guide_typewriter_3'), anchorId: 'typewriter__paper' },
       ];
     }
@@ -3024,6 +3025,11 @@ struct Index {
     if (cur.line <= 0) {
       return;
     }
+    // 第 13 批 ②：退行音效（复用 carriage-reset；t=0 与按下同步，t≈470ms 停流）
+    this.audioService.playCarriageReset();
+    this.audioService.vibrate();
+    hilog.info(DOMAIN, TAG, 'backline sound at O=%{public}s paperTop=%{public}s',
+      this.carriageOffsetVp.toFixed(1), this.paperTopVp.toFixed(1));
     const prevText: string = this.docModel.getLines()[cur.line - 1].text;
     const prevLen: number = prevText.length;
     // O 与落字宽同源：用上一行实际字宽累加（与 currentLineWidthVp 同一算法），不用 travelPerChar×字数
@@ -3037,7 +3043,7 @@ struct Index {
     // O 是字车小行程口径（travelPerChar×字数，上限 maxTravelVp）；
     // 落字位置由 currentLineWidthVp() 全宽管，prevW 不再塞进 O（口径混淆）
     const targetO: number = Math.max(-this.maxTravelVp, -(prevLen * this.travelPerChar));
-    // 纸下移一行高（纸上移的逆操作）200ms；字车 O 滑到上一行文字末尾 250ms
+    // 纸下移一行高（纸上移的逆操作）300ms（recalcPaperHeight 实际时长）；字车 O 滑到上一行文字末尾 250ms
     // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画
     this.paperAnimateNext = true;
     this.recalcPaperHeight();
@@ -3066,6 +3072,13 @@ struct Index {
           this.queueChar(q[i]);
         }
       }
+      // 第 13 批 ②：动作结束（t≈470ms）停掉复位音流，避免 1.14–2.68s 拖尾；沿用代际守卫
+      setTimeout(() => {
+        if (myTick !== this.backLineTick) {
+          return;
+        }
+        this.audioService.stopRole(SoundRole.CARRIAGE_RESET);
+      }, 200);
     }, 270);
     hilog.info(DOMAIN, TAG, 'backLine to line=%{public}s col=%{public}s O=%{public}s paperTop=%{public}s',
       (cur.line - 1).toString(), prevLen.toString(), targetO.toFixed(1), this.paperTopVp.toFixed(1));
@@ -4393,6 +4406,9 @@ struct Index {
           backLineLabel: this.resolveString($r('app.string.keyboard_backline')),
           charLabel: this.resolveString(this.symbolMode
             ? $r('app.string.keyboard_letters') : $r('app.string.keyboard_symbols')),
+          // 第 13 批 ③：常驻选中态（EN 键 ⟺ langZh，字符键 ⟺ symbolMode）
+          langActive: this.langZh,
+          symbolActive: this.symbolMode,
           onSymbols: (): void => {
             this.symbolMode = !this.symbolMode;
           },
@@ -4444,7 +4460,7 @@ struct Index {
             this.onNewline();
           },
         })
-        .id('typewriter__paper_change_btn')
+        .id('typewriter__function_row')
 
         // 功能行 52vp 本体不变，底距 = 动态 bottomInset
         Column().width('100%').height(this.bottomInset)
@@ -4463,6 +4479,8 @@ struct Index {
         HomePage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
+          // 第 13 批 ⑤：主页 hero 跟随当前启用机型
+          machineKind: this.machineKind,
           guideEnabled: this.guideEnabled,
           statsRev: this.statsRev,
           onContinue: (): void => {
