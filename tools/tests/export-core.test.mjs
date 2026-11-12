@@ -107,7 +107,8 @@ test('常量钉死：进度/淡出/模板尺寸/临时目录', () => {
   assert.equal(mod.EXPORT_TEMPLATE_W, 1080);
   assert.equal(mod.EXPORT_TEMPLATE_H, 1440);
   assert.equal(mod.EXPORT_TMP_DIR, 'export-tmp');
-  assert.equal(mod.EXPORT_BODY_LINES, 12);
+  // 第 13 批 ⑥：正文行数 12→13（与平板 maxRows 对齐）
+  assert.equal(mod.EXPORT_BODY_LINES, 13);
 });
 
 test('ExportCore 保持纯：不 import 任何 @kit', () => {

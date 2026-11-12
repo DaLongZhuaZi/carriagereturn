@@ -53,6 +53,16 @@ export const EXPORT_TEMPLATE_H: number = 1440;
 
 /** 模板左右边距（标题/机器框/页码同一条基线）。 */
 export const EXPORT_MARGIN_X: number = 80;
+
+/** 第 13 批 ⑥：多纸 TXT 的纸间分隔行（.txt 孪生与 TXT 导出共用同一格式）。 */
+export function sheetSeparatorText(no: number, total: number): string {
+  return '--- 第 ' + no.toString() + ' / ' + total.toString() + ' 纸 ---';
+}
+
+/** 第 13 批 ⑥：整卷宗 TXT 的篇间分隔行。 */
+export function docSeparatorText(title: string): string {
+  return '=== ' + title + ' ===';
+}
 /** 标题字号与占位高。 */
 export const EXPORT_TITLE_SIZE: number = 56;
 export const EXPORT_TITLE_H: number = 72;
@@ -66,7 +76,7 @@ export const EXPORT_DATE_H: number = 38;
 /** 日期与纸面正文区之间的间距。 */
 export const EXPORT_BODY_GAP: number = 40;
 /** 纸面正文摘要：行数、行高、字号。 */
-export const EXPORT_BODY_LINES: number = 12;
+export const EXPORT_BODY_LINES: number = 13;
 export const EXPORT_BODY_LINE: number = 34;
 export const EXPORT_BODY_SIZE: number = 20;
 /** 页码字号、占位高与底距。 */

@@ -49,6 +49,8 @@ export class DocModel {
   private bellRungLines: Set<number> = new Set<number>();
   /** P0-3：所属卷宗 id（null＝未归档）。构造接住、toDocData 带回，否则存盘时丢归属。 */
   private dossierId: string | null = null;
+  /** 第 13 批 ⑥：归档纸（换纸时把旧纸 push 进来；构造接住、toDocData 带回，否则存盘丢归档）。 */
+  private sheets: DocLine[][] = [];
 
   constructor(data?: DocData) {
     if (data !== undefined) {
@@ -56,6 +58,7 @@ export class DocModel {
       this.cursorPos = this.clampCursor(data.cursor);
       this.meta = data.meta;
       this.dossierId = data.dossierId === undefined ? null : data.dossierId;
+      this.sheets = data.sheets === undefined ? [] : data.sheets;
     }
   }
 
@@ -69,6 +72,16 @@ export class DocModel {
 
   getLines(): DocLine[] {
     return this.lines;
+  }
+
+  /** 第 13 批 ⑥：归档纸（只读快照，供导出/测试）。 */
+  getSheets(): DocLine[][] {
+    return this.sheets;
+  }
+
+  /** 第 13 批 ⑥：换纸前把当前纸整页归档（调用方保证只有「有内容」时调用）。 */
+  pushSheet(lines: DocLine[]): void {
+    this.sheets.push(lines);
   }
 
   /** 换纸：清空为一张空白新纸（单空行、光标归零）。 */
@@ -216,7 +229,10 @@ export class DocModel {
 
   /** 导出为可落盘 DocData。 */
   toDocData(): DocData {
-    return { lines: this.lines, cursor: this.cursorPos, meta: this.meta, dossierId: this.dossierId };
+    return {
+      lines: this.lines, cursor: this.cursorPos, meta: this.meta,
+      dossierId: this.dossierId, sheets: this.sheets,
+    };
   }
 
   /** 纯文本视图：行与行用换行相连，末尾补一个换行。 */

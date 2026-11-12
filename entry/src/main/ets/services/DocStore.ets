@@ -10,9 +10,10 @@
  */
 
 import { fileIo as fs } from '@kit.CoreFileKit';
+import { sheetSeparatorText } from '../model/ExportCore';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { DocData, DocSummary, MachineKind, PaperKind } from '../model/DocModel';
+import { DocData, DocLine, DocSummary, MachineKind, PaperKind } from '../model/DocModel';
 import { DEFAULT_MACHINE, DEFAULT_PAPER } from '../model/MachineCatalog';
 import {
   DocIndexRecord, DocSearchHit, DocSearchOptions, activeRecords, expiredRecords, renameRecord,
@@ -358,7 +359,16 @@ export class DocStore {
   }
 
   private plainTextOf(data: DocData): string {
+    // 第 13 批 ⑥：先拼归档纸（每纸后加分隔行），再拼当前纸——.txt 即含整篇，搜索自动覆盖旧纸
     const parts: string[] = [];
+    const sheets: DocLine[][] = data.sheets === undefined ? [] : data.sheets;
+    const total: number = sheets.length + 1;
+    for (let i = 0; i < sheets.length; i++) {
+      for (const line of sheets[i]) {
+        parts.push(line.text);
+      }
+      parts.push(sheetSeparatorText(i + 1, total));
+    }
     for (const line of data.lines) {
       parts.push(line.text);
     }

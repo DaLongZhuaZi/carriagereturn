@@ -68,8 +68,8 @@ test('自下而上顺序：标题 < 机器框 < 日期 < 正文 < 页码', () =>
   assert.equal(L.bodyLine, 34, '正文行高 34');
 });
 
-test('正文区：12 行、行高 34、不压到页码', () => {
-  assert.equal(mod.EXPORT_BODY_LINES, 12);
+test('正文区：13 行、行高 34、不压到页码（第 13 批 ⑥ 12→13）', () => {
+  assert.equal(mod.EXPORT_BODY_LINES, 13);
   assert.equal(mod.EXPORT_BODY_LINE, 34);
   assert.equal(mod.EXPORT_BODY_SIZE, 20);
   const bodyBottom = L.bodyTop + mod.EXPORT_BODY_LINES * L.bodyLine;

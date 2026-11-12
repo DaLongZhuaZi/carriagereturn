@@ -92,6 +92,8 @@ export interface DocData {
   meta: DocMeta;
   /** 所属卷宗 id；null/缺省 = 未归档（§5 卷宗系统）。 */
   dossierId?: string | null;
+  /** 第 13 批 ⑥：归档纸（按换纸顺序；每张纸的行结构与本纸 lines 相同）。旧文档无此字段。 */
+  sheets?: DocLine[][];
 }
 
 /** 文档库列表项。 */

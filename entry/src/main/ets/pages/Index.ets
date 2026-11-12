@@ -3160,6 +3160,15 @@ struct Index {
       this.pcTrace('step1-settled', pcT0, 'expect=300');
       // ② 新纸从滚筒后卷入 300ms：纸回到起打位，滚筒继续转
       const work0: number = Date.now();
+      // 第 13 批 ⑥：归档旧纸（与页码计数同一条件；必须在 clear() 紧前，否则旧纸内容无处可取）
+      if (sheetHasContent) {
+        const archived: DocLine[] = [];
+        const curLines = this.docModel.getLines();
+        for (let ai = 0; ai < curLines.length; ai++) {
+          archived.push({ text: curLines[ai].text, ribbon: curLines[ai].ribbon });
+        }
+        this.docModel.pushSheet(archived);
+      }
       this.docModel.clear();
       const work1: number = Date.now();
       this.syncRows();
