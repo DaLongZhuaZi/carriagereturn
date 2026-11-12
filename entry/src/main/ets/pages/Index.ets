@@ -166,7 +166,7 @@ struct Index {
   /** 第 9 批 F12：onDelete 的「先落队再删」循环期间为 true——该循环触发的 commitChar 不算恢复。 */
   private pcDelFlushActive: boolean = false;
   /** §18.7：滚筒横向速度系数（滚筒走 k×O，纸张走满 O）。平板几何上限 0.914，手机 0.612——手机靠 rollX 钳制兜底 */
-  private readonly ROLLER_K: number = 0.8;
+  private readonly ROLLER_K: number = 1.0;
   /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
   private readonly ROLLER_K_PHONE: number = 1.0;
   /** §18.11：拉杆拖拽状态（拨杆节点不可触摸，改由字车层接管）。
