@@ -164,6 +164,8 @@ export struct ExportPage {
     this.phase = PHASE_IDLE;
     // 第 13 批 ⑥：范围缺省整篇；非「当前纸」时 PNG 置灰并强制回 PDF（picked 0 → 1）
     this.range = this.scope.length === 0 ? 'doc' : this.scope;
+    hilog.info(DOMAIN, TAG, 'export target scope=%{public}s dossier=%{public}s docId=%{public}s',
+      this.scope, this.dossierId, this.docId);
     if (this.range !== 'paper' && this.picked === 0) {
       this.picked = 1;
     }

@@ -1813,15 +1813,17 @@ struct Index {
     this.exportDocId = docId;
     this.exportDossierId = '';
     this.exportScope = 'doc';
-    this.pushPage('export');
+    // 状态与压栈同一 tick 时子组件拿不到新 prop（实测 ExportPage 读到空 dossierId），下一帧再压
+    setTimeout(() => { this.pushPage('export'); }, 60);
   }
 
   /** 第 13 批 ⑥：卷宗详情页导出入口（整卷宗）。 */
   private onExportDossier(dossierId: string): void {
+    hilog.info(DOMAIN, TAG, 'onExportDossier id=%{public}s', dossierId);
     this.exportDocId = '';
     this.exportDossierId = dossierId;
     this.exportScope = 'dossier';
-    this.pushPage('export');
+    setTimeout(() => { this.pushPage('export'); }, 60);
   }
 
   private applyMachine(kind: MachineKind): void {
@@ -4642,7 +4644,12 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
           onBack: (): void => { this.popPage(); },
-          onOpenDossier: (id: string): void => { this.openDossierId = id; this.pushPage('detail'); },
+          onOpenDossier: (id: string): void => {
+            this.openDossierId = id;
+            hilog.info(DOMAIN, TAG, 'onOpenDossier id=%{public}s', id);
+            // 与压栈同 tick 时 @Prop 会拿到旧值（实测卷宗内页 dossierId 为空），下一帧再压
+            setTimeout(() => { this.pushPage('detail'); }, 60);
+          },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
@@ -4878,10 +4885,16 @@ struct Index {
             this.popTo('typewriter');
           },
           onDeleteDossier: (mode: string): void => { this.deleteDossier(this.openDossierId, mode); },
-          onExport: (dossierId: string): void => { this.onExportDossier(dossierId); },
+          // 第 13 批 ⑥：页面 @Prop dossierId 实测可能为空（同 tick 压栈的旧值），以 Index 自己的 openDossierId 为准
+          onExport: (dossierId: string): void => {
+            this.onExportDossier(this.openDossierId.length > 0 ? this.openDossierId : dossierId);
+          },
           onNewPaper: (): void => { this.newPaperInDossier(); },
           onRenamePaper: (id: string, name: string): void => { this.renameDocument(id, name); },
-          onOpenDoc: (id: string): void => { this.openDocId = id; this.pushPage('docview'); },
+          onOpenDoc: (id: string): void => {
+            this.openDocId = id;
+            setTimeout(() => { this.pushPage('docview'); }, 60);
+          },
           onRenamed: (): void => {
             this.docsRev = this.docsRev + 1;
             hilog.info(DOMAIN, TAG, 'renamed rev=%{public}s (list will refresh)', this.docsRev.toString());
