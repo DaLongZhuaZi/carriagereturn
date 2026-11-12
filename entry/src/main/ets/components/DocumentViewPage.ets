@@ -42,6 +42,8 @@ export struct DocumentViewPage {
   onDelete: (id: string) => void = (): void => {};
   /** P1-5：加页（文档末尾加一行并落盘）。 */
   onAddPage: (id: string) => void = (): void => {};
+  /** 第 13 批 ⑥：文档视图页导出入口（Index 置 exportTarget 后压导出页）。 */
+  onExport: (docId: string) => void = (): void => {};
 
   aboutToAppear(): void {
     this.load();
@@ -173,6 +175,12 @@ export struct DocumentViewPage {
             .borderRadius(28).backgroundColor('#2e2620')
             .margin({ right: 8 })
             .onClick(() => { this.onAddPage(this.docId); })
+          Text($r('app.string.page_export')).fontSize(15).fontColor('#e8ddc9')
+            .id('dv_export')
+            .layoutWeight(1).height(44).textAlign(TextAlign.Center)
+            .borderRadius(28).backgroundColor('#2e2620')
+            .margin({ right: 8 })
+            .onClick(() => { this.onExport(this.docId); })
           Text('分享·待实现').fontSize(15).fontColor('rgba(232,221,201,0.4)')
             .layoutWeight(1).height(44).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#241c16')

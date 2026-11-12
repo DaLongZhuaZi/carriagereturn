@@ -881,6 +881,10 @@ struct Index {
   @State onboardingVisible: boolean = false;
   /** 第 13 批 ④：新引导当前页（@Link 给 OnboardingGuide，供返回键做「上一页／首屏跳过」）。 */
   @State onboardingPage: number = 0;
+  /** 第 13 批 ⑥：导出目标（入口显式置 scope，不留空；缺省全部空串＝走 live 文档整篇）。 */
+  @State exportDocId: string = '';
+  @State exportDossierId: string = '';
+  @State exportScope: string = '';
   /** 第 10 批：引导总开关（冷启动读 GuideService.enabled；false 时三处 "?" 隐藏）。 */
   @State guideEnabled: boolean = true;
   /** 第 10 批：上次栈深（普通 private 字段，不触发重渲染）；只在变深时弹引导。 */
@@ -1747,21 +1751,77 @@ struct Index {
       v.toString(), this.lineHeightVp.toFixed(2));
   }
 
-  /** 第 3 批：导出前 flush 保存并判定非空（M-6）。 */
-  private prepareExport(): boolean {
+  /** 第 3 批：导出前 flush 保存并判定非空（M-6）；第 13 批 ⑥：按范围分支。 */
+  private prepareExport(scope: string, dossierId: string): boolean {
     statsService.flushPending();
     statsService.flushFoldTyped();
-    this.flushSave();
-    if (this.docId.length === 0) {
+    if (scope === 'dossier') {
+      // 整卷宗：不依赖 live docId；先查卷宗内文档，再逐篇判有内容（归档纸沿用非空字符口径）
+      const list: DocSummary[] = docStore.listByDossier(dossierId);
+      if (list.length === 0) {
+        return false;
+      }
+      for (const sum of list) {
+        const d: DocData | null = docStore.load(sum.id);
+        if (d === null) {
+          continue;
+        }
+        for (let i = 0; i < d.lines.length; i++) {
+          if (d.lines[i].text.replace(/\s/g, '').length > 0) {
+            return true;
+          }
+        }
+        const sheets: DocLine[][] = d.sheets === undefined ? [] : d.sheets;
+        for (let si = 0; si < sheets.length; si++) {
+          for (let li = 0; li < sheets[si].length; li++) {
+            if (sheets[si][li].text.replace(/\s/g, '').length > 0) {
+              return true;
+            }
+          }
+        }
+      }
       return false;
     }
-    const d: DocData = this.docModel.toDocData();
+    this.flushSave();
+    const targetId: string = this.exportDocId.length > 0 ? this.exportDocId : this.docId;
+    if (targetId.length === 0) {
+      return false;
+    }
+    const live: DocData = this.docModel.toDocData();
+    if (targetId === this.docId) {
+      for (let i = 0; i < live.lines.length; i++) {
+        if (live.lines[i].text.replace(/\s/g, '').length > 0) {
+          return true;
+        }
+      }
+      return false;
+    }
+    const d: DocData | null = docStore.load(targetId);
+    if (d === null) {
+      return false;
+    }
     for (let i = 0; i < d.lines.length; i++) {
       if (d.lines[i].text.replace(/\s/g, '').length > 0) {
         return true;
       }
     }
     return false;
+  }
+
+  /** 第 13 批 ⑥：文档视图页导出入口（整篇）。 */
+  private onExportDoc(docId: string): void {
+    this.exportDocId = docId;
+    this.exportDossierId = '';
+    this.exportScope = 'doc';
+    this.pushPage('export');
+  }
+
+  /** 第 13 批 ⑥：卷宗详情页导出入口（整卷宗）。 */
+  private onExportDossier(dossierId: string): void {
+    this.exportDocId = '';
+    this.exportDossierId = dossierId;
+    this.exportScope = 'dossier';
+    this.pushPage('export');
   }
 
   private applyMachine(kind: MachineKind): void {
@@ -4778,10 +4838,14 @@ struct Index {
         ExportPage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
-          docId: this.docId,
+          docId: this.exportDocId.length > 0 ? this.exportDocId : this.docId,
+          dossierId: this.exportDossierId,
+          scope: this.exportScope,
           machineKind: this.machineKind as string,
           onBack: (): void => { this.popPage(); },
-          onBeforeExport: (): boolean => { return this.prepareExport(); },
+          onBeforeExport: (scope: string, dossierId: string): boolean => {
+            return this.prepareExport(scope, dossierId);
+          },
           onSaved: (format: string): void => {
             statsService.recordEvent(StatsEvents.DOC_EXPORTED);
             // 第 9 批 F5：导出即边界——记完事件立刻判定一次（不等下一次保存）
@@ -4834,6 +4898,7 @@ struct Index {
           docId: this.openDocId,
           deleteMode: this.deleteMode,
           onBack: (): void => { this.popPage(); },
+          onExport: (docId: string): void => { this.onExportDoc(docId); },
           onEdit: (id: string): void => {
             // 点正文页进打字机：栈退到 typewriter 层
             this.loadDocument(id);

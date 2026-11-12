@@ -248,6 +248,19 @@ export class DocStore {
   }
 
   /** 文档库列表（按更新时间倒序）。 */
+  /** 第 13 批 ⑥：按卷宗取摘要（顺序与 list() 一致＝updatedAt 倒序；空串 dossierId 返回未归档）。 */
+  listByDossier(dossierId: string): DocSummary[] {
+    const all: DocSummary[] = this.list();
+    const out: DocSummary[] = [];
+    for (const d of all) {
+      const did: string = d.dossierId === undefined || d.dossierId === null ? '' : d.dossierId;
+      if (did === dossierId) {
+        out.push(d);
+      }
+    }
+    return out;
+  }
+
   list(): DocSummary[] {
     if (!this.initialized) {
       return [];

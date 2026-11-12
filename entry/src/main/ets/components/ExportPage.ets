@@ -93,21 +93,23 @@ export struct ExportPage {
   @Prop heightVp: number = 720;
   @Prop docId: string = '';
   /** 第 13 批 ⑥：导出范围来源 'paper' | 'doc' | 'dossier'（入口显式置，不留空）。 */
-  @Prop scope: string = 'paper';
+  @Prop scope: string = '';
   /** 第 13 批 ⑥：整卷宗导出时的卷宗 id（其它 scope 为空串）。 */
   @Prop dossierId: string = '';
   @Prop machineKind: string = '1920s-upright';
   /** 返回（页内返回按钮）；busy 时由本页拦下，不调用它。 */
   onBack: () => void = (): void => {};
   /** 保存/分享前问 Index：先 flushSave()，返回 false = 空文档（不可导出）。 */
-  onBeforeExport: () => boolean = (): boolean => true;
+  /** 第 13 批 ⑥：空态判定带范围（scope='dossier' 时不依赖 live docId）。 */
+  onBeforeExport: (scope: string, dossierId: string) => boolean = (): boolean => true;
   onSaved: (format: string) => void = (): void => {};
   onShared: (format: string) => void = (): void => {};
   /** 第 3 批：busy 状态回传 Index（系统返回拦截用）。 */
   onBusyChange: (busy: boolean) => void = (busy: boolean): void => {};
 
   /** 第 13 批 ⑥：导出范围；由入口与空态决定（0=整篇首纸 / 1=逐纸……，见设计稿 §8.4）。 */
-  @State range: number = 0;
+  /** 第 13 批 ⑥：范围 'paper' | 'doc' | 'dossier'，初值取 scope（'' → 'doc' 整篇）。 */
+  @State range: string = '';
   @State picked: number = 1;
   @State previewOp: number = 0;
   @State rowN: number = 0;
@@ -139,6 +141,11 @@ export struct ExportPage {
   aboutToAppear(): void {
     this.disposed = false;
     this.phase = PHASE_IDLE;
+    // 第 13 批 ⑥：范围缺省整篇；非「当前纸」时 PNG 置灰并强制回 PDF（picked 0 → 1）
+    this.range = this.scope.length === 0 ? 'doc' : this.scope;
+    if (this.range !== 'paper' && this.picked === 0) {
+      this.picked = 1;
+    }
     const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
     this.previewText = this.previewOf(d);
     this.docTitleState = this.titleOf(d);
@@ -314,7 +321,7 @@ export struct ExportPage {
     if (this.isBusy() || this.phase === PHASE_EMPTY) {
       return;
     }
-    if (!this.onBeforeExport()) {
+    if (!this.onBeforeExport(this.range, this.dossierId)) {
       this.phase = PHASE_EMPTY;
       hilog.info(DOMAIN, TAG, 'export blocked: empty document');
       return;
@@ -363,7 +370,7 @@ export struct ExportPage {
     if (this.isBusy() || this.phase === PHASE_EMPTY) {
       return;
     }
-    if (!this.onBeforeExport()) {
+    if (!this.onBeforeExport(this.range, this.dossierId)) {
       this.phase = PHASE_EMPTY;
       hilog.info(DOMAIN, TAG, 'export blocked: empty document');
       return;
