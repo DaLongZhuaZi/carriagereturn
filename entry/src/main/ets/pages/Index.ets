@@ -115,7 +115,7 @@ const PAPER_CHANGE_TRACE: boolean = true;
 function emptyLayout(): KeymapLayout {
   return {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
-    hitRadius: 10, overlayColor: '#000000', overlayFontSize: 14, widthVp: 0, heightVp: 0,
+    hitRadius: 10, spaceR: 8, overlayColor: '#000000', overlayFontSize: 14, widthVp: 0, heightVp: 0,
   };
 }
 
@@ -2464,13 +2464,14 @@ struct Index {
       caps.push({
         id: c.id, label: label, cx: c.cx, cy: c.cy, rowIndex: c.rowIndex,
         isExtra: c.isExtra, xRatio: c.xRatio, yRatio: c.yRatio,
+        wRatio: c.wRatio, hRatio: c.hRatio, rRatio: c.rRatio, shape: c.shape,
       });
     }
     return {
       machine: base.machine, caps: caps,
       spaceXMin: base.spaceXMin, spaceXMax: base.spaceXMax,
       spaceYMin: base.spaceYMin, spaceYMax: base.spaceYMax,
-      hitRadius: base.hitRadius, overlayColor: base.overlayColor,
+      hitRadius: base.hitRadius, spaceR: base.spaceR, overlayColor: base.overlayColor,
       overlayFontSize: base.overlayFontSize, widthVp: base.widthVp, heightVp: base.heightVp,
     };
   }

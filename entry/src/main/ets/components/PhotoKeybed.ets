@@ -19,7 +19,7 @@ const KTAG: string = 'Keybed';
 function emptyLayout(): KeymapLayout {
   return {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
-    hitRadius: 10, overlayColor: '#000000', overlayFontSize: 14, widthVp: 390, heightVp: 186,
+    hitRadius: 10, spaceR: 8, overlayColor: '#000000', overlayFontSize: 14, widthVp: 390, heightVp: 186,
   };
 }
 
@@ -192,16 +192,33 @@ export struct PhotoKeybed {
         isExtra: false,
         xRatio: 0.5,
         yRatio: 0.5,
+        wRatio: 0.5,
+        hRatio: 0.5,
+        rRatio: 0.1,
+        shape: 'rounded-rect',
       };
     }
+    // 第 13 批 ①：逐帽矩形判定（|dx|≤w/2 且 |dy|≤h/2），重叠区取帽心最近者
+    let bestD2: number = 1e12;
     for (const cap of layout.caps) {
-      // 命中同样用比例现算，与叠字同一坐标系
+      const w: number = cap.wRatio * this.widthVp;
+      const h: number = cap.hRatio * this.heightVp;
       const dx: number = cap.xRatio * this.widthVp - x;
       const dy: number = cap.yRatio * this.heightVp - y;
-      const d: number = Math.sqrt(dx * dx + dy * dy);
-      if (d <= bestDist) {
-        bestDist = d;
-        best = cap;
+      if (w > 0 && h > 0) {
+        if (Math.abs(dx) <= w / 2 && Math.abs(dy) <= h / 2) {
+          const d2: number = dx * dx + dy * dy;
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            best = cap;
+          }
+        }
+      } else {
+        const d: number = Math.sqrt(dx * dx + dy * dy);
+        if (d <= bestDist) {
+          bestDist = d;
+          best = cap;
+        }
       }
     }
     return best;
@@ -233,15 +250,17 @@ export struct PhotoKeybed {
       }
 
       // 键帽叠字（extra 不叠）+ 按下高亮（只叠层，不动照片）
+      // 第 13 批 ①：叠加层按逐帽 shape/wRatio/hRatio/rRatio 渲染（circle 直径取量测宽；
+      // rounded-rect 为 w×h 圆角 r），容器与叠字随 w/h 走，定位 cx−w/2 / cy−h/2。
       ForEach(this.layout.caps, (cap: CapDef) => {
-        // 一个 item 只能有一个根节点：叠字与按下高亮都放进这个 Stack
         Stack({ alignContent: Alignment.Center }) {
           if (this.capPressed(cap)) {
-            // 圆形叠加层：直径 = 视觉帽径(2×hitRadius)、圆角 = 半径、黑 0.30、居中、无描边无底条
             Column()
-              .width(this.layout.hitRadius * 2)
-              .height(this.layout.hitRadius * 2)
-              .borderRadius(this.layout.hitRadius)
+              .width(cap.wRatio * this.widthVp)
+              .height(cap.hRatio * this.heightVp)
+              .borderRadius(cap.shape === 'circle'
+                ? cap.wRatio * this.widthVp / 2
+                : cap.rRatio * this.widthVp)
               .backgroundColor('#000000')
               .opacity(0.30)
           }
@@ -252,16 +271,15 @@ export struct PhotoKeybed {
               .fontFamily(this.overlayFontFamily)
               .maxLines(1)
               .textAlign(TextAlign.Center)
-              // 叠字下移 3vp（只在按下时）
+              // 叠字下移 2vp（只在按下时；注释与代码对齐）
               .translate({ y: this.capPressed(cap) ? 2 : 0 })
           }
         }
-        .width(this.layout.hitRadius * 2)
-        .height(this.layout.hitRadius * 1.7)
-        // 方案二：渲染时用当前宽高 × 比例现算，不依赖缓存 layout 里的绝对坐标
+        .width(cap.wRatio * this.widthVp)
+        .height(cap.hRatio * this.heightVp)
         .position({
-          x: cap.xRatio * this.widthVp - this.layout.hitRadius,
-          y: cap.yRatio * this.heightVp - this.layout.hitRadius * 0.85,
+          x: cap.xRatio * this.widthVp - cap.wRatio * this.widthVp / 2,
+          y: cap.yRatio * this.heightVp - cap.hRatio * this.heightVp / 2,
         })
         .hitTestBehavior(HitTestMode.None)
       }, (cap: CapDef) => cap.id + ':' + cap.label)
@@ -272,7 +290,7 @@ export struct PhotoKeybed {
         Column()
           .width(this.layout.spaceXMax - this.layout.spaceXMin)
           .height(this.layout.spaceYMax - this.layout.spaceYMin)
-          .borderRadius(8)
+          .borderRadius(this.layout.spaceR)
           .backgroundColor('#000000')
           .opacity(0.30)
           .position({ x: this.layout.spaceXMin, y: this.layout.spaceYMin + 2 })

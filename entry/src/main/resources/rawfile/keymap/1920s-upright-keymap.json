@@ -11,47 +11,91 @@
       "caps": [
         {
           "x": 242,
-          "label": "1"
+          "label": "1",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 401,
-          "label": "2"
+          "label": "2",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 559,
-          "label": "3"
+          "label": "3",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 719,
-          "label": "4"
+          "label": "4",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 879,
-          "label": "5"
+          "label": "5",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1036,
-          "label": "6"
+          "label": "6",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1196,
-          "label": "7"
+          "label": "7",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1354,
-          "label": "8"
+          "label": "8",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1513,
-          "label": "9"
+          "label": "9",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1673,
-          "label": "0"
+          "label": "0",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1831,
-          "label": "-"
+          "label": "-",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         }
       ]
     },
@@ -60,43 +104,83 @@
       "caps": [
         {
           "x": 324,
-          "label": "Q"
+          "label": "Q",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 481,
-          "label": "W"
+          "label": "W",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 639,
-          "label": "E"
+          "label": "E",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 797,
-          "label": "R"
+          "label": "R",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 954,
-          "label": "T"
+          "label": "T",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1112,
-          "label": "Y"
+          "label": "Y",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1270,
-          "label": "U"
+          "label": "U",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1427,
-          "label": "I"
+          "label": "I",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1585,
-          "label": "O"
+          "label": "O",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1743,
-          "label": "P"
+          "label": "P",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         }
       ]
     },
@@ -105,47 +189,91 @@
       "caps": [
         {
           "x": 231,
-          "label": "A"
+          "label": "A",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 385,
-          "label": "S"
+          "label": "S",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 539,
-          "label": "D"
+          "label": "D",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 694,
-          "label": "F"
+          "label": "F",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 848,
-          "label": "G"
+          "label": "G",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1001,
-          "label": "H"
+          "label": "H",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1155,
-          "label": "J"
+          "label": "J",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1311,
-          "label": "K"
+          "label": "K",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1464,
-          "label": "L"
+          "label": "L",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1618,
-          "label": ";"
+          "label": ";",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1772,
-          "label": "'"
+          "label": "'",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         }
       ]
     },
@@ -154,47 +282,91 @@
       "caps": [
         {
           "x": 264,
-          "label": "Shift"
+          "label": "Shift",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 422,
-          "label": "Z"
+          "label": "Z",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 580,
-          "label": "X"
+          "label": "X",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 737,
-          "label": "C"
+          "label": "C",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 893,
-          "label": "V"
+          "label": "V",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1051,
-          "label": "B"
+          "label": "B",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1208,
-          "label": "N"
+          "label": "N",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1364,
-          "label": "M"
+          "label": "M",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1522,
-          "label": ","
+          "label": ",",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1679,
-          "label": "."
+          "label": ".",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         },
         {
           "x": 1837,
-          "label": "/"
+          "label": "/",
+          "shape": "circle",
+          "wRatio": 0.0601,
+          "hRatio": 0.1251,
+          "rRatio": 0.03
         }
       ]
     }
@@ -203,7 +375,8 @@
     "x_min": 420,
     "x_max": 1634,
     "y_min": 1483,
-    "y_max": 1610
+    "y_max": 1610,
+    "rRatio": 0.0078
   },
   "bands": {
     "phone": {

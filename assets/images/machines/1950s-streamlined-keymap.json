@@ -11,51 +11,99 @@
       "caps": [
         {
           "x": 301,
-          "label": "1"
+          "label": "1",
+          "shape": "rounded-rect",
+          "wRatio": 0.0835,
+          "hRatio": 0.1569,
+          "rRatio": 0.0374
         },
         {
           "x": 426,
-          "label": "2"
+          "label": "2",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1579,
+          "rRatio": 0.0376
         },
         {
           "x": 557,
-          "label": "3"
+          "label": "3",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1569,
+          "rRatio": 0.0374
         },
         {
           "x": 688,
-          "label": "4"
+          "label": "4",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1569,
+          "rRatio": 0.0374
         },
         {
           "x": 813,
-          "label": "5"
+          "label": "5",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1559,
+          "rRatio": 0.0371
         },
         {
           "x": 944,
-          "label": "6"
+          "label": "6",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1549,
+          "rRatio": 0.0369
         },
         {
           "x": 1065,
-          "label": "7"
+          "label": "7",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1549,
+          "rRatio": 0.0369
         },
         {
           "x": 1192,
-          "label": "8"
+          "label": "8",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1549,
+          "rRatio": 0.0369
         },
         {
           "x": 1319,
-          "label": "9"
+          "label": "9",
+          "shape": "rounded-rect",
+          "wRatio": 0.0884,
+          "hRatio": 0.1538,
+          "rRatio": 0.0366
         },
         {
           "x": 1448,
-          "label": "0"
+          "label": "0",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1575,
-          "label": "-"
+          "label": "-",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1704,
-          "label": "="
+          "label": "=",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         }
       ]
     },
@@ -64,55 +112,107 @@
       "caps": [
         {
           "x": 215,
-          "label": "extra"
+          "label": "extra",
+          "shape": "rounded-rect",
+          "wRatio": 0.0713,
+          "hRatio": 0.1856,
+          "rRatio": 0.0442
         },
         {
           "x": 344,
-          "label": "Q"
+          "label": "Q",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 471,
-          "label": "W"
+          "label": "W",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 606,
-          "label": "E"
+          "label": "E",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 731,
-          "label": "R"
+          "label": "R",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 858,
-          "label": "T"
+          "label": "T",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 991,
-          "label": "Y"
+          "label": "Y",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1116,
-          "label": "U"
+          "label": "U",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1243,
-          "label": "I"
+          "label": "I",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1370,
-          "label": "O"
+          "label": "O",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1499,
-          "label": "P"
+          "label": "P",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1632,
-          "label": "["
+          "label": "[",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1765,
-          "label": "]"
+          "label": "]",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         }
       ]
     },
@@ -121,51 +221,99 @@
       "caps": [
         {
           "x": 240,
-          "label": "Shift"
+          "label": "Shift",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 369,
-          "label": "A"
+          "label": "A",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 498,
-          "label": "S"
+          "label": "S",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 627,
-          "label": "D"
+          "label": "D",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 756,
-          "label": "F"
+          "label": "F",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 885,
-          "label": "G"
+          "label": "G",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1016,
-          "label": "H"
+          "label": "H",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1145,
-          "label": "J"
+          "label": "J",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1274,
-          "label": "K"
+          "label": "K",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1403,
-          "label": "L"
+          "label": "L",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1532,
-          "label": ";"
+          "label": ";",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1663,
-          "label": "'"
+          "label": "'",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         }
       ]
     },
@@ -174,51 +322,99 @@
       "caps": [
         {
           "x": 272,
-          "label": "Shift"
+          "label": "Shift",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 430,
-          "label": "Z"
+          "label": "Z",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 567,
-          "label": "X"
+          "label": "X",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 694,
-          "label": "C"
+          "label": "C",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 823,
-          "label": "V"
+          "label": "V",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 956,
-          "label": "B"
+          "label": "B",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1092,
-          "label": "N"
+          "label": "N",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1225,
-          "label": "M"
+          "label": "M",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1354,
-          "label": ","
+          "label": ",",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1487,
-          "label": "."
+          "label": ".",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1620,
-          "label": "/"
+          "label": "/",
+          "shape": "rounded-rect",
+          "wRatio": 0.0479,
+          "hRatio": 0.1005,
+          "rRatio": 0.0239
         },
         {
           "x": 1765,
-          "label": "extra"
+          "label": "extra",
+          "shape": "rounded-rect",
+          "wRatio": 0.064,
+          "hRatio": 0.1077,
+          "rRatio": 0.0256
         }
       ]
     }
@@ -227,7 +423,8 @@
     "x_min": 410,
     "x_max": 1622,
     "y_min": 1421,
-    "y_max": 1559
+    "y_max": 1559,
+    "rRatio": 0.0137
   },
   "bands": {
     "phone": {
