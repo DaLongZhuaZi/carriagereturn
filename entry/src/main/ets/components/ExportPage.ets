@@ -23,6 +23,7 @@ import { ExportService } from '../services/ExportService';
 import { FileHelper } from '../services/FileHelper';
 import { dossierStore } from '../services/DossierStore';
 import { CustomizeStore } from '../services/CustomizeStore';
+import { ExportTargetData, getExportTarget } from '../model/ExportTarget';
 import { ShareService, ShareResult } from '../services/ShareService';
 import { ExportTemplate } from './ExportTemplate';
 import { EXPORT_TEMPLATE_W, EXPORT_TEMPLATE_H } from '../model/ExportCore';
@@ -128,6 +129,10 @@ export struct ExportPage {
   /** 第 13 批 ⑥：导出范围；由入口与空态决定（0=整篇首纸 / 1=逐纸……，见设计稿 §8.4）。 */
   /** 第 13 批 ⑥：范围 'paper' | 'doc' | 'dossier'，初值取 scope（'' → 'doc' 整篇）。 */
   @State range: string = '';
+  /** 第 13 批 ⑥：生效的导出目标（优先模块级传递，兜底用挂载 props）。 */
+  @State targetScope: string = '';
+  @State targetDossierId: string = '';
+  @State targetDocId: string = '';
   /** 第 13 批 ⑥：自定义区——内容组 5 开关。 */
   @State optTitle: boolean = true;
   @State optMachine: boolean = true;
@@ -178,15 +183,20 @@ export struct ExportPage {
   aboutToAppear(): void {
     this.disposed = false;
     this.phase = PHASE_IDLE;
+    // 第 13 批 ⑥：导出目标以模块级传递为准（@Prop 在「置状态＋立即压栈」时会拿到旧值）
+    const tg: ExportTargetData = getExportTarget();
+    this.targetScope = tg.scope.length > 0 ? tg.scope : this.scope;
+    this.targetDossierId = tg.dossierId.length > 0 ? tg.dossierId : this.dossierId;
+    this.targetDocId = tg.docId.length > 0 ? tg.docId : this.docId;
     // 第 13 批 ⑥：范围缺省整篇；非「当前纸」时 PNG 置灰并强制回 PDF（picked 0 → 1）
-    this.range = this.scope.length === 0 ? 'doc' : this.scope;
+    this.range = this.targetScope.length === 0 ? 'doc' : this.targetScope;
     this.nameDraft = '';
     hilog.info(DOMAIN, TAG, 'export target scope=%{public}s dossier=%{public}s docId=%{public}s',
-      this.scope, this.dossierId, this.docId);
+      this.targetScope, this.targetDossierId, this.targetDocId);
     if (this.range !== 'paper' && this.picked === 0) {
       this.picked = 1;
     }
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     this.refreshPreview();
     this.docTitleState = this.titleOf(d);
     this.dateText = this.templateDateText();
@@ -239,7 +249,7 @@ export struct ExportPage {
 
   /** 第 13 批 ⑥：范围切换后重算预览，并把 PNG 从「非当前纸」范围强制回 PDF。 */
   private refreshPreview(): void {
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     this.previewText = this.previewForRange(d);
     if (this.range !== 'paper' && this.picked === 0) {
       this.picked = 1;
@@ -248,8 +258,8 @@ export struct ExportPage {
 
   /** 第 13 批 ⑥：预览跟随范围（当前纸 / 整篇 / 整卷宗；不跟随自定义开关）。 */
   private previewForRange(d: DocData | null): string {
-    if (this.range === 'dossier' && this.dossierId.length > 0) {
-      const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+    if (this.range === 'dossier' && this.targetDossierId.length > 0) {
+      const docs: DocSummary[] = docStore.listByDossier(this.targetDossierId);
       const lines: string[] = [];
       for (const sum of docs) {
         const dd: DocData | null = docStore.load(sum.id);
@@ -305,19 +315,19 @@ export struct ExportPage {
 
   /** 当前机型的书写字体族名（与打字机页一致；取不到回空串＝系统默认）。 */
   private fontFamilyOf(): string {
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     const kind: string = d === null ? this.machineKind : (d.meta.machine as string);
     return CustomizeStore.fontFamily(kind);
   }
 
   /** 第 13 批 ⑥：整卷宗名（模板抬头用；非卷宗导出为空串）。 */
   private dossierNameOf(): string {
-    if (this.dossierId.length === 0) {
+    if (this.targetDossierId.length === 0) {
       return '';
     }
     const list = dossierStore.list();
     for (const ds of list) {
-      if (ds.id === this.dossierId) {
+      if (ds.id === this.targetDossierId) {
         return ds.name;
       }
     }
@@ -348,8 +358,8 @@ export struct ExportPage {
   /** 第 13 批 ⑥：逐页计划（整篇＝归档纸＋当前纸；整卷宗＝逐篇逐纸，页码全局连续）。 */
   private pagePlans(): PagePlan[] {
     const plans: PagePlan[] = [];
-    if (this.range === 'dossier' && this.dossierId.length > 0) {
-      const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+    if (this.range === 'dossier' && this.targetDossierId.length > 0) {
+      const docs: DocSummary[] = docStore.listByDossier(this.targetDossierId);
       const dn: string = this.dossierNameOf();
       for (const sum of docs) {
         const dd: DocData | null = docStore.load(sum.id);
@@ -384,7 +394,7 @@ export struct ExportPage {
 
   /** 第 13 批 ⑥：模板日期取文档 meta.createdAt（已批准的行为变更；无文档时回落当天）。 */
   private templateDateText(): string {
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     if (d === null) {
       return this.todayText();
     }
@@ -393,7 +403,7 @@ export struct ExportPage {
 
   /** 第 13 批 ⑥：本篇逐纸行分组（归档纸在前、当前纸最后；空白纸也算一页）。 */
   private pageGroups(): string[][] {
-    const d: DocData | null = this.docId.length > 0 ? docStore.load(this.docId) : null;
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     return this.groupsOf(d);
   }
 
@@ -526,7 +536,7 @@ export struct ExportPage {
     if (this.isBusy() || this.phase === PHASE_EMPTY) {
       return;
     }
-    if (!this.onBeforeExport(this.range, this.dossierId)) {
+    if (!this.onBeforeExport(this.range, this.targetDossierId)) {
       this.phase = PHASE_EMPTY;
       hilog.info(DOMAIN, TAG, 'export blocked: empty document');
       return;
@@ -575,7 +585,7 @@ export struct ExportPage {
     if (this.isBusy() || this.phase === PHASE_EMPTY) {
       return;
     }
-    if (!this.onBeforeExport(this.range, this.dossierId)) {
+    if (!this.onBeforeExport(this.range, this.targetDossierId)) {
       this.phase = PHASE_EMPTY;
       hilog.info(DOMAIN, TAG, 'export blocked: empty document');
       return;
@@ -639,8 +649,8 @@ export struct ExportPage {
    */
   private async buildFor(fmt: FormatSpec): Promise<BuildOutcome> {
     if (fmt.id === 'text') {
-      if (this.range === 'dossier' && this.dossierId.length > 0) {
-        const docs: DocSummary[] = docStore.listByDossier(this.dossierId);
+      if (this.range === 'dossier' && this.targetDossierId.length > 0) {
+        const docs: DocSummary[] = docStore.listByDossier(this.targetDossierId);
         const texts: string[] = [];
         for (const sum of docs) {
           const dd: DocData | null = docStore.load(sum.id);
@@ -919,7 +929,7 @@ export struct ExportPage {
     Row() {
       this.rangeChip('paper', $r('app.string.export_range_paper'))
       this.rangeChip('doc', $r('app.string.export_range_doc'))
-      if (this.dossierId.length > 0) {
+      if (this.targetDossierId.length > 0) {
         this.rangeChip('dossier', $r('app.string.export_range_dossier'))
       }
     }

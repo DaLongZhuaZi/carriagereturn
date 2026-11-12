@@ -39,6 +39,7 @@ import { TrashPage, guideStepsForTrash } from '../components/TrashPage';
 import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
 import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
 import { ExportPage, guideStepsForExport } from '../components/ExportPage';
+import { setExportTarget } from '../model/ExportTarget';
 import { HomePage, guideStepsForHome } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
 import { PinyinEngine, PinyinSession, Candidate, PickResult } from '../services/PinyinEngine';
@@ -1813,8 +1814,9 @@ struct Index {
     this.exportDocId = docId;
     this.exportDossierId = '';
     this.exportScope = 'doc';
-    // 状态与压栈同一 tick 时子组件拿不到新 prop（实测 ExportPage 读到空 dossierId），下一帧再压
-    setTimeout(() => { this.pushPage('export'); }, 60);
+    // 目标走模块级传递（见 model/ExportTarget），页面 prop 时序不再影响
+    setExportTarget({ docId: docId, dossierId: '', scope: 'doc' });
+    this.pushPage('export');
   }
 
   /** 第 13 批 ⑥：卷宗详情页导出入口（整卷宗）。 */
@@ -1823,7 +1825,8 @@ struct Index {
     this.exportDocId = '';
     this.exportDossierId = dossierId;
     this.exportScope = 'dossier';
-    setTimeout(() => { this.pushPage('export'); }, 60);
+    setExportTarget({ docId: '', dossierId: dossierId, scope: 'dossier' });
+    this.pushPage('export');
   }
 
   private applyMachine(kind: MachineKind): void {
@@ -4647,8 +4650,7 @@ struct Index {
           onOpenDossier: (id: string): void => {
             this.openDossierId = id;
             hilog.info(DOMAIN, TAG, 'onOpenDossier id=%{public}s', id);
-            // 与压栈同 tick 时 @Prop 会拿到旧值（实测卷宗内页 dossierId 为空），下一帧再压
-            setTimeout(() => { this.pushPage('detail'); }, 60);
+            this.pushPage('detail');
           },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
@@ -4893,7 +4895,7 @@ struct Index {
           onRenamePaper: (id: string, name: string): void => { this.renameDocument(id, name); },
           onOpenDoc: (id: string): void => {
             this.openDocId = id;
-            setTimeout(() => { this.pushPage('docview'); }, 60);
+            this.pushPage('docview');
           },
           onRenamed: (): void => {
             this.docsRev = this.docsRev + 1;
