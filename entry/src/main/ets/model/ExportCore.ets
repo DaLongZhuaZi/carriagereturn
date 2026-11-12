@@ -101,14 +101,45 @@ export interface TemplateLayout {
 }
 
 /**
+ * 第 13 批 ⑥：模板可见块（自定义区 5 布尔）。
+ * 隐藏的块不占位，templateLayout 按可见块重算 Y（自上而下紧排）。
+ */
+export interface TemplateVisibility {
+  title: boolean;
+  machine: boolean;
+  date: boolean;
+  body: boolean;
+  pageNo: boolean;
+}
+
+/** 全部可见（导出页缺省）。 */
+export function allVisible(): TemplateVisibility {
+  return { title: true, machine: true, date: true, body: true, pageNo: true };
+}
+
+/**
  * 版式纯计算：标题 → 机器框 → 日期 → 纸面正文 → 页码，自上而下、互不重叠。
+ * 第 13 批 ⑥：可见块决定哪些行走；隐藏块连同其间距一起跳过。
  * 返回的 6 个数全部落在 1080×1440 内（export-pixels.test.mjs 断言）。
  */
-export function templateLayout(): TemplateLayout {
+export function templateLayout(visible: TemplateVisibility = allVisible()): TemplateLayout {
   const titleY: number = 96;
-  const machineY: number = titleY + EXPORT_TITLE_H + EXPORT_BLOCK_GAP;
-  const dateY: number = machineY + EXPORT_MACHINE_H + EXPORT_BLOCK_GAP;
-  const bodyTop: number = dateY + EXPORT_DATE_H + EXPORT_BODY_GAP;
+  let cursor: number = titleY;
+  let machineY: number = titleY;
+  let dateY: number = titleY;
+  let bodyTop: number = titleY;
+  if (visible.title) {
+    cursor = titleY + EXPORT_TITLE_H + EXPORT_BLOCK_GAP;
+  }
+  machineY = cursor;
+  if (visible.machine) {
+    cursor = cursor + EXPORT_MACHINE_H + EXPORT_BLOCK_GAP;
+  }
+  dateY = cursor;
+  if (visible.date) {
+    cursor = cursor + EXPORT_DATE_H + EXPORT_BODY_GAP;
+  }
+  bodyTop = cursor;
   const pageNoY: number = EXPORT_TEMPLATE_H - EXPORT_PAGE_GAP - EXPORT_PAGE_H;
   return {
     titleY: titleY,
@@ -118,6 +149,47 @@ export function templateLayout(): TemplateLayout {
     bodyLine: EXPORT_BODY_LINE,
     pageNoY: pageNoY,
   };
+}
+
+/** 第 13 批 ⑥：时间戳 → yyyy-MM-dd（模板日期取文档 meta.createdAt，不再取当天）。 */
+export function formatDateText(ts: number): string {
+  const d: Date = new Date(ts);
+  const m: number = d.getMonth() + 1;
+  const day: number = d.getDate();
+  return d.getFullYear().toString() + '-' + (m < 10 ? '0' + m.toString() : m.toString()) +
+    '-' + (day < 10 ? '0' + day.toString() : day.toString());
+}
+
+/**
+ * 第 13 批 ⑥：一篇文章的多纸纯文本（纸间分隔行；当前纸在最后、无分隔行）。
+ */
+export function assembleSheetText(sheets: string[][], current: string[]): string {
+  const parts: string[] = [];
+  const total: number = sheets.length + 1;
+  for (let i = 0; i < sheets.length; i++) {
+    for (const line of sheets[i]) {
+      parts.push(line);
+    }
+    parts.push(sheetSeparatorText(i + 1, total));
+  }
+  for (const line of current) {
+    parts.push(line);
+  }
+  return parts.join('\n') + '\n';
+}
+
+/**
+ * 第 13 批 ⑥：整卷宗多篇纯文本（篇间 `=== <标题> ===`，篇内纸分隔同 assembleSheetText）。
+ */
+export function assembleDossierText(docs: string[]): string {
+  const parts: string[] = [];
+  for (let i = 0; i < docs.length; i++) {
+    if (i > 0) {
+      parts.push('');
+    }
+    parts.push(docs[i].replace(/\n+$/, ''));
+  }
+  return parts.join('\n') + '\n';
 }
 
 /* ------------------------------------------------------------------------- *

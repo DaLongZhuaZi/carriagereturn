@@ -92,6 +92,10 @@ export struct ExportPage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop docId: string = '';
+  /** 第 13 批 ⑥：导出范围来源 'paper' | 'doc' | 'dossier'（入口显式置，不留空）。 */
+  @Prop scope: string = 'paper';
+  /** 第 13 批 ⑥：整卷宗导出时的卷宗 id（其它 scope 为空串）。 */
+  @Prop dossierId: string = '';
   @Prop machineKind: string = '1920s-upright';
   /** 返回（页内返回按钮）；busy 时由本页拦下，不调用它。 */
   onBack: () => void = (): void => {};
@@ -102,7 +106,9 @@ export struct ExportPage {
   /** 第 3 批：busy 状态回传 Index（系统返回拦截用）。 */
   onBusyChange: (busy: boolean) => void = (busy: boolean): void => {};
 
-  @State picked: number = -1;
+  /** 第 13 批 ⑥：导出范围；由入口与空态决定（0=整篇首纸 / 1=逐纸……，见设计稿 §8.4）。 */
+  @State range: number = 0;
+  @State picked: number = 1;
   @State previewOp: number = 0;
   @State rowN: number = 0;
   @State pressedRow: number = -1;
