@@ -135,3 +135,13 @@ Phase 1 裁定建议：**有条件可行（待补）**——P1/P2/P6 主项通�
   - 但**长时连续**：27 点分块、45 点分块、129 点整轮、每 6 帽分块（前后加唤醒与停歇）**全部**在 hdc 侧报 `[Fail]Not match target founded, check connect-key please`（原文逐字），此刻复测单发 `echo hi`/`uinput` 又可用 → 手机 hdc 通道在持续调用后被临时封锁、短时恢复，属**环境/通道限制**，非探针页代码问题。
 - 另测：手机探针页曾整屏空暗（截图 `1126_phone_probe_blank.png`），dump 有 `probe__canvas` 节点但无像素；重启 App/重连后 uinput 仍能命中（说明 Canvas 事件在、渲染面有问题）。
 - 结论：手机侧 P3（129 点）、P4/P5 多步交互**仍未完成**；已试手段：uitest 单发重试、uitest 分块、设备侧 uitest 复合脚本、uinput 单发/慢节奏/复合/分块/唤醒、hdc kill+start+重连、重装重启；均未获得>30 次连续稳定点击。替代证据：平板全量 P1–P6 数据、手机 P1/P6/P2 数据、uinput 单测命中日志（`p3_hits_phone.log` 早期行）。
+
+## 十三、手机侧补跑（2026-11-13 22:47–00:10，用户保证手机常亮）
+
+- 按用户要求先开常亮：手机 `power-shell setmode 602` 成功；`power-shell timeout -o 1800000`（屏幕关闭时间改 30 分钟）成功；平板同做（setmode 602 + timeout override）。设备前台状态经 dump 确认为 App（「继续写作」「Canvas 探针（临时）」「未命名」等文本）。
+- **P5 取证（手机）：通过**。探针页取到快照 `1224×1828`、PNG `68185 bytes`；变换矩阵 `tx=-0.00 ty=43.85vp w=1224 h=1828.28px` 与 `getRectangleById` 实测 `rect=-0.00,148.00,1224.00,1828.28` 相符，`dW=dH=0.00`（≤2vp）；screenCap（`1127_probe_phone_p5_screencap.png`）裁剪 Canvas 区与组件快照逐像素 **mean abs diff = 0.00（max 0）**（≤5 通过）。b64 证据 `p5_snap_b64_phone.log`，解码件 `p5_snapshot_phone.png`。
+- **P4 输入（手机）：两种模式各测一遍，几何数值如下**（截图 `1128_probe_phone_p4_resize.png`、`1129_probe_phone_p4_offset.png`）：
+  - RESIZE：页面 `362.7×822.5 → 362.7×508.4`（压缩 314.1vp = 键盘 1060px/3.375）；`canvasBottomPx=1622.0 < kbTopPx=1716.0`，overlap `−94px = −27.85vp`（无重叠）；光标换算 `ref=336.9,145.1 → px=612.0,411.5`（rectX 0 + 336.85*0.5383*3.375 = 612.0、rectY 148 + 145.1*0.5383*3.375 = 411.5，公式一致）；`paperTopRef=123.05`，对 §7.3 手机值 123.0 偏差 **0.05vp**（日志里「expect 281.8」是探针写死的平板期望值，手机应按 123.0 判，已在此更正）。
+  - OFFSET：聚焦后 `area=362.7×822.5`（页面不被压缩）；键盘 `kbHpx=1060`；画布底随页面上移：`canvasBottomPx=1976 → 916.3`（1976−1060=916，即页面整体上移一个键盘高度），`kbTopPx=1716`，无重叠（overlap −799.7px）。
+  - 仍未验：候选窗跟随光标、离页键盘不悬留、真实纸面底部与键盘顶部间距——探针页不承载候选栏/纸面版式，与平板同口径记缺口。
+- **P3 触摸（手机）：仍未完成**。在确认 `drawnMode='p3'`（单点 `PROBE P3 touch hit=1@0` 正常）且屏幕常亮的前提下：单发点击可稳定命中（10/10、15/15、20/20 分别在不同窗口复现），但**一次连续大批量**（27/45/129 点分块、单条复合命令、每 20 点分量并 `hdc kill/start` 重连）在 hdc 侧持续返回 `[Fail]Not match target founded, check connect-key please`，批量执行后命中日志为 0；同刻复测单发 `echo`/`uinput` 又正常 → 判定为**手机无线调试 hdc 通道在长会话/批量命令下不可用**，不是探针页或坐标问题（坐标在平板上同一键帽组已 129/129 验证）。
