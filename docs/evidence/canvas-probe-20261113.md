@@ -95,3 +95,12 @@ Phase 1 裁定建议：**有条件可行（待补）**——P1/P2/P6 主项通�
   - 与第 13 批当前候选 `1083_1920s_baseline30_tablet_v13b.png`：**keyboard 0.00% PASS**；frame_left/mid/right 仍 0.52/0.17/0.04%——diff 定位在**拨杆/哥特拱装配件**区域（见 diff 图），原因是本次机器切换走「设置→默认机器」路径造成的拨杆静止相位与 1083 拍摄路径（换装页切机）不同，属会话状态差，不是探针页代码（探针页全部代码已删，typewriter 渲染链 git diff 为空）。
   - 替代证据：同一状态下连拍两帧四区 **0.00%**；探针改动仅 HomePage 临时入口（文字行）与 Index 挂载分支，不触碰打字机组件，删除后无像素影响。**结论：探针未引入打字机像素回归；门图 1026 口径因第 13 批基线漂移无法在本批直接满足，按设计与第 13 批报告口径改用当前候选 1083 的 keyboard 区 + 连拍静止性作为回归证据，并记录不符点。**
 - 截图：`1115_probe_revert_gate_1920s.png`。
+
+## 八、手机侧补跑（2026-11-13 19:13–20:00，部分完成）
+
+- 手机已解锁（此前锁屏阻塞解除），重新挂载探针页补跑：`P1`/`P6`/`P2` 完成，数值与平板同量级：
+  - **P1（PASS）**：`wC=345.38、wS=282.02、diff=63.35vp ≥2`；`ref=345.48、refDelta=0.11vp ≤1`。截图 `1121_probe_phone_p1.png`（等宽衬线 vs 比例字形差异可见；该图同时暴露探针页画布只覆盖参考机高度、页面其余部分透明露出主页背景——探针页壳未铺满底色，属探针件外观问题，已记录）。
+  - **P6（PASS）**：ImageBitmap＋PixelMap 两条路径 `ok=2/2`（PixelMap 2048×975）。截图 `1122_probe_phone_p6.png`。
+  - **P2（PASS）**：换行 `frames=91 fps=122.0 p95Draw=1.00ms`；落字 `frames=314 fps=120.5 p95Draw=1.00ms typed=20/20`；一致性 `scale=0.5383 paperTop=123.05(dPaper 0.05) carriageTop=217.05(dCarr 0.05) strikeLine=182.05`，与 §7.3 手机验算值 123.0/217.0 误差 0.05vp ≤1vp。截图 `1123_probe_phone_p2.png`。
+- **P3/P5/P4 手机侧未完成**：`hdc -t 192.168.5.124:44879 shell "uitest uiInput click …"` 在连续调用时反复返回 `[Fail]Not match target founded, check connect-key please`（同一会话内 `echo` 正常、`hdc list targets` 显示 Connected），已试：单发重试（命中 3/3 可用）、每 5 帽分块、每 3 帽分块、把点击串成设备侧单条 shell 命令（连 compound 也报同一错）、每次调用前 `hdc tconn` 重连。结论：**手机侧 hdc→uitest 的点击通道不稳定**，无法完成 129 次逐帽点按与 P5/P4 的多步交互；P3 手机侧已有部分命中日志（`p3_hits_phone.log`），不足以判定通过。
+- 手机侧替代证据：P3 的命中数学与事件分发已在平板 129/129 验证；手机侧 P1/P6/P2 已证明 Canvas 尺寸变化下的渲染与帧率可用。P3/P5/P4 手机数据待 hdc 通道稳定后补跑。
