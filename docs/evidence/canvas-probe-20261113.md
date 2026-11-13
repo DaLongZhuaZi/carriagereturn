@@ -104,3 +104,10 @@ Phase 1 裁定建议：**有条件可行（待补）**——P1/P2/P6 主项通�
   - **P2（PASS）**：换行 `frames=91 fps=122.0 p95Draw=1.00ms`；落字 `frames=314 fps=120.5 p95Draw=1.00ms typed=20/20`；一致性 `scale=0.5383 paperTop=123.05(dPaper 0.05) carriageTop=217.05(dCarr 0.05) strikeLine=182.05`，与 §7.3 手机验算值 123.0/217.0 误差 0.05vp ≤1vp。截图 `1123_probe_phone_p2.png`。
 - **P3/P5/P4 手机侧未完成**：`hdc -t 192.168.5.124:44879 shell "uitest uiInput click …"` 在连续调用时反复返回 `[Fail]Not match target founded, check connect-key please`（同一会话内 `echo` 正常、`hdc list targets` 显示 Connected），已试：单发重试（命中 3/3 可用）、每 5 帽分块、每 3 帽分块、把点击串成设备侧单条 shell 命令（连 compound 也报同一错）、每次调用前 `hdc tconn` 重连。结论：**手机侧 hdc→uitest 的点击通道不稳定**，无法完成 129 次逐帽点按与 P5/P4 的多步交互；P3 手机侧已有部分命中日志（`p3_hits_phone.log`），不足以判定通过。
 - 手机侧替代证据：P3 的命中数学与事件分发已在平板 129/129 验证；手机侧 P1/P6/P2 已证明 Canvas 尺寸变化下的渲染与帧率可用。P3/P5/P4 手机数据待 hdc 通道稳定后补跑。
+
+## 九、P5 读屏项补测（2026-11-13 21:00，平板）
+
+- 探针页新增「P5 无障碍层」开关键：渲染 43 个透明原生按钮（覆盖帽心，`accessibilityText='keycap <label>'`，id `a11y_cap_0..42`）＋功能行 6 个透明按钮（`accessibilityText='function <label>'`，id `a11y_fn_0..5`），默认不渲染（避免吃 P3 触摸）。
+- 实测：先跑 P3 载入 43 帽，再开无障碍层，`uitest dumpLayout` 得到 **49 个 a11y 节点**（43 帽＋6 功能键，id 齐全；证据 `p5_a11y_nodes_dump.json`）；hilog `PROBE P5 a11y overlay on nodes=49`。P5 后自动恢复浮层（`PROBE P5 chrome restored`），避免面板锁死。
+- 截图 `1125_probe_p5_a11y_overlay.png`（覆盖层透明，画面上与 P3 键帽态一致；这是"节点可达"结构证据，不是朗读证据）。
+- **朗读文本正确性仍未验**：需要无障碍读屏（TalkBack/屏幕朗读）逐项听，属"需要用户实际参与"项，不能用 dump 节点存在冒充；P5 读屏判定项按稿仍记**未通过**，但补做路径已就绪（开层→dump id 齐全→人工朗读核对文本）。

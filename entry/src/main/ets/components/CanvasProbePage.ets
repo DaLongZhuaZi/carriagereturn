@@ -79,6 +79,9 @@ export struct CanvasProbePage {
   @State panelOpen: boolean = false;
   /** P5：隐藏页内浮层（返回/标题/面板按钮/面板），让 screenCap 与组件快照内容可直接逐像素比对。 */
   @State chromeHidden: boolean = false;
+  /** P5 读屏项：透明原生按钮覆盖层（43 帽＋功能行六键；默认关，开后才渲染以免吃 P3 触摸）。 */
+  @State a11yOn: boolean = false;
+  @State a11yCount: string = '';
   @State lines: string[] = [];
   @State p1Line: string = '';
   @State p6Line: string = '';
@@ -94,7 +97,7 @@ export struct CanvasProbePage {
   private frontPixel: image.PixelMap | null = null;
   private staticBitmap: ImageBitmap | null = null;
   private paperBitmap: ImageBitmap | null = null;
-  private caps: ProbeCap[] = [];
+  @State caps: ProbeCap[] = [];
   private drawnMode: string = 'idle';
 
   // ---------------- P1 ----------------
@@ -667,6 +670,16 @@ export struct CanvasProbePage {
     this.phase = 'idle';
   }
 
+  /** P5 读屏项：开透明无障碍覆盖层，并把节点数写 hilog 供 dump 核对。 */
+  private a11yEnable(): void {
+    if (this.caps.length === 0) {
+      this.loadCaps();
+    }
+    this.a11yOn = true;
+    this.a11yCount = 'a11y nodes=' + (this.caps.length + 6).toString();
+    this.log('PROBE P5 a11y overlay on nodes=' + (this.caps.length + 6).toString());
+  }
+
   /** P3 动态帧：键带 + 帽心点 + 拨杆（按 leverAngle 旋转，跟手可视证据）。 */
   private drawP3Frame(): void {
     const ctx: CanvasRenderingContext2D = this.ctx;
@@ -907,6 +920,10 @@ export struct CanvasProbePage {
           b64.substring(i * chunk, Math.min(b64.length, (i + 1) * chunk)));
       }
       this.log('PROBE P5 b64 end');
+      setTimeout(() => {
+        this.chromeHidden = false;
+        this.log('PROBE P5 chrome restored');
+      }, 2000);
       this.p5Line = 'P5 snapshot ' + pi.size.width.toString() + 'x' + pi.size.height.toString() +
         ' bytes=' + this.snapBytes.length.toString();
       pm.release();
@@ -943,6 +960,7 @@ export struct CanvasProbePage {
       { label: 'P4 OFFSET', act: (): void => { this.runP4('OFFSET'); } },
       { label: 'P5 取证', act: (): void => { this.runP5(); } },
       { label: 'P5 转场', act: (): void => { this.runP5Transition(); } },
+      { label: 'P5 无障碍层', act: (): void => { this.a11yEnable(); } },
       { label: '清屏', act: (): void => { this.drawIdle(); } },
     ];
   }
@@ -1028,6 +1046,32 @@ export struct CanvasProbePage {
             .borderRadius(16).backgroundColor('#2e2620')
             .position({ x: this.boxW > 100 ? this.boxW - 96 : 8, y: this.topInset + 8 })
               .onClick(() => { this.panelOpen = !this.panelOpen; })
+          }
+
+          // P5 读屏：透明原生按钮覆盖层（43 帽 + 功能行六键；默认不渲染，避免吃 P3 触摸）
+          if (this.a11yOn) {
+            ForEach(this.caps, (cap: ProbeCap, idx: number) => {
+              Button('')
+                .id('a11y_cap_' + idx.toString())
+                .width(44).height(44)
+                .borderRadius(22)
+                .backgroundColor('#00000000')
+                .opacity(0.02)
+                .accessibilityText('keycap ' + cap.label)
+                .position({
+                  x: cap.x * this.canvasScale - 22,
+                  y: cap.y * this.canvasScale - 22,
+                })
+            }, (cap: ProbeCap, idx: number) => 'a11y' + idx.toString())
+            ForEach(['EN', '删除', '换行', '换纸', '退行', '字符'], (label: string, i: number) => {
+              Button('')
+                .id('a11y_fn_' + i.toString())
+                .width(this.cw / 6).height(40)
+                .backgroundColor('#00000000')
+                .opacity(0.02)
+                .accessibilityText('function ' + label)
+                .position({ x: i * this.cw / 6, y: this.ch - 56 })
+            }, (label: string, i: number) => 'a11yf' + i.toString())
           }
 
           if (this.panelOpen) {
