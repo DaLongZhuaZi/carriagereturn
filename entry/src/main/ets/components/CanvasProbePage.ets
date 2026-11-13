@@ -133,6 +133,11 @@ export struct CanvasProbePage {
 
   // ---------------- P5 ----------------
   private snapBytes: Uint8Array = new Uint8Array(0);
+  // P5 转场采样（screenCap 400-500ms 抓不到 250ms 转场，改为盒内逐帧采样）
+  private transXs: number[] = [];
+  private transTimer: number = -1;
+  private transMidBytes: number = 0;
+  private transMidX: number = 0;
 
   aboutToAppear(): void {
     this.log('probe page appear');
@@ -937,6 +942,31 @@ export struct CanvasProbePage {
 
   private runP5Transition(): void {
     this.log('PROBE P5 transition start');
+    this.transXs = [];
+    this.transMidBytes = 0;
+    if (this.transTimer >= 0) {
+      clearInterval(this.transTimer);
+      this.transTimer = -1;
+    }
+    // 每 40ms 采样盒子 x（screenCap 单帧 400-500ms 抓不到 250ms 转场，按 AGENTS 动画取证口径改盒内采样）
+    this.transTimer = setInterval(() => {
+      try {
+        const info = this.getUIContext().getComponentUtils().getRectangleById('probe__canvas');
+        this.transXs.push(info.screenOffset.x);
+        if (this.transXs.length === 3) {
+          this.getUIContext().getComponentSnapshot().get('probe__canvas').then((pm: image.PixelMap) => {
+            this.transMidX = info.screenOffset.x;
+            this.transMidBytes = pm.getImageInfoSync().size.width * pm.getImageInfoSync().size.height;
+            this.log('PROBE P5 transition mid snapshot px=' + this.transMidX.toFixed(1) +
+              ' wh=' + pm.getImageInfoSync().size.width.toString() + 'x' +
+              pm.getImageInfoSync().size.height.toString());
+            pm.release();
+          });
+        }
+      } catch (e) {
+        hilog.warn(DOMAIN, TAG, 'transition sample failed');
+      }
+    }, 40);
     animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
       this.canvasX = -this.cw;
     });
@@ -945,6 +975,25 @@ export struct CanvasProbePage {
         this.canvasX = (this.boxW - this.cw) / 2;
       });
       this.log('PROBE P5 transition end');
+      setTimeout(() => {
+        if (this.transTimer >= 0) {
+          clearInterval(this.transTimer);
+          this.transTimer = -1;
+        }
+        const n: number = this.transXs.length;
+        let minX: number = 1e9;
+        let maxX: number = -1e9;
+        for (let i = 0; i < n; i++) {
+          if (this.transXs[i] < minX) { minX = this.transXs[i]; }
+          if (this.transXs[i] > maxX) { maxX = this.transXs[i]; }
+        }
+        this.log('PROBE P5 transition samples n=' + n.toString() +
+          ' minX=' + minX.toFixed(1) + ' maxX=' + maxX.toFixed(1) +
+          ' range=' + (maxX - minX).toFixed(1) +
+          ' midX=' + this.transMidX.toFixed(1) +
+          ' midSnapshotPx=' + this.transMidBytes.toString() +
+          ' canvasW=' + (this.cw * this.vp2px()).toFixed(1));
+      }, 300);
     }, 300);
   }
 
