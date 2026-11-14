@@ -97,7 +97,7 @@ export struct CanvasTypewriter {
   onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
   onLeverEnd: () => void = (): void => {};
   onFunctionKey: (key: string) => void = (_key: string): void => {};
-  @Prop @Watch('onDocChanged') candidates: string[] = [];
+  @Prop @Watch('onCandidatesChanged') candidates: string[] = [];
   onCandidatePick: (index: number) => void = (_index: number): void => {};
   onCandidateLong: (index: number) => void = (_index: number): void => {};
 
@@ -138,6 +138,10 @@ export struct CanvasTypewriter {
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onDocChanged(): void {
     this.redrawPaper();
+  }
+
+  onCandidatesChanged(): void {
+    this.draw();
   }
 
   onLeverChanged(): void {
