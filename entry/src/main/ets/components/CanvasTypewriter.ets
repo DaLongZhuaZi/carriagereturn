@@ -705,8 +705,10 @@ export struct CanvasTypewriter {
         const ms: number = Date.now() - this.candidateDownTime;
         this.candidateDownIndex = -1;
         if (ms >= 600) {
+          hilog.info(CDOMAIN, CTAG, 'candidate long ms=%{public}d idx=%{public}d', ms, ci);
           this.onCandidateLong(ci);
         } else {
+          hilog.info(CDOMAIN, CTAG, 'candidate tap ms=%{public}d idx=%{public}d', ms, ci);
           this.onCandidatePick(ci);
         }
         return;
