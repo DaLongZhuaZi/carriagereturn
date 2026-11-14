@@ -101,6 +101,7 @@ export struct CanvasTypewriter {
   private imgCentral: image.PixelMap | null = null;
   private imgBracket: image.PixelMap | null = null;
   private imgLever: image.PixelMap | null = null;
+  private imgTypebar: image.PixelMap | null = null;
   private imgKeyband: image.PixelMap | null = null;
   private imgPaper: image.PixelMap | null = null;
   private machineBuildCount: number = 0;
@@ -238,6 +239,15 @@ export struct CanvasTypewriter {
       this.imgLever = await this.loadRaw('layers/1960s-electric/lever.png');
     } else {
       this.imgLever = await this.loadRaw('layers/1920s-upright/lever.png');
+    }
+    if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+      this.imgTypebar = await this.loadRaw('typebar/1920s-typebar-vertical.png');
+    } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+      this.imgTypebar = await this.loadRaw('typebar/1930s-portable-typebar-vertical.png');
+    } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+      this.imgTypebar = await this.loadRaw('typebar/1950s-streamlined-typebar-vertical.png');
+    } else {
+      this.imgTypebar = await this.loadRaw('typebar/1960s-electric-typebar-vertical.png');
     }
     this.imgKeyband = await this.loadRaw(this.keybandPath());
     try {
@@ -386,6 +396,17 @@ export struct CanvasTypewriter {
       ctxFront.translate(pinX, pinY);
       ctxFront.rotate(restDeg * Math.PI / 180);
       ctxFront.drawImage(this.imgLever, -leverW * spec.leverPivotX, -leverH * spec.leverPivotY, leverW, leverH);
+      ctxFront.restore();
+    }
+    // 字杆静止层（55° 收进篮内；视觉默认不画摆动，但静止杆体在基线中可见）
+    if (this.imgTypebar !== null) {
+      const tbSize: number = Hc * 2.5;
+      const tbX: number = paperLeft + this.marginHVp + 0 - tbSize / 2;
+      const tbY: number = this.stackTop() + this.strikeLineVp - 0.115 * tbSize;
+      ctxFront.save();
+      ctxFront.translate(tbX + tbSize * 0.5, tbY + tbSize * 0.867);
+      ctxFront.rotate(55 * Math.PI / 180);
+      ctxFront.drawImage(this.imgTypebar, -tbSize * 0.5, -tbSize * 0.867, tbSize, tbSize);
       ctxFront.restore();
     }
     // 键带图
