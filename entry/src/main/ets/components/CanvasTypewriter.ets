@@ -86,6 +86,8 @@ export struct CanvasTypewriter {
   @Prop fontFamily: string = 'CourierPrime';
   @Prop fontLabel: string = 'Courier Prime';
   @Prop inkColor: string = '#1a1a1a';
+  /** 2C-2：无障碍透明原生按钮覆盖层（设置项 a11y.overlay.enabled，缺省 false）。 */
+  @Prop a11yEnabled: boolean = false;
   onOpenHome: () => void = (): void => {};
   onOpenMenu: () => void = (): void => {};
   // 2B 交互：键帽 Down/Up、拨杆三阶段
@@ -819,6 +821,56 @@ export struct CanvasTypewriter {
     }
   }
 
+  @Builder
+  a11yLayer() {
+    // 四机键帽 + 空格条（透明原生按钮，opacity 0.02；供读屏与 dump 节点计数）
+    ForEach(this.keymap.caps, (cap: CapDef) => {
+      Button('keycap ' + cap.label)
+        .width(Math.max(1, cap.wRatio * this.widthVp))
+        .height(Math.max(1, cap.hRatio * this.keybedHeightVp))
+        .position({
+          x: cap.cx - cap.wRatio * this.widthVp / 2,
+          y: this.keybedTop() + cap.cy - cap.hRatio * this.keybedHeightVp / 2,
+        })
+        .backgroundColor(Color.Transparent)
+        .opacity(0.02)
+        .id('a11y_cap_' + cap.id)
+        .onClick(() => { this.onCapDown(cap); this.onCapUp(cap); })
+    }, (cap: CapDef) => cap.id)
+    Button('space bar')
+      .width(Math.max(1, this.keymap.spaceXMax - this.keymap.spaceXMin))
+      .height(Math.max(1, this.keymap.spaceYMax - this.keymap.spaceYMin))
+      .position({ x: this.keymap.spaceXMin, y: this.keybedTop() + this.keymap.spaceYMin })
+      .backgroundColor(Color.Transparent)
+      .opacity(0.02)
+      .id('a11y_space')
+      .onClick(() => { this.onFunctionKey('space'); })
+    // 功能行六键
+    ForEach(['lang', 'delete', 'newline', 'paper', 'backline', 'char'], (key: string, i: number) => {
+      Button('function ' + key)
+        .width((this.widthVp - 16 - 30) / 6)
+        .height(this.functionRowHeightVp)
+        .position({ x: 8 + i * ((this.widthVp - 16 - 30) / 6 + 6),
+          y: this.heightVp - this.bottomInset - this.functionRowHeightVp })
+        .backgroundColor(Color.Transparent)
+        .opacity(0.02)
+        .id('a11y_func_' + key)
+        .onClick(() => { this.onFunctionKey(key); })
+    }, (key: string) => key)
+    // 候选 chip（3 候选态时由 dump 计入）
+    ForEach(this.candidates, (cand: string, i: number) => {
+      Button('candidate ' + cand)
+        .width((this.widthVp - 16) / Math.max(1, this.candidates.length))
+        .height(this.candBarHeightVp)
+        .position({ x: 8 + i * ((this.widthVp - 16) / Math.max(1, this.candidates.length)),
+          y: this.fontBarTop() - this.candBarHeightVp })
+        .backgroundColor(Color.Transparent)
+        .opacity(0.02)
+        .id('a11y_cand_' + i.toString())
+        .onClick(() => { this.onCandidatePick(i); })
+    }, (cand: string, i: number) => cand + i.toString())
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Canvas(this.ctx)
@@ -841,6 +893,9 @@ export struct CanvasTypewriter {
       Column().id('typewriter__function_row').width(this.widthVp).height(this.functionRowHeightVp)
         .position({ x: 0, y: this.heightVp - this.bottomInset - this.functionRowHeightVp })
         .opacity(0.01).hitTestBehavior(HitTestMode.None)
+      if (this.a11yEnabled) {
+        this.a11yLayer()
+      }
       // TopBar 保留 ArkUI 叠加；位置由同一几何算出（x=0 因 stage 宽=窗口宽，y=topInset）
       TopBar({
         title: this.docTitle,

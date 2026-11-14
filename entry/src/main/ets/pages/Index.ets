@@ -4648,7 +4648,6 @@ struct Index {
           // 第 13 批 ⑤：主页 hero 跟随当前启用机型
           machineKind: this.machineKind,
           guideEnabled: this.guideEnabled,
-          onOpenCanvas: (): void => { this.measureStage(); this.recalcPaperHeight(); setTimeout(() => { this.pushPage('canvasDebug'); }, 80); },
           statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();
