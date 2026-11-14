@@ -36,6 +36,8 @@ export class PrefKeys {
   static readonly PAPER: string = 'paper';
   /** 第 6 批 F10：删除方式稳定 id（direct/ask/trash）。 */
   static readonly DELETE_MODE: string = 'delete_mode';
+  /** 第 16 批 Phase2：Canvas 主屏回滚开关（true=Canvas 主屏，false=ArkUI 主屏）。 */
+  static readonly CANVAS_ENABLED: string = 'canvas.enabled';
 
   // ---- 第 0 批：命名空间与登记规则（新键一律走前缀；不许各组件裸写字符串）----
   /** 引导：`guide.<page>.seen`；首次启动引导复用既有 ONBOARDING_SEEN 键。 */
@@ -150,6 +152,7 @@ export class PrefRegistry {
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
       { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
+      { key: PrefKeys.CANVAS_ENABLED, type: 'boolean', defaultValue: 'false', owner: 'Phase2', note: 'Canvas 主屏回滚开关（2A/2B 实施期 false，2B 验收后 true）', removeAfter: 'Phase 2 完成后' },
     ];
   }
 
@@ -165,6 +168,7 @@ export class PrefRegistry {
       PrefKeys.PAPER, PrefKeys.DELETE_MODE,
       PrefKeys.STATS_PAPER_KINDS,
       PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
+      PrefKeys.CANVAS_ENABLED,
     ];
     if (fixed.indexOf(key) >= 0) {
       return true;

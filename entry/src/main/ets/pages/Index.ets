@@ -39,6 +39,7 @@ import { TrashPage, guideStepsForTrash } from '../components/TrashPage';
 import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
 import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
 import { ExportPage, guideStepsForExport } from '../components/ExportPage';
+import { CanvasTypewriter } from '../components/CanvasTypewriter';
 import { setExportTarget } from '../model/ExportTarget';
 import { HomePage, guideStepsForHome } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
@@ -862,6 +863,8 @@ struct Index {
   @State exportOpen: boolean = false;
   /** 第 3 批：导出页 busy（系统返回拦截）。 */
   @State exportBusy: boolean = false;
+  /** 第 16 批 2A：Canvas 静态主屏调试页（临时入口，2B 切换后删除）。 */
+  @State canvasDebugOpen: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
@@ -914,6 +917,7 @@ struct Index {
     this.settingsOpen = has('settings') || has('pinyinsettings');
     this.pinyinSettingsOpen = has('pinyinsettings');
     this.exportOpen = has('export');
+    this.canvasDebugOpen = has('canvasDebug');
     hilog.info(DOMAIN, TAG, 'nav depth=%{public}s top=%{public}s',
       this.navStack.length.toString(), this.navStack[this.navStack.length - 1]);
     // §4.1：只在栈深变大（前进）时弹；返回/不变不弹
@@ -2393,6 +2397,15 @@ struct Index {
   }
 
   /** 当前行文本（供隐藏 Text 实测宽）。 */
+  /** 第 16 批 2A：把 PaperRow[] 转成 Canvas 静态层需要的字符串数组。 */
+  private docLineTexts(): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < this.rows.length; i++) {
+      out.push(this.rows[i].text);
+    }
+    return out;
+  }
+
   private currentLineText(): string {
     const cursor = this.docModel.getCursor();
     const line = this.docModel.getLines()[cursor.line];
@@ -4599,6 +4612,7 @@ struct Index {
           // 第 13 批 ⑤：主页 hero 跟随当前启用机型
           machineKind: this.machineKind,
           guideEnabled: this.guideEnabled,
+          onOpenCanvas: (): void => { this.measureStage(); this.recalcPaperHeight(); setTimeout(() => { this.pushPage('canvasDebug'); }, 80); },
           statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();
@@ -4939,6 +4953,56 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'export shared format=%{public}s', format);
           },
           onBusyChange: (busy: boolean): void => { this.exportBusy = busy; },
+        })
+          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // 第 16 批 2A：Canvas 静态主屏调试页（临时；2B 切主屏后删除）
+      if (this.canvasDebugOpen) {
+        CanvasTypewriter({
+          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          heightVp: this.winHeightVp > 0 ? this.winHeightVp : this.stageHeight,
+          topInset: this.topInset,
+          bottomInset: this.bottomInset,
+          isTablet: this.isTablet,
+          machineKind: this.machineKind,
+          paperKind: this.paperKind,
+          docTitle: this.docTitle,
+          guideEnabled: this.guideEnabled,
+          paperWidthVp: this.paperWidthVp,
+          paperHeightVp: this.paperHeightVp,
+          // 2A 静态验收用空纸态（真实文档内容留 2B；纸面在门图中整体排除）
+          paperContainerVp: this.marginB() + this.lineHeightVp + 44 + 2,
+          paperTopVp: this.carriageTopVp - (this.marginB() + this.lineHeightVp + 44),
+          carriageTopVp: this.carriageTopVp,
+          carriageHeightVp: this.carriageHeight,
+          strikeLineVp: this.strikeLineVp,
+          fontSizeVp: this.fontSizeVp,
+          lineHeightVp: this.lineHeightVp,
+          marginHVp: this.marginH(),
+          marginTVp: this.marginT(),
+          marginBVp: this.marginB(),
+          pageNo: this.sheetNo,
+          pageCount: this.sheetCount,
+          hintText: '',
+          lines: [''],
+          cursorXVp: this.marginH(),
+          cursorYVp: Math.max(0, this.strikeLineVp - (this.carriageTopVp - (this.marginB() + this.lineHeightVp + 44)) - 8),
+          keybedHeightVp: this.keybedHeight,
+          functionRowHeightVp: this.functionRowHeight,
+          fontBarHeightVp: this.fontBarHeight,
+          candBarHeightVp: this.isTablet ? 0 : 44,
+          langLabel: 'EN',
+          deleteLabel: '删除',
+          newlineLabel: '换行',
+          paperLabel: '换纸',
+          backLineLabel: '退行',
+          charLabel: '字符',
+          fontFamily: this.fontFamily,
+          fontLabel: this.fontLabelOfCurrentMachine(),
+          inkColor: this.inkColor,
+          onOpenHome: (): void => { this.popTo('home'); },
+          onOpenMenu: (): void => { this.menuOpen = true; },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }

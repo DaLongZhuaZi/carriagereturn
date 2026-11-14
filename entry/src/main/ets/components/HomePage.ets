@@ -37,6 +37,8 @@ export struct HomePage {
   /** 第 10 批：引导入口总开关（false 时隐藏）。 */
   @Prop guideEnabled: boolean = true;
   onContinue: () => void = (): void => {};
+  /** 第 16 批 2A：Canvas 静态主屏临时入口（2B 切主屏后删除）。 */
+  onOpenCanvas: () => void = (): void => {};
   onStartTyping: () => void = (): void => {};
   onOpen: (key: string) => void = (): void => {};
 
@@ -190,6 +192,13 @@ export struct HomePage {
               .fontSize(12).fontColor('#c9a45c')
               .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
           }
+
+          // 第 16 批 2A 临时调试入口（Canvas 静态主屏；2B 切主屏后删除）
+          Text('Canvas 2A（临时）')
+            .id('home__canvas_debug')
+            .fontSize(12).fontColor('rgba(232,221,201,0.6)').decoration({ type: TextDecorationType.Underline })
+            .width('100%').textAlign(TextAlign.Center).margin({ top: 10, bottom: 4 })
+            .onClick(() => { this.onOpenCanvas(); })
 
           Column().width('100%').height(24)
         }

@@ -27,7 +27,7 @@ ETS = os.path.join(ROOT, "entry/src/main/ets")
 PREFS = os.path.join(ETS, "services/AppPreferences.ets")
 
 # 半成品/回滚开关（必须有 removeAfter + 可核对命令）
-SWITCH_KEYS = {"guide.enabled", "custom.enabled", "custom.knob.enabled"}
+SWITCH_KEYS = {"guide.enabled", "custom.enabled", "custom.knob.enabled", "canvas.enabled"}
 REMOVE_CMD = "python tools/audit-switches.py --check"
 
 
