@@ -2397,25 +2397,6 @@ struct Index {
   }
 
   /** 当前行文本（供隐藏 Text 实测宽）。 */
-  /** 第 16 批 2A：打开 Canvas 静态调试页（先在后台挂好打字机页，供 L1 首帧快照缓存）。 */
-  private openCanvasDebug(): void {
-    const srcMeta: DocMeta = this.docModel.toDocData().meta;
-    const meta: DocMeta = {
-      machine: this.machineKind, paper: this.paperKind, ribbon: srcMeta.ribbon,
-      font: srcMeta.font, createdAt: srcMeta.createdAt, updatedAt: srcMeta.updatedAt,
-      sheetNo: 2, sheetCount: 2,
-    };
-    const fresh: DocData = {
-      lines: [{ text: '', ribbon: this.ribbon }],
-      cursor: { line: 0, offset: 0 },
-      meta: meta,
-    };
-    const nid: string = docStore.save('', fresh, 'Canvas 2A');
-    this.loadDocument(nid);
-    this.pushPage('typewriter');
-    setTimeout(() => { this.pushPage('canvasDebug'); }, 450);
-  }
-
   /** 第 16 批 2A：把 PaperRow[] 转成 Canvas 静态层需要的字符串数组。 */
   private docLineTexts(): string[] {
     const out: string[] = [];
@@ -4616,7 +4597,6 @@ struct Index {
       }
       .width(this.stageWidth)
       .height(this.stageHeight)
-      .id('typewriter__root')
       .alignItems(HorizontalAlign.Start)
       // 键盘避让：整体上移保打击行可见；收起归零，不留空区
       .translate({ y: -this.kbShift })
@@ -4625,15 +4605,14 @@ struct Index {
       // §11 主页：冷启动首帧；从任何页返回也回这里
       // 主页常驻以便滑入时垫底；但栈顶是 typewriter 时必须让位（否则盖住打字机）
       if (this.navStack.indexOf('home') >= 0
-        && this.navStack[this.navStack.length - 1] !== 'typewriter'
-        && this.navStack[this.navStack.length - 1] !== 'canvasDebug') {
+        && this.navStack[this.navStack.length - 1] !== 'typewriter') {
         HomePage({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           // 第 13 批 ⑤：主页 hero 跟随当前启用机型
           machineKind: this.machineKind,
           guideEnabled: this.guideEnabled,
-          onOpenCanvas: (): void => { this.openCanvasDebug(); },
+          onOpenCanvas: (): void => { this.measureStage(); this.recalcPaperHeight(); setTimeout(() => { this.pushPage('canvasDebug'); }, 80); },
           statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();

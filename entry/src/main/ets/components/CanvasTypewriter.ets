@@ -80,8 +80,6 @@ export struct CanvasTypewriter {
   @Prop charLabel: string = '字符';
   @Prop fontFamily: string = 'CourierPrime';
   @Prop fontLabel: string = 'Courier Prime';
-  /** 2A L1 首帧快照源：后台已挂载的 ArkUI 打字机根节点 id。快照失败时回退到本组件自绘静态层。 */
-  @Prop snapshotSourceId: string = 'typewriter__root';
   @Prop inkColor: string = '#1a1a1a';
   onOpenHome: () => void = (): void => {};
   onOpenMenu: () => void = (): void => {};
@@ -92,7 +90,6 @@ export struct CanvasTypewriter {
   private machineLayer: ImageBitmap | null = null;
   private machineFrontLayer: ImageBitmap | null = null;
   private paperLayer: ImageBitmap | null = null;
-  private sourceSnapshot: image.PixelMap | null = null;
   private keymap: KeymapLayout = {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
     hitRadius: 10, spaceR: 8, overlayColor: '#312b24', overlayFontSize: 14,
@@ -112,20 +109,16 @@ export struct CanvasTypewriter {
 
   /** 2A-4：换机只重建机器层；换纸只重建纸层。 */
   onMachineKindChanged(): void {
-    this.sourceSnapshot = null;
     this.loadMachineImages().then(() => {
       this.buildMachineLayer();
       this.draw();
-      setTimeout(() => { this.captureSourceSnapshot(); }, 400);
     });
   }
 
   onPaperKindChanged(): void {
-    this.sourceSnapshot = null;
     this.loadPaperImage().then(() => {
       this.buildPaperLayer();
       this.draw();
-      setTimeout(() => { this.captureSourceSnapshot(); }, 400);
     });
   }
 
@@ -278,30 +271,6 @@ export struct CanvasTypewriter {
     this.buildStaticLayers();
     this.draw();
     setTimeout(() => { this.logTopBarRect(); }, 100);
-    this.captureSourceSnapshot();
-  }
-
-  /** 2A：把后台 ArkUI 打字机首帧抓成 L1 缓存位图；失败则保留自绘静态层。 */
-  private async captureSourceSnapshot(): Promise<void> {
-    if (this.sourceSnapshot !== null) {
-      return;
-    }
-    for (let i = 0; i < 3 && this.sourceSnapshot === null; i++) {
-      try {
-        const pm: image.PixelMap = await this.getUIContext().getComponentSnapshot()
-          .get(this.snapshotSourceId, { waitUntilRenderFinished: true });
-        this.sourceSnapshot = pm;
-        const info = pm.getImageInfoSync();
-        hilog.info(CDOMAIN, CTAG, 'L1 snapshot ok %{public}sx%{public}s try=%{public}d',
-          info.size.width.toString(), info.size.height.toString(), i + 1);
-        this.draw();
-      } catch (e) {
-        const err: BusinessError = e as BusinessError;
-        hilog.warn(CDOMAIN, CTAG, 'L1 snapshot failed try=%{public}d code=%{public}d',
-          i + 1, err.code === undefined ? -1 : err.code);
-        await new Promise<void>((resolve) => { setTimeout(() => { resolve(); }, 200); });
-      }
-    }
   }
 
   private keybedWidth(): number {
@@ -520,11 +489,6 @@ export struct CanvasTypewriter {
   private draw(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
-    if (this.sourceSnapshot !== null) {
-      ctx.clearRect(0, 0, this.widthVp, this.heightVp);
-      ctx.drawImage(this.sourceSnapshot, 0, 0, this.widthVp, this.heightVp);
-      return;
-    }
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
     // L0 底色（铺满整屏含余量区）
     const bg: CanvasGradient = ctx.createLinearGradient(0, 0, 0, this.heightVp);
