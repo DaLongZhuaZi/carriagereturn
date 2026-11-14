@@ -4629,6 +4629,7 @@ struct Index {
       .alignItems(HorizontalAlign.Start)
       // 键盘避让：整体上移保打击行可见；收起归零，不留空区
       .translate({ y: -this.kbShift })
+      .visibility(this.canvasDebugOpen ? Visibility.None : Visibility.Visible)
 
       // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
       // §11 主页：冷启动首帧；从任何页返回也回这里
