@@ -18,6 +18,7 @@ import { MachineKind, PaperKind } from '../model/DocModel';
 import { findMachine, findPaper, MachineSpec, PaperSpec, TOP_BAR_HEIGHT_VP, PAPER_TOP_GAP_VP,
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP } from '../model/MachineCatalog';
 import { KeymapParser, KeymapLayout, CapDef } from '../model/KeymapModel';
+import { CanvasTransform, computeTransform, referenceMetrics } from '../model/CanvasGeometry';
 import { TopBar } from './TopBar';
 
 const CDOMAIN: number = 0x0100;
@@ -127,7 +128,33 @@ export struct CanvasTypewriter {
       this.paperWidthVp.toFixed(1), this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1),
       this.carriageTopVp.toFixed(1), this.carriageHeightVp.toFixed(1), this.strikeLineVp.toFixed(1),
       this.fontSizeVp.toFixed(1), this.lineHeightVp.toFixed(1));
+    const tr: CanvasTransform = computeTransform(this.widthVp, this.heightVp, this.topInset);
+    const ref = referenceMetrics(this.isTablet);
+    hilog.info(CDOMAIN, CTAG,
+      'transform scale=%{public}s tx=%{public}s ty=%{public}s refPaperTop=%{public}s refCarriageTop=%{public}s refStrike=%{public}s',
+      tr.scale.toFixed(4), tr.tx.toFixed(2), tr.ty.toFixed(2), ref.paperTop.toFixed(2),
+      ref.carriageTop.toFixed(2), ref.strikeLine.toFixed(2));
     this.prepare();
+  }
+
+  private logTopBarRect(): void {
+    try {
+      const info = this.getUIContext().getComponentUtils().getRectangleById('canvas_topbar');
+      const vp2px: number = this.getUIContext().vp2px(1);
+      const expX: number = 0;
+      const expY: number = this.topInset * vp2px;
+      const expW: number = this.widthVp * vp2px;
+      const expH: number = 56 * vp2px;
+      hilog.info(CDOMAIN, CTAG,
+        'topbar rect=%{public}s,%{public}s,%{public}s,%{public}s expect=%{public}s,%{public}s,%{public}s,%{public}s dX=%{public}s dY=%{public}s dW=%{public}s dH=%{public}s',
+        info.screenOffset.x.toFixed(1), info.screenOffset.y.toFixed(1), info.size.width.toFixed(1),
+        info.size.height.toFixed(1), expX.toFixed(1), expY.toFixed(1), expW.toFixed(1), expH.toFixed(1),
+        Math.abs(info.screenOffset.x - expX * vp2px).toFixed(1),
+        Math.abs(info.screenOffset.y - expY).toFixed(1),
+        Math.abs(info.size.width - expW).toFixed(1), Math.abs(info.size.height - expH).toFixed(1));
+    } catch (e) {
+      hilog.warn(CDOMAIN, CTAG, 'topbar rect failed');
+    }
   }
 
   /** Canvas font 字符串只取单一族名（逗号列表在 Canvas 里会回落系统字体）。 */
@@ -233,6 +260,7 @@ export struct CanvasTypewriter {
     this.ready = true;
     this.buildStaticLayers();
     this.draw();
+    setTimeout(() => { this.logTopBarRect(); }, 100);
   }
 
   private keybedWidth(): number {
@@ -564,6 +592,7 @@ export struct CanvasTypewriter {
         onOpenHome: (): void => { this.onOpenHome(); },
         onOpenMenu: (): void => { this.onOpenMenu(); },
       })
+        .id('canvas_topbar')
         .width(this.widthVp)
         .position({ x: 0, y: this.topInset })
       // IME 锚点透明层（2A 只挂载、不接事件）

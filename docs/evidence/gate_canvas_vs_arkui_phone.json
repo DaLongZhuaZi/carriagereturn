@@ -1,0 +1,98 @@
+{
+  "baseline": "D:\\HarmonyAPP\\carriagereturn\\docs\\shots\\1208_canvas2a_phone_yfix.png",
+  "current": "D:\\HarmonyAPP\\carriagereturn\\docs\\shots\\1211_canvas2a_arkui_main.png",
+  "size": [
+    1224,
+    2776
+  ],
+  "scale": null,
+  "threshold": 30,
+  "exclude_band": [
+    0.0,
+    0.05
+  ],
+  "regions": {
+    "keyboard": {
+      "region": "keyboard",
+      "box_px": [
+        0,
+        1721,
+        1224,
+        2720
+      ],
+      "pixels": 1222776,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 0,
+      "passed": true,
+      "box": [
+        0.0,
+        1.0,
+        0.62,
+        0.98
+      ]
+    },
+    "frame_left": {
+      "region": "frame_left",
+      "box_px": [
+        0,
+        1110,
+        404,
+        1721
+      ],
+      "pixels": 246844,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 0,
+      "passed": true,
+      "box": [
+        0.0,
+        0.33,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_mid": {
+      "region": "frame_mid",
+      "box_px": [
+        404,
+        1110,
+        820,
+        1721
+      ],
+      "pixels": 254176,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 0,
+      "passed": true,
+      "box": [
+        0.33,
+        0.67,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_right": {
+      "region": "frame_right",
+      "box_px": [
+        820,
+        1110,
+        1224,
+        1721
+      ],
+      "pixels": 246844,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 0,
+      "passed": true,
+      "box": [
+        0.67,
+        1.0,
+        0.4,
+        0.62
+      ]
+    }
+  },
+  "verdict": "PASS",
+  "criterion": "四区超阈值像素占比全部为 0.00% 才通过"
+}
