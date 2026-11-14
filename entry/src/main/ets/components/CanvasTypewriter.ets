@@ -152,6 +152,7 @@ export struct CanvasTypewriter {
     this.draw();
   }
   onJoltChanged(): void {
+    hilog.info(CDOMAIN, CTAG, 'canvas jolt=%{public}s', this.joltYVp.toFixed(1));
     // 逐字 jolt 只有 1–2vp；重绘纸层文字，不整屏重绘。
     this.redrawPaper();
   }
