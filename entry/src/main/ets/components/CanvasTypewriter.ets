@@ -515,7 +515,7 @@ export struct CanvasTypewriter {
     ctx.rect(0, this.keybedTop(), this.widthVp, this.keybedHeightVp);
     ctx.clip();
     ctx.fillStyle = this.keymap.overlayColor;
-    ctx.font = this.keymap.overlayFontSize.toString() + 'vp sans-serif';
+    ctx.font = this.keymap.overlayFontSize.toString() + 'vp NotoSerifSC';
     ctx.textAlign = 'center';
     for (let i = 0; i < this.keymap.caps.length; i++) {
       const cap: CapDef = this.keymap.caps[i];
@@ -527,7 +527,7 @@ export struct CanvasTypewriter {
     ctx.fillStyle = '#beb4a8';
     ctx.font = '13vp ' + this.canvasFont();
     ctx.textAlign = 'center';
-    ctx.fillText(this.fontLabel, this.widthVp / 2, this.fontBarTop() + this.fontBarHeightVp / 2 + 5);
+    ctx.fillText(this.fontLabel, this.widthVp / 2, this.fontBarTop() + this.fontBarHeightVp / 2);
     // 功能行文字
     const labels: string[] = [this.langLabel, this.deleteLabel, this.newlineLabel,
       this.paperLabel, this.backLineLabel, this.charLabel];
@@ -541,7 +541,7 @@ export struct CanvasTypewriter {
     ctx.textAlign = 'center';
     for (let i = 0; i < 6; i++) {
       ctx.fillStyle = i === 2 ? '#c9a45c' : '#dbccb3';
-      ctx.fillText(labels[i], left + i * (keyW + gap) + keyW / 2, y0 + h / 2 + 5);
+      ctx.fillText(labels[i], left + i * (keyW + gap) + keyW / 2, y0 + h / 2);
     }
   }
 
@@ -551,8 +551,10 @@ export struct CanvasTypewriter {
         .width('100%')
         .height('100%')
         .onReady(() => {
-          hilog.info(CDOMAIN, CTAG, 'canvas ready w=%{public}s h=%{public}s', this.widthVp.toFixed(1),
-            this.heightVp.toFixed(1));
+          this.ctx.font = '24vp CourierPrime';
+          const probeW: number = this.ctx.measureText('Hello, World! 0123456789').width;
+          hilog.info(CDOMAIN, CTAG, 'canvas ready w=%{public}s h=%{public}s fontProbeW=%{public}s',
+            this.widthVp.toFixed(1), this.heightVp.toFixed(1), probeW.toFixed(2));
         })
       // TopBar 保留 ArkUI 叠加；位置由同一几何算出（x=0 因 stage 宽=窗口宽，y=topInset）
       TopBar({
