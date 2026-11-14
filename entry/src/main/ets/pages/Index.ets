@@ -4845,6 +4845,7 @@ struct Index {
           inkColor: this.inkColor,
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
+          leverRatio: this.leverRatio(),
           onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
           onCapUp: (cap: CapDef): void => { this.onCapUp(cap); },
           onLeverStart: (x: number): void => {

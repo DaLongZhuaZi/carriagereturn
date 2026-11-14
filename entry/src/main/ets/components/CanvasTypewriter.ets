@@ -19,6 +19,7 @@ import { findMachine, findPaper, MachineSpec, PaperSpec, TOP_BAR_HEIGHT_VP, PAPE
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP } from '../model/MachineCatalog';
 import { KeymapParser, KeymapLayout, CapDef } from '../model/KeymapModel';
 import { CanvasTransform, computeTransform, referenceMetrics } from '../model/CanvasGeometry';
+import { restDegFor, swingDegFor } from '../model/LeverAngleCore';
 import { TopBar } from './TopBar';
 
 const CDOMAIN: number = 0x0100;
@@ -68,6 +69,7 @@ export struct CanvasTypewriter {
   @Prop @Watch('onDocChanged') paperContainerVp: number = 96;
   @Prop @Watch('onDocChanged') cursorXVp: number = 48;
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
+  @Prop @Watch('onDocChanged') leverRatio: number = 0;
   @Prop keybedHeightVp: number = 172.7;
   @Prop functionRowHeightVp: number = 52;
   @Prop fontBarHeightVp: number = 38;
@@ -397,21 +399,7 @@ export struct CanvasTypewriter {
     if (this.imgBracket !== null) {
       ctxFront.drawImage(this.imgBracket, bracketLeft, bracketTop, bracketW, bracketH);
     }
-    // 拨杆（静止角：平板 30／手机 15；摆幅 35／20，见 LeverAngleCore）
-    if (this.imgLever !== null) {
-      const leverW: number = this.isTablet
-        ? Hc * 1.84 * this.leverSizeRatio(spec)
-        : Hc * 2.5 * this.leverSizeRatio(spec);
-      const leverH: number = leverW / spec.leverAspect;
-      const pinX: number = bracketLeft + spec.bracketPivotX * bracketW;
-      const pinY: number = bracketTop + spec.bracketPivotY * bracketH;
-      const restDeg: number = this.isTablet ? 30 : 15;
-      ctxFront.save();
-      ctxFront.translate(pinX, pinY);
-      ctxFront.rotate(restDeg * Math.PI / 180);
-      ctxFront.drawImage(this.imgLever, -leverW * spec.leverPivotX, -leverH * spec.leverPivotY, leverW, leverH);
-      ctxFront.restore();
-    }
+
     // 字杆静止层：非 1920s 机型画（1920s 当前主屏静止态不可见，画了反而破坏 0.00%）
     if (this.imgTypebar !== null) {
       const tbSize: number = Hc * 2.5;
@@ -524,7 +512,37 @@ export struct CanvasTypewriter {
     if (this.machineFrontLayer !== null) {
       ctx.drawImage(this.machineFrontLayer, 0, 0);
     }
+    this.drawLever(ctx);
     this.drawTexts(ctx);
+  }
+
+  /** 拨杆按 leverRatio 实时重画（静止角/摆幅按机；0=静止，1=满摆）。 */
+  private drawLever(ctx: CanvasRenderingContext2D): void {
+    if (this.imgLever === null) {
+      return;
+    }
+    const spec: MachineSpec = this.spec();
+    const Hc: number = this.carriageHeightVp;
+    const paperLeft: number = this.paperX();
+    const knobD: number = Hc * 0.92;
+    const baseLeft: number = (this.widthVp - this.paperWidthVp) / 2 - knobD;
+    const baseW: number = this.paperWidthVp + 2 * knobD;
+    const bracketW: number = 60;
+    const bracketH: number = bracketW / spec.bracketAspect;
+    const bracketLeft: number = baseLeft + baseW - bracketW - 10;
+    const bracketTop: number = this.carriageTopVp - Hc / 2 + Hc + 24 - bracketH;
+    const leverW: number = this.isTablet
+      ? Hc * 1.84 * this.leverSizeRatio(spec)
+      : Hc * 2.5 * this.leverSizeRatio(spec);
+    const leverH: number = leverW / spec.leverAspect;
+    const pinX: number = bracketLeft + spec.bracketPivotX * bracketW;
+    const pinY: number = bracketTop + spec.bracketPivotY * bracketH;
+    const angleDeg: number = restDegFor(this.isTablet) + swingDegFor(this.isTablet) * this.leverRatio;
+    ctx.save();
+    ctx.translate(pinX, pinY);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.drawImage(this.imgLever, -leverW * spec.leverPivotX, -leverH * spec.leverPivotY, leverW, leverH);
+    ctx.restore();
   }
 
   /** 文字统一在主 Canvas 上画（OffscreenCanvas 看不到 registerFont 注册字体，会回落到系统字体）。 */
