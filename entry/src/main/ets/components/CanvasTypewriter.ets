@@ -125,6 +125,10 @@ export struct CanvasTypewriter {
   private machineBuildCount: number = 0;
   private paperBuildCount: number = 0;
   private heldCaps: Map<number, CapDef> = new Map<number, CapDef>();
+  private candScroll: number = 0;
+  private candDragX: number = -1;
+  private candDragOrigin: number = 0;
+  private candDragged: boolean = false;
   private leverActive: boolean = false;
   private leverStartY: number = 0;
   private candidateDownIndex: number = -1;
@@ -718,13 +722,22 @@ export struct CanvasTypewriter {
       ctx.fillStyle = '#1a1713';
       ctx.fillRect(0, cy, this.widthVp, this.candBarHeightVp);
       const n: number = this.candidates.length;
-      const cw: number = (this.widthVp - 16) / n;
+      const chipW: number = 64;
+      const maxScroll: number = Math.max(0, 16 + n * chipW - this.widthVp);
+      if (this.candScroll > maxScroll) { this.candScroll = maxScroll; }
+      if (this.candScroll < 0) { this.candScroll = 0; }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, cy, this.widthVp, this.candBarHeightVp);
+      ctx.clip();
       for (let i = 0; i < n; i++) {
         ctx.fillStyle = i === 0 ? '#c9a45c' : '#dbccb3';
         ctx.font = '16vp sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(this.candidates[i], 8 + i * cw + cw / 2, cy + this.candBarHeightVp / 2);
+        ctx.fillText(this.candidates[i], 8 + i * chipW + chipW / 2 - this.candScroll,
+          cy + this.candBarHeightVp / 2);
       }
+      ctx.restore();
     }
     // 字体条
     ctx.fillStyle = '#beb4a8';
@@ -774,8 +787,11 @@ export struct CanvasTypewriter {
       if (this.candBarHeightVp > 0 && this.candidates.length > 0
         && t.y >= this.fontBarTop() - this.candBarHeightVp && t.y < this.fontBarTop()) {
         const n: number = this.candidates.length;
-        const cw: number = (this.widthVp - 16) / n;
-        const ci: number = Math.floor((t.x - 8) / cw);
+        const chipW: number = 64;
+        const ci: number = Math.floor((t.x + this.candScroll - 8) / chipW);
+        this.candDragX = t.x;
+        this.candDragOrigin = this.candScroll;
+        this.candDragged = false;
         if (ci >= 0 && ci < n) {
           this.candidateDownIndex = ci;
           this.candidateDownTime = Date.now();
@@ -805,6 +821,18 @@ export struct CanvasTypewriter {
       }
       return;
     }
+    if (e.type === TouchType.Move && this.candDragX >= 0) {
+      const dx: number = t.x - this.candDragX;
+      if (Math.abs(dx) > 4) { this.candDragged = true; }
+      const n: number = this.candidates.length;
+      const maxScroll: number = Math.max(0, 16 + n * 64 - this.widthVp);
+      let ns: number = this.candDragOrigin - dx;
+      if (ns < 0) { ns = 0; }
+      if (ns > maxScroll) { ns = maxScroll; }
+      this.candScroll = ns;
+      this.draw();
+      return;
+    }
     if (e.type === TouchType.Move && this.leverActive) {
       this.onLeverUpdate(t.y - this.leverStartY);
       return;
@@ -814,6 +842,11 @@ export struct CanvasTypewriter {
         const ci: number = this.candidateDownIndex;
         const ms: number = Date.now() - this.candidateDownTime;
         this.candidateDownIndex = -1;
+        this.candDragX = -1;
+        if (this.candDragged) {
+          this.candDragged = false;
+          return;
+        }
         if (ms >= 600) {
           hilog.info(CDOMAIN, CTAG, 'candidate long ms=%{public}d idx=%{public}d', ms, ci);
           this.onCandidateLong(ci);
@@ -823,6 +856,8 @@ export struct CanvasTypewriter {
         }
         return;
       }
+      this.candDragX = -1;
+      this.candDragged = false;
       if (this.leverActive) {
         this.leverActive = false;
         this.onLeverEnd();
