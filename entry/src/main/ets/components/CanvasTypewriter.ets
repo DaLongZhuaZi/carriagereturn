@@ -390,22 +390,7 @@ export struct CanvasTypewriter {
     const baseLeft: number = Math.max(0, paperLeft - knobD);
     const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
     const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2;
-    // 滚筒纹理（纵向滚动量 = 0）
-    if (this.imgRoller !== null) {
-      ctx.drawImage(this.imgRoller, rollX, carrAbs - Hc / 2, rollW, Hc);
-    }
-    // 柱面明暗罩（简化 3 段）
-    const shade: CanvasGradient = ctx.createLinearGradient(0, carrAbs - Hc / 2, 0, carrAbs + Hc / 2);
-    shade.addColorStop(0.0, 'rgba(255,246,230,0.30)');
-    shade.addColorStop(0.35, 'rgba(0,0,0,0)');
-    shade.addColorStop(0.52, 'rgba(255,246,230,0.32)');
-    shade.addColorStop(0.82, 'rgba(0,0,0,0.42)');
-    shade.addColorStop(1.0, 'rgba(0,0,0,0.72)');
-    ctx.fillStyle = shade;
-    ctx.fillRect(rollX, carrAbs - Hc / 2, rollW, Hc);
-    // 滚筒后进纸边
-    ctx.fillStyle = 'rgba(232,221,201,0.85)';
-    ctx.fillRect(rollX, carrAbs + Hc / 2, rollW, 5);
+    // 滚筒/明暗罩/进纸边改为 drawRollerLayer 单独绘制（随 carriageOffsetVp 步进）。
     // 木底座
     const baseY: number = carrAbs + Hc / 2 + 2;
     const baseH: number = Math.min(baseW / spec.baseRailAspect, Hc);
@@ -547,6 +532,7 @@ export struct CanvasTypewriter {
     const ctx: CanvasRenderingContext2D = this.ctx;
     const px: number = this.paperX();
     const py: number = this.paperY();
+    this.drawRollerLayer(ctx);
     ctx.save();
     ctx.beginPath();
     const clipY: number = Math.max(py, this.stackTop() + TOP_BAR_HEIGHT_VP);
@@ -569,6 +555,29 @@ export struct CanvasTypewriter {
     ctx.restore();
   }
 
+  /** 可移动滚筒层：随 carriageOffsetVp 平移；底座/键床不动。 */
+  private drawRollerLayer(ctx: CanvasRenderingContext2D): void {
+    const spec: MachineSpec = this.spec();
+    const Hc: number = this.carriageHeightVp;
+    const paperLeft: number = this.paperX();
+    const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
+    const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2 + this.carriageOffsetVp;
+    const carrAbs: number = this.stackTop() + this.carriageTopVp;
+    if (this.imgRoller !== null) {
+      ctx.drawImage(this.imgRoller, rollX, carrAbs - Hc / 2, rollW, Hc);
+    }
+    const shade: CanvasGradient = ctx.createLinearGradient(0, carrAbs - Hc / 2, 0, carrAbs + Hc / 2);
+    shade.addColorStop(0.0, 'rgba(255,246,230,0.30)');
+    shade.addColorStop(0.35, 'rgba(0,0,0,0)');
+    shade.addColorStop(0.52, 'rgba(255,246,230,0.32)');
+    shade.addColorStop(0.82, 'rgba(0,0,0,0.42)');
+    shade.addColorStop(1.0, 'rgba(0,0,0,0.72)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(rollX, carrAbs - Hc / 2, rollW, Hc);
+    ctx.fillStyle = 'rgba(232,221,201,0.85)';
+    ctx.fillRect(rollX, carrAbs + Hc / 2, rollW, 5);
+  }
+
   private draw(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
@@ -578,6 +587,7 @@ export struct CanvasTypewriter {
     } else if (this.machineLayer !== null) {
       ctx.drawImage(this.machineLayer, 0, 0);
     }
+    this.drawRollerLayer(ctx);
     if (this.paperLayer !== null) {
       ctx.save();
       ctx.beginPath();
