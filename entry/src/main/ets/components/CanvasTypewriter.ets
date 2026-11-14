@@ -564,7 +564,7 @@ export struct CanvasTypewriter {
     ctx.rect(0, this.keybedTop(), this.widthVp, this.keybedHeightVp);
     ctx.clip();
     ctx.fillStyle = this.keymap.overlayColor;
-    ctx.font = this.keymap.overlayFontSize.toString() + 'vp NotoSerifSC';
+    ctx.font = this.keymap.overlayFontSize.toString() + 'vp ' + (this.machineKind === MachineKind.UPRIGHT_1920S ? 'NotoSerifSC' : this.canvasFont());
     ctx.textAlign = 'center';
     for (let i = 0; i < this.keymap.caps.length; i++) {
       const cap: CapDef = this.keymap.caps[i];
