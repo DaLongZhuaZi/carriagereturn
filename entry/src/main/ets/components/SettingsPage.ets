@@ -50,6 +50,10 @@ export struct SettingsPage {
   /** F6：真实写盘与生效都在 Index（本页只发意图）。 */
   onToggleSound: () => void = (): void => {};
   onToggleVibrate: () => void = (): void => {};
+  canvasEnabled: boolean = true;
+  a11yEnabled: boolean = false;
+  onToggleCanvas: () => void = (): void => {};
+  onToggleA11y: () => void = (): void => {};
   onVolume: (v0to100: number) => void = (v0to100: number): void => {};
   onDeleteMode: (mode: string) => void = (mode: string): void => {};
   onPickMachine: () => void = (): void => {};
@@ -153,6 +157,27 @@ export struct SettingsPage {
             mode: 'switch',
             switchOn: this.vibrationEnabled,
             onToggle: (): void => { this.onToggleVibrate(); },
+          })
+        }
+        .width('100%')
+        .opacity(this.revealN > 1 ? 1 : 0)
+        .animation({ duration: 180, curve: Curve.EaseOut })
+
+        // 2b Canvas 调试（2B-8 回滚 / 2C-2 无障碍覆盖层）
+        Column() {
+          this.groupTitle('Canvas')
+          SettingsRow({
+            label: 'Canvas 主屏（回滚）',
+            mode: 'switch',
+            switchOn: this.canvasEnabled,
+            onToggle: (): void => { this.onToggleCanvas(); },
+          })
+          this.divider()
+          SettingsRow({
+            label: '无障碍覆盖层',
+            mode: 'switch',
+            switchOn: this.a11yEnabled,
+            onToggle: (): void => { this.onToggleA11y(); },
           })
         }
         .width('100%')
