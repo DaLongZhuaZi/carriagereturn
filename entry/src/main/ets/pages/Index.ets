@@ -867,6 +867,7 @@ struct Index {
   @State exportBusy: boolean = false;
   /** 第 16 批 2A：Canvas 静态主屏调试页（临时入口，2B 切换后删除）。 */
   @State canvasDebugOpen: boolean = false;
+  @State canvasEnabled: boolean = true;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
@@ -3938,7 +3939,8 @@ struct Index {
           colors: [['#171310', 0.0], ['#241c16', 1.0]],
         })
 
-      if (!this.canvasDebugOpen) {
+      if (!this.canvasDebugOpen && !(this.canvasEnabled
+        && this.navStack[this.navStack.length - 1] === 'typewriter')) {
       Column() {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
@@ -4652,6 +4654,8 @@ struct Index {
             const list = docStore.list();
             if (list.length > 0) {
               this.loadDocument(list[0].id);
+              this.measureStage();
+              this.recalcPaperHeight();
               this.pushPage('typewriter');
             }
           },
@@ -4829,7 +4833,8 @@ struct Index {
 
       // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
       // 第 16 批 2A：Canvas 静态主屏调试页（临时；2B 切主屏后删除）
-      if (this.canvasDebugOpen) {
+      if (this.canvasDebugOpen || (this.canvasEnabled
+        && this.navStack[this.navStack.length - 1] === 'typewriter')) {
         CanvasTypewriter({
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : this.stageHeight,

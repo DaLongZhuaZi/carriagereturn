@@ -152,7 +152,7 @@ export class PrefRegistry {
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
       { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
-      { key: PrefKeys.CANVAS_ENABLED, type: 'boolean', defaultValue: 'false', owner: 'Phase2', note: 'Canvas 主屏回滚开关（2A/2B 实施期 false，2B 验收后 true）', removeAfter: 'Phase 2 完成后' },
+      { key: PrefKeys.CANVAS_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'Phase2', note: 'Canvas 主屏回滚开关（2B 起缺省 true；关闭回退 ArkUI 主屏）', removeAfter: 'Phase 2 完成后' },
     ];
   }
 
