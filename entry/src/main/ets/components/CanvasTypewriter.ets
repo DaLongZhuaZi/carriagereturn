@@ -544,48 +544,15 @@ export struct CanvasTypewriter {
   }
 
   private runCanvasStrike(): void {
-    if (this.strikeBusy || this.strikePending <= 0) {
+    if (this.strikePending <= 0) {
       return;
     }
-    this.strikeBusy = true;
     this.strikePending -= 1;
     const t0: number = Date.now();
-    const anim: AnimatorResult = this.ensureStrikeAnimator();
-    anim.reset({
-      duration: 32,
-      easing: 'ease-in-out',
-      delay: 0,
-      fill: 'forwards',
-      direction: 'normal',
-      iterations: 1,
-      begin: 55,
-      end: 0,
-    });
-    anim.onFinish = (): void => {
-      this.strikeBusy = false;
-      if (this.strikePending > 0) {
-        const back: AnimatorResult = Animator.create({
-          duration: 20, easing: 'linear', delay: 0, fill: 'forwards', direction: 'normal',
-          iterations: 1, begin: 0, end: 40,
-        });
-        back.onFrame = (v: number): void => { this.typebarAngle = v; };
-        back.onFinish = (): void => { this.typebarAngle = 40; this.runCanvasStrike(); };
-        back.play();
-      } else {
-        const ret: AnimatorResult = Animator.create({
-          duration: 120, easing: 'linear', delay: 0, fill: 'forwards', direction: 'normal',
-          iterations: 1, begin: 0, end: 55,
-        });
-        ret.onFrame = (v: number): void => { this.typebarAngle = v; };
-        ret.onFinish = (): void => { this.typebarAngle = 55; };
-        ret.play();
-      }
-    };
     setTimeout(() => {
       hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', Date.now() - t0);
       this.onStrikeArrive();
-    }, 38);
-    anim.play();
+    }, 90);
   }
 
   /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
