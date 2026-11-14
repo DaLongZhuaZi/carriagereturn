@@ -70,7 +70,7 @@ export struct CanvasTypewriter {
   @Prop @Watch('onDocChanged') paperContainerVp: number = 96;
   @Prop @Watch('onDocChanged') cursorXVp: number = 48;
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
-  @Prop @Watch('onDocChanged') leverRatio: number = 0;
+  @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
@@ -105,6 +105,7 @@ export struct CanvasTypewriter {
   private machineLayer: ImageBitmap | null = null;
   private machineFrontLayer: ImageBitmap | null = null;
   private paperLayer: ImageBitmap | null = null;
+  private backgroundLayer: ImageBitmap | null = null;
   private keymap: KeymapLayout = {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
     hitRadius: 10, spaceR: 8, overlayColor: '#312b24', overlayFontSize: 14,
@@ -134,6 +135,10 @@ export struct CanvasTypewriter {
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onDocChanged(): void {
+    this.redrawPaper();
+  }
+
+  onLeverChanged(): void {
     this.draw();
   }
 
@@ -336,6 +341,7 @@ export struct CanvasTypewriter {
     if (!this.ready) { return; }
     this.buildMachineLayer();
     this.buildPaperLayer();
+    this.buildBackgroundLayer();
   }
 
   /** L1 静态层：机身／键带／功能行／字体条（只缓存当前机型＋当前纸种）。 */
@@ -466,6 +472,20 @@ export struct CanvasTypewriter {
   }
 
   /** L2 纸层：纸纹＋页眉＋页码＋行文字＋引导文案＋光标三角。 */
+  private buildBackgroundLayer(): void {
+    const off: OffscreenCanvas = new OffscreenCanvas(this.widthVp, this.heightVp);
+    const ctx: OffscreenCanvasRenderingContext2D = off.getContext('2d');
+    const grad: CanvasGradient = ctx.createLinearGradient(0, 0, 0, this.heightVp);
+    grad.addColorStop(0.0, '#171310');
+    grad.addColorStop(1.0, '#241c16');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, this.widthVp, this.heightVp);
+    if (this.machineLayer !== null) {
+      ctx.drawImage(this.machineLayer, 0, 0);
+    }
+    this.backgroundLayer = off.transferToImageBitmap();
+  }
+
   private buildPaperLayer(): void {
     const w: number = Math.max(1, Math.round(this.paperWidthVp));
     const h: number = Math.max(1, Math.round(this.paperHeightVp));
@@ -492,17 +512,39 @@ export struct CanvasTypewriter {
     hilog.info(CDOMAIN, CTAG, 'static layer rebuilt: paper count=%{public}d', this.paperBuildCount);
   }
 
+  /** 2B：文档变化只重画纸面矩形（静态机件/键帽不重画），降低单帧耗时。 */
+  private redrawPaper(): void {
+    if (!this.ready) { return; }
+    const ctx: CanvasRenderingContext2D = this.ctx;
+    const px: number = this.paperX();
+    const py: number = this.paperY();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(px, py, this.paperWidthVp, this.paperContainerVp);
+    ctx.clip();
+    ctx.clearRect(px, py, this.paperWidthVp, this.paperContainerVp);
+    if (this.backgroundLayer !== null) {
+      ctx.drawImage(this.backgroundLayer, 0, 0);
+    }
+    if (this.paperLayer !== null) {
+      ctx.drawImage(this.paperLayer, px, py);
+    }
+    if (this.machineFrontLayer !== null) {
+      ctx.drawImage(this.machineFrontLayer, 0, 0);
+    }
+    this.drawLever(ctx);
+    this.drawTypebar(ctx);
+    this.drawTexts(ctx);
+    ctx.restore();
+  }
+
   private draw(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
-    // L0 底色（铺满整屏含余量区）
-    const bg: CanvasGradient = ctx.createLinearGradient(0, 0, 0, this.heightVp);
-    bg.addColorStop(0, '#171310');
-    bg.addColorStop(1, '#241c16');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, this.widthVp, this.heightVp);
-    if (this.machineLayer !== null) {
+    if (this.backgroundLayer !== null) {
+      ctx.drawImage(this.backgroundLayer, 0, 0);
+    } else if (this.machineLayer !== null) {
       ctx.drawImage(this.machineLayer, 0, 0);
     }
     if (this.paperLayer !== null) {

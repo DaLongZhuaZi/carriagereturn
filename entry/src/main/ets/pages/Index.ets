@@ -2886,6 +2886,7 @@ struct Index {
 
   /** 落队首字：空格播 playSpace，其余播主键音（快速连打走 transient）。 */
   private landHead(): void {
+    hilog.info(DOMAIN, TAG, 'landHead entry at=%{public}s', Date.now().toString());
     const head: string | undefined = this.pendingChars[0];
     if (head === undefined) {
       return;
