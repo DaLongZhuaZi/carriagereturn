@@ -97,7 +97,7 @@ export struct CanvasTypewriter {
   onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
   onLeverEnd: () => void = (): void => {};
   onFunctionKey: (key: string) => void = (_key: string): void => {};
-  @Prop candidates: string[] = [];
+  @Prop @Watch('onDocChanged') candidates: string[] = [];
   onCandidatePick: (index: number) => void = (_index: number): void => {};
   onCandidateLong: (index: number) => void = (_index: number): void => {};
 
