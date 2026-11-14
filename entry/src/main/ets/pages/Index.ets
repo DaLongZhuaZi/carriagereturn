@@ -4846,6 +4846,28 @@ struct Index {
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
           leverRatio: this.leverRatio(),
+          candidates: this.candCurrent,
+          onCandidatePick: (i: number): void => { this.pinyinPick(i); },
+          onCandidateLong: (i: number): void => { this.pinyinPick(i); },
+          onFunctionKey: (key: string): void => {
+            if (key === 'lang') {
+              this.langZh = !this.langZh;
+              this.applyChineseMode(this.langZh);
+              this.paperAnimateNext = true;
+              this.recalcTravel();
+              this.recalcPaperHeight();
+            } else if (key === 'delete') {
+              this.onDelete();
+            } else if (key === 'newline') {
+              this.onNewline();
+            } else if (key === 'paper') {
+              this.onPaperChange();
+            } else if (key === 'backline') {
+              this.onBackLine();
+            } else if (key === 'char') {
+              this.symbolMode = !this.symbolMode;
+            }
+          },
           onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
           onCapUp: (cap: CapDef): void => { this.onCapUp(cap); },
           onLeverStart: (x: number): void => {

@@ -91,6 +91,10 @@ export struct CanvasTypewriter {
   onLeverStart: (x: number) => void = (_x: number): void => {};
   onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
   onLeverEnd: () => void = (): void => {};
+  onFunctionKey: (key: string) => void = (_key: string): void => {};
+  @Prop candidates: string[] = [];
+  onCandidatePick: (index: number) => void = (_index: number): void => {};
+  onCandidateLong: (index: number) => void = (_index: number): void => {};
 
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
@@ -117,6 +121,8 @@ export struct CanvasTypewriter {
   private heldCaps: Map<number, CapDef> = new Map<number, CapDef>();
   private leverActive: boolean = false;
   private leverStartY: number = 0;
+  private candidateDownIndex: number = -1;
+  private candidateDownTime: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onDocChanged(): void {
@@ -604,6 +610,20 @@ export struct CanvasTypewriter {
       ctx.fillText(cap.label, cap.xRatio * this.keybedWidth(), this.keybedTop() + cap.yRatio * this.keybedHeightVp);
     }
     ctx.restore();
+    // 候选栏（中文候选 chip）
+    if (this.candBarHeightVp > 0 && this.candidates.length > 0) {
+      const cy: number = this.fontBarTop() - this.candBarHeightVp;
+      ctx.fillStyle = '#1a1713';
+      ctx.fillRect(0, cy, this.widthVp, this.candBarHeightVp);
+      const n: number = this.candidates.length;
+      const cw: number = (this.widthVp - 16) / n;
+      for (let i = 0; i < n; i++) {
+        ctx.fillStyle = i === 0 ? '#c9a45c' : '#dbccb3';
+        ctx.font = '16vp sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.candidates[i], 8 + i * cw + cw / 2, cy + this.candBarHeightVp / 2);
+      }
+    }
     // 字体条
     ctx.fillStyle = '#beb4a8';
     ctx.font = '13vp ' + this.canvasFont();
@@ -634,6 +654,32 @@ export struct CanvasTypewriter {
     }
     const t = touches[0];
     if (e.type === TouchType.Down) {
+      // 功能行六键
+      const funcTop: number = this.heightVp - this.bottomInset - this.functionRowHeightVp;
+      if (t.y >= funcTop && t.y <= funcTop + this.functionRowHeightVp) {
+        const left: number = 8;
+        const right: number = this.widthVp - 8;
+        const gap: number = 6;
+        const keyW: number = (right - left - gap * 5) / 6;
+        const idx: number = Math.floor((t.x - left) / (keyW + gap));
+        const keys: string[] = ['lang', 'delete', 'newline', 'paper', 'backline', 'char'];
+        if (idx >= 0 && idx < 6) {
+          this.onFunctionKey(keys[idx]);
+        }
+        return;
+      }
+      // 候选栏 chip
+      if (this.candBarHeightVp > 0 && this.candidates.length > 0
+        && t.y >= this.fontBarTop() - this.candBarHeightVp && t.y < this.fontBarTop()) {
+        const n: number = this.candidates.length;
+        const cw: number = (this.widthVp - 16) / n;
+        const ci: number = Math.floor((t.x - 8) / cw);
+        if (ci >= 0 && ci < n) {
+          this.candidateDownIndex = ci;
+          this.candidateDownTime = Date.now();
+        }
+        return;
+      }
       const cap: CapDef | null = KeymapParser.hitTest(this.keymap, t.x, t.y - this.keybedTop());
       if (cap !== null && !cap.isExtra) {
         hilog.info(CDOMAIN, CTAG, 'hit cap=%{public}s x=%{public}s y=%{public}s', cap.label, t.x.toFixed(1), t.y.toFixed(1));
@@ -654,6 +700,17 @@ export struct CanvasTypewriter {
       return;
     }
     if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+      if (this.candidateDownIndex >= 0) {
+        const ci: number = this.candidateDownIndex;
+        const ms: number = Date.now() - this.candidateDownTime;
+        this.candidateDownIndex = -1;
+        if (ms >= 600) {
+          this.onCandidateLong(ci);
+        } else {
+          this.onCandidatePick(ci);
+        }
+        return;
+      }
       if (this.leverActive) {
         this.leverActive = false;
         this.onLeverEnd();
