@@ -74,6 +74,8 @@ export struct CanvasTypewriter {
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
   /** 落字纸面/inк jolt（vp，由 Index 的 1–2vp 回弹驱动）。 */
   @Prop @Watch('onJoltChanged') joltYVp: number = 0;
+  /** 字车横向步进（vp，负=向左）；只移动前层与拨杆，底座/键床保持固定。 */
+  @Prop @Watch('onCarriageChanged') carriageOffsetVp: number = 0;
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   onStrikeArrive: () => void = (): void => {};
@@ -144,6 +146,10 @@ export struct CanvasTypewriter {
   private strikeAnimator: AnimatorResult | null = null;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onCarriageChanged(): void {
+    // 字车步进会移动前层与拨杆，必须全画布重绘，避免旧位置残留。
+    this.draw();
+  }
   onJoltChanged(): void {
     // 逐字 jolt 只有 1–2vp；重绘纸层文字，不整屏重绘。
     this.redrawPaper();
@@ -438,7 +444,7 @@ export struct CanvasTypewriter {
     // 拨杆支点支架
     const bracketW: number = 60;
     const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10;
+    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.carriageOffsetVp;
     const bracketTop: number = carrAbs - Hc / 2 + Hc + 24 - bracketH;
     if (this.imgBracket !== null) {
       ctxFront.drawImage(this.imgBracket, bracketLeft, bracketTop, bracketW, bracketH);
@@ -555,7 +561,7 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.paperLayer, px, py);
     }
     if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, 0, 0);
+      ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
@@ -583,7 +589,7 @@ export struct CanvasTypewriter {
       ctx.restore();
     }
     if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, 0, 0);
+      ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);

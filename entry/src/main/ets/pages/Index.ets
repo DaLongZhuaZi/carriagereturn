@@ -4025,6 +4025,7 @@ struct Index {
                 RollerAssembly1920({
                   stageWidth: this.photoW(),
                   joltYVp: this.joltYVp,
+          carriageOffsetVp: this.carriageOffsetVp,
                   knobAngleDeg: this.knobAngle,
                   paperWidthVp: this.paperWidthVp,
                   paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
