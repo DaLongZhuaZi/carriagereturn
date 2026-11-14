@@ -4888,6 +4888,7 @@ struct Index {
           inkColor: this.inkColor,
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
+          joltYVp: this.joltYVp,
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,

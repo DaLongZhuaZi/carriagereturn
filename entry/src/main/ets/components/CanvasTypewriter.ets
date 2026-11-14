@@ -72,6 +72,8 @@ export struct CanvasTypewriter {
   @Prop @Watch('onPaperReset') paperResetTick: number = 0;
   @Prop @Watch('onDocChanged') cursorXVp: number = 48;
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
+  /** 落字纸面/inк jolt（vp，由 Index 的 1–2vp 回弹驱动）。 */
+  @Prop @Watch('onJoltChanged') joltYVp: number = 0;
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   onStrikeArrive: () => void = (): void => {};
@@ -142,6 +144,10 @@ export struct CanvasTypewriter {
   private strikeAnimator: AnimatorResult | null = null;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onJoltChanged(): void {
+    // 逐字 jolt 只有 1–2vp；重绘纸层文字，不整屏重绘。
+    this.redrawPaper();
+  }
   onPaperReset(): void {
     // 纸容器从整张 Ph 缩回纸盒时必须全画布重绘；redrawPaper 只清裁剪区，旧纸会残留。
     this.draw();
@@ -689,7 +695,7 @@ export struct CanvasTypewriter {
     for (let i = 0; i < this.lines.length; i++) {
       const line: string = this.lines[i];
       if (line.length > 0) {
-        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2);
+        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2 + this.joltYVp);
       }
     }
     if (this.lines.length <= 1 && this.hintText.length > 0) {
@@ -702,9 +708,9 @@ export struct CanvasTypewriter {
     // 光标三角
     ctx.fillStyle = this.inkColor;
     ctx.beginPath();
-    ctx.moveTo(paperLeft + this.cursorXVp, paperTop + this.cursorYVp);
-    ctx.lineTo(paperLeft + this.cursorXVp + 8, paperTop + this.cursorYVp);
-    ctx.lineTo(paperLeft + this.cursorXVp + 4, paperTop + this.cursorYVp + 6);
+    ctx.moveTo(paperLeft + this.cursorXVp, paperTop + this.cursorYVp + this.joltYVp);
+    ctx.lineTo(paperLeft + this.cursorXVp + 8, paperTop + this.cursorYVp + this.joltYVp);
+    ctx.lineTo(paperLeft + this.cursorXVp + 4, paperTop + this.cursorYVp + 6 + this.joltYVp);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
