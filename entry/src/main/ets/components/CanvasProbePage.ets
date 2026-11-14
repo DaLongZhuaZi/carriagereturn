@@ -941,9 +941,38 @@ export struct CanvasProbePage {
   }
 
   private runP5Transition(): void {
+    // 先收起面板，等一帧再拍 pre/转场，避免面板遮挡盒内内容
+    this.panelOpen = false;
+    setTimeout(() => { this.runP5TransitionInner(); }, 250);
+  }
+
+  private runP5TransitionInner(): void {
     this.log('PROBE P5 transition start');
     this.transXs = [];
     this.transMidBytes = 0;
+    // 整页快照（pre/mid）：提供「盒内内容跟随盒子」的可视截图证据
+    const snapPage = (tag: string): void => {
+      this.getUIContext().getComponentSnapshot().get('probe__page').then((pm: image.PixelMap) => {
+        const info = pm.getImageInfoSync();
+        image.createImagePacker().packToData(pm, { format: 'image/png', quality: 100 }).then((buf: ArrayBuffer) => {
+          const b64: string = new util.Base64Helper().encodeToStringSync(new Uint8Array(buf));
+          const chunk: number = 1800;
+          const total: number = Math.ceil(b64.length / chunk);
+          this.log('PROBE P5 trans snap ' + tag + ' wh=' + info.size.width.toString() + 'x' +
+            info.size.height.toString() + ' bytes=' + buf.byteLength.toString() +
+            ' chunks=' + total.toString());
+          for (let i = 0; i < total; i++) {
+            hilog.info(DOMAIN, TAG, 'PROBE P5 trans b64 %{public}s/%{public}s/%{public}s: %{public}s',
+              tag, (i + 1).toString(), total.toString(),
+              b64.substring(i * chunk, Math.min(b64.length, (i + 1) * chunk)));
+          }
+          pm.release();
+        }).catch(() => {});
+      }).catch((e: BusinessError) => {
+        this.log('PROBE P5 trans snap failed ' + tag + ': ' + this.errText(e));
+      });
+    };
+    snapPage('pre');
     if (this.transTimer >= 0) {
       clearInterval(this.transTimer);
       this.transTimer = -1;
@@ -970,6 +999,7 @@ export struct CanvasProbePage {
     animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
       this.canvasX = -this.cw;
     });
+    setTimeout(() => { snapPage('mid'); }, 120);
     setTimeout(() => {
       animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
         this.canvasX = (this.boxW - this.cw) / 2;
@@ -1100,8 +1130,9 @@ export struct CanvasProbePage {
           // P5 读屏：透明原生按钮覆盖层（43 帽 + 功能行六键；默认不渲染，避免吃 P3 触摸）
           if (this.a11yOn) {
             ForEach(this.caps, (cap: ProbeCap, idx: number) => {
-              Button('')
+              Button('keycap ' + cap.label)
                 .id('a11y_cap_' + idx.toString())
+                .fontColor('#00000000')
                 .width(44).height(44)
                 .borderRadius(22)
                 .backgroundColor('#00000000')
@@ -1113,8 +1144,9 @@ export struct CanvasProbePage {
                 })
             }, (cap: ProbeCap, idx: number) => 'a11y' + idx.toString())
             ForEach(['EN', '删除', '换行', '换纸', '退行', '字符'], (label: string, i: number) => {
-              Button('')
+              Button('function ' + label)
                 .id('a11y_fn_' + i.toString())
+                .fontColor('#00000000')
                 .width(this.cw / 6).height(40)
                 .backgroundColor('#00000000')
                 .opacity(0.02)
@@ -1134,6 +1166,7 @@ export struct CanvasProbePage {
         }
         .width('100%')
         .height('100%')
+        .id('probe__page')
       }
 
   build() {
