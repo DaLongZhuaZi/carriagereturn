@@ -778,11 +778,19 @@ export struct CanvasTypewriter {
         }
         return;
       }
-      const cap: CapDef | null = KeymapParser.hitTest(this.keymap, t.x, t.y - this.keybedTop());
-      if (cap !== null && !cap.isExtra) {
-        hilog.info(CDOMAIN, CTAG, 'hit cap=%{public}s x=%{public}s y=%{public}s', cap.label, t.x.toFixed(1), t.y.toFixed(1));
-        this.heldCaps.set(t.id, cap);
-        this.onCapDown(cap);
+      let hitAny: boolean = false;
+      for (let i: number = 0; i < touches.length; i++) {
+        const tt = touches[i];
+        const cap: CapDef | null = KeymapParser.hitTest(this.keymap, tt.x, tt.y - this.keybedTop());
+        if (cap !== null && !cap.isExtra) {
+          hilog.info(CDOMAIN, CTAG, 'hit cap=%{public}s id=%{public}d x=%{public}s y=%{public}s',
+            cap.label, tt.id, tt.x.toFixed(1), tt.y.toFixed(1));
+          this.heldCaps.set(tt.id, cap);
+          this.onCapDown(cap);
+          hitAny = true;
+        }
+      }
+      if (hitAny) {
         return;
       }
       if (t.x > this.widthVp * 0.78 && t.y > this.carriageTopVp
@@ -815,10 +823,16 @@ export struct CanvasTypewriter {
         this.leverActive = false;
         this.onLeverEnd();
       }
-      this.heldCaps.forEach((cap: CapDef) => {
-        this.onCapUp(cap);
+      const upIds: number[] = [];
+      for (let i: number = 0; i < touches.length; i++) {
+        upIds.push(touches[i].id);
+      }
+      this.heldCaps.forEach((cap: CapDef, id: number) => {
+        if (upIds.indexOf(id) >= 0 || e.type === TouchType.Cancel) {
+          this.onCapUp(cap);
+          this.heldCaps.delete(id);
+        }
       });
-      this.heldCaps.clear();
     }
   }
 
