@@ -2820,18 +2820,14 @@ struct Index {
     this.pendingChars.push(ch);
     // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
     // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
-    if (this.canvasDebugOpen) {
+    const canvasClockOn: boolean = this.canvasDebugOpen
+      || (this.canvasEnabled && this.navStack[this.navStack.length - 1] === 'typewriter');
+    if (canvasClockOn) {
       // 2B-6：Canvas 帧时钟路径（90ms 去程结束帧调 landHead；无 120ms 起搏器）
       if (wasEmpty) {
         hilog.info(DOMAIN, TAG, 'canvas strike start tick=%{public}s at=%{public}s',
           this.canvasStrikeTick.toString(), Date.now().toString());
         this.canvasStrikeTick = this.canvasStrikeTick + 1;
-        if (this.canvasLandTimer < 0) {
-          this.canvasLandTimer = setTimeout(() => {
-            this.canvasLandTimer = -1;
-            this.landHead();
-          }, 90);
-        }
       }
     } else if (this.leverEnabled && this.hasLayers()) {
       // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
@@ -2928,12 +2924,6 @@ struct Index {
     // 队列还有字：续踢下一击（字杆串行，每字一摆）
     if (this.canvasDebugOpen && this.pendingChars.length > 0) {
       this.canvasStrikeTick = this.canvasStrikeTick + 1;
-      if (this.canvasLandTimer < 0) {
-        this.canvasLandTimer = setTimeout(() => {
-          this.canvasLandTimer = -1;
-          this.landHead();
-        }, 110);
-      }
     } else if (this.leverEnabled && this.hasLayers()
       && this.pendingChars.length > 0 && this.pacerTimer < 0) {
       this.strikeTick = this.strikeTick + 1;
@@ -4892,7 +4882,7 @@ struct Index {
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,
-          onStrikeArrive: (): void => { },
+          onStrikeArrive: (): void => { this.onStrikeArrive(); },
           candidates: this.candCurrent,
           onCandidatePick: (i: number): void => { this.pinyinPick(i); },
           onCandidateLong: (i: number): void => { this.pinyinPick(i); },
