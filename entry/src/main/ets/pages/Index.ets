@@ -1112,6 +1112,12 @@ struct Index {
   /** 系统返回：先关菜单，再弹栈；栈底主页时返回 false。 */
   onBackPress(): boolean {
     hilog.info(DOMAIN, TAG, 'onBackPress depth=%{public}s', this.navStack.length.toString());
+    if (this.cnKbShown) {
+      this.langZh = false;
+      this.cnPreview = '';
+      this.applyChineseMode(false);
+      return true;
+    }
     if (this.onboardingVisible) {
       // 第 13 批 ④：返回＝上一页；第一页返回＝跳过（关闭）
       if (this.onboardingPage > 0) {
