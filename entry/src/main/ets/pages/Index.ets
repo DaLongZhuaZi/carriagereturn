@@ -767,6 +767,7 @@ struct Index {
 
   /** 中/EN 切换：只在这里 attach / detach（换行、换纸、换机都不动）。 */
   private async applyChineseMode(on: boolean): Promise<void> {
+    hilog.info(DOMAIN, TAG, 'applyChineseMode on=%{public}s engine=%{public}s', on ? 'true' : 'false', this.cnEngine);
     if (on && this.cnEngine === 'builtin') {
       // 内置拼音：绝不 attach、绝不 focus 锚点、不弹系统键盘
       this.cnPreview = '';
@@ -4887,6 +4888,7 @@ struct Index {
           onCandidateLong: (i: number): void => { this.pinyinPick(i); },
           onFunctionKey: (key: string): void => {
             if (key === 'lang') {
+              hilog.info(DOMAIN, TAG, 'canvas lang before=%{public}s engine=%{public}s', this.langZh ? 'true' : 'false', this.cnEngine);
               this.langZh = !this.langZh;
               this.applyChineseMode(this.langZh);
               this.paperAnimateNext = true;
