@@ -520,9 +520,11 @@ export struct CanvasTypewriter {
     const py: number = this.paperY();
     ctx.save();
     ctx.beginPath();
-    ctx.rect(px, py, this.paperWidthVp, this.paperContainerVp);
+    const clipY: number = Math.max(py, this.stackTop() + TOP_BAR_HEIGHT_VP);
+    const clipH: number = Math.max(0, py + this.paperContainerVp - clipY);
+    ctx.rect(px, clipY, this.paperWidthVp, clipH);
     ctx.clip();
-    ctx.clearRect(px, py, this.paperWidthVp, this.paperContainerVp);
+    ctx.clearRect(px, clipY, this.paperWidthVp, clipH);
     if (this.backgroundLayer !== null) {
       ctx.drawImage(this.backgroundLayer, 0, 0);
     }
@@ -550,7 +552,9 @@ export struct CanvasTypewriter {
     if (this.paperLayer !== null) {
       ctx.save();
       ctx.beginPath();
-      ctx.rect(this.paperX(), this.paperY(), this.paperWidthVp, this.paperContainerVp);
+      const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
+      const clipH: number = Math.max(0, this.paperY() + this.paperContainerVp - clipY);
+      ctx.rect(this.paperX(), clipY, this.paperWidthVp, clipH);
       ctx.clip();
       ctx.drawImage(this.paperLayer, this.paperX(), this.paperY());
       ctx.restore();
