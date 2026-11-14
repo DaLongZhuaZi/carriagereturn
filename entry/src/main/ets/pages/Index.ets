@@ -310,6 +310,7 @@ struct Index {
   private leverEnabled: boolean = true;
   /** 非 1920s 机的落字起搏器（§14.3 第 2 条） */
   private pacerTimer: number = -1;
+  private canvasLandTimer: number = -1;
   /** 队首字兜底看门狗（§14.3 第 3 条） */
   private fallbackTimer: number = -1;
   @State cnKbShown: boolean = false;
@@ -464,6 +465,7 @@ struct Index {
   @State cnEngine: string = 'builtin';
   /** 候选栏当前页候选（最多 N 个，N=candPageSize）与页码。 */
   @State candCurrent: string[] = [];
+  @State canvasStrikeTick: number = 0;
   /** 第 2 批 F15：候选数量（5–15，默认 9）与字号（12–20，默认 15）。 */
   @State candPageSize: number = CANDIDATE_COUNT_DEFAULT;
   @State candChipFontSize: number = CANDIDATE_SIZE_DEFAULT;
@@ -2808,10 +2810,21 @@ struct Index {
     this.pendingChars.push(ch);
     // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
     // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
-    if (this.leverEnabled && this.hasLayers()) {
+    if (this.canvasDebugOpen) {
+      // 2B-6：Canvas 帧时钟路径（90ms 去程结束帧调 landHead；无 120ms 起搏器）
+      if (wasEmpty) {
+        hilog.info(DOMAIN, TAG, 'canvas strike start tick=%{public}s at=%{public}s',
+          this.canvasStrikeTick.toString(), Date.now().toString());
+        this.canvasStrikeTick = this.canvasStrikeTick + 1;
+        if (this.canvasLandTimer < 0) {
+          this.canvasLandTimer = setTimeout(() => {
+            this.canvasLandTimer = -1;
+            this.landHead();
+          }, 90);
+        }
+      }
+    } else if (this.leverEnabled && this.hasLayers()) {
       // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
-      // 只有「队列原本为空」才踢第一击——多字同时入队时由 landHead 逐字续踢，
-      // 否则 TypebarLayer 的 pending 只加 1，第二字等不到字杆、会被兜底直落
       if (wasEmpty) {
         hilog.info(DOMAIN, TAG, 'strike start tick=%{public}s at=%{public}s',
           this.strikeTick.toString(), Date.now().toString());
@@ -2900,7 +2913,15 @@ struct Index {
     this.arriveCount += 1;
     this.flushPending();
     // 队列还有字：续踢下一击（字杆串行，每字一摆）
-    if (this.leverEnabled && this.hasLayers()
+    if (this.canvasDebugOpen && this.pendingChars.length > 0) {
+      this.canvasStrikeTick = this.canvasStrikeTick + 1;
+      if (this.canvasLandTimer < 0) {
+        this.canvasLandTimer = setTimeout(() => {
+          this.canvasLandTimer = -1;
+          this.landHead();
+        }, 110);
+      }
+    } else if (this.leverEnabled && this.hasLayers()
       && this.pendingChars.length > 0 && this.pacerTimer < 0) {
       this.strikeTick = this.strikeTick + 1;
     }
@@ -4848,6 +4869,8 @@ struct Index {
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
           leverRatio: this.leverRatio(),
+          canvasStrikeTick: this.canvasStrikeTick,
+          onStrikeArrive: (): void => { },
           candidates: this.candCurrent,
           onCandidatePick: (i: number): void => { this.pinyinPick(i); },
           onCandidateLong: (i: number): void => { this.pinyinPick(i); },

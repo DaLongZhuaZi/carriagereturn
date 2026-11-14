@@ -11,6 +11,7 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { Animator, AnimatorOptions, AnimatorResult } from '@kit.ArkUI';
 import { image } from '@kit.ImageKit';
 import { util } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -70,6 +71,8 @@ export struct CanvasTypewriter {
   @Prop @Watch('onDocChanged') cursorXVp: number = 48;
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
   @Prop @Watch('onDocChanged') leverRatio: number = 0;
+  @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
+  onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
   @Prop functionRowHeightVp: number = 52;
   @Prop fontBarHeightVp: number = 38;
@@ -123,6 +126,11 @@ export struct CanvasTypewriter {
   private leverStartY: number = 0;
   private candidateDownIndex: number = -1;
   private candidateDownTime: number = 0;
+  @State typebarAngle: number = 55;
+  private strikePending: number = 0;
+  private strikeBusy: boolean = false;
+  private lastCanvasStrikeTick: number = 0;
+  private strikeAnimator: AnimatorResult | null = null;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onDocChanged(): void {
@@ -157,6 +165,7 @@ export struct CanvasTypewriter {
       'transform scale=%{public}s tx=%{public}s ty=%{public}s refPaperTop=%{public}s refCarriageTop=%{public}s refStrike=%{public}s',
       tr.scale.toFixed(4), tr.tx.toFixed(2), tr.ty.toFixed(2), ref.paperTop.toFixed(2),
       ref.carriageTop.toFixed(2), ref.strikeLine.toFixed(2));
+    this.ensureStrikeAnimator();
     this.prepare();
   }
 
@@ -406,17 +415,6 @@ export struct CanvasTypewriter {
       ctxFront.drawImage(this.imgBracket, bracketLeft, bracketTop, bracketW, bracketH);
     }
 
-    // 字杆静止层：非 1920s 机型画（1920s 当前主屏静止态不可见，画了反而破坏 0.00%）
-    if (this.imgTypebar !== null) {
-      const tbSize: number = Hc * 2.5;
-      const tbX: number = paperLeft + this.marginHVp - tbSize / 2;
-      const tbY: number = this.stackTop() + this.strikeLineVp - 0.115 * tbSize;
-      ctxFront.save();
-      ctxFront.translate(tbX + tbSize * 0.5, tbY + tbSize * 0.867);
-      ctxFront.rotate(55 * Math.PI / 180);
-      ctxFront.drawImage(this.imgTypebar, -tbSize * 0.5, -tbSize * 0.867, tbSize, tbSize);
-      ctxFront.restore();
-    }
     // 键带图
     if (this.imgKeyband !== null) {
       ctx.drawImage(this.imgKeyband, 0, this.keybedTop(), this.widthVp, this.keybedHeightVp);
@@ -519,7 +517,91 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.machineFrontLayer, 0, 0);
     }
     this.drawLever(ctx);
+    this.drawTypebar(ctx);
     this.drawTexts(ctx);
+  }
+
+  /** 2B-6：Canvas 帧时钟——strikeTick 变化后 90ms 去程，结束帧调 onStrikeArrive；200ms fallback 由 Index 保留。 */
+  onCanvasStrikeTickChanged(): void {
+    if (this.canvasStrikeTick === this.lastCanvasStrikeTick) {
+      return;
+    }
+    this.lastCanvasStrikeTick = this.canvasStrikeTick;
+    this.strikePending += 1;
+    this.runCanvasStrike();
+  }
+
+  private ensureStrikeAnimator(): AnimatorResult {
+    if (this.strikeAnimator === null) {
+      const opts: AnimatorOptions = {
+        duration: 32, easing: 'ease-in-out', delay: 0, fill: 'forwards',
+        direction: 'normal', iterations: 1, begin: 55, end: 0,
+      };
+      this.strikeAnimator = Animator.create(opts);
+      this.strikeAnimator.onFrame = (value: number): void => { this.typebarAngle = value; };
+    }
+    return this.strikeAnimator;
+  }
+
+  private runCanvasStrike(): void {
+    if (this.strikeBusy || this.strikePending <= 0) {
+      return;
+    }
+    this.strikeBusy = true;
+    this.strikePending -= 1;
+    const t0: number = Date.now();
+    const anim: AnimatorResult = this.ensureStrikeAnimator();
+    anim.reset({
+      duration: 32,
+      easing: 'ease-in-out',
+      delay: 0,
+      fill: 'forwards',
+      direction: 'normal',
+      iterations: 1,
+      begin: 55,
+      end: 0,
+    });
+    anim.onFinish = (): void => {
+      this.strikeBusy = false;
+      if (this.strikePending > 0) {
+        const back: AnimatorResult = Animator.create({
+          duration: 20, easing: 'linear', delay: 0, fill: 'forwards', direction: 'normal',
+          iterations: 1, begin: 0, end: 40,
+        });
+        back.onFrame = (v: number): void => { this.typebarAngle = v; };
+        back.onFinish = (): void => { this.typebarAngle = 40; this.runCanvasStrike(); };
+        back.play();
+      } else {
+        const ret: AnimatorResult = Animator.create({
+          duration: 120, easing: 'linear', delay: 0, fill: 'forwards', direction: 'normal',
+          iterations: 1, begin: 0, end: 55,
+        });
+        ret.onFrame = (v: number): void => { this.typebarAngle = v; };
+        ret.onFinish = (): void => { this.typebarAngle = 55; };
+        ret.play();
+      }
+    };
+    setTimeout(() => {
+      hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', Date.now() - t0);
+      this.onStrikeArrive();
+    }, 38);
+    anim.play();
+  }
+
+  /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
+  private drawTypebar(ctx: CanvasRenderingContext2D): void {
+    if (this.imgTypebar === null || this.machineKind === MachineKind.UPRIGHT_1920S) {
+      return;
+    }
+    const Hc: number = this.carriageHeightVp;
+    const tbSize: number = Hc * 2.5;
+    const tbX: number = this.paperX() + this.marginHVp - tbSize / 2;
+    const tbY: number = this.stackTop() + this.strikeLineVp - 0.115 * tbSize;
+    ctx.save();
+    ctx.translate(tbX + tbSize * 0.5, tbY + tbSize * 0.867);
+    ctx.rotate(this.typebarAngle * Math.PI / 180);
+    ctx.drawImage(this.imgTypebar, -tbSize * 0.5, -tbSize * 0.867, tbSize, tbSize);
+    ctx.restore();
   }
 
   /** 拨杆按 leverRatio 实时重画（静止角/摆幅按机；0=静止，1=满摆）。 */
