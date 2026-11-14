@@ -165,6 +165,7 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
+  @State canvasPaperResetTick: number = 0;
   /** 第 9 批 F12：换纸恢复打点起点（换纸入口写 pcT0；锁放开后首个被接受的 commitChar 记 dt 并清零）。 */
   private pcResumeT0: number = 0;
   /** 第 9 批 F12：onDelete 的「先落队再删」循环期间为 true——该循环触发的 commitChar 不算恢复。 */
@@ -3355,6 +3356,7 @@ struct Index {
       this.pcTrace('step2-begin', pcT0, 'knob=' + this.knobAngle.toFixed(1));
       setTimeout(() => {
         this.paperChanging = false;
+        this.canvasPaperResetTick = this.canvasPaperResetTick + 1;
         this.pcTrace('end', pcT0, 'total=' + (Date.now() - pcT0).toString());
       }, 320);
     }, 300);
@@ -4855,6 +4857,7 @@ struct Index {
           paperWidthVp: this.paperWidthVp,
           paperHeightVp: this.paperHeightVp,
           paperContainerVp: this.paperContainerVp,
+          paperResetTick: this.canvasPaperResetTick,
           paperTopVp: this.paperTopVp,
           carriageTopVp: this.carriageTopVp,
           carriageHeightVp: this.carriageHeight,

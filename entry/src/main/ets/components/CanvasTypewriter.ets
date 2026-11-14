@@ -68,6 +68,8 @@ export struct CanvasTypewriter {
   @Prop @Watch('onDocChanged') lines: string[] = [''];
   @Prop @Watch('onDocChanged') paperTopVp: number = 206;
   @Prop @Watch('onDocChanged') paperContainerVp: number = 96;
+  /** 换纸/纸容器尺寸剧变后触发一次完整重绘，清掉裁剪区外的旧纸像素。 */
+  @Prop @Watch('onPaperReset') paperResetTick: number = 0;
   @Prop @Watch('onDocChanged') cursorXVp: number = 48;
   @Prop @Watch('onDocChanged') cursorYVp: number = 0;
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
@@ -140,6 +142,10 @@ export struct CanvasTypewriter {
   private strikeAnimator: AnimatorResult | null = null;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onPaperReset(): void {
+    // 纸容器从整张 Ph 缩回纸盒时必须全画布重绘；redrawPaper 只清裁剪区，旧纸会残留。
+    this.draw();
+  }
   onDocChanged(): void {
     this.redrawPaper();
   }
