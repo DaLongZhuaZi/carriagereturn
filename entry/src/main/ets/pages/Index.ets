@@ -2813,6 +2813,8 @@ struct Index {
       // 只有「队列原本为空」才踢第一击——多字同时入队时由 landHead 逐字续踢，
       // 否则 TypebarLayer 的 pending 只加 1，第二字等不到字杆、会被兜底直落
       if (wasEmpty) {
+        hilog.info(DOMAIN, TAG, 'strike start tick=%{public}s at=%{public}s',
+          this.strikeTick.toString(), Date.now().toString());
         this.strikeTick = this.strikeTick + 1;
       }
     } else {
