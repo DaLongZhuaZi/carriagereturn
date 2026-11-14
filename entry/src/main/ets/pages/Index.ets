@@ -2890,7 +2890,9 @@ struct Index {
     if (head === undefined) {
       return;
     }
-    if (head === ' ') {
+    if (this.canvasDebugOpen) {
+      // 2B-6 调试时钟：跳过音频启动开销，先验字杆/落字时序
+    } else if (head === ' ') {
       this.audioService.playSpace();
     } else {
       const now: number = Date.now();
@@ -3935,6 +3937,7 @@ struct Index {
           colors: [['#171310', 0.0], ['#241c16', 1.0]],
         })
 
+      if (!this.canvasDebugOpen) {
       Column() {
         // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
         Column().width('100%').height(this.topInset)
@@ -4629,7 +4632,7 @@ struct Index {
       .alignItems(HorizontalAlign.Start)
       // 键盘避让：整体上移保打击行可见；收起归零，不留空区
       .translate({ y: -this.kbShift })
-      .visibility(this.canvasDebugOpen ? Visibility.None : Visibility.Visible)
+      }
 
       // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
       // §11 主页：冷启动首帧；从任何页返回也回这里
