@@ -68,7 +68,7 @@
 - 中：HomePage、PaperStage、TypebarLayer、LeverLayer、FunctionRow、CandidateBar（进 Canvas，见 §5.1）、AppMenu、AppDialog、内置拼音、页面切换。（TopBar 已决议保留 ArkUI，见 §5.1；图标铁律，不参与难度排序。）
 - 难（要做）：CarriageLayers、PhotoKeybed、SpotlightOverlay（进 Canvas，锚点体系重做，见 §5.1）、中文系统输入通道（锚点以透明覆盖层保留，能力边界）、动画总体。
 - 保留 ArkUI 的只有能力边界与规则边界三处（TextInput 嵌不进 Canvas、Canvas 不接 IME、SymbolGlyph 无 Canvas 等价物）与范围决定（覆盖层页不在 C 方案范围，见 §5.1）；其余"难"的项一律按"要做、须验"评，不构成保留理由。
-- 死代码不计入工作量：`machines/1920s/CarriageLayers.ets`（303 行，零引用）、字杆层 `if (false && ...)` 死分支、字杆篮死分支、CarriageStrip（四机全走分层件，实际不渲染）。
+- 死代码不计入工作量：`machines/1920s/CarriageLayers.ets`（303 行，零引用）、字杆篮 `if (false && ...)` 死分支（字杆层正常挂载，见 16 号稿 §3.4；2026-11-14 修正，原"字杆层死分支"为误标）、CarriageStrip（四机全走分层件，实际不渲染）。
 - 几何派生链与模型均与 ArkUI 渲染无关，但与 bug 有关（R1/R3/R7 在派生函数内）：`measureStage`／`recalcPaperHeight`／`recalcTravel` 不是纯函数（读写十余处 @State），复用清单见 §6——可原样复用的纯几何函数须逐个点名，分支派生入口必须重写（单一变换矩阵＋§7.3 新字号链；`frozenHVp`、isTablet 分支、`57/vp2px` 字号链一律不进 Canvas）。渲染读模型只有 `getLines`／`getCursor`／`getMeta` 三个只读口。Canvas 化不碰数据层。
 
 ## §3 验证关一：自定义字体能否进 Canvas（最大风险）
