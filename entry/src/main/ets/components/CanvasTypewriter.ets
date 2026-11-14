@@ -160,6 +160,7 @@ export struct CanvasTypewriter {
   }
 
   aboutToAppear(): void {
+    hilog.info(CDOMAIN, CTAG, 'frame clock resume');
     hilog.info(CDOMAIN, CTAG,
       'layout W=%{public}s H=%{public}s top=%{public}s bottom=%{public}s Pw=%{public}s paperTop=%{public}s paperBox=%{public}s carrTop=%{public}s Hc=%{public}s strike=%{public}s fs=%{public}s lh=%{public}s',
       this.widthVp.toFixed(1), this.heightVp.toFixed(1), this.topInset.toFixed(1), this.bottomInset.toFixed(1),
@@ -873,6 +874,10 @@ export struct CanvasTypewriter {
         .id('a11y_cand_' + i.toString())
         .onClick(() => { this.onCandidatePick(i); })
     }, (cand: string, i: number) => cand + i.toString())
+  }
+
+  aboutToDisappear(): void {
+    hilog.info(CDOMAIN, CTAG, 'frame clock pause');
   }
 
   build() {
