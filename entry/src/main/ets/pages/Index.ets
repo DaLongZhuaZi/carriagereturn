@@ -2797,6 +2797,12 @@ struct Index {
     this.queueChar(ch);
   }
 
+  private onCapUp(cap: CapDef): void {
+    if (cap.label === 'Shift') {
+      this.shiftActive = false;
+    }
+  }
+
   private queueChar(ch: string): void {
     const wasEmpty: boolean = this.pendingChars.length === 0;
     this.pendingChars.push(ch);
@@ -4808,9 +4814,8 @@ struct Index {
           guideEnabled: this.guideEnabled,
           paperWidthVp: this.paperWidthVp,
           paperHeightVp: this.paperHeightVp,
-          // 2A 静态验收用空纸态（真实文档内容留 2B；纸面在门图中整体排除）
-          paperContainerVp: this.marginB() + this.lineHeightVp + 44 + 2,
-          paperTopVp: this.carriageTopVp - (this.marginB() + this.lineHeightVp + 44),
+          paperContainerVp: this.paperContainerVp,
+          paperTopVp: this.paperTopVp,
           carriageTopVp: this.carriageTopVp,
           carriageHeightVp: this.carriageHeight,
           strikeLineVp: this.strikeLineVp,
@@ -4819,12 +4824,12 @@ struct Index {
           marginHVp: this.marginH(),
           marginTVp: this.marginT(),
           marginBVp: this.marginB(),
-          pageNo: 2,
-          pageCount: 2,
-          hintText: '',
-          lines: [''],
-          cursorXVp: this.marginH(),
-          cursorYVp: Math.max(0, this.strikeLineVp - (this.carriageTopVp - (this.marginB() + this.lineHeightVp + 44)) - 8),
+          pageNo: this.sheetNo,
+          pageCount: this.sheetCount,
+          hintText: this.hintText,
+          lines: this.docLineTexts(),
+          cursorXVp: this.marginH() + this.currentLineWidthVp(),
+          cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
           keybedHeightVp: this.keybedHeight,
           functionRowHeightVp: this.functionRowHeight,
           fontBarHeightVp: this.fontBarHeight,
@@ -4840,6 +4845,13 @@ struct Index {
           inkColor: this.inkColor,
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
+          onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
+          onCapUp: (cap: CapDef): void => { this.onCapUp(cap); },
+          onLeverStart: (x: number): void => {
+            this.leverPanStart(x > this.stageWidth * 0.78, 'canvas');
+          },
+          onLeverUpdate: (dy: number): void => { this.leverPanUpdate(dy); },
+          onLeverEnd: (): void => { this.leverPanEnd(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }

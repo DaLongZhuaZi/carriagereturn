@@ -52,8 +52,6 @@ export struct CanvasTypewriter {
   // Index 现行几何（2A 保持与 ArkUI 主屏同源；2B 切主屏后仍由 Index 传入）
   @Prop paperWidthVp: number = 264.1;
   @Prop paperHeightVp: number = 373.5;
-  @Prop paperContainerVp: number = 298.4;
-  @Prop paperTopVp: number = 206.0;
   @Prop carriageTopVp: number = 300.0;
   @Prop carriageHeightVp: number = 44.9;
   @Prop strikeLineVp: number = 270.0;
@@ -65,9 +63,11 @@ export struct CanvasTypewriter {
   @Prop pageNo: number = 1;
   @Prop pageCount: number = 1;
   @Prop hintText: string = '';
-  @Prop lines: string[] = [''];
-  @Prop cursorXVp: number = 48;
-  @Prop cursorYVp: number = 0;
+  @Prop @Watch('onDocChanged') lines: string[] = [''];
+  @Prop @Watch('onDocChanged') paperTopVp: number = 206;
+  @Prop @Watch('onDocChanged') paperContainerVp: number = 96;
+  @Prop @Watch('onDocChanged') cursorXVp: number = 48;
+  @Prop @Watch('onDocChanged') cursorYVp: number = 0;
   @Prop keybedHeightVp: number = 172.7;
   @Prop functionRowHeightVp: number = 52;
   @Prop fontBarHeightVp: number = 38;
@@ -83,6 +83,12 @@ export struct CanvasTypewriter {
   @Prop inkColor: string = '#1a1a1a';
   onOpenHome: () => void = (): void => {};
   onOpenMenu: () => void = (): void => {};
+  // 2B 交互：键帽 Down/Up、拨杆三阶段
+  onCapDown: (cap: CapDef) => void = (_cap: CapDef): void => {};
+  onCapUp: (cap: CapDef) => void = (_cap: CapDef): void => {};
+  onLeverStart: (x: number) => void = (_x: number): void => {};
+  onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
+  onLeverEnd: () => void = (): void => {};
 
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
@@ -106,6 +112,14 @@ export struct CanvasTypewriter {
   private imgPaper: image.PixelMap | null = null;
   private machineBuildCount: number = 0;
   private paperBuildCount: number = 0;
+  private heldCaps: Map<number, CapDef> = new Map<number, CapDef>();
+  private leverActive: boolean = false;
+  private leverStartY: number = 0;
+
+  /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onDocChanged(): void {
+    this.draw();
+  }
 
   /** 2A-4：换机只重建机器层；换纸只重建纸层。 */
   onMachineKindChanged(): void {
@@ -594,11 +608,51 @@ export struct CanvasTypewriter {
     }
   }
 
+  private onCanvasTouch(e: TouchEvent): void {
+    const touches = e.touches;
+    hilog.info(CDOMAIN, CTAG, 'touch type=%{public}d n=%{public}d x=%{public}s y=%{public}s', e.type, touches.length, touches.length>0?touches[0].x.toFixed(1):'-', touches.length>0?touches[0].y.toFixed(1):'-');
+    if (touches.length === 0) {
+      return;
+    }
+    const t = touches[0];
+    if (e.type === TouchType.Down) {
+      const cap: CapDef | null = KeymapParser.hitTest(this.keymap, t.x, t.y - this.keybedTop());
+      if (cap !== null && !cap.isExtra) {
+        hilog.info(CDOMAIN, CTAG, 'hit cap=%{public}s x=%{public}s y=%{public}s', cap.label, t.x.toFixed(1), t.y.toFixed(1));
+        this.heldCaps.set(t.id, cap);
+        this.onCapDown(cap);
+        return;
+      }
+      if (t.x > this.widthVp * 0.78 && t.y > this.carriageTopVp
+        && t.y < this.carriageTopVp + this.carriageHeightVp) {
+        this.leverActive = true;
+        this.leverStartY = t.y;
+        this.onLeverStart(t.x);
+      }
+      return;
+    }
+    if (e.type === TouchType.Move && this.leverActive) {
+      this.onLeverUpdate(t.y - this.leverStartY);
+      return;
+    }
+    if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+      if (this.leverActive) {
+        this.leverActive = false;
+        this.onLeverEnd();
+      }
+      this.heldCaps.forEach((cap: CapDef) => {
+        this.onCapUp(cap);
+      });
+      this.heldCaps.clear();
+    }
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Canvas(this.ctx)
         .width('100%')
         .height('100%')
+        .hitTestBehavior(HitTestMode.None)
         .onReady(() => {
           this.ctx.font = '24vp CourierPrime';
           const probeW: number = this.ctx.measureText('Hello, World! 0123456789').width;
@@ -625,5 +679,6 @@ export struct CanvasTypewriter {
     }
     .width('100%')
     .height('100%')
+    .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
