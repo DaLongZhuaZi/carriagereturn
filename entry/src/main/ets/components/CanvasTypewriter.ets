@@ -147,6 +147,7 @@ export struct CanvasTypewriter {
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
+    hilog.info(CDOMAIN, CTAG, 'canvas carriage off=%{public}s', this.carriageOffsetVp.toFixed(1));
     // 字车步进会移动前层与拨杆，必须全画布重绘，避免旧位置残留。
     this.draw();
   }
