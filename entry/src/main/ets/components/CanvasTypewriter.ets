@@ -831,6 +831,16 @@ export struct CanvasTypewriter {
           hilog.info(CDOMAIN, CTAG, 'canvas ready w=%{public}s h=%{public}s fontProbeW=%{public}s',
             this.widthVp.toFixed(1), this.heightVp.toFixed(1), probeW.toFixed(2));
         })
+      // 2C：Canvas 页透明原生锚点（SpotlightOverlay getRectangleById 用；不参与命中）
+      Column().id('typewriter__paper').width(this.paperWidthVp).height(this.paperContainerVp)
+        .position({ x: this.paperX(), y: this.paperY() })
+        .opacity(0.01).hitTestBehavior(HitTestMode.None)
+      Column().id('typewriter__lever').width(this.widthVp * 0.20).height(this.carriageHeightVp)
+        .position({ x: this.widthVp * 0.76, y: this.carriageTopVp })
+        .opacity(0.01).hitTestBehavior(HitTestMode.None)
+      Column().id('typewriter__function_row').width(this.widthVp).height(this.functionRowHeightVp)
+        .position({ x: 0, y: this.heightVp - this.bottomInset - this.functionRowHeightVp })
+        .opacity(0.01).hitTestBehavior(HitTestMode.None)
       // TopBar 保留 ArkUI 叠加；位置由同一几何算出（x=0 因 stage 宽=窗口宽，y=topInset）
       TopBar({
         title: this.docTitle,
