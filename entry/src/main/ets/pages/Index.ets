@@ -868,6 +868,7 @@ struct Index {
   /** 第 16 批 2A：Canvas 静态主屏调试页（临时入口，2B 切换后删除）。 */
   @State canvasDebugOpen: boolean = false;
   @State canvasEnabled: boolean = true;
+  @State a11yOverlayEnabled: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
@@ -4879,6 +4880,7 @@ struct Index {
           onOpenMenu: (): void => { this.menuOpen = true; },
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
+          a11yEnabled: this.a11yOverlayEnabled,
           onStrikeArrive: (): void => { },
           candidates: this.candCurrent,
           onCandidatePick: (i: number): void => { this.pinyinPick(i); },
