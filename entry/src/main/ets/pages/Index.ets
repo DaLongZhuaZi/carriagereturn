@@ -5150,7 +5150,7 @@ struct Index {
         onSkip: (): void => { this.closeOnboarding(); },
         onStart: (): void => { this.closeOnboarding(); },
       })
-      // 第 10 批：页面引导改挂聚光灯浮层（启动引导仍是 GuideOverlay 底部卡片）
+      // 第 10 批：页面引导改挂聚光灯浮层；启动引导已是全屏 OnboardingGuide（2C-5 修正过期注释）
       SpotlightOverlay({
         visible: this.guideVisible && !this.onboardingVisible,
         page: this.guidePage,

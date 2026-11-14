@@ -108,7 +108,7 @@ export struct CanvasTypewriter {
   private machineFrontLayer: ImageBitmap | null = null;
   private paperLayer: ImageBitmap | null = null;
   private backgroundLayer: ImageBitmap | null = null;
-  private keymap: KeymapLayout = {
+  @State keymap: KeymapLayout = {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
     hitRadius: 10, spaceR: 8, overlayColor: '#312b24', overlayFontSize: 14,
     widthVp: 0, heightVp: 0,
