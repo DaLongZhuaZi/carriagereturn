@@ -4882,6 +4882,7 @@ struct Index {
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
           joltYVp: this.joltYVp,
+          archXVp: this.archXVp,
           carriageOffsetVp: this.carriageOffsetVp,
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,

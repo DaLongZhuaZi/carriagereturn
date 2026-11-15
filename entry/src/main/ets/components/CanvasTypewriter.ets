@@ -76,6 +76,7 @@ export struct CanvasTypewriter {
   @Prop @Watch('onJoltChanged') joltYVp: number = 0;
   /** 字车横向步进（vp，负=向左）；只移动前层与拨杆，底座/键床保持固定。 */
   @Prop @Watch('onCarriageChanged') carriageOffsetVp: number = 0;
+  @Prop @Watch('onArchChanged') archXVp: number = 0;
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   onStrikeArrive: () => void = (): void => {};
@@ -149,6 +150,9 @@ export struct CanvasTypewriter {
   onCarriageChanged(): void {
     hilog.info(CDOMAIN, CTAG, 'canvas carriage off=%{public}s', this.carriageOffsetVp.toFixed(1));
     // 字车步进会移动前层与拨杆，必须全画布重绘，避免旧位置残留。
+    this.draw();
+  }
+  onArchChanged(): void {
     this.draw();
   }
   onJoltChanged(): void {
@@ -420,14 +424,7 @@ export struct CanvasTypewriter {
     if (this.imgBail !== null) {
       ctxFront.drawImage(this.imgBail, paperLeft, bailY, this.paperWidthVp, bailH);
     }
-    // 中央件（纸之上）
-    const Hg: number = Hc * 1.5;
-    const strikeX: number = paperLeft + this.marginHVp;
-    const strikeAbs: number = this.stackTop() + this.strikeLineVp;
-    const centralW: number = Hg * spec.centralAspect;
-    if (this.imgCentral !== null) {
-      ctxFront.drawImage(this.imgCentral, strikeX - centralW / 2, strikeAbs - Hg * spec.centralWindowY, centralW, Hg);
-    }
+    // 中央件改为 drawArchLayer 按 archXVp 单独绘制。
     // 拨杆支点支架
     const bracketW: number = 60;
     const bracketH: number = bracketW / spec.bracketAspect;
@@ -548,6 +545,7 @@ export struct CanvasTypewriter {
     if (this.paperLayer !== null) {
       ctx.drawImage(this.paperLayer, px, py);
     }
+    this.drawArchLayer(ctx);
     if (this.machineFrontLayer !== null) {
       ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
     }
@@ -580,6 +578,17 @@ export struct CanvasTypewriter {
     ctx.fillRect(rollX, carrAbs + Hc / 2, rollW, 5);
   }
 
+  /** 哥特拱/中央件：x 由 Index animateArch 插值（90/200/300ms）后传入。 */
+  private drawArchLayer(ctx: CanvasRenderingContext2D): void {
+    if (this.imgCentral === null) { return; }
+    const spec: MachineSpec = this.spec();
+    const Hg: number = this.carriageHeightVp * 1.5;
+    const w: number = Hg * spec.centralAspect;
+    const strikeAbs: number = this.stackTop() + this.strikeLineVp;
+    const ax: number = this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp;
+    ctx.drawImage(this.imgCentral, ax - w / 2, strikeAbs - Hg * spec.centralWindowY, w, Hg);
+  }
+
   private draw(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
@@ -600,6 +609,7 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.paperLayer, this.paperX() + this.carriageOffsetVp, this.paperY());
       ctx.restore();
     }
+    this.drawArchLayer(ctx);
     if (this.machineFrontLayer !== null) {
       ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
     }
