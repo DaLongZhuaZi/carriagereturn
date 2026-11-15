@@ -298,6 +298,8 @@ struct Index {
   @State carriageOffsetVp: number = 0;
   @State canvasDeleteTick: number = 0;
   @State canvasDeleteTargetVp: number = 0;
+  @State canvasBackTick: number = 0;
+  @State canvasBackTargetVp: number = 0;
   /** 每行可容纳字数（按舞台宽算，非屏幕宽）。 */
   private charsPerLineNum: number = 43;
   /** 每字行程 = 最大行程 / 每行字数。 */
@@ -3225,6 +3227,8 @@ struct Index {
     // O 是字车小行程口径（travelPerChar×字数，上限 maxTravelVp）；
     // 落字位置由 currentLineWidthVp() 全宽管，prevW 不再塞进 O（口径混淆）
     const targetO: number = Math.max(-this.maxTravelVp, -(prevLen * this.travelPerChar));
+    this.canvasBackTargetVp = targetO;
+    this.canvasBackTick = this.canvasBackTick + 1;
     // 纸下移一行高（纸上移的逆操作）300ms（recalcPaperHeight 实际时长）；字车 O 滑到上一行文字末尾 250ms
     // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画
     this.paperAnimateNext = true;
@@ -4915,6 +4919,8 @@ struct Index {
           canvasEnabled: this.canvasEnabled,
           canvasDeleteTick: this.canvasDeleteTick,
           canvasDeleteTargetVp: this.canvasDeleteTargetVp,
+          canvasBackTick: this.canvasBackTick,
+          canvasBackTargetVp: this.canvasBackTargetVp,
           canvasNewlineTick: this.newlineTick(),
           canvasNewlineCarriageTargetVp: this.newlineCarriageTargetO,
           clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',

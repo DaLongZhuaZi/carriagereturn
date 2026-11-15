@@ -84,6 +84,8 @@ export struct CanvasTypewriter {
   @Prop canvasDeleteTargetVp: number = 0;
   @Prop @Watch('onNewlineTickChanged') canvasNewlineTick: number = 0;
   @Prop canvasNewlineCarriageTargetVp: number = 0;
+  @Prop @Watch('onBackTickChanged') canvasBackTick: number = 0;
+  @Prop canvasBackTargetVp: number = 0;
   @Prop @Watch('onClockActiveChanged') clockActive: boolean = true;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
@@ -184,8 +186,30 @@ export struct CanvasTypewriter {
   private newlineOFrom: number = 0;
   private newlineOTo: number = 0;
   private lastNewlineTick: number = 0;
+  private lastBackTick: number = 0;
+  private paperDelay: number = 150;
+  private paperDur: number = 300;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onBackTickChanged(): void {
+    if (this.canvasBackTick === this.lastBackTick) { return; }
+    this.lastBackTick = this.canvasBackTick;
+    this.oFrom = this.renderO;
+    this.oTo = this.canvasBackTargetVp;
+    this.oT0 = this.frameNow;
+    this.oDur = 250;
+    this.oSpring = false;
+    this.oActive = true;
+    this.paperFromTop = this.renderPaperTop;
+    this.paperToTop = this.paperTopVp;
+    this.paperFromContainer = this.renderPaperContainer;
+    this.paperToContainer = this.paperContainerVp;
+    this.paperT0 = this.frameNow;
+    this.paperDelay = 0;
+    this.paperDur = 300;
+    this.paperActive = true;
+    hilog.info(CDOMAIN, CTAG, 'canvas back start O=%{public}s paper=%{public}s', this.oTo.toFixed(2), this.paperToTop.toFixed(2));
+  }
   onNewlineTickChanged(): void {
     if (this.canvasNewlineTick === this.lastNewlineTick) { return; }
     this.lastNewlineTick = this.canvasNewlineTick;
@@ -196,6 +220,8 @@ export struct CanvasTypewriter {
     this.paperFromContainer = this.renderPaperContainer;
     this.paperToContainer = this.paperContainerVp;
     this.paperT0 = this.frameNow;
+    this.paperDelay = 150;
+    this.paperDur = 300;
     this.paperActive = true;
     this.newlineOFrom = this.renderO;
     this.newlineOTo = this.canvasNewlineCarriageTargetVp;
@@ -755,8 +781,8 @@ export struct CanvasTypewriter {
         }
         if (this.paperActive) {
           const pt: number = value - this.paperT0;
-          if (pt >= 150) {
-            const ptt: number = (pt - 150) / 300;
+          if (pt >= this.paperDelay) {
+            const ptt: number = (pt - this.paperDelay) / this.paperDur;
             if (ptt >= 1) {
               this.renderPaperTop = this.paperTopVp;
               this.renderPaperContainer = this.paperContainerVp;
