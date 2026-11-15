@@ -144,7 +144,6 @@ export struct CanvasTypewriter {
   private strikePending: number = 0;
   private strikeBusy: boolean = false;
   private lastCanvasStrikeTick: number = 0;
-  private strikeAnimator: AnimatorResult | null = null;
   /** §17 帧时钟：单一常驻 Animator；now = onFrame 的 value（流逝毫秒）。 */
   private frameClock: AnimatorResult | null = null;
   private frameNow: number = 0;
@@ -213,7 +212,6 @@ export struct CanvasTypewriter {
       'transform scale=%{public}s tx=%{public}s ty=%{public}s refPaperTop=%{public}s refCarriageTop=%{public}s refStrike=%{public}s',
       tr.scale.toFixed(4), tr.tx.toFixed(2), tr.ty.toFixed(2), ref.paperTop.toFixed(2),
       ref.carriageTop.toFixed(2), ref.strikeLine.toFixed(2));
-    this.ensureStrikeAnimator();
     this.prepare();
   }
 
@@ -626,7 +624,7 @@ export struct CanvasTypewriter {
     this.drawTexts(ctx);
   }
 
-  /** 2B-6：Canvas 帧时钟——strikeTick 变化后 90ms 去程，结束帧调 onStrikeArrive；200ms fallback 由 Index 保留。 */
+  /** 打击 90ms 由 Canvas 帧时钟驱动，结束帧调 onStrikeArrive；200ms fallback 由 Index 保留。 */
   onCanvasStrikeTickChanged(): void {
     if (this.canvasStrikeTick === this.lastCanvasStrikeTick) {
       return;
@@ -659,18 +657,6 @@ export struct CanvasTypewriter {
       };
     }
     return this.frameClock;
-  }
-
-  private ensureStrikeAnimator(): AnimatorResult {
-    if (this.strikeAnimator === null) {
-      const opts: AnimatorOptions = {
-        duration: 32, easing: 'ease-in-out', delay: 0, fill: 'forwards',
-        direction: 'normal', iterations: 1, begin: 55, end: 0,
-      };
-      this.strikeAnimator = Animator.create(opts);
-      this.strikeAnimator.onFrame = (value: number): void => { this.typebarAngle = value; };
-    }
-    return this.strikeAnimator;
   }
 
   private runCanvasStrike(): void {
