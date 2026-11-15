@@ -20,7 +20,7 @@ import { findMachine, findPaper, MachineSpec, PaperSpec, TOP_BAR_HEIGHT_VP, PAPE
   FONT_BAR_HEIGHT_VP, FUNCTION_ROW_HEIGHT_VP } from '../model/MachineCatalog';
 import { KeymapParser, KeymapLayout, CapDef } from '../model/KeymapModel';
 import { CanvasTransform, computeTransform, referenceMetrics } from '../model/CanvasGeometry';
-import { restDegFor, swingDegFor } from '../model/LeverAngleCore';
+import { restDegFor, swingDegFor, dragRatioFor } from '../model/LeverAngleCore';
 import { TopBar } from './TopBar';
 
 const CDOMAIN: number = 0x0100;
@@ -77,11 +77,20 @@ export struct CanvasTypewriter {
   /** 字车横向步进（vp，负=向左）；只移动前层与拨杆，底座/键床保持固定。 */
   @Prop @Watch('onCarriageChanged') carriageOffsetVp: number = 0;
   @Prop @Watch('onArchChanged') archXVp: number = 0;
-  @Prop @Watch('onLeverChanged') leverRatio: number = 0;
+  // 批 2（§7）：拨杆角不再走 @Prop——Canvas 内 renderLeverRatio 由触摸直算，帧时钟每帧画。
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
   @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
   @Prop canvasDeleteTargetVp: number = 0;
+  /**
+   * 批 2 拨杆直驱（§7）：角度归 Canvas、逻辑归 Index。
+   * `leverHDragVp` 是 Index 的 leverHForDrag()（含手机「尖端不出屏」钳制）——两侧必须用同一个杆长，
+   * 否则 Canvas 渲染的角与 Index 的过半判定会分叉。
+   */
+  @Prop leverHDragVp: number = 69.5;
+  /** 释放 tick：Index 判定完过半后递增；Canvas 下一帧按 canvasLeverReleaseCommit 播提交/回弹。 */
+  @Prop @Watch('onLeverReleaseTickChanged') canvasLeverReleaseTick: number = 0;
+  @Prop canvasLeverReleaseCommit: boolean = false;
   @Prop @Watch('onNewlineTickChanged') canvasNewlineTick: number = 0;
   @Prop canvasNewlineCarriageTargetVp: number = 0;
   @Prop @Watch('onBackTickChanged') canvasBackTick: number = 0;
@@ -158,6 +167,9 @@ export struct CanvasTypewriter {
   private imgPaper: image.PixelMap | null = null;
   private machineBuildCount: number = 0;
   private paperBuildCount: number = 0;
+  /** §0：滚筒明暗渐变缓存（几何不变就复用，避免每帧 createLinearGradient 造成 GPU 侧膨胀）。 */
+  private rollerShade: CanvasGradient | null = null;
+  private rollerShadeKey: string = '';
   private heldCaps: Map<number, CapDef> = new Map<number, CapDef>();
   private candScroll: number = 0;
   private candDragX: number = -1;
@@ -228,6 +240,25 @@ export struct CanvasTypewriter {
   private pendingBack: boolean = false;
   private pendingNewline: boolean = false;
   private pendingPaper: boolean = false;
+  private pendingLeverRelease: boolean = false;
+  /** 批 2：拨杆渲染比例（Canvas 内部，不经过 @State/@Prop）；拖拽 Move 直接写，帧时钟每帧画。 */
+  private renderLeverRatio: number = 0;
+  private lastLeverReleaseTick: number = 0;
+  private leverAnimActive: boolean = false;
+  private leverAnimFrom: number = 0;
+  private leverAnimTo: number = 0;
+  private leverAnimT0: number = 0;
+  private leverAnimDur: number = 150;
+  /** 0=提交（摆到满摆）1=回程（满摆回静止）2=回弹（拖拽未过半回静止） */
+  private leverAnimPhase: number = 2;
+  /** 跟手打点：最近一次 Move 的墙钟时间与序号。 */
+  private leverMoveWall: number = 0;
+  private leverMoveCount: number = 0;
+  /**
+   * 拨杆拖拽期间只在「有 Move 的那一帧」上屏（§7 的 ≤1 帧语义不变：Move 后第一帧就画），
+   * 空帧不画——逐帧全屏重绘在真机上会打爆 GPU 预算（实测 RENDER_MEMORY_OVER_ERROR: gpu≈2.156GB）。
+   */
+  private leverDirty: boolean = false;
   private frameLastValue: number = 0;
   /** §8 启动延迟打点：tick 到来时记 kind＋t0，紧随的那一帧记 first frame。 */
   private firstKind: string = '';
@@ -256,6 +287,35 @@ export struct CanvasTypewriter {
     if (this.canvasDeleteTick === this.lastDeleteTick) { return; }
     this.lastDeleteTick = this.canvasDeleteTick;
     this.pendingDelete = true;
+  }
+
+  /** 批 2：松手——判定归 Index，这里只登记；下一帧按判定结果播提交/回弹（§7）。 */
+  onLeverReleaseTickChanged(): void {
+    if (this.canvasLeverReleaseTick === this.lastLeverReleaseTick) { return; }
+    this.lastLeverReleaseTick = this.canvasLeverReleaseTick;
+    this.pendingLeverRelease = true;
+  }
+
+  /**
+   * 释放动画（§7）：过半＝200ms 摆到满摆（再 200ms 回程回静止，对应 16 号稿 §3.3 去程/回程）；
+   * 不到半＝150ms 回弹回静止角（对应「拖拽回 0 时 150ms」）。各段用各自的 t0。
+   */
+  private startLeverRelease(): void {
+    this.leverAnimFrom = this.renderLeverRatio;
+    if (this.canvasLeverReleaseCommit) {
+      this.leverAnimTo = 1;
+      this.leverAnimDur = 200;
+      this.leverAnimPhase = 0;
+    } else {
+      this.leverAnimTo = 0;
+      this.leverAnimDur = 150;
+      this.leverAnimPhase = 2;
+    }
+    this.leverAnimT0 = this.frameNow;
+    this.leverAnimActive = true;
+    hilog.info(CDOMAIN, CTAG, 'anim start lever phase=%{public}d from=%{public}s to=%{public}s dur=%{public}d wall=%{public}s',
+      this.leverAnimPhase, this.leverAnimFrom.toFixed(3), this.leverAnimTo.toFixed(3),
+      this.leverAnimDur, Date.now().toString());
   }
 
   /** 退行·O：250ms（§2.6 退行·O）。 */
@@ -370,7 +430,7 @@ export struct CanvasTypewriter {
   /** 是否有活动动画或拨杆拖拽（§2.2 空闲规则／§2.7 去重的唯一判据）。 */
   private frameActive(): boolean {
     return this.strikeWait || this.archActive || this.oActive || this.paperActive
-      || this.newlineOActive || this.nlJoltActive || this.leverActive;
+      || this.newlineOActive || this.nlJoltActive || this.leverActive || this.leverAnimActive;
   }
   onCarriageChanged(): void {
     if (this.oActive) { return; }
@@ -424,11 +484,6 @@ export struct CanvasTypewriter {
 
   onCandidatesChanged(): void {
     this.draw();
-  }
-
-  onLeverChanged(): void {
-    // 拨杆角仍是 ArkUI 侧 @Prop（批 2 改 Canvas 内直驱）；帧时钟活动时由下一帧 draw 覆盖，不重复上屏。
-    if (!this.frameActive()) { this.draw(); }
   }
 
   /** 2A-4：换机只重建机器层；换纸只重建纸层；两者都走一次 §2.5 初值同步（字段按新机/新纸重置）。 */
@@ -806,13 +861,21 @@ export struct CanvasTypewriter {
     if (this.imgRoller !== null) {
       ctx.drawImage(this.imgRoller, rollX, carrAbs - Hc / 2, rollW, Hc);
     }
-    const shade: CanvasGradient = ctx.createLinearGradient(0, carrAbs - Hc / 2, 0, carrAbs + Hc / 2);
-    shade.addColorStop(0.0, 'rgba(255,246,230,0.30)');
-    shade.addColorStop(0.35, 'rgba(0,0,0,0)');
-    shade.addColorStop(0.52, 'rgba(255,246,230,0.32)');
-    shade.addColorStop(0.82, 'rgba(0,0,0,0.42)');
-    shade.addColorStop(1.0, 'rgba(0,0,0,0.72)');
-    ctx.fillStyle = shade;
+    // 设计稿 §0：原来每帧新建 CanvasGradient（1 次 createLinearGradient＋5 次 addColorStop）。
+    // 批 2 实测到 GPU 显存被打爆（RENDER_MEMORY_OVER_ERROR: gpu[2156140980]）→ 按设计既定首选缓存渐变：
+    // 几何（Hc／carrAbs）不变就复用同一个渐变对象，只变 fillRect 的位置。
+    const gradKey: string = Hc.toFixed(2) + '|' + carrAbs.toFixed(2) + '|' + rollW.toFixed(2);
+    if (this.rollerShade === null || this.rollerShadeKey !== gradKey) {
+      const shade: CanvasGradient = ctx.createLinearGradient(0, carrAbs - Hc / 2, 0, carrAbs + Hc / 2);
+      shade.addColorStop(0.0, 'rgba(255,246,230,0.30)');
+      shade.addColorStop(0.35, 'rgba(0,0,0,0)');
+      shade.addColorStop(0.52, 'rgba(255,246,230,0.32)');
+      shade.addColorStop(0.82, 'rgba(0,0,0,0.42)');
+      shade.addColorStop(1.0, 'rgba(0,0,0,0.72)');
+      this.rollerShade = shade;
+      this.rollerShadeKey = gradKey;
+    }
+    ctx.fillStyle = this.rollerShade;
     ctx.fillRect(rollX, carrAbs - Hc / 2, rollW, Hc);
     ctx.fillStyle = 'rgba(232,221,201,0.85)';
     ctx.fillRect(rollX, carrAbs + Hc / 2, rollW, 5);
@@ -952,15 +1015,47 @@ export struct CanvasTypewriter {
             this.renderO = this.oFrom + (this.oTo - this.oFrom) * oe;
           }
         }
+        // 批 2 拨杆：释放动画由帧时钟驱动；提交段结束自动接回程段（各段各自 t0）。
+        if (this.leverAnimActive) {
+          const lp: number = (value - this.leverAnimT0) / this.leverAnimDur;
+          if (lp >= 1) {
+            this.renderLeverRatio = this.leverAnimTo;
+            hilog.info(CDOMAIN, CTAG, 'anim arrive lever phase=%{public}d t=%{public}s dt=%{public}s ratio=%{public}s',
+              this.leverAnimPhase, value.toFixed(1), (value - this.leverAnimT0).toFixed(1),
+              this.renderLeverRatio.toFixed(3));
+            if (this.leverAnimPhase === 0) {
+              this.leverAnimFrom = 1;
+              this.leverAnimTo = 0;
+              this.leverAnimT0 = value;
+              this.leverAnimDur = 200;
+              this.leverAnimPhase = 1;
+            } else {
+              this.leverAnimActive = false;
+            }
+          } else {
+            const le: number = 1 - Math.pow(1 - lp, 3);
+            this.renderLeverRatio = this.leverAnimFrom + (this.leverAnimTo - this.leverAnimFrom) * le;
+          }
+        }
         // §2.4：tick 的启动统一推迟到本帧末尾——先结算上一段（含到达打点），再起本段。
         // 这样 @Prop 批量同步已落地，目标读到的才是本批目标；也不会把上一段的到达帧吞掉。
         if (this.pendingBack) { this.pendingBack = false; this.startBackO(); }
         if (this.pendingDelete) { this.pendingDelete = false; this.startDeleteO(); }
         if (this.pendingNewline) { this.pendingNewline = false; this.startNewlineO(); }
         if (this.pendingPaper) { this.pendingPaper = false; this.startPaperSegment(); }
+        if (this.pendingLeverRelease) { this.pendingLeverRelease = false; this.startLeverRelease(); }
         const activeNow: boolean = this.frameActive();
-        if (activeNow) {
+        const otherActive: boolean = this.strikeWait || this.archActive || this.oActive || this.paperActive
+          || this.newlineOActive || this.nlJoltActive || this.leverAnimActive;
+        const needDraw: boolean = otherActive || (this.leverActive && this.leverDirty);
+        if (needDraw) {
           this.draw();
+          this.leverDirty = false;
+          if (this.leverActive) {
+            // §8 拨杆跟手打点：本帧真正把新角度画上屏的时刻（与最近一次 Move 的 wall 相减即延迟）。
+            hilog.info(CDOMAIN, CTAG, 'lever draw wall=%{public}s ratio=%{public}s',
+              Date.now().toString(), this.renderLeverRatio.toFixed(3));
+          }
         }
         if (!this.firstLogged) {
           this.firstLogged = true;
@@ -1047,7 +1142,7 @@ export struct CanvasTypewriter {
     const leverH: number = leverW / spec.leverAspect;
     const pinX: number = bracketLeft + spec.bracketPivotX * bracketW;
     const pinY: number = bracketTop + spec.bracketPivotY * bracketH;
-    const angleDeg: number = restDegFor(this.isTablet) + swingDegFor(this.isTablet) * this.leverRatio;
+    const angleDeg: number = restDegFor(this.isTablet) + swingDegFor(this.isTablet) * this.renderLeverRatio;
     ctx.save();
     ctx.translate(pinX, pinY);
     ctx.rotate(angleDeg * Math.PI / 180);
@@ -1215,8 +1310,12 @@ export struct CanvasTypewriter {
       }
       if (t.x > this.widthVp * 0.78 && t.y > this.carriageTopVp
         && t.y < this.carriageTopVp + this.carriageHeightVp) {
+        // 批 2（§7）：按下从静止角起算；角度只写 Canvas 内部字段。
         this.leverActive = true;
         this.leverStartY = t.y;
+        this.renderLeverRatio = 0;
+        this.leverMoveWall = Date.now();
+        this.leverMoveCount = 0;
         this.onLeverStart(t.x);
       }
       return;
@@ -1234,7 +1333,16 @@ export struct CanvasTypewriter {
       return;
     }
     if (e.type === TouchType.Move && this.leverActive) {
-      this.onLeverUpdate(t.y - this.leverStartY);
+      // §7：Move 里只改字段、不直接 draw()——重画由帧时钟下一帧完成（≤1 帧）。
+      const dy: number = t.y - this.leverStartY;
+      this.renderLeverRatio = dragRatioFor(dy, this.leverHDragVp);
+      this.leverMoveWall = Date.now();
+      this.leverMoveCount += 1;
+      hilog.info(CDOMAIN, CTAG, 'lever move n=%{public}d dy=%{public}s ratio=%{public}s wall=%{public}s',
+        this.leverMoveCount, dy.toFixed(1), this.renderLeverRatio.toFixed(3), this.leverMoveWall.toString());
+      // 只用于 Index 的过半逻辑；Index 不回写角度。
+      this.leverDirty = true;
+      this.onLeverUpdate(dy);
       return;
     }
     if (e.type === TouchType.Up || e.type === TouchType.Cancel) {

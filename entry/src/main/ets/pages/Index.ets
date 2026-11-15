@@ -197,6 +197,11 @@ struct Index {
   /** 第 0b 批：切机纪元——渲染件 Watch 到变化立即回静止角（不带动画），切断在途摆动跨机。 */
   @State leverEpoch: number = 0;
   private leverDragActive: boolean = false;
+  /** 批 2（§7）：Index 侧只留「逻辑比例」（过半判定用），不写 @State、不回写给 Canvas。 */
+  private leverRatioLogical: number = 0;
+  /** 批 2：松手判定结果与释放 tick（Canvas 下一帧按 commit 播提交/回弹）。 */
+  @State canvasLeverReleaseTick: number = 0;
+  @State canvasLeverReleaseCommit: boolean = false;
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
@@ -2376,36 +2381,51 @@ struct Index {
     this.leverRatio1950 = 0;
     this.leverRatio1960 = 0;
     this.leverDragActive = false;
+    this.leverRatioLogical = 0;
   }
 
   // ---- 第 0b 批：拖拽处理唯一实现（原三份复制粘贴收敛于此）----
+  // 批 2（§7）：canvas 开时角度归 Canvas（内部字段直驱），Index 只留「逻辑比例」用于过半判定，
+  // 不回写角度、不写 @State（避免每帧 Move 触发 ArkUI 重渲染）。canvas 关时仍走旧路径。
 
   /** 拖拽开始：active 由调用方按热区判定（字车层按 x，覆盖层恒 true）。 */
   private leverPanStart(active: boolean, source: string): void {
     this.leverDragActive = active;
-    this.setLeverRatio(0);
-    hilog.info(DOMAIN, TAG, 'lever pan start src=%{public}s active=%{public}s',
-      source, active ? 'true' : 'false');
+    this.leverRatioLogical = 0;
+    if (!this.canvasEnabled) { this.setLeverRatio(0); }
+    hilog.info(DOMAIN, TAG, 'lever pan start src=%{public}s active=%{public}s canvas=%{public}s',
+      source, active ? 'true' : 'false', this.canvasEnabled ? 'true' : 'false');
   }
 
-  /** 拖拽更新：dy 截断在 [0, 杆长]，换算比例走纯函数。 */
+  /** 拖拽更新：dy 截断在 [0, 杆长]，换算比例走纯函数（两侧同一函数、同一杆长）。 */
   private leverPanUpdate(dyRaw: number): void {
     if (!this.leverDragActive) {
       return;
     }
-    this.setLeverRatio(dragRatioFor(dyRaw, this.leverHForDrag()));
+    this.leverRatioLogical = dragRatioFor(dyRaw, this.leverHForDrag());
+    if (!this.canvasEnabled) { this.setLeverRatio(this.leverRatioLogical); }
   }
 
-  /** 拖拽结束：过半换行；不论是否换行都回 0（拨杆弹回）。 */
+  /** 拖拽结束：过半换行；canvas 开时释放动画交给 Canvas（判定归 Index）。 */
   private leverPanEnd(): void {
     if (!this.leverDragActive) {
       return;
     }
-    const pulled: number = this.leverRatio();
+    const pulled: number = this.canvasEnabled ? this.leverRatioLogical : this.leverRatio();
     this.leverDragActive = false;
-    this.setLeverRatio(0);
-    hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s', pulled.toFixed(3));
-    if (pulledEnough(pulled)) {
+    hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s canvas=%{public}s',
+      pulled.toFixed(3), this.canvasEnabled ? 'true' : 'false');
+    const commit: boolean = pulledEnough(pulled);
+    if (this.canvasEnabled) {
+      // 判定结果交给 Canvas 播 200ms 提交／150ms 回弹；Index 不写角度。
+      this.canvasLeverReleaseCommit = commit;
+      this.canvasLeverReleaseTick = this.canvasLeverReleaseTick + 1;
+      hilog.info(DOMAIN, TAG, 'trigger lever t=%{public}s commit=%{public}s pull=%{public}s',
+        Date.now().toString(), commit ? 'true' : 'false', pulled.toFixed(3));
+    } else {
+      this.setLeverRatio(0);
+    }
+    if (commit) {
       this.onNewline();
     }
   }
@@ -5044,7 +5064,9 @@ struct Index {
           canvasNewlineTick: this.newlineTick(),
           canvasNewlineCarriageTargetVp: this.newlineCarriageTargetO,
           clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',
-          leverRatio: this.leverRatio(),
+          leverHDragVp: this.leverHForDrag(),
+          canvasLeverReleaseTick: this.canvasLeverReleaseTick,
+          canvasLeverReleaseCommit: this.canvasLeverReleaseCommit,
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,
           onStrikeArrive: (): void => { this.onStrikeArrive(); },
