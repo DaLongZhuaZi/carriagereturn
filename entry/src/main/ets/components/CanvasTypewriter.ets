@@ -154,6 +154,11 @@ export struct CanvasTypewriter {
   private strikeWait: boolean = false;
   private strikeT0: number = 0;
   private strikeJolt: number = 0;
+  private renderArchX: number = -1;
+  private archFromX: number = 0;
+  private archToX: number = 0;
+  private archT0: number = 0;
+  private archActive: boolean = false;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
@@ -162,6 +167,7 @@ export struct CanvasTypewriter {
     this.draw();
   }
   onArchChanged(): void {
+    if (!this.archActive) { this.renderArchX = this.archXVp; }
     this.draw();
   }
   onClockActiveChanged(): void {
@@ -603,7 +609,8 @@ export struct CanvasTypewriter {
     const Hg: number = this.carriageHeightVp * 1.5;
     const w: number = Hg * spec.centralAspect;
     const strikeAbs: number = this.stackTop() + this.strikeLineVp;
-    const ax: number = this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp;
+    const ax: number = this.renderArchX >= 0 ? this.renderArchX
+      : (this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp);
     ctx.drawImage(this.imgCentral, ax - w / 2, strikeAbs - Hg * spec.centralWindowY, w, Hg);
   }
 
@@ -662,7 +669,17 @@ export struct CanvasTypewriter {
           else if (jt <= 40) { this.strikeJolt = 1 - (jt - 20) / 20; }
           else { this.strikeJolt = 0; }
         }
-        if (this.strikeWait) {
+        if (this.archActive) {
+          const at: number = (value - this.archT0) / 90;
+          if (at >= 1) {
+            this.renderArchX = this.archToX;
+            this.archActive = false;
+          } else {
+            const ae: number = 1 - Math.pow(1 - at, 3);
+            this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
+          }
+        }
+        if (this.strikeWait || this.archActive) {
           this.draw();
         }
         if (this.strikeWait && value - this.strikeT0 >= 90) {
@@ -688,6 +705,15 @@ export struct CanvasTypewriter {
     this.strikePending -= 1;
     this.strikeT0 = this.frameNow;
     this.strikeWait = true;
+    if (!this.archActive) {
+      if (this.renderArchX < 0) {
+        this.renderArchX = this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp;
+      }
+      this.archFromX = this.renderArchX;
+      this.archToX = this.paperX() + this.cursorXVp;
+      this.archT0 = this.frameNow;
+      this.archActive = true;
+    }
   }
 
   /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
