@@ -4905,6 +4905,7 @@ struct Index {
           archXVp: this.archXVp,
           carriageOffsetVp: this.carriageOffsetVp,
           canvasEnabled: this.canvasEnabled,
+          clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,

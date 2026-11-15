@@ -80,6 +80,7 @@ export struct CanvasTypewriter {
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
+  @Prop @Watch('onClockActiveChanged') clockActive: boolean = true;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
   @Prop functionRowHeightVp: number = 52;
@@ -162,6 +163,15 @@ export struct CanvasTypewriter {
   }
   onArchChanged(): void {
     this.draw();
+  }
+  onClockActiveChanged(): void {
+    if (this.clockActive) {
+      this.ensureFrameClock().play();
+      hilog.info(CDOMAIN, CTAG, 'frame clock active play');
+    } else {
+      this.frameClock?.pause();
+      hilog.info(CDOMAIN, CTAG, 'frame clock inactive pause');
+    }
   }
   onJoltChanged(): void {
     hilog.info(CDOMAIN, CTAG, 'canvas jolt=%{public}s', this.joltYVp.toFixed(1));
