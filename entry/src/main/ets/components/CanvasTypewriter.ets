@@ -79,6 +79,7 @@ export struct CanvasTypewriter {
   @Prop @Watch('onArchChanged') archXVp: number = 0;
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
+  @Prop canvasEnabled: boolean = false;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
   @Prop functionRowHeightVp: number = 52;
@@ -151,6 +152,7 @@ export struct CanvasTypewriter {
   private frameLastLogMs: number = 0;
   private strikeWait: boolean = false;
   private strikeT0: number = 0;
+  private strikeJolt: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
@@ -644,7 +646,14 @@ export struct CanvasTypewriter {
       this.frameClock.onFrame = (value: number): void => {
         this.frameSeq += 1;
         this.frameNow = value;
+        if (this.strikeWait) {
+          const jt: number = value - this.strikeT0;
+          if (jt <= 20) { this.strikeJolt = jt / 20; }
+          else if (jt <= 40) { this.strikeJolt = 1 - (jt - 20) / 20; }
+          else { this.strikeJolt = 0; }
+        }
         if (this.strikeWait && value - this.strikeT0 >= 90) {
+          this.strikeJolt = 0;
           this.strikeWait = false;
           hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', value - this.strikeT0);
           this.onStrikeArrive();
@@ -739,7 +748,7 @@ export struct CanvasTypewriter {
     for (let i = 0; i < this.lines.length; i++) {
       const line: string = this.lines[i];
       if (line.length > 0) {
-        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2 + this.joltYVp);
+        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2 + this.joltYVp + this.strikeJolt);
       }
     }
     if (this.lines.length <= 1 && this.hintText.length > 0) {

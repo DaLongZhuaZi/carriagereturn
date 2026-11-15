@@ -1587,13 +1587,15 @@ struct Index {
     this.getUIContext().animateTo({ duration: 30, curve: Curve.Linear }, () => {
       this.carriageOffsetVp = target;
     });
-    // 总成竖向 jolt 1vp：击打当刻下沉 40ms 回弹
-    this.getUIContext().animateTo({ duration: 20, curve: Curve.Linear }, () => {
-      this.joltYVp = 1;
-    });
-    this.getUIContext().animateTo({ duration: 20, delay: 20, curve: Curve.Linear }, () => {
-      this.joltYVp = 0;
-    });
+    // 总成竖向 jolt 1vp：Canvas 开时由帧时钟驱动，ArkUI 分支保留 animateTo
+    if (!this.canvasEnabled) {
+      this.getUIContext().animateTo({ duration: 20, curve: Curve.Linear }, () => {
+        this.joltYVp = 1;
+      });
+      this.getUIContext().animateTo({ duration: 20, delay: 20, curve: Curve.Linear }, () => {
+        this.joltYVp = 0;
+      });
+    }
     this.commitSeq = this.commitSeq + 1;
     hilog.info(DOMAIN, TAG, 'carriage offset -> %{public}s', target.toFixed(2));
   }
@@ -4902,6 +4904,7 @@ struct Index {
           joltYVp: this.joltYVp,
           archXVp: this.archXVp,
           carriageOffsetVp: this.carriageOffsetVp,
+          canvasEnabled: this.canvasEnabled,
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,
