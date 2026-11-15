@@ -671,7 +671,7 @@ export struct CanvasTypewriter {
     const baseW: number = this.paperWidthVp + 2 * knobD;
     const bracketW: number = 60;
     const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10;
+    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.carriageOffsetVp;
     const bracketTop: number = this.carriageTopVp - Hc / 2 + Hc + 24 - bracketH;
     const leverW: number = this.isTablet
       ? Hc * 1.84 * this.leverSizeRatio(spec)
