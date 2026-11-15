@@ -202,6 +202,10 @@ struct Index {
   /** 批 2：松手判定结果与释放 tick（Canvas 下一帧按 commit 播提交/回弹）。 */
   @State canvasLeverReleaseTick: number = 0;
   @State canvasLeverReleaseCommit: boolean = false;
+  /** 批 20：拱的目标 tick（换行/退行/换纸发；打击由 Canvas 自跟，不发）。 */
+  @State canvasArchTick: number = 0;
+  @State canvasArchTargetVp: number = 0;
+  @State canvasArchDurMs: number = 90;
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
@@ -2481,15 +2485,34 @@ struct Index {
   /**
    * §18 第 1 件：把拱从当前位置平滑滑到目标。只跟 target，不跟 O 的中间值
    * （O 自己的动画继续走，两层不互相等待）。
+   * 批 20：canvas 开时**这一层不许再发 animateTo**——拱的唯一渲染源是 Canvas 帧时钟（17 号稿 §5.3）。
+   * 双驱动（Index animateTo ＋ Canvas 帧时钟）是「拱多跑一截再往回拉」的根因。
+   * fromStrike=true 表示这次调用是落字后的那次（拱由 Canvas 打击段自己跟，不再发 tick）。
    */
-  private animateArch(duration: number): void {
+  private animateArch(duration: number, fromStrike: boolean = false): void {
     const target: number = this.clampedStrikeXVp();
     if (!this.archInited) {
       this.archInited = true;
       this.archXVp = target;
+      if (this.canvasEnabled) {
+        this.canvasArchTargetVp = target;
+        this.canvasArchDurMs = duration;
+        this.canvasArchTick = this.canvasArchTick + 1;
+      }
       return;
     }
     if (Math.abs(target - this.archXVp) < 0.05) {
+      return;
+    }
+    if (this.canvasEnabled) {
+      this.archXVp = target;
+      if (!fromStrike) {
+        this.canvasArchTargetVp = target;
+        this.canvasArchDurMs = duration;
+        this.canvasArchTick = this.canvasArchTick + 1;
+        hilog.info(DOMAIN, TAG, 'trigger arch t=%{public}s target=%{public}s dur=%{public}d',
+          Date.now().toString(), target.toFixed(2), duration);
+      }
       return;
     }
     const archStarted: number = Date.now();
@@ -3144,7 +3167,7 @@ struct Index {
     }
     // 每次落字后把光标矩形推给输入法，候选窗跟着走
     this.pushCnCursor();
-    this.animateArch(90);
+    this.animateArch(90, true);
   }
 
   /**
@@ -5043,7 +5066,6 @@ struct Index {
           onOpenHome: (): void => { this.popTo('home'); },
           onOpenMenu: (): void => { this.menuOpen = true; },
           joltYVp: this.joltYVp,
-          archXVp: this.archXVp,
           carriageOffsetVp: this.carriageOffsetVp,
           canvasEnabled: this.canvasEnabled,
           canvasDeleteTick: this.canvasDeleteTick,
@@ -5067,6 +5089,9 @@ struct Index {
           leverHDragVp: this.leverHForDrag(),
           canvasLeverReleaseTick: this.canvasLeverReleaseTick,
           canvasLeverReleaseCommit: this.canvasLeverReleaseCommit,
+          canvasArchTick: this.canvasArchTick,
+          canvasArchTargetVp: this.canvasArchTargetVp,
+          canvasArchDurMs: this.canvasArchDurMs,
           canvasStrikeTick: this.canvasStrikeTick,
           a11yEnabled: this.a11yOverlayEnabled,
           onStrikeArrive: (): void => { this.onStrikeArrive(); },

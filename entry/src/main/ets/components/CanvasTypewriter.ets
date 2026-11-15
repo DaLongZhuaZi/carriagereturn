@@ -76,8 +76,10 @@ export struct CanvasTypewriter {
   @Prop @Watch('onJoltChanged') joltYVp: number = 0;
   /** 字车横向步进（vp，负=向左）；只移动前层与拨杆，底座/键床保持固定。 */
   @Prop @Watch('onCarriageChanged') carriageOffsetVp: number = 0;
-  @Prop @Watch('onArchChanged') archXVp: number = 0;
-  // 批 2（§7）：拨杆角不再走 @Prop——Canvas 内 renderLeverRatio 由触摸直算，帧时钟每帧画。
+  /** 批 20：拱的唯一渲染源是本组件的帧时钟；Index 只发「换行/退行/换纸」的目标 tick。 */
+  @Prop @Watch('onArchTickChanged') canvasArchTick: number = 0;
+  @Prop canvasArchTargetVp: number = 0;
+  @Prop canvasArchDurMs: number = 90;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
   @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
@@ -196,6 +198,12 @@ export struct CanvasTypewriter {
   private archToX: number = 0;
   private archT0: number = 0;
   private archActive: boolean = false;
+  /** 批 20：本段时长（打击 90／换行退行 200／换纸 300，由 Index tick 或打击给）。 */
+  private archDur: number = 90;
+  /** 下一段用的时长（Index tick 给的时长在下一段起段时消费）。 */
+  private archDurNext: number = 90;
+  private pendingArch: boolean = false;
+  private lastArchTick: number = 0;
   private renderO: number = 0;
   private oActive: boolean = false;
   private oFrom: number = 0;
@@ -260,6 +268,8 @@ export struct CanvasTypewriter {
    */
   private leverDirty: boolean = false;
   private frameLastValue: number = 0;
+  /** 批 20 帧率取证：当前绘制所属动画种类标签。 */
+  private drawKindTag: string = 'idle';
   /** §8 启动延迟打点：tick 到来时记 kind＋t0，紧随的那一帧记 first frame。 */
   private firstKind: string = '';
   private firstT0: number = 0;
@@ -313,6 +323,7 @@ export struct CanvasTypewriter {
     }
     this.leverAnimT0 = this.frameNow;
     this.leverAnimActive = true;
+    this.drawKindTag = 'lever';
     hilog.info(CDOMAIN, CTAG, 'anim start lever phase=%{public}d from=%{public}s to=%{public}s dur=%{public}d wall=%{public}s',
       this.leverAnimPhase, this.leverAnimFrom.toFixed(3), this.leverAnimTo.toFixed(3),
       this.leverAnimDur, Date.now().toString());
@@ -327,6 +338,7 @@ export struct CanvasTypewriter {
     this.oDur = 250;
     this.oSpring = false;
     this.oActive = true;
+    this.drawKindTag = 'back';
     this.markFirstFrame('back');
     hilog.info(CDOMAIN, CTAG, 'anim start back O t0=%{public}s target=%{public}s wall=%{public}s',
       this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
@@ -342,6 +354,7 @@ export struct CanvasTypewriter {
     this.newlineOJoltStarted = false;
     this.nlJoltActive = false;
     this.nlJolt = 0;
+    this.drawKindTag = 'newline';
     this.markFirstFrame('newline');
     hilog.info(CDOMAIN, CTAG, 'anim start newline O t0=%{public}s target=%{public}s wall=%{public}s',
       this.frameNow.toFixed(1), this.newlineOTo.toFixed(2), Date.now().toString());
@@ -381,6 +394,7 @@ export struct CanvasTypewriter {
     }
     this.paperActive = true;
     this.paperDirty = true;
+    this.drawKindTag = 'paper';
     this.markFirstFrame('paper');
     hilog.info(CDOMAIN, CTAG,
       'anim start paper t0=%{public}s mode=%{public}d from=%{public}s/%{public}s to=%{public}s/%{public}s dur=%{public}d wall=%{public}s',
@@ -397,6 +411,7 @@ export struct CanvasTypewriter {
     this.oDur = 70;
     this.oSpring = true;
     this.oActive = true;
+    this.drawKindTag = 'delete';
     this.markFirstFrame('delete');
     hilog.info(CDOMAIN, CTAG, 'anim start delete O t0=%{public}s target=%{public}s wall=%{public}s',
       this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
@@ -443,6 +458,7 @@ export struct CanvasTypewriter {
         this.oDur = 30;
         this.oSpring = false;
         this.oActive = true;
+        this.drawKindTag = 'O';
         this.markFirstFrame('O');
         hilog.info(CDOMAIN, CTAG, 'anim start O step t0=%{public}s target=%{public}s wall=%{public}s',
           this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
@@ -452,9 +468,11 @@ export struct CanvasTypewriter {
     this.renderO = this.carriageOffsetVp;
     if (!this.frameActive()) { this.draw(); }
   }
-  onArchChanged(): void {
-    if (!this.archActive) { this.renderArchX = this.archXVp; }
-    if (!this.frameActive()) { this.draw(); }
+  /** 批 20：换行/退行/换纸的拱目标 tick——只登记时长；目标按「paperX + renderO + cursorXVp」每帧实时算。 */
+  onArchTickChanged(): void {
+    if (this.canvasArchTick === this.lastArchTick) { return; }
+    this.lastArchTick = this.canvasArchTick;
+    this.pendingArch = true;
   }
   onClockActiveChanged(): void {
     if (this.clockActive) {
@@ -889,12 +907,15 @@ export struct CanvasTypewriter {
     const w: number = Hg * spec.centralAspect;
     const strikeAbs: number = this.stackTop() + this.strikeLineVp;
     const ax: number = this.renderArchX >= 0 ? this.renderArchX
-      : (this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp);
+      : this.paperX() + this.renderO + this.cursorXVp;
     ctx.drawImage(this.imgCentral, ax - w / 2, strikeAbs - Hg * spec.centralWindowY, w, Hg);
   }
 
   private draw(): void {
     if (!this.ready) { return; }
+    // 批 20 帧率取证：每次真正上屏都记一条（含时钟时间戳与墙钟），用于数「一次动画上了几帧」。
+    hilog.info(CDOMAIN, CTAG, 'draw frame t=%{public}s ms=%{public}s tag=%{public}s',
+      this.frameNow.toFixed(1), Date.now().toString(), this.drawKindTag);
     const ctx: CanvasRenderingContext2D = this.ctx;
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
     if (this.backgroundLayer !== null) {
@@ -955,17 +976,40 @@ export struct CanvasTypewriter {
           else if (nt <= 40) { this.nlJolt = 2 * (1 - (nt - 20) / 20); }
           else { this.nlJolt = 0; this.nlJoltActive = false; }
         }
+        // 批 20：拱＝单一帧时钟驱动的追踪器。目标每帧实时算（paperX + renderO + cursorXVp，
+        // 与 Index clampedStrikeXVp 同口径）；目标动了就按时间重锚一段（打击 90／换行退行 200／换纸 300），
+        // ease-out 不过冲 → 单调收敛，不再出现「多跑一截再往回拉」的双驱动。
+        const archTarget: number = this.paperX() + this.carriageOffsetVp + this.cursorXVp;
+        if (this.renderArchX < 0) { this.renderArchX = archTarget; }
+        if (this.pendingArch) {
+          this.pendingArch = false;
+          this.archDurNext = this.canvasArchDurMs > 1 ? this.canvasArchDurMs : 200;
+        }
         if (this.archActive) {
-          const at: number = (value - this.archT0) / 90;
+          if (Math.abs(archTarget - this.archToX) > 0.4) {
+            this.archFromX = this.renderArchX;
+            this.archToX = archTarget;
+            this.archT0 = value;
+          }
+          const at: number = (value - this.archT0) / this.archDur;
           if (at >= 1) {
             this.renderArchX = this.archToX;
             this.archActive = false;
-            hilog.info(CDOMAIN, CTAG, 'anim arrive arch t=%{public}s dt=%{public}s',
-              value.toFixed(1), (value - this.archT0).toFixed(1));
+            hilog.info(CDOMAIN, CTAG, 'anim arrive arch t=%{public}s dt=%{public}s x=%{public}s',
+              value.toFixed(1), (value - this.archT0).toFixed(1), this.renderArchX.toFixed(2));
           } else {
             const ae: number = 1 - Math.pow(1 - at, 3);
             this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
           }
+        }
+        if (!this.archActive && Math.abs(archTarget - this.renderArchX) > 0.2) {
+          this.archFromX = this.renderArchX;
+          this.archToX = archTarget;
+          this.archT0 = value;
+          this.archDur = this.archDurNext;
+          this.archActive = true;
+          hilog.info(CDOMAIN, CTAG, 'anim start arch t0=%{public}s from=%{public}s to=%{public}s dur=%{public}d',
+            value.toFixed(1), this.archFromX.toFixed(2), this.archToX.toFixed(2), this.archDur);
         }
         if (this.paperActive) {
           const ptt: number = (value - this.paperT0) / this.paperDur;
@@ -1092,17 +1136,11 @@ export struct CanvasTypewriter {
     this.strikeT0 = this.frameNow;
     this.strikeWait = true;
     this.markFirstFrame('strike');
-    if (!this.archActive) {
-      if (this.renderArchX < 0) {
-        this.renderArchX = this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp;
-      }
-      this.archFromX = this.renderArchX;
-      this.archToX = this.paperX() + this.cursorXVp;
-      this.archT0 = this.frameNow;
-      this.archActive = true;
-    }
-    hilog.info(CDOMAIN, CTAG, 'anim start strike t0=%{public}s arch=%{public}s wall=%{public}s',
-      this.frameNow.toFixed(1), this.archToX.toFixed(2), Date.now().toString());
+    // 打击的拱由帧时钟追踪器负责（90ms 一段），这里只把时长交下去。
+    this.archDurNext = 90;
+    this.drawKindTag = 'strike';
+    hilog.info(CDOMAIN, CTAG, 'anim start strike t0=%{public}s wall=%{public}s',
+      this.frameNow.toFixed(1), Date.now().toString());
   }
 
   /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
@@ -1490,3 +1528,5 @@ export struct CanvasTypewriter {
     .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
+
+
