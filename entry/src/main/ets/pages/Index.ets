@@ -1604,7 +1604,16 @@ struct Index {
     if (target > 0) {
       target = 0;
     }
-    this.getUIContext().animateTo({ duration: 70, curve: curves.springCurve(0, 1, 260, 20) }, () => {
+    const springStarted: number = Date.now();
+    hilog.info(DOMAIN, TAG, 'carriage spring start dur=70 target=%{public}s', target.toFixed(2));
+    this.getUIContext().animateTo({
+      duration: 70,
+      curve: curves.springCurve(0, 1, 260, 20),
+      onFinish: (): void => {
+        hilog.info(DOMAIN, TAG, 'carriage spring finish dur=70 dt=%{public}d value=%{public}s target=%{public}s',
+          Date.now() - springStarted, this.carriageOffsetVp.toFixed(2), target.toFixed(2));
+      }
+    }, () => {
       this.carriageOffsetVp = target;
     });
   }
@@ -2388,7 +2397,16 @@ struct Index {
     if (Math.abs(target - this.archXVp) < 0.05) {
       return;
     }
-    this.getUIContext().animateTo({ duration: duration, curve: Curve.FastOutSlowIn }, () => {
+    const archStarted: number = Date.now();
+    hilog.info(DOMAIN, TAG, 'arch move start dur=%{public}d target=%{public}s', duration, target.toFixed(2));
+    this.getUIContext().animateTo({
+      duration: duration,
+      curve: Curve.FastOutSlowIn,
+      onFinish: (): void => {
+        hilog.info(DOMAIN, TAG, 'arch move finish dur=%{public}d dt=%{public}d value=%{public}s target=%{public}s',
+          duration, Date.now() - archStarted, this.archXVp.toFixed(2), target.toFixed(2));
+      }
+    }, () => {
       this.archXVp = target;
     });
   }
