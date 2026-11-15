@@ -386,7 +386,7 @@ export struct CanvasTypewriter {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
-    const paperLeft: number = this.paperX();
+    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
     const knobD: number = Hc * 0.92;
     const baseW: number = this.paperWidthVp + 2 * knobD;
     const baseLeft: number = Math.max(0, paperLeft - knobD);
@@ -532,7 +532,7 @@ export struct CanvasTypewriter {
   private redrawPaper(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
-    const px: number = this.paperX();
+    const px: number = this.paperX() + this.carriageOffsetVp;
     const py: number = this.paperY();
     this.drawRollerLayer(ctx);
     ctx.save();
@@ -561,7 +561,7 @@ export struct CanvasTypewriter {
   private drawRollerLayer(ctx: CanvasRenderingContext2D): void {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX();
+    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
     const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
     const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2 + this.carriageOffsetVp;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
@@ -595,9 +595,9 @@ export struct CanvasTypewriter {
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
       const clipH: number = Math.max(0, this.paperY() + this.paperContainerVp - clipY);
-      ctx.rect(this.paperX(), clipY, this.paperWidthVp, clipH);
+      ctx.rect(this.paperX() + this.carriageOffsetVp, clipY, this.paperWidthVp, clipH);
       ctx.clip();
-      ctx.drawImage(this.paperLayer, this.paperX(), this.paperY());
+      ctx.drawImage(this.paperLayer, this.paperX() + this.carriageOffsetVp, this.paperY());
       ctx.restore();
     }
     if (this.machineFrontLayer !== null) {
@@ -665,7 +665,7 @@ export struct CanvasTypewriter {
     }
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX();
+    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
     const knobD: number = Hc * 0.92;
     const baseLeft: number = (this.widthVp - this.paperWidthVp) / 2 - knobD;
     const baseW: number = this.paperWidthVp + 2 * knobD;
@@ -693,9 +693,9 @@ export struct CanvasTypewriter {
     // 纸面文字（裁剪到纸容器）
     ctx.save();
     ctx.beginPath();
-    ctx.rect(this.paperX(), this.paperY(), this.paperWidthVp, this.paperContainerVp);
+    ctx.rect(this.paperX() + this.carriageOffsetVp, this.paperY(), this.paperWidthVp, this.paperContainerVp);
     ctx.clip();
-    const paperLeft: number = this.paperX();
+    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
     const paperTop: number = this.paperY();
     const ps: PaperSpec = this.paperSpec();
     if (ps.hasHeader) {

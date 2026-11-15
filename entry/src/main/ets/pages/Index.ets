@@ -2922,7 +2922,9 @@ struct Index {
     this.arriveCount += 1;
     this.flushPending();
     // 队列还有字：续踢下一击（字杆串行，每字一摆）
-    if (this.canvasDebugOpen && this.pendingChars.length > 0) {
+    const canvasContinue: boolean = this.canvasDebugOpen
+      || (this.canvasEnabled && this.navStack[this.navStack.length - 1] === 'typewriter');
+    if (canvasContinue && this.pendingChars.length > 0) {
       this.canvasStrikeTick = this.canvasStrikeTick + 1;
     } else if (this.leverEnabled && this.hasLayers()
       && this.pendingChars.length > 0 && this.pacerTimer < 0) {
