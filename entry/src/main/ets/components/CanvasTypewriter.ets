@@ -159,11 +159,29 @@ export struct CanvasTypewriter {
   private archToX: number = 0;
   private archT0: number = 0;
   private archActive: boolean = false;
+  private renderO: number = 0;
+  private oActive: boolean = false;
+  private oFrom: number = 0;
+  private oTo: number = 0;
+  private oT0: number = 0;
+  private pendingOAfterLand: boolean = false;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
     hilog.info(CDOMAIN, CTAG, 'canvas carriage off=%{public}s', this.carriageOffsetVp.toFixed(1));
-    // 字车步进会移动前层与拨杆，必须全画布重绘，避免旧位置残留。
+    if (this.oActive) { return; }
+    if (this.pendingOAfterLand) {
+      this.pendingOAfterLand = false;
+      if (Math.abs(this.carriageOffsetVp - this.renderO) > 0.1) {
+        this.oFrom = this.renderO;
+        this.oTo = this.carriageOffsetVp;
+        this.oT0 = this.frameNow;
+        this.oActive = true;
+        hilog.info(CDOMAIN, CTAG, 'canvas O start target=%{public}s', this.oTo.toFixed(2));
+        return;
+      }
+    }
+    this.renderO = this.carriageOffsetVp;
     this.draw();
   }
   onArchChanged(): void {
@@ -217,6 +235,7 @@ export struct CanvasTypewriter {
 
   aboutToAppear(): void {
     hilog.info(CDOMAIN, CTAG, 'frame clock resume');
+    this.renderO = this.carriageOffsetVp;
     this.ensureFrameClock().play();
     hilog.info(CDOMAIN, CTAG,
       'layout W=%{public}s H=%{public}s top=%{public}s bottom=%{public}s Pw=%{public}s paperTop=%{public}s paperBox=%{public}s carrTop=%{public}s Hc=%{public}s strike=%{public}s fs=%{public}s lh=%{public}s',
@@ -414,7 +433,7 @@ export struct CanvasTypewriter {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
-    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
+    const paperLeft: number = this.paperX() + this.renderO;
     const knobD: number = Hc * 0.92;
     const baseW: number = this.paperWidthVp + 2 * knobD;
     const baseLeft: number = Math.max(0, paperLeft - knobD);
@@ -452,7 +471,7 @@ export struct CanvasTypewriter {
     // 拨杆支点支架
     const bracketW: number = 60;
     const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.carriageOffsetVp;
+    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.renderO;
     const bracketTop: number = carrAbs - Hc / 2 + Hc + 24 - bracketH;
     if (this.imgBracket !== null) {
       ctxFront.drawImage(this.imgBracket, bracketLeft, bracketTop, bracketW, bracketH);
@@ -553,7 +572,7 @@ export struct CanvasTypewriter {
   private redrawPaper(): void {
     if (!this.ready) { return; }
     const ctx: CanvasRenderingContext2D = this.ctx;
-    const px: number = this.paperX() + this.carriageOffsetVp;
+    const px: number = this.paperX() + this.renderO;
     const py: number = this.paperY();
     this.drawRollerLayer(ctx);
     ctx.save();
@@ -571,7 +590,7 @@ export struct CanvasTypewriter {
     }
     this.drawArchLayer(ctx);
     if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
+      ctx.drawImage(this.machineFrontLayer, this.renderO, 0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
@@ -583,9 +602,9 @@ export struct CanvasTypewriter {
   private drawRollerLayer(ctx: CanvasRenderingContext2D): void {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
+    const paperLeft: number = this.paperX() + this.renderO;
     const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
-    const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2 + this.carriageOffsetVp;
+    const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
     if (this.imgRoller !== null) {
       ctx.drawImage(this.imgRoller, rollX, carrAbs - Hc / 2, rollW, Hc);
@@ -629,14 +648,14 @@ export struct CanvasTypewriter {
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
       const clipH: number = Math.max(0, this.paperY() + this.paperContainerVp - clipY);
-      ctx.rect(this.paperX() + this.carriageOffsetVp, clipY, this.paperWidthVp, clipH);
+      ctx.rect(this.paperX() + this.renderO, clipY, this.paperWidthVp, clipH);
       ctx.clip();
-      ctx.drawImage(this.paperLayer, this.paperX() + this.carriageOffsetVp, this.paperY());
+      ctx.drawImage(this.paperLayer, this.paperX() + this.renderO, this.paperY());
       ctx.restore();
     }
     this.drawArchLayer(ctx);
     if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, this.carriageOffsetVp, 0);
+      ctx.drawImage(this.machineFrontLayer, this.renderO, 0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
@@ -679,13 +698,24 @@ export struct CanvasTypewriter {
             this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
           }
         }
-        if (this.strikeWait || this.archActive) {
+        if (this.oActive) {
+          const ot: number = (value - this.oT0) / 30;
+          if (ot >= 1) {
+            this.renderO = this.carriageOffsetVp;
+            this.oActive = false;
+            hilog.info(CDOMAIN, CTAG, 'canvas O finish dt=%{public}d', value - this.oT0);
+          } else {
+            this.renderO = this.oFrom + (this.oTo - this.oFrom) * ot;
+          }
+        }
+        if (this.strikeWait || this.archActive || this.oActive) {
           this.draw();
         }
         if (this.strikeWait && value - this.strikeT0 >= 90) {
           this.strikeJolt = 0;
           this.strikeWait = false;
           hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', value - this.strikeT0);
+          this.pendingOAfterLand = true;
           this.onStrikeArrive();
           if (this.strikePending > 0) { this.runCanvasStrike(); }
         }
@@ -739,13 +769,13 @@ export struct CanvasTypewriter {
     }
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
+    const paperLeft: number = this.paperX() + this.renderO;
     const knobD: number = Hc * 0.92;
     const baseLeft: number = (this.widthVp - this.paperWidthVp) / 2 - knobD;
     const baseW: number = this.paperWidthVp + 2 * knobD;
     const bracketW: number = 60;
     const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.carriageOffsetVp;
+    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.renderO;
     const bracketTop: number = this.carriageTopVp - Hc / 2 + Hc + 24 - bracketH;
     const leverW: number = this.isTablet
       ? Hc * 1.84 * this.leverSizeRatio(spec)
@@ -767,9 +797,9 @@ export struct CanvasTypewriter {
     // 纸面文字（裁剪到纸容器）
     ctx.save();
     ctx.beginPath();
-    ctx.rect(this.paperX() + this.carriageOffsetVp, this.paperY(), this.paperWidthVp, this.paperContainerVp);
+    ctx.rect(this.paperX() + this.renderO, this.paperY(), this.paperWidthVp, this.paperContainerVp);
     ctx.clip();
-    const paperLeft: number = this.paperX() + this.carriageOffsetVp;
+    const paperLeft: number = this.paperX() + this.renderO;
     const paperTop: number = this.paperY();
     const ps: PaperSpec = this.paperSpec();
     if (ps.hasHeader) {
