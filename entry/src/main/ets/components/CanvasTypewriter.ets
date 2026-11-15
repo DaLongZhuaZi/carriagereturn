@@ -652,6 +652,9 @@ export struct CanvasTypewriter {
           else if (jt <= 40) { this.strikeJolt = 1 - (jt - 20) / 20; }
           else { this.strikeJolt = 0; }
         }
+        if (this.strikeWait) {
+          this.draw();
+        }
         if (this.strikeWait && value - this.strikeT0 >= 90) {
           this.strikeJolt = 0;
           this.strikeWait = false;
