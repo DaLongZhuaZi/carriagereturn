@@ -145,6 +145,11 @@ export struct CanvasTypewriter {
   private strikeBusy: boolean = false;
   private lastCanvasStrikeTick: number = 0;
   private strikeAnimator: AnimatorResult | null = null;
+  /** §17 帧时钟：单一常驻 Animator；now = onFrame 的 value（流逝毫秒）。 */
+  private frameClock: AnimatorResult | null = null;
+  private frameNow: number = 0;
+  private frameSeq: number = 0;
+  private frameLastLogMs: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
@@ -193,6 +198,7 @@ export struct CanvasTypewriter {
 
   aboutToAppear(): void {
     hilog.info(CDOMAIN, CTAG, 'frame clock resume');
+    this.ensureFrameClock().play();
     hilog.info(CDOMAIN, CTAG,
       'layout W=%{public}s H=%{public}s top=%{public}s bottom=%{public}s Pw=%{public}s paperTop=%{public}s paperBox=%{public}s carrTop=%{public}s Hc=%{public}s strike=%{public}s fs=%{public}s lh=%{public}s',
       this.widthVp.toFixed(1), this.heightVp.toFixed(1), this.topInset.toFixed(1), this.bottomInset.toFixed(1),
@@ -628,6 +634,25 @@ export struct CanvasTypewriter {
     this.runCanvasStrike();
   }
 
+  private ensureFrameClock(): AnimatorResult {
+    if (this.frameClock === null) {
+      const opts: AnimatorOptions = {
+        duration: 1000000, easing: 'linear', delay: 0, fill: 'forwards',
+        direction: 'normal', iterations: -1, begin: 0, end: 1000000,
+      };
+      this.frameClock = Animator.create(opts);
+      this.frameClock.onFrame = (value: number): void => {
+        this.frameSeq += 1;
+        this.frameNow = value;
+        if (this.frameSeq === 1 || value - this.frameLastLogMs >= 500) {
+          this.frameLastLogMs = value;
+          hilog.info(CDOMAIN, CTAG, 'frame tick seq=%{public}d now=%{public}s', this.frameSeq, value.toFixed(1));
+        }
+      };
+    }
+    return this.frameClock;
+  }
+
   private ensureStrikeAnimator(): AnimatorResult {
     if (this.strikeAnimator === null) {
       const opts: AnimatorOptions = {
@@ -971,6 +996,7 @@ export struct CanvasTypewriter {
 
   aboutToDisappear(): void {
     hilog.info(CDOMAIN, CTAG, 'frame clock pause');
+    this.frameClock?.pause();
   }
 
   build() {
