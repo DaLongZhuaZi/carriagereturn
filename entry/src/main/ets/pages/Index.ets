@@ -166,6 +166,20 @@ struct Index {
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
   @State canvasPaperResetTick: number = 0;
+  /**
+   * 第 17 批批 1 §2.4：纸段 tick（换行纸上滑／换纸两段／退行纸飞共用一个触发通道）。
+   * 发 tick **之前**先写好目标值与时长，Canvas 收到时只取 t0 = 时钟 now（不猜目标）。
+   */
+  @State canvasPaperTick: number = 0;
+  /** 0=从当前渲染值起；1=纸盒立即取目标（换纸第 1 段）；2=从下面两个显式 from 起（换纸第 2 段） */
+  @State canvasPaperMode: number = 0;
+  @State canvasPaperFromTopVp: number = 206;
+  @State canvasPaperFromBoxVp: number = 96;
+  @State canvasPaperTopTargetVp: number = 206;
+  @State canvasPaperBoxTargetVp: number = 96;
+  @State canvasPaperDurMs: number = 300;
+  /** 换纸第 2 段用：recalcPaperHeight 只算目标、不自己发 dur=0 的瞬时 tick（本段由调用方发 mode 2）。 */
+  private paperSuppressTickOnce: boolean = false;
   /** 第 9 批 F12：换纸恢复打点起点（换纸入口写 pcT0；锁放开后首个被接受的 commitChar 记 dt 并清零）。 */
   private pcResumeT0: number = 0;
   /** 第 9 批 F12：onDelete 的「先落队再删」循环期间为 true——该循环触发的 commitChar 不算恢复。 */
@@ -1587,10 +1601,14 @@ struct Index {
     if (target < limit) {
       target = limit;
     }
-    // 30ms 线性单步（弹簧作废）
-    this.getUIContext().animateTo({ duration: 30, curve: Curve.Linear }, () => {
+    // 30ms 线性单步（弹簧作废）。Canvas 路径：目标直接落逻辑值，30ms 插值由帧时钟在 landHead 帧起播。
+    if (this.canvasEnabled) {
       this.carriageOffsetVp = target;
-    });
+    } else {
+      this.getUIContext().animateTo({ duration: 30, curve: Curve.Linear }, () => {
+        this.carriageOffsetVp = target;
+      });
+    }
     // 总成竖向 jolt 1vp：Canvas 开时由帧时钟驱动，ArkUI 分支保留 animateTo
     if (!this.canvasEnabled) {
       this.getUIContext().animateTo({ duration: 20, curve: Curve.Linear }, () => {
@@ -1614,6 +1632,8 @@ struct Index {
       this.canvasDeleteTargetVp = target;
       this.canvasDeleteTick = this.canvasDeleteTick + 1;
       this.carriageOffsetVp = target;
+      hilog.info(DOMAIN, TAG, 'trigger delete t=%{public}s target=%{public}s',
+        Date.now().toString(), target.toFixed(2));
       return;
     }
     const springStarted: number = Date.now();
@@ -1634,13 +1654,19 @@ struct Index {
   private resetCarriage(): void {
     // 快速回位：200ms fast-out，末端 2vp 叩击回弹（不用 250ms 弹簧）
     const start: number = this.carriageOffsetVp;
-    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
+    if (this.canvasEnabled) {
+      // 第 17 批批 1：Canvas 路径的 O 回位与 2vp jolt 归帧时钟（newline O 段 t0+450ms 起 250ms），
+      // 这里只落逻辑值，避免 animateTo 每帧写 prop 与帧时钟抢驱。
       this.carriageOffsetVp = 0;
-      this.joltYVp = 2;
-    });
-    this.getUIContext().animateTo({ duration: 40, delay: 150, curve: Curve.FastOutSlowIn }, () => {
-      this.joltYVp = 0;
-    });
+    } else {
+      this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
+        this.carriageOffsetVp = 0;
+        this.joltYVp = 2;
+      });
+      this.getUIContext().animateTo({ duration: 40, delay: 150, curve: Curve.FastOutSlowIn }, () => {
+        this.joltYVp = 0;
+      });
+    }
     // 旋钮走纸期间累计转 21°/行，线性、不回零
     // 转角物理口径：一行行高 ÷ 滚筒周长 × 360（平板约 59°/行），滚筒与旋钮同角
     const perLineDeg: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
@@ -2037,7 +2063,7 @@ struct Index {
    *   carriageTop = 56% × 屏高（三态同高，不动）
    *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
    */
-  private recalcPaperHeight(): void {
+  private recalcPaperHeight(kind: string = 'recalc'): void {
     // H 冻结：只用首次稳定测到的 availableHeightVp，不每轮重读 live inset
     // 第 5 批回批 F7（D0b-2）：冻结只适用于非折叠态；desk 用上半区高，frozenHVp 不清零
     // （切回 EXPAND 继续用冻结值，避免反复冻结/解冻）。
@@ -2087,15 +2113,33 @@ struct Index {
       }
     }
     if (this.paperAnimateNext) {
-      // 换行编排第 2 段：纸上滑 200ms FastOutSlowIn（不许直接赋值跳变）
+      // 换行编排第 2 段：纸上滑 300ms EaseInOut（不许直接赋值跳变）
       this.paperAnimateNext = false;
-      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+      if (this.canvasEnabled) {
+        // 第 17 批批 1：Canvas 路径——逻辑值落目标（与 animateTo「同步赋终值」同口径），
+        // 视觉插值交给纸段 tick：目标先写好、再发 tick（§2.4）。
         this.paperTopVp = this.paperTopTargetVp;
         this.paperContainerVp = this.paperContainerTargetVp;
-      });
+        this.paperTick(this.paperTopVp, this.paperContainerVp, 300, 0, 0, 0, kind);
+      } else {
+        this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+          this.paperTopVp = this.paperTopTargetVp;
+          this.paperContainerVp = this.paperContainerTargetVp;
+        });
+      }
     } else {
+      // 无动画重算：逻辑值瞬时落位；Canvas 侧同样走一条 dur=0 的纸段 tick，
+      // 保证「纸的位置只由纸段 tick 决定」，不靠 prop 同步顺序抢跑（避免一帧闪跳）。
+      const prevTop: number = this.paperTopVp;
+      const prevBox: number = this.paperContainerVp;
       this.paperTopVp = this.paperTopTargetVp;
       this.paperContainerVp = this.paperContainerTargetVp;
+      if (this.canvasEnabled
+        && !this.paperSuppressTickOnce
+        && (Math.abs(this.paperTopVp - prevTop) > 0.01 || Math.abs(this.paperContainerVp - prevBox) > 0.01)) {
+        this.paperTick(this.paperTopVp, this.paperContainerVp, 0, 0, 0, 0, kind);
+      }
+      this.paperSuppressTickOnce = false;
     }
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
@@ -2146,9 +2190,28 @@ struct Index {
   }
 
   /** 换行与行数变化一律走 recalcPaperHeight（纸高不再增长，只动纸顶）。 */
-  private animatePaperHeight(): void {
+  private animatePaperHeight(kind: string = 'newline'): void {
     this.paperAnimateNext = true;
-    this.recalcPaperHeight();
+    this.recalcPaperHeight(kind);
+  }
+
+  /**
+   * §2.4 纸段触发：**先写目标／时长／模式，再递增 tick**；Canvas 的 @Watch 只取 t0 = 时钟 now，不猜目标。
+   * §8 打点：trigger paper t=<wall> —— 与 Canvas 'first frame paper' 的 wall 相减即启动延迟。
+   * mode：0=从当前渲染值起；1=纸盒立即取目标（换纸第 1 段）；2=从显式 from 起（换纸第 2 段）。
+   */
+  private paperTick(top: number, box: number, durMs: number, mode: number,
+    fromTop: number, fromBox: number, kind: string): void {
+    this.canvasPaperMode = mode;
+    this.canvasPaperFromTopVp = fromTop;
+    this.canvasPaperFromBoxVp = fromBox;
+    this.canvasPaperTopTargetVp = top;
+    this.canvasPaperBoxTargetVp = box;
+    this.canvasPaperDurMs = durMs;
+    this.canvasPaperTick = this.canvasPaperTick + 1;
+    hilog.info(DOMAIN, TAG,
+      'trigger paper t=%{public}s kind=%{public}s target=%{public}s box=%{public}s dur=%{public}d mode=%{public}d',
+      Date.now().toString(), kind, top.toFixed(1), box.toFixed(1), durMs, mode);
   }
 
   // ---------------- 击打链 ----------------
@@ -2858,6 +2921,8 @@ struct Index {
         hilog.info(DOMAIN, TAG, 'canvas strike start tick=%{public}s at=%{public}s',
           this.canvasStrikeTick.toString(), Date.now().toString());
         this.canvasStrikeTick = this.canvasStrikeTick + 1;
+        hilog.info(DOMAIN, TAG, 'trigger strike t=%{public}s target=%{public}s',
+          Date.now().toString(), this.clampedStrikeXVp().toFixed(2));
       }
     } else if (this.leverEnabled && this.hasLayers()) {
       // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
@@ -3229,17 +3294,24 @@ struct Index {
     const targetO: number = Math.max(-this.maxTravelVp, -(prevLen * this.travelPerChar));
     this.canvasBackTargetVp = targetO;
     this.canvasBackTick = this.canvasBackTick + 1;
-    // 纸下移一行高（纸上移的逆操作）300ms（recalcPaperHeight 实际时长）；字车 O 滑到上一行文字末尾 250ms
-    // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画
+    hilog.info(DOMAIN, TAG, 'trigger back t=%{public}s target=%{public}s',
+      Date.now().toString(), targetO.toFixed(2));
+    // 纸下移一行高（纸上移的逆操作）300ms；字车 O 滑到上一行文字末尾 250ms
+    // 纸顶不再手动拨：交给 recalcPaperHeight（由光标行派生）走动画（Canvas 路径发纸段 tick）
     this.paperAnimateNext = true;
-    this.recalcPaperHeight();
+    this.recalcPaperHeight('back');
     this.backBusy = true;
     // §18.6 第 2 件：代际守卫——本轮 setTimeout 只负责自己那一代
     this.backLineTick = this.backLineTick + 1;
     const myTick: number = this.backLineTick;
-    this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+    if (this.canvasEnabled) {
+      // 第 17 批批 1：O 250ms 由帧时钟的 back O 段插值（t0 与纸段同为退行触发时）；这里只落逻辑值。
       this.carriageOffsetVp = targetO;
-    });
+    } else {
+      this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+        this.carriageOffsetVp = targetO;
+      });
+    }
     setTimeout(() => {
       if (myTick !== this.backLineTick) {
         hilog.info(DOMAIN, TAG, 'backLine release stale tick=%{public}s cur=%{public}s',
@@ -3320,13 +3392,24 @@ struct Index {
     this.paperFullSheet = true;
     this.paperContainerVp = this.paperHeightVp;
     // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
-    this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-      this.paperTopVp = startTop - this.paperHeightVp;
+    const outTop: number = startTop - this.paperHeightVp;
+    if (this.canvasEnabled) {
+      // 第 17 批批 1 §2.6 换纸第 1 段：纸层归帧时钟（纸盒立即取整张高），
+      // opacity/旋钮/纹理是 ArkUI 专属值，直接落目标只为回滚分支读数一致（Canvas 不渲染它们）。
+      this.paperTopVp = outTop;
       this.paperOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
-      // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
       this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-    });
+      this.paperTick(outTop, this.paperHeightVp, 300, 1, 0, 0, 'paper1');
+    } else {
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+        this.paperTopVp = outTop;
+        this.paperOpacity = 0;
+        this.knobAngle = this.knobAngle + 180;
+        // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
+        this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
+      });
+    }
     // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
     hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
       this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
@@ -3368,11 +3451,23 @@ struct Index {
       // 打点在 animateTo 之前：此时 paperTop 就是「藏在滚筒处」的值（应 ≈ carriageTop）
       hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s box=%{public}s carriageTop=%{public}s',
         this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1), this.carriageTopVp.toFixed(1));
-      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-        this.recalcPaperHeight();
+      if (this.canvasEnabled) {
+        // 换纸第 2 段（§2.6 300＋300ms）：先算新纸目标（不带动画），再发纸段 tick。
+        // mode 2 = 从滚筒处的显式 from 起（纸顶藏进滚筒、纸盒只露 2vp），向上长到起打位。
+        this.paperAnimateNext = false;
+        this.paperSuppressTickOnce = true;
+        this.recalcPaperHeight('paper2');
         this.knobAngle = this.knobAngle + 180;
         this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-      });
+        this.paperTick(this.paperTopTargetVp, this.paperContainerTargetVp, 300, 2,
+          this.carriageTopVp, 2, 'paper2');
+      } else {
+        this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+          this.recalcPaperHeight('paper2');
+          this.knobAngle = this.knobAngle + 180;
+          this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
+        });
+      }
       hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
         this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
       hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s top=%{public}s',
@@ -3395,6 +3490,8 @@ struct Index {
     }
     // 第三方输入法可能不发 finishTextPreview，换行时防御性清空预编辑串
     this.cnPreview = '';
+    hilog.info(DOMAIN, TAG, 'trigger newline t=%{public}s tick=%{public}s',
+      Date.now().toString(), this.newlineTick().toString());
     // 三段编排 600ms：t=0 拨杆摆 35°/150ms → t=150 纸上移一行+滚筒转 200ms
     //              → t=350 字车回位 250ms（末端叩击回弹）→ t=600 叮声（与到达同帧）
     // 末行判定：可写行数 = floor((Ph − 内容顶 44 − 底边距 20) / 行高)；光标已在最后一行则换纸
@@ -3438,9 +3535,10 @@ struct Index {
     const myNlTick: number = this.newlineTick();
     // 纸上滑与滚筒转角都在 t=150 起（拨杆摆出 150ms 之后）
     setTimeout(() => {
-      this.animatePaperHeight();
-      // 纹理纵向滚一行高（纸速=筒面线速度），与纸上滑同步 200ms FastOutSlowIn
-      // 纹理滚动与纸上滑同一起点(t=150)、同一时长(300ms)、同一曲线(EaseInOut)
+      // 第 17 批批 1：Canvas 路径由 recalcPaperHeight 内部算目标后发纸段 tick（kind=newline）；
+      // ArkUI 回滚分支仍走 animateTo。旧写法在 tick 时读滞后 prop，纸上滑实际不动。
+      this.animatePaperHeight('newline');
+      // 纹理纵向滚一行高（纸速=筒面线速度），与纸上滑同步 300ms EaseInOut
       this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
         this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
       });
@@ -3456,12 +3554,23 @@ struct Index {
     }
     const t0: number = 450;
     setTimeout(() => {
-      if (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown) {
+      const perLineDeg2: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
+      if (this.canvasEnabled) {
+        // 第 17 批批 1：Canvas 路径——O 回位由帧时钟在 t0+450ms 起 250ms 插值（jolt 2vp 同起点），
+        // 逻辑值在这里直接落到目标（与 animateTo「同步赋终值」同口径）；旋钮角照旧走 ArkUI 值。
+        this.carriageOffsetVp = (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown)
+          ? this.newlineCarriageTargetO : 0;
+        this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
+          this.knobAngle = this.knobAngle + perLineDeg2;
+        });
+        if (this.newlineCarriageTargetO >= -0.001 && !this.newlineMoveDown) {
+          this.guideXVp = this.marginH();
+        }
+      } else if (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown) {
         // 「下移一行」分支：字车滑到下一行文字末尾的 O（小行程口径），不回 0
         this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
           this.carriageOffsetVp = this.newlineCarriageTargetO;
         });
-        const perLineDeg2: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
         this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
           this.knobAngle = this.knobAngle + perLineDeg2;
         });
@@ -4921,6 +5030,17 @@ struct Index {
           canvasDeleteTargetVp: this.canvasDeleteTargetVp,
           canvasBackTick: this.canvasBackTick,
           canvasBackTargetVp: this.canvasBackTargetVp,
+          canvasPaperTick: this.canvasPaperTick,
+          canvasPaperMode: this.canvasPaperMode,
+          canvasPaperFromTopVp: this.canvasPaperFromTopVp,
+          canvasPaperFromBoxVp: this.canvasPaperFromBoxVp,
+          canvasPaperTopTargetVp: this.canvasPaperTopTargetVp,
+          canvasPaperBoxTargetVp: this.canvasPaperBoxTargetVp,
+          canvasPaperDurMs: this.canvasPaperDurMs,
+          initialCarriageOffsetVp: this.carriageOffsetVp,
+          initialArchXVp: this.archXVp,
+          initialPaperTopVp: this.paperTopVp,
+          initialPaperContainerVp: this.paperContainerVp,
           canvasNewlineTick: this.newlineTick(),
           canvasNewlineCarriageTargetVp: this.newlineCarriageTargetO,
           clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',

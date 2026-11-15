@@ -86,6 +86,25 @@ export struct CanvasTypewriter {
   @Prop canvasNewlineCarriageTargetVp: number = 0;
   @Prop @Watch('onBackTickChanged') canvasBackTick: number = 0;
   @Prop canvasBackTargetVp: number = 0;
+  /**
+   * 纸段 tick（§2.4：换纸 canvasPaperTick）——纸层动画的唯一触发通道。
+   * 换行纸上滑（Index 在 t=150 发）、退行纸飞（t=0 发）、换纸两段（t=0 / t=300 各发一次）共用：
+   * 纸的目标在**发 tick 时**已由 Index 算好并写进 canvasPaperTopTargetVp／BoxTargetVp，
+   * Canvas 不自己猜目标（旧写法在 tick 时读 paperTopVp 会读到滞后值，是纸上滑不动的根因）。
+   */
+  @Prop @Watch('onPaperTickChanged') canvasPaperTick: number = 0;
+  /** 纸段模式：0=从当前渲染值起；1=同 0 且纸盒立即取目标（换纸第 1 段）；2=从下面两个显式 from 起（换纸第 2 段）。 */
+  @Prop canvasPaperMode: number = 0;
+  @Prop canvasPaperFromTopVp: number = 206;
+  @Prop canvasPaperFromBoxVp: number = 96;
+  @Prop canvasPaperTopTargetVp: number = 206;
+  @Prop canvasPaperBoxTargetVp: number = 96;
+  @Prop canvasPaperDurMs: number = 300;
+  /** §2.5 一次性初值同步：Canvas 在 aboutToAppear／切机／切纸各读一次，之后不参与逐帧。 */
+  @Prop initialCarriageOffsetVp: number = 0;
+  @Prop initialArchXVp: number = -1;
+  @Prop initialPaperTopVp: number = 206;
+  @Prop initialPaperContainerVp: number = 96;
   @Prop @Watch('onClockActiveChanged') clockActive: boolean = true;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
@@ -176,72 +195,184 @@ export struct CanvasTypewriter {
   private lastDeleteTick: number = 0;
   private renderPaperTop: number = -1;
   private renderPaperContainer: number = -1;
+  /** 纸段动画：换行纸上滑／换纸两段／退行纸飞共用一条插值通道，各自 t0 由 tick 给出。 */
   private paperActive: boolean = false;
   private paperT0: number = 0;
   private paperFromTop: number = 0;
   private paperToTop: number = 0;
-  private paperFromContainer: number = 0;
-  private paperToContainer: number = 0;
+  private paperFromBox: number = 0;
+  private paperToBox: number = 0;
+  private paperDur: number = 300;
+  private paperSnapBox: boolean = false;
+  private lastPaperTick: number = 0;
+  /** §2.7 去重：文档变化只失效纸层，上屏交给帧时钟下一帧 draw()。 */
+  private paperDirty: boolean = false;
   private newlineOActive: boolean = false;
   private newlineOFrom: number = 0;
   private newlineOTo: number = 0;
+  private newlineOT0: number = 0;
+  private newlineOJoltStarted: boolean = false;
+  private nlJolt: number = 0;
+  private nlJoltT0: number = 0;
+  private nlJoltActive: boolean = false;
   private lastNewlineTick: number = 0;
   private lastBackTick: number = 0;
-  private paperDelay: number = 150;
-  private paperDur: number = 300;
+  /**
+   * ArkUI 的 @Prop @Watch 是**逐 prop** 同步的：tick 的 watch 可能先跑，
+   * 此时同批写入的目标 prop 还是旧值（实测 paper1 被读成旧目标 206/96）。
+   * 定死口径：watch 里只登记「待启动」，下一帧 onframe 统一读目标并起段——
+   * 那时整批 prop 一定已经同步完（延迟 ≤1 帧，在启动预算内）。
+   */
+  private pendingStrike: boolean = false;
+  private pendingDelete: boolean = false;
+  private pendingBack: boolean = false;
+  private pendingNewline: boolean = false;
+  private pendingPaper: boolean = false;
+  private frameLastValue: number = 0;
+  /** §8 启动延迟打点：tick 到来时记 kind＋t0，紧随的那一帧记 first frame。 */
+  private firstKind: string = '';
+  private firstT0: number = 0;
+  private firstLogged: boolean = true;
 
-  /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  /** 退行触发（§2.6）：O 250ms＋纸 300ms 各一条通道，均由下一帧启动。 */
   onBackTickChanged(): void {
     if (this.canvasBackTick === this.lastBackTick) { return; }
     this.lastBackTick = this.canvasBackTick;
+    this.pendingBack = true;
+  }
+  /** 换行触发：O 回位在 t0+450ms 起 250ms；纸上滑由纸段 tick 在 150ms 给 t0。 */
+  onNewlineTickChanged(): void {
+    if (this.canvasNewlineTick === this.lastNewlineTick) { return; }
+    this.lastNewlineTick = this.canvasNewlineTick;
+    this.pendingNewline = true;
+  }
+  /** 纸段触发（换行纸上滑／换纸两段／退行纸飞共用）。 */
+  onPaperTickChanged(): void {
+    if (this.canvasPaperTick === this.lastPaperTick) { return; }
+    this.lastPaperTick = this.canvasPaperTick;
+    this.pendingPaper = true;
+  }
+  onDeleteTickChanged(): void {
+    if (this.canvasDeleteTick === this.lastDeleteTick) { return; }
+    this.lastDeleteTick = this.canvasDeleteTick;
+    this.pendingDelete = true;
+  }
+
+  /** 退行·O：250ms（§2.6 退行·O）。 */
+  private startBackO(): void {
+    this.syncRenderPaperOnce();
     this.oFrom = this.renderO;
     this.oTo = this.canvasBackTargetVp;
     this.oT0 = this.frameNow;
     this.oDur = 250;
     this.oSpring = false;
     this.oActive = true;
-    this.paperFromTop = this.renderPaperTop;
-    this.paperToTop = this.paperTopVp;
-    this.paperFromContainer = this.renderPaperContainer;
-    this.paperToContainer = this.paperContainerVp;
-    this.paperT0 = this.frameNow;
-    this.paperDelay = 0;
-    this.paperDur = 300;
-    this.paperActive = true;
-    hilog.info(CDOMAIN, CTAG, 'canvas back start O=%{public}s paper=%{public}s', this.oTo.toFixed(2), this.paperToTop.toFixed(2));
+    this.markFirstFrame('back');
+    hilog.info(CDOMAIN, CTAG, 'anim start back O t0=%{public}s target=%{public}s wall=%{public}s',
+      this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
   }
-  onNewlineTickChanged(): void {
-    if (this.canvasNewlineTick === this.lastNewlineTick) { return; }
-    this.lastNewlineTick = this.canvasNewlineTick;
-    if (this.renderPaperTop < 0) { this.renderPaperTop = this.paperTopVp; }
-    if (this.renderPaperContainer < 0) { this.renderPaperContainer = this.paperContainerVp; }
-    this.paperFromTop = this.renderPaperTop;
-    this.paperToTop = this.paperTopVp;
-    this.paperFromContainer = this.renderPaperContainer;
-    this.paperToContainer = this.paperContainerVp;
-    this.paperT0 = this.frameNow;
-    this.paperDelay = 150;
-    this.paperDur = 300;
-    this.paperActive = true;
+
+  /** 换行·O 回位：t0+450ms 起 250ms，复位 jolt 峰值 2vp 与回位同起点（§2.6）。 */
+  private startNewlineO(): void {
+    this.syncRenderPaperOnce();
     this.newlineOFrom = this.renderO;
     this.newlineOTo = this.canvasNewlineCarriageTargetVp;
     this.newlineOActive = true;
-    hilog.info(CDOMAIN, CTAG, 'canvas newline paper start top=%{public}s target=%{public}s',
-      this.paperFromTop.toFixed(2), this.paperToTop.toFixed(2));
+    this.newlineOT0 = this.frameNow;
+    this.newlineOJoltStarted = false;
+    this.nlJoltActive = false;
+    this.nlJolt = 0;
+    this.markFirstFrame('newline');
+    hilog.info(CDOMAIN, CTAG, 'anim start newline O t0=%{public}s target=%{public}s wall=%{public}s',
+      this.frameNow.toFixed(1), this.newlineOTo.toFixed(2), Date.now().toString());
   }
-  onDeleteTickChanged(): void {
-    if (this.canvasDeleteTick === this.lastDeleteTick) { return; }
-    this.lastDeleteTick = this.canvasDeleteTick;
+
+  /** 纸段：目标由 Index 在发 tick 前算好；dur<=0 为瞬时落位（布局重算等）。 */
+  private startPaperSegment(): void {
+    this.syncRenderPaperOnce();
+    const mode: number = this.canvasPaperMode;
+    if (mode === 2) {
+      this.renderPaperTop = this.canvasPaperFromTopVp;
+      this.renderPaperContainer = this.canvasPaperFromBoxVp;
+    }
+    this.paperFromTop = this.renderPaperTop;
+    this.paperFromBox = this.renderPaperContainer;
+    this.paperToTop = this.canvasPaperTopTargetVp;
+    this.paperToBox = this.canvasPaperBoxTargetVp;
+    this.paperSnapBox = mode === 1;
+    if (this.paperSnapBox) { this.paperFromBox = this.paperToBox; }
+    this.paperDur = this.canvasPaperDurMs > 1 ? this.canvasPaperDurMs : 0;
+    this.paperT0 = this.frameNow;
+    if (this.paperDur <= 0) {
+      if (this.paperActive) {
+        // 布局重算的瞬时 tick 撞上正在播的纸段：以在播动画的目标为准，不许把它拍回去。
+        hilog.info(CDOMAIN, CTAG, 'paper instant skipped (active) t=%{public}s', this.frameNow.toFixed(1));
+        return;
+      }
+      this.renderPaperTop = this.paperToTop;
+      this.renderPaperContainer = this.paperToBox;
+      this.paperActive = false;
+      this.paperDirty = true;
+      hilog.info(CDOMAIN, CTAG, 'paper instant t=%{public}s top=%{public}s box=%{public}s wall=%{public}s',
+        this.frameNow.toFixed(1), this.renderPaperTop.toFixed(1), this.renderPaperContainer.toFixed(1),
+        Date.now().toString());
+      if (!this.frameActive()) { this.draw(); }
+      return;
+    }
+    this.paperActive = true;
+    this.paperDirty = true;
+    this.markFirstFrame('paper');
+    hilog.info(CDOMAIN, CTAG,
+      'anim start paper t0=%{public}s mode=%{public}d from=%{public}s/%{public}s to=%{public}s/%{public}s dur=%{public}d wall=%{public}s',
+      this.frameNow.toFixed(1), mode, this.paperFromTop.toFixed(1), this.paperFromBox.toFixed(1),
+      this.paperToTop.toFixed(1), this.paperToBox.toFixed(1), this.paperDur, Date.now().toString());
+  }
+
+  /** 删除·O 弹簧：70ms（§2.6，springCurve(0,1,260,20) 的三次缓动近似同现行）。 */
+  private startDeleteO(): void {
+    this.syncRenderPaperOnce();
     this.oFrom = this.renderO;
     this.oTo = this.canvasDeleteTargetVp;
     this.oT0 = this.frameNow;
     this.oDur = 70;
     this.oSpring = true;
     this.oActive = true;
-    hilog.info(CDOMAIN, CTAG, 'canvas delete start target=%{public}s', this.oTo.toFixed(2));
+    this.markFirstFrame('delete');
+    hilog.info(CDOMAIN, CTAG, 'anim start delete O t0=%{public}s target=%{public}s wall=%{public}s',
+      this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
+  }
+
+  /** §2.5：内部渲染字段只在「还没同步过」时取一次初值（-1 是未初始化哨兵）。 */
+  private syncRenderPaperOnce(): void {
+    if (this.renderPaperTop < 0) { this.renderPaperTop = this.initialPaperTopVp; }
+    if (this.renderPaperContainer < 0) { this.renderPaperContainer = this.initialPaperContainerVp; }
+  }
+
+  /** §2.5 初值同步：aboutToAppear／切机／切纸各读一次，之后不再参与逐帧。 */
+  private applyInitialSync(): void {
+    this.renderO = this.initialCarriageOffsetVp;
+    this.renderArchX = this.initialArchXVp > 0 ? this.initialArchXVp : -1;
+    this.renderPaperTop = this.initialPaperTopVp;
+    this.renderPaperContainer = this.initialPaperContainerVp;
+    hilog.info(CDOMAIN, CTAG,
+      'initial sync O=%{public}s arch=%{public}s paperTop=%{public}s box=%{public}s',
+      this.renderO.toFixed(2), this.renderArchX.toFixed(2),
+      this.renderPaperTop.toFixed(1), this.renderPaperContainer.toFixed(1));
+  }
+
+  /** §8 启动预算：记下本次触发的 t0，紧随的那一帧写 first frame。 */
+  private markFirstFrame(kind: string): void {
+    this.firstKind = kind;
+    this.firstT0 = this.frameNow;
+    this.firstLogged = false;
+  }
+
+  /** 是否有活动动画或拨杆拖拽（§2.2 空闲规则／§2.7 去重的唯一判据）。 */
+  private frameActive(): boolean {
+    return this.strikeWait || this.archActive || this.oActive || this.paperActive
+      || this.newlineOActive || this.nlJoltActive || this.leverActive;
   }
   onCarriageChanged(): void {
-    hilog.info(CDOMAIN, CTAG, 'canvas carriage off=%{public}s', this.carriageOffsetVp.toFixed(1));
     if (this.oActive) { return; }
     if (this.pendingOAfterLand) {
       this.pendingOAfterLand = false;
@@ -252,16 +383,18 @@ export struct CanvasTypewriter {
         this.oDur = 30;
         this.oSpring = false;
         this.oActive = true;
-        hilog.info(CDOMAIN, CTAG, 'canvas O start target=%{public}s', this.oTo.toFixed(2));
+        this.markFirstFrame('O');
+        hilog.info(CDOMAIN, CTAG, 'anim start O step t0=%{public}s target=%{public}s wall=%{public}s',
+          this.frameNow.toFixed(1), this.oTo.toFixed(2), Date.now().toString());
         return;
       }
     }
     this.renderO = this.carriageOffsetVp;
-    this.draw();
+    if (!this.frameActive()) { this.draw(); }
   }
   onArchChanged(): void {
     if (!this.archActive) { this.renderArchX = this.archXVp; }
-    this.draw();
+    if (!this.frameActive()) { this.draw(); }
   }
   onClockActiveChanged(): void {
     if (this.clockActive) {
@@ -282,11 +415,11 @@ export struct CanvasTypewriter {
     this.draw();
   }
   onDocChanged(): void {
-    if (!this.paperActive) {
-      this.renderPaperTop = this.paperTopVp;
-      this.renderPaperContainer = this.paperContainerVp;
-    }
-    this.redrawPaper();
+    // §2.7 去重：只失效纸层、不上屏；上屏由帧时钟下一帧 draw() 完成（≤1 帧）。
+    // 纸的位置**只由纸段 tick 决定**（含 dur=0 的瞬时 tick），这里不拿逻辑 prop 覆盖渲染值，
+    // 避免「同一任务里先改 prop 后发 tick」时按 prop 顺序抢跑出一帧闪跳。
+    this.paperDirty = true;
+    if (!this.frameActive()) { this.draw(); }
   }
 
   onCandidatesChanged(): void {
@@ -294,11 +427,13 @@ export struct CanvasTypewriter {
   }
 
   onLeverChanged(): void {
-    this.draw();
+    // 拨杆角仍是 ArkUI 侧 @Prop（批 2 改 Canvas 内直驱）；帧时钟活动时由下一帧 draw 覆盖，不重复上屏。
+    if (!this.frameActive()) { this.draw(); }
   }
 
-  /** 2A-4：换机只重建机器层；换纸只重建纸层。 */
+  /** 2A-4：换机只重建机器层；换纸只重建纸层；两者都走一次 §2.5 初值同步（字段按新机/新纸重置）。 */
   onMachineKindChanged(): void {
+    this.applyInitialSync();
     this.loadMachineImages().then(() => {
       this.buildMachineLayer();
       this.draw();
@@ -306,6 +441,7 @@ export struct CanvasTypewriter {
   }
 
   onPaperKindChanged(): void {
+    this.applyInitialSync();
     this.loadPaperImage().then(() => {
       this.buildPaperLayer();
       this.draw();
@@ -313,11 +449,10 @@ export struct CanvasTypewriter {
   }
 
   aboutToAppear(): void {
-    hilog.info(CDOMAIN, CTAG, 'frame clock resume');
-    this.renderO = this.carriageOffsetVp;
-    this.renderPaperTop = this.paperTopVp;
-    this.renderPaperContainer = this.paperContainerVp;
+    // §2.5：初值只在这里（以及切机/切纸）读一次，之后内部字段归帧时钟管。
+    this.applyInitialSync();
     this.ensureFrameClock().play();
+    hilog.info(CDOMAIN, CTAG, 'frame clock resume');
     hilog.info(CDOMAIN, CTAG,
       'layout W=%{public}s H=%{public}s top=%{public}s bottom=%{public}s Pw=%{public}s paperTop=%{public}s paperBox=%{public}s carrTop=%{public}s Hc=%{public}s strike=%{public}s fs=%{public}s lh=%{public}s',
       this.widthVp.toFixed(1), this.heightVp.toFixed(1), this.topInset.toFixed(1), this.bottomInset.toFixed(1),
@@ -649,34 +784,15 @@ export struct CanvasTypewriter {
     hilog.info(CDOMAIN, CTAG, 'static layer rebuilt: paper count=%{public}d', this.paperBuildCount);
   }
 
-  /** 2B：文档变化只重画纸面矩形（静态机件/键帽不重画），降低单帧耗时。 */
+  /**
+   * §2.7 去重：文档内容变化**只失效纸层**（纸纹位图不变，文字/光标由 draw() 重画），不上屏；
+   * 上屏交给帧时钟下一帧 draw()（≤1 帧）。帧时钟空闲（无活动动画）时直接补一次 draw()，
+   * 避免文字延迟出现。旧实现在每次 onDocChanged 时局部 blit 一次，与帧时钟同帧重复画。
+   */
   private redrawPaper(): void {
     if (!this.ready) { return; }
-    const ctx: CanvasRenderingContext2D = this.ctx;
-    const px: number = this.paperX() + this.renderO;
-    const py: number = this.paperY();
-    this.drawRollerLayer(ctx);
-    ctx.save();
-    ctx.beginPath();
-    const clipY: number = Math.max(py, this.stackTop() + TOP_BAR_HEIGHT_VP);
-    const clipH: number = Math.max(0, py + (this.renderPaperContainer >= 0 ? this.renderPaperContainer : this.paperContainerVp) - clipY);
-    ctx.rect(px, clipY, this.paperWidthVp, clipH);
-    ctx.clip();
-    ctx.clearRect(px, clipY, this.paperWidthVp, clipH);
-    if (this.backgroundLayer !== null) {
-      ctx.drawImage(this.backgroundLayer, 0, 0);
-    }
-    if (this.paperLayer !== null) {
-      ctx.drawImage(this.paperLayer, px, py);
-    }
-    this.drawArchLayer(ctx);
-    if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, this.renderO, 0);
-    }
-    this.drawLever(ctx);
-    this.drawTypebar(ctx);
-    this.drawTexts(ctx);
-    ctx.restore();
+    this.paperDirty = true;
+    if (!this.frameActive()) { this.draw(); }
   }
 
   /** 可移动滚筒层：随 carriageOffsetVp 平移；底座/键床不动。 */
@@ -741,6 +857,7 @@ export struct CanvasTypewriter {
     this.drawLever(ctx);
     this.drawTypebar(ctx);
     this.drawTexts(ctx);
+    this.paperDirty = false;
   }
 
   /** 打击 90ms 由 Canvas 帧时钟驱动，结束帧调 onStrikeArrive；200ms fallback 由 Index 保留。 */
@@ -769,56 +886,86 @@ export struct CanvasTypewriter {
           else if (jt <= 40) { this.strikeJolt = 1 - (jt - 20) / 20; }
           else { this.strikeJolt = 0; }
         }
+        if (this.nlJoltActive) {
+          const nt: number = value - this.nlJoltT0;
+          if (nt <= 20) { this.nlJolt = 2 * nt / 20; }
+          else if (nt <= 40) { this.nlJolt = 2 * (1 - (nt - 20) / 20); }
+          else { this.nlJolt = 0; this.nlJoltActive = false; }
+        }
         if (this.archActive) {
           const at: number = (value - this.archT0) / 90;
           if (at >= 1) {
             this.renderArchX = this.archToX;
             this.archActive = false;
+            hilog.info(CDOMAIN, CTAG, 'anim arrive arch t=%{public}s dt=%{public}s',
+              value.toFixed(1), (value - this.archT0).toFixed(1));
           } else {
             const ae: number = 1 - Math.pow(1 - at, 3);
             this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
           }
         }
         if (this.paperActive) {
-          const pt: number = value - this.paperT0;
-          if (pt >= this.paperDelay) {
-            const ptt: number = (pt - this.paperDelay) / this.paperDur;
-            if (ptt >= 1) {
-              this.renderPaperTop = this.paperTopVp;
-              this.renderPaperContainer = this.paperContainerVp;
-              this.paperActive = false;
-              hilog.info(CDOMAIN, CTAG, 'canvas newline paper finish top=%{public}s', this.renderPaperTop.toFixed(2));
-            } else {
-              const pe: number = ptt < 0.5 ? 2 * ptt * ptt : 1 - Math.pow(-2 * ptt + 2, 2) / 2;
-              this.renderPaperTop = this.paperFromTop + (this.paperToTop - this.paperFromTop) * pe;
-              this.renderPaperContainer = this.paperFromContainer + (this.paperToContainer - this.paperFromContainer) * pe;
-            }
+          const ptt: number = (value - this.paperT0) / this.paperDur;
+          if (ptt >= 1) {
+            this.renderPaperTop = this.paperToTop;
+            this.renderPaperContainer = this.paperToBox;
+            this.paperActive = false;
+            hilog.info(CDOMAIN, CTAG, 'anim arrive paper t=%{public}s dt=%{public}s top=%{public}s box=%{public}s',
+              value.toFixed(1), (value - this.paperT0).toFixed(1),
+              this.renderPaperTop.toFixed(1), this.renderPaperContainer.toFixed(1));
+          } else {
+            const pe: number = ptt < 0.5 ? 2 * ptt * ptt : 1 - Math.pow(-2 * ptt + 2, 2) / 2;
+            this.renderPaperTop = this.paperFromTop + (this.paperToTop - this.paperFromTop) * pe;
+            this.renderPaperContainer = this.paperFromBox + (this.paperToBox - this.paperFromBox) * pe;
           }
         }
-        if (this.newlineOActive && value - this.paperT0 >= 450) {
-          const no: number = (value - this.paperT0 - 450) / 250;
+        if (this.newlineOActive) {
+          if (!this.newlineOJoltStarted && value - this.newlineOT0 >= 450) {
+            this.newlineOJoltStarted = true;
+            this.nlJoltT0 = value;
+            this.nlJolt = 0;
+            this.nlJoltActive = true;
+            hilog.info(CDOMAIN, CTAG, 'anim start newline reset t=%{public}s dt=%{public}s',
+              value.toFixed(1), (value - this.newlineOT0).toFixed(1));
+          }
+          const no: number = (value - this.newlineOT0 - 450) / 250;
           if (no >= 1) {
-            this.renderO = this.carriageOffsetVp;
+            this.renderO = this.newlineOTo;
             this.newlineOActive = false;
-            hilog.info(CDOMAIN, CTAG, 'canvas newline O finish dt=%{public}d', value - this.paperT0 - 450);
-          } else {
+            this.newlineOJoltStarted = false;
+            hilog.info(CDOMAIN, CTAG, 'anim arrive newline O t=%{public}s dt=%{public}s',
+              value.toFixed(1), (value - this.newlineOT0 - 450).toFixed(1));
+          } else if (no > 0) {
             this.renderO = this.newlineOFrom + (this.newlineOTo - this.newlineOFrom) * no;
           }
         }
         if (this.oActive) {
           const ot: number = (value - this.oT0) / this.oDur;
           if (ot >= 1) {
-            this.renderO = this.carriageOffsetVp;
+            this.renderO = this.oTo;
             this.oActive = false;
             this.oSpring = false;
-            hilog.info(CDOMAIN, CTAG, 'canvas O finish dt=%{public}d', value - this.oT0);
+            hilog.info(CDOMAIN, CTAG, 'anim arrive O t=%{public}s dt=%{public}s',
+              value.toFixed(1), (value - this.oT0).toFixed(1));
           } else {
             const oe: number = this.oSpring ? (1 - Math.pow(1 - ot, 3)) : ot;
             this.renderO = this.oFrom + (this.oTo - this.oFrom) * oe;
           }
         }
-        if (this.strikeWait || this.archActive || this.oActive || this.paperActive || this.newlineOActive) {
+        // §2.4：tick 的启动统一推迟到本帧末尾——先结算上一段（含到达打点），再起本段。
+        // 这样 @Prop 批量同步已落地，目标读到的才是本批目标；也不会把上一段的到达帧吞掉。
+        if (this.pendingBack) { this.pendingBack = false; this.startBackO(); }
+        if (this.pendingDelete) { this.pendingDelete = false; this.startDeleteO(); }
+        if (this.pendingNewline) { this.pendingNewline = false; this.startNewlineO(); }
+        if (this.pendingPaper) { this.pendingPaper = false; this.startPaperSegment(); }
+        const activeNow: boolean = this.frameActive();
+        if (activeNow) {
           this.draw();
+        }
+        if (!this.firstLogged) {
+          this.firstLogged = true;
+          hilog.info(CDOMAIN, CTAG, 'first frame %{public}s t=%{public}s dt=%{public}s wall=%{public}s',
+            this.firstKind, value.toFixed(1), (value - this.firstT0).toFixed(1), Date.now().toString());
         }
         if (this.strikeWait && value - this.strikeT0 >= 90) {
           this.strikeJolt = 0;
@@ -828,6 +975,11 @@ export struct CanvasTypewriter {
           this.onStrikeArrive();
           if (this.strikePending > 0) { this.runCanvasStrike(); }
         }
+        if (activeNow && value > this.frameLastValue) {
+          hilog.info(CDOMAIN, CTAG, 'frame tick now=%{public}s interval=%{public}s',
+            value.toFixed(1), (value - this.frameLastValue).toFixed(1));
+        }
+        this.frameLastValue = value;
         if (this.frameSeq === 1 || value - this.frameLastLogMs >= 500) {
           this.frameLastLogMs = value;
           hilog.info(CDOMAIN, CTAG, 'frame tick seq=%{public}d now=%{public}s', this.frameSeq, value.toFixed(1));
@@ -844,6 +996,7 @@ export struct CanvasTypewriter {
     this.strikePending -= 1;
     this.strikeT0 = this.frameNow;
     this.strikeWait = true;
+    this.markFirstFrame('strike');
     if (!this.archActive) {
       if (this.renderArchX < 0) {
         this.renderArchX = this.archXVp > 0 ? this.archXVp : this.paperX() + this.cursorXVp;
@@ -853,6 +1006,8 @@ export struct CanvasTypewriter {
       this.archT0 = this.frameNow;
       this.archActive = true;
     }
+    hilog.info(CDOMAIN, CTAG, 'anim start strike t0=%{public}s arch=%{public}s wall=%{public}s',
+      this.frameNow.toFixed(1), this.archToX.toFixed(2), Date.now().toString());
   }
 
   /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
@@ -923,10 +1078,12 @@ export struct CanvasTypewriter {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const contentTop: number = paperTop + this.marginTVp + 20;
+    // §2.6 jolt：打击 1vp（帧时钟 strikeJolt）＋换行/复位 2vp（帧时钟 nlJolt）＋ArkUI 回滚分支的 joltYVp
+    const joltSum: number = this.joltYVp + this.strikeJolt + this.nlJolt;
     for (let i = 0; i < this.lines.length; i++) {
       const line: string = this.lines[i];
       if (line.length > 0) {
-        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2 + this.joltYVp + this.strikeJolt);
+        ctx.fillText(line, paperLeft + this.marginHVp, contentTop + i * this.lineHeightVp + this.lineHeightVp / 2 + joltSum);
       }
     }
     if (this.lines.length <= 1 && this.hintText.length > 0) {
@@ -939,9 +1096,9 @@ export struct CanvasTypewriter {
     // 光标三角
     ctx.fillStyle = this.inkColor;
     ctx.beginPath();
-    ctx.moveTo(paperLeft + this.cursorXVp, paperTop + this.cursorYVp + this.joltYVp);
-    ctx.lineTo(paperLeft + this.cursorXVp + 8, paperTop + this.cursorYVp + this.joltYVp);
-    ctx.lineTo(paperLeft + this.cursorXVp + 4, paperTop + this.cursorYVp + 6 + this.joltYVp);
+    ctx.moveTo(paperLeft + this.cursorXVp, paperTop + this.cursorYVp + joltSum);
+    ctx.lineTo(paperLeft + this.cursorXVp + 8, paperTop + this.cursorYVp + joltSum);
+    ctx.lineTo(paperLeft + this.cursorXVp + 4, paperTop + this.cursorYVp + 6 + joltSum);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
