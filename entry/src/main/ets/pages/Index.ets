@@ -296,6 +296,8 @@ struct Index {
   @State guideXVp: number = 28;
   /** 字车条累计左移量（vp）：负值左移，行首为 0。不是"换行时 12→0 的 bump"。 */
   @State carriageOffsetVp: number = 0;
+  @State canvasDeleteTick: number = 0;
+  @State canvasDeleteTargetVp: number = 0;
   /** 每行可容纳字数（按舞台宽算，非屏幕宽）。 */
   private charsPerLineNum: number = 43;
   /** 每字行程 = 最大行程 / 每行字数。 */
@@ -1605,6 +1607,12 @@ struct Index {
     let target: number = this.carriageOffsetVp + this.travelPerChar;
     if (target > 0) {
       target = 0;
+    }
+    if (this.canvasEnabled) {
+      this.canvasDeleteTargetVp = target;
+      this.canvasDeleteTick = this.canvasDeleteTick + 1;
+      this.carriageOffsetVp = target;
+      return;
     }
     const springStarted: number = Date.now();
     hilog.info(DOMAIN, TAG, 'carriage spring start dur=70 target=%{public}s', target.toFixed(2));
@@ -4905,6 +4913,8 @@ struct Index {
           archXVp: this.archXVp,
           carriageOffsetVp: this.carriageOffsetVp,
           canvasEnabled: this.canvasEnabled,
+          canvasDeleteTick: this.canvasDeleteTick,
+          canvasDeleteTargetVp: this.canvasDeleteTargetVp,
           clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,

@@ -80,6 +80,8 @@ export struct CanvasTypewriter {
   @Prop @Watch('onLeverChanged') leverRatio: number = 0;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
+  @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
+  @Prop canvasDeleteTargetVp: number = 0;
   @Prop @Watch('onClockActiveChanged') clockActive: boolean = true;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
@@ -165,8 +167,22 @@ export struct CanvasTypewriter {
   private oTo: number = 0;
   private oT0: number = 0;
   private pendingOAfterLand: boolean = false;
+  private oDur: number = 30;
+  private oSpring: boolean = false;
+  private lastDeleteTick: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onDeleteTickChanged(): void {
+    if (this.canvasDeleteTick === this.lastDeleteTick) { return; }
+    this.lastDeleteTick = this.canvasDeleteTick;
+    this.oFrom = this.renderO;
+    this.oTo = this.canvasDeleteTargetVp;
+    this.oT0 = this.frameNow;
+    this.oDur = 70;
+    this.oSpring = true;
+    this.oActive = true;
+    hilog.info(CDOMAIN, CTAG, 'canvas delete start target=%{public}s', this.oTo.toFixed(2));
+  }
   onCarriageChanged(): void {
     hilog.info(CDOMAIN, CTAG, 'canvas carriage off=%{public}s', this.carriageOffsetVp.toFixed(1));
     if (this.oActive) { return; }
@@ -176,6 +192,8 @@ export struct CanvasTypewriter {
         this.oFrom = this.renderO;
         this.oTo = this.carriageOffsetVp;
         this.oT0 = this.frameNow;
+        this.oDur = 30;
+        this.oSpring = false;
         this.oActive = true;
         hilog.info(CDOMAIN, CTAG, 'canvas O start target=%{public}s', this.oTo.toFixed(2));
         return;
@@ -699,13 +717,15 @@ export struct CanvasTypewriter {
           }
         }
         if (this.oActive) {
-          const ot: number = (value - this.oT0) / 30;
+          const ot: number = (value - this.oT0) / this.oDur;
           if (ot >= 1) {
             this.renderO = this.carriageOffsetVp;
             this.oActive = false;
+            this.oSpring = false;
             hilog.info(CDOMAIN, CTAG, 'canvas O finish dt=%{public}d', value - this.oT0);
           } else {
-            this.renderO = this.oFrom + (this.oTo - this.oFrom) * ot;
+            const oe: number = this.oSpring ? (1 - Math.pow(1 - ot, 3)) : ot;
+            this.renderO = this.oFrom + (this.oTo - this.oFrom) * oe;
           }
         }
         if (this.strikeWait || this.archActive || this.oActive) {
