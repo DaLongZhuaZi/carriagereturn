@@ -150,6 +150,8 @@ export struct CanvasTypewriter {
   private frameNow: number = 0;
   private frameSeq: number = 0;
   private frameLastLogMs: number = 0;
+  private strikeWait: boolean = false;
+  private strikeT0: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
   onCarriageChanged(): void {
@@ -644,6 +646,12 @@ export struct CanvasTypewriter {
       this.frameClock.onFrame = (value: number): void => {
         this.frameSeq += 1;
         this.frameNow = value;
+        if (this.strikeWait && value - this.strikeT0 >= 90) {
+          this.strikeWait = false;
+          hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', value - this.strikeT0);
+          this.onStrikeArrive();
+          if (this.strikePending > 0) { this.runCanvasStrike(); }
+        }
         if (this.frameSeq === 1 || value - this.frameLastLogMs >= 500) {
           this.frameLastLogMs = value;
           hilog.info(CDOMAIN, CTAG, 'frame tick seq=%{public}d now=%{public}s', this.frameSeq, value.toFixed(1));
@@ -666,15 +674,12 @@ export struct CanvasTypewriter {
   }
 
   private runCanvasStrike(): void {
-    if (this.strikePending <= 0) {
+    if (this.strikePending <= 0 || this.strikeWait) {
       return;
     }
     this.strikePending -= 1;
-    const t0: number = Date.now();
-    setTimeout(() => {
-      hilog.info(CDOMAIN, CTAG, 'canvas landHead dt=%{public}d', Date.now() - t0);
-      this.onStrikeArrive();
-    }, 90);
+    this.strikeT0 = this.frameNow;
+    this.strikeWait = true;
   }
 
   /** 字杆按 typebarAngle 画（1920s 静止不可见；其余机 rest55° 与基线一致）。 */
