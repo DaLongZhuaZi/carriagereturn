@@ -82,6 +82,8 @@ export struct CanvasTypewriter {
   @Prop canvasEnabled: boolean = false;
   @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
   @Prop canvasDeleteTargetVp: number = 0;
+  @Prop @Watch('onNewlineTickChanged') canvasNewlineTick: number = 0;
+  @Prop canvasNewlineCarriageTargetVp: number = 0;
   @Prop @Watch('onClockActiveChanged') clockActive: boolean = true;
   onStrikeArrive: () => void = (): void => {};
   @Prop keybedHeightVp: number = 172.7;
@@ -170,8 +172,37 @@ export struct CanvasTypewriter {
   private oDur: number = 30;
   private oSpring: boolean = false;
   private lastDeleteTick: number = 0;
+  private renderPaperTop: number = -1;
+  private renderPaperContainer: number = -1;
+  private paperActive: boolean = false;
+  private paperT0: number = 0;
+  private paperFromTop: number = 0;
+  private paperToTop: number = 0;
+  private paperFromContainer: number = 0;
+  private paperToContainer: number = 0;
+  private newlineOActive: boolean = false;
+  private newlineOFrom: number = 0;
+  private newlineOTo: number = 0;
+  private lastNewlineTick: number = 0;
 
   /** 2B：文档/光标变化时重画纸面（静态纸层不变）。 */
+  onNewlineTickChanged(): void {
+    if (this.canvasNewlineTick === this.lastNewlineTick) { return; }
+    this.lastNewlineTick = this.canvasNewlineTick;
+    if (this.renderPaperTop < 0) { this.renderPaperTop = this.paperTopVp; }
+    if (this.renderPaperContainer < 0) { this.renderPaperContainer = this.paperContainerVp; }
+    this.paperFromTop = this.renderPaperTop;
+    this.paperToTop = this.paperTopVp;
+    this.paperFromContainer = this.renderPaperContainer;
+    this.paperToContainer = this.paperContainerVp;
+    this.paperT0 = this.frameNow;
+    this.paperActive = true;
+    this.newlineOFrom = this.renderO;
+    this.newlineOTo = this.canvasNewlineCarriageTargetVp;
+    this.newlineOActive = true;
+    hilog.info(CDOMAIN, CTAG, 'canvas newline paper start top=%{public}s target=%{public}s',
+      this.paperFromTop.toFixed(2), this.paperToTop.toFixed(2));
+  }
   onDeleteTickChanged(): void {
     if (this.canvasDeleteTick === this.lastDeleteTick) { return; }
     this.lastDeleteTick = this.canvasDeleteTick;
@@ -225,6 +256,10 @@ export struct CanvasTypewriter {
     this.draw();
   }
   onDocChanged(): void {
+    if (!this.paperActive) {
+      this.renderPaperTop = this.paperTopVp;
+      this.renderPaperContainer = this.paperContainerVp;
+    }
     this.redrawPaper();
   }
 
@@ -254,6 +289,8 @@ export struct CanvasTypewriter {
   aboutToAppear(): void {
     hilog.info(CDOMAIN, CTAG, 'frame clock resume');
     this.renderO = this.carriageOffsetVp;
+    this.renderPaperTop = this.paperTopVp;
+    this.renderPaperContainer = this.paperContainerVp;
     this.ensureFrameClock().play();
     hilog.info(CDOMAIN, CTAG,
       'layout W=%{public}s H=%{public}s top=%{public}s bottom=%{public}s Pw=%{public}s paperTop=%{public}s paperBox=%{public}s carrTop=%{public}s Hc=%{public}s strike=%{public}s fs=%{public}s lh=%{public}s',
@@ -418,7 +455,7 @@ export struct CanvasTypewriter {
   }
 
   private paperY(): number {
-    return this.stackTop() + this.paperTopVp;
+    return this.stackTop() + (this.renderPaperTop >= 0 ? this.renderPaperTop : this.paperTopVp);
   }
 
   private keybedTop(): number {
@@ -596,7 +633,7 @@ export struct CanvasTypewriter {
     ctx.save();
     ctx.beginPath();
     const clipY: number = Math.max(py, this.stackTop() + TOP_BAR_HEIGHT_VP);
-    const clipH: number = Math.max(0, py + this.paperContainerVp - clipY);
+    const clipH: number = Math.max(0, py + (this.renderPaperContainer >= 0 ? this.renderPaperContainer : this.paperContainerVp) - clipY);
     ctx.rect(px, clipY, this.paperWidthVp, clipH);
     ctx.clip();
     ctx.clearRect(px, clipY, this.paperWidthVp, clipH);
@@ -665,7 +702,7 @@ export struct CanvasTypewriter {
       ctx.save();
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
-      const clipH: number = Math.max(0, this.paperY() + this.paperContainerVp - clipY);
+      const clipH: number = Math.max(0, this.paperY() + (this.renderPaperContainer >= 0 ? this.renderPaperContainer : this.paperContainerVp) - clipY);
       ctx.rect(this.paperX() + this.renderO, clipY, this.paperWidthVp, clipH);
       ctx.clip();
       ctx.drawImage(this.paperLayer, this.paperX() + this.renderO, this.paperY());
@@ -716,6 +753,32 @@ export struct CanvasTypewriter {
             this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
           }
         }
+        if (this.paperActive) {
+          const pt: number = value - this.paperT0;
+          if (pt >= 150) {
+            const ptt: number = (pt - 150) / 300;
+            if (ptt >= 1) {
+              this.renderPaperTop = this.paperTopVp;
+              this.renderPaperContainer = this.paperContainerVp;
+              this.paperActive = false;
+              hilog.info(CDOMAIN, CTAG, 'canvas newline paper finish top=%{public}s', this.renderPaperTop.toFixed(2));
+            } else {
+              const pe: number = ptt < 0.5 ? 2 * ptt * ptt : 1 - Math.pow(-2 * ptt + 2, 2) / 2;
+              this.renderPaperTop = this.paperFromTop + (this.paperToTop - this.paperFromTop) * pe;
+              this.renderPaperContainer = this.paperFromContainer + (this.paperToContainer - this.paperFromContainer) * pe;
+            }
+          }
+        }
+        if (this.newlineOActive && value - this.paperT0 >= 450) {
+          const no: number = (value - this.paperT0 - 450) / 250;
+          if (no >= 1) {
+            this.renderO = this.carriageOffsetVp;
+            this.newlineOActive = false;
+            hilog.info(CDOMAIN, CTAG, 'canvas newline O finish dt=%{public}d', value - this.paperT0 - 450);
+          } else {
+            this.renderO = this.newlineOFrom + (this.newlineOTo - this.newlineOFrom) * no;
+          }
+        }
         if (this.oActive) {
           const ot: number = (value - this.oT0) / this.oDur;
           if (ot >= 1) {
@@ -728,7 +791,7 @@ export struct CanvasTypewriter {
             this.renderO = this.oFrom + (this.oTo - this.oFrom) * oe;
           }
         }
-        if (this.strikeWait || this.archActive || this.oActive) {
+        if (this.strikeWait || this.archActive || this.oActive || this.paperActive || this.newlineOActive) {
           this.draw();
         }
         if (this.strikeWait && value - this.strikeT0 >= 90) {

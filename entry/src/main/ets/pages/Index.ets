@@ -4915,6 +4915,8 @@ struct Index {
           canvasEnabled: this.canvasEnabled,
           canvasDeleteTick: this.canvasDeleteTick,
           canvasDeleteTargetVp: this.canvasDeleteTargetVp,
+          canvasNewlineTick: this.newlineTick(),
+          canvasNewlineCarriageTargetVp: this.newlineCarriageTargetO,
           clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',
           leverRatio: this.leverRatio(),
           canvasStrikeTick: this.canvasStrikeTick,
