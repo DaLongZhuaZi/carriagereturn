@@ -148,6 +148,13 @@ export struct CanvasTypewriter {
 
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  /**
+   * 18 号稿 Phase 1 B2：下层静态 Canvas。背景渐变＋机身＋键带＋功能行＋字体条**只画一次**；
+   * 上层字车 Canvas 每帧只画动层（滚筒/纸/拱/压纸卷/支架/拨杆/字杆/文字），不再每帧 blit 全屏背景。
+   * Phase 0 E4 已证「成本与目标 clip 面积无关、只与被 blit 的源位图有关」，故两层都用全屏尺寸（不做带高，避免几何风险）。
+   */
+  private ctxStatic: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  private staticReady: boolean = false;
   private ready: boolean = false;
   private machineLayer: ImageBitmap | null = null;
   private bailLayer: ImageBitmap | null = null;
@@ -847,6 +854,19 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.machineLayer, 0, 0);
     }
     this.backgroundLayer = off.transferToImageBitmap();
+    this.drawStatic();
+  }
+
+  /** 18 号稿 B2：下层静态 Canvas——背景渐变＋机身＋键带＋功能行＋字体条，只在重建时画一次。 */
+  private drawStatic(): void {
+    if (!this.staticReady || !this.ready) { return; }
+    hilog.info(CDOMAIN, CTAG, 'static draw once');
+    this.ctxStatic.clearRect(0, 0, this.widthVp, this.heightVp);
+    if (this.backgroundLayer !== null) {
+      this.ctxStatic.drawImage(this.backgroundLayer, 0, 0);
+    } else if (this.machineLayer !== null) {
+      this.ctxStatic.drawImage(this.machineLayer, 0, 0);
+    }
   }
 
   private buildPaperLayer(): void {
@@ -936,11 +956,7 @@ export struct CanvasTypewriter {
       this.frameNow.toFixed(1), Date.now().toString(), this.drawKindTag);
     const ctx: CanvasRenderingContext2D = this.ctx;
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
-    if (this.backgroundLayer !== null) {
-      ctx.drawImage(this.backgroundLayer, 0, 0);
-    } else if (this.machineLayer !== null) {
-      ctx.drawImage(this.machineLayer, 0, 0);
-    }
+    // 18 号稿 B2：背景（渐变＋机身）已移到下层静态 Canvas，只画一次；这里不再每帧 blit 全屏背景。
     this.drawRollerLayer(ctx);
     if (this.paperLayer !== null) {
       ctx.save();
@@ -1503,6 +1519,14 @@ export struct CanvasTypewriter {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
+      Canvas(this.ctxStatic)
+        .width('100%')
+        .height('100%')
+        .hitTestBehavior(HitTestMode.None)
+        .onReady(() => {
+          this.staticReady = true;
+          this.drawStatic();
+        })
       Canvas(this.ctx)
         .width('100%')
         .height('100%')
