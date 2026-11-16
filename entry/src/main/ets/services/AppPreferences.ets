@@ -159,7 +159,7 @@ export class PrefRegistry {
       { key: PrefKeys.STATS_PAPER_KINDS, type: 'string', defaultValue: '', owner: 'F14', note: '用过的纸张种类集合（逗号）' },
       { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
-      { key: PrefKeys.CANVAS_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'Phase2', note: 'Canvas 主屏回滚开关（2B 起缺省 true；关闭回退 ArkUI 主屏）', removeAfter: 'Phase 2 完成后' },
+      // 第 26 批（批 3）：Canvas 主屏开关随 CanvasTypewriter 退役删除（SWITCH_KEYS 4→3）
       { key: PrefKeys.ANIM_MODE_PREFIX, type: 'string', defaultValue: 'realistic', owner: 'B23', note: '每机动画模式：`anim.mode.<machine>` = realistic／simulated（19 号稿；缺省写实）' },
     ];
   }
@@ -176,7 +176,6 @@ export class PrefRegistry {
       PrefKeys.PAPER, PrefKeys.DELETE_MODE,
       PrefKeys.STATS_PAPER_KINDS,
       PrefKeys.CUSTOM_ENABLED, PrefKeys.CUSTOM_FONT_IMPORTED, PrefKeys.CUSTOM_PAPER_PRESETS,
-      PrefKeys.CANVAS_ENABLED,
     ];
     if (fixed.indexOf(key) >= 0) {
       return true;

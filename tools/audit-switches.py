@@ -27,7 +27,8 @@ ETS = os.path.join(ROOT, "entry/src/main/ets")
 PREFS = os.path.join(ETS, "services/AppPreferences.ets")
 
 # 半成品/回滚开关（必须有 removeAfter + 可核对命令）
-SWITCH_KEYS = {"guide.enabled", "custom.enabled", "custom.knob.enabled", "canvas.enabled"}
+# 第 26 批（批 3）：Canvas 主屏开关随 CanvasTypewriter 退役删除 → 4 键变 3 键（SWITCH_KEYS 4→3）
+SWITCH_KEYS = {"guide.enabled", "custom.enabled", "custom.knob.enabled"}
 REMOVE_CMD = "python tools/audit-switches.py --check"
 
 

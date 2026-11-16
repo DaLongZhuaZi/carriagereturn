@@ -11,6 +11,9 @@
 import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { curves, display, window } from '@kit.ArkUI';
+// 第 26 批（批 3／§4.3）：帧时钟迁入 Index（Animator，全稿单一时间源）
+import Animator, { AnimatorOptions, AnimatorResult } from '@ohos.animator';
+import { ANIM_MODE_REALISTIC, ANIM_MODE_SIMULATED, SIM_ROLLER_K, MODE_TRANS_DUR_MS, rollerKFor } from '../model/AnimModeModel';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { util } from '@kit.ArkTS';
@@ -39,7 +42,7 @@ import { TrashPage, guideStepsForTrash } from '../components/TrashPage';
 import { CollectionDetailPage, guideStepsForCollectionDetail } from '../components/CollectionDetailPage';
 import { SettingsPage, guideStepsForSettings } from '../components/SettingsPage';
 import { ExportPage, guideStepsForExport } from '../components/ExportPage';
-import { CanvasTypewriter } from '../components/CanvasTypewriter';
+// 第 26 批（批 3／§8.2）：CanvasTypewriter 整文件已退役删除（R-B3）。
 import { setExportTarget } from '../model/ExportTarget';
 import { HomePage, guideStepsForHome } from '../components/HomePage';
 import { chineseInput } from '../services/ChineseInput';
@@ -220,9 +223,7 @@ struct Index {
   @State canvasLeverReleaseTick: number = 0;
   @State canvasLeverReleaseCommit: boolean = false;
   /** 批 20：拱的目标 tick（换行/退行/换纸发；打击由 Canvas 自跟，不发）。 */
-  @State canvasArchTick: number = 0;
-  @State canvasArchTargetVp: number = 0;
-  @State canvasArchDurMs: number = 90;
+  // 第 26 批（批 3）：canvasArchTick／canvasArchTargetVp／canvasArchDurMs 随 Canvas 退役删除（R-B3）
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
   private readonly CAND_BAR_HEIGHT_VP: number = 44;
   /** 换纸时旧纸淡出用。 */
@@ -243,10 +244,28 @@ struct Index {
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
   /**
-   * 第 24 批（23 号稿 R-B5 过渡态）：Canvas 旧纸面隐藏开关（全仓新名，批 1 前 grep 确认无重名）。
-   * 批 1 恒为 true（新 PaperPanel 在 Canvas 之上接管纸面）；批 3 随 Canvas 退役，本 prop 同删。
+   * 第 26 批（批 3／§4.3）：帧时钟驱动的 ArkUI 字段（Canvas 退役后唯一的动画事实源）。
+   * paperOffsetVp＝K×O（纸面板左移）；guideXVp＝落字导件 x；leverAngleVp＝拨杆摆角；
+   * knobAngleDeg＝旋钮角；strikePhase＝打击相位 0..1（字杆/色带）。
    */
-  @State paperHidden: boolean = true;
+  @State paperOffsetVp: number = 0;
+  @State leverAngleVp: number = 0;
+  @State knobAngleDeg: number = 0;
+  @State strikePhase: number = 0;
+  /** 帧时钟本体（Animator，duration 1,000,000ms 线性、iterations −1）。 */
+  private frameClock: AnimatorResult | null = null;
+  private frameNowMs: number = 0;
+  /** 本击落地时刻（帧毫秒）；−1＝无击打。 */
+  private strikeAtMs: number = -1;
+  /** 打击时长（§4.3：snap 约 85ms）。 */
+  private readonly strikeDurMs: number = 85;
+  /** 模式系数 K（§4.2）：写实 1.0／模拟 0.3；200ms 过渡期内插。 */
+  private modeK: number = 1.0;
+  private modeKFrom: number = 1.0;
+  private modeKTo: number = 1.0;
+  private modeT0: number = -1;
+  /** 帧时钟 300 字会话计数（§10.5）。 */
+  private frameCount: number = 0;
   @State paperTopTargetVp: number = 0;
   @State paperContainerTargetVp: number = 0;
   private paperAnimateNext: boolean = false;
@@ -917,8 +936,9 @@ struct Index {
   /** 第 3 批：导出页 busy（系统返回拦截）。 */
   @State exportBusy: boolean = false;
   /** 第 16 批 2A：Canvas 静态主屏调试页（临时入口，2B 切换后删除）。 */
-  @State canvasDebugOpen: boolean = false;
-  @State canvasEnabled: boolean = true;
+  private canvasDebugOpen: boolean = false;
+  /** 第 26 批（批 3）：Canvas 已退役；保留只读 false 供历史分支走 ArkUI 路径（SWITCH_KEYS 4→3）。 */
+  private readonly canvasEnabled: boolean = false;
   /** 第 23 批（19 号稿 §4-3）：当前机型的动画模式；1960s 恒 realistic（电动单套）。 */
   @State animMode: string = 'realistic';
   /** 机型页四行的模式回显（顺序＝ANIM_ROWS：1920s／1930s／1950s；1960s 固定 realistic）。 */
@@ -1218,6 +1238,8 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // 第 26 批（批 3／R-B4）：帧时钟宿主迁入 Index——冷启动即起，全稿单一时间源
+    this.ensureFrameClock();
     // 第 9 批 F5：成就服务变化 → 刷新弹窗与收藏页进度
     AchievementService.setListener((): void => { this.refreshAchieveNotice(); });
     // 落字兜底基准：进入页面即视为「刚刚落过」，避免首字被兜底直接闪现
@@ -1322,7 +1344,7 @@ struct Index {
       DEFAULT_PAPER as string) as PaperKind);
     this.applyRibbon(DEFAULT_RIBBON);
     this.reloadKeymap();
-    this.detectLayers();
+    // 第 26 批（批 3）：detectLayers 随 Canvas 机器层退役删除（R-B2）
     this.applyImmersive();
     this.hintText = this.resolveString($r('app.string.hint_new_paper'));
     this.restoreLastDocument();
@@ -1381,9 +1403,14 @@ struct Index {
     return this.stageWidth - 2 * PANEL_MARGIN_VP;
   }
 
-  /** 纸面板左缘：paperBaseX + V（D2／D4；批 1 只跟逻辑 O，K＝1 写实口径，帧时钟接线在批 3）。 */
+  /** 纸基线 paperBaseX（D2＝archFixX−marginH），不含 V。 */
+  private paperPanelBaseXVp(): number {
+    return this.stageWidth * 0.5 - this.marginH();
+  }
+
+  /** 纸面板左缘：paperBaseX + V（D2／D4；V＝K×O 由帧时钟写进 paperOffsetVp）。 */
   private paperPanelLeftVp(): number {
-    return this.stageWidth * 0.5 - this.marginH() + this.carriageOffsetVp;
+    return this.paperPanelBaseXVp() + this.paperOffsetVp;
   }
 
   /** 纸面板顶缘＝纸区顶缘（与 Canvas paperY() 同式：topInset＋顶栏＋纸顶距＋paperTop）。 */
@@ -1447,6 +1474,14 @@ struct Index {
     const i: number = k.indexOf('-');
     const slug: string = i > 0 ? k.substring(0, i) : k;
     return 'ui-parts/bodypanel-' + slug + '-grain.png';
+  }
+
+  /** 字杆贴片（§7.4 typebar-<machine>.png；§4.3 打击动件）。 */
+  private typebarRawfile(): string {
+    const k: string = this.machineKind as string;
+    const i: number = k.indexOf('-');
+    const slug: string = i > 0 ? k.substring(0, i) : k;
+    return 'ui-parts/typebar-' + slug + '.png';
   }
 
   /** 字篮扇形贴片（§7.4 basket-fan-<machine>.png）。 */
@@ -1754,22 +1789,30 @@ struct Index {
    * 字车条行程（§2.1 字车条动效）：最大行程 = min(64vp, 舞台宽 × 0.16)；
    * 每字行程 = 最大行程 / 每行字数；每行字数按舞台宽算，不用屏幕宽。
    */
-  private recalcTravel(): void {
-    // §15 第 4 步：与 charsPerLine() **同口径**——用纸宽（不是舞台宽），否则中文会算成 24 字/行
-    const usable: number = this.paperWidthVp - 2 * this.marginH();
-    // 中文按 advCjkVp，否则按 advEngVp
+  /** 当前语言的一个字符 advance（EN 0.6em／中文 1.0em，D5 口径）。 */
+  private currentAdvance(): number {
     const adv: number = this.langZh
       ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
       : (this.advEngVp > 0 ? this.advEngVp : this.fontSizeVp);
+    return adv > 0 ? adv : 10.2;
+  }
+
+  /**
+   * 第 26 批（批 3／§4.1 D5–D6）：O 范围改成 [−lineWidth, 0]，lineWidth＝charsPerLine×advance。
+   * 旧口径（travelPerChar＝min(64, Pw×0.25)/字数、20 字/行）随本批作废。
+   */
+  private recalcTravel(): void {
+    // D5：可用行宽＝纸面板 Pw − 2×marginH（不是旧纸宽 paperWidthVp）
+    const usable: number = this.paperPanelWidthVp() - 2 * this.marginH();
+    const adv: number = this.currentAdvance();
     const perLine: number = Math.floor(usable / adv);
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
-    // 物理模型：最大行程 = 可用行宽（舞台宽 − 2×28vp），不许再写回 min(×0.35,180)
-    // 小幅纸移动：最大行程 = min(64vp, 纸宽×0.25)
-    const smallT: number = this.paperWidthVp * 0.25;
-    this.maxTravelVp = smallT < 64 ? smallT : 64;
-    this.travelPerChar = this.maxTravelVp / this.charsPerLineNum;
-    hilog.info(DOMAIN, TAG, 'recalcTravel max=%{public}s perChar=%{public}s cpl=%{public}s',
-      this.maxTravelVp.toFixed(2), this.travelPerChar.toFixed(3), this.charsPerLineNum.toString());
+    // D5：lineWidth＝charsPerLine×advance；D6：O∈[−lineWidth,0]
+    this.maxTravelVp = this.charsPerLineNum * adv;
+    // travelPerChar 保留字段但语义已改为「一个字宽」（兼容旧调用点，不再当行程）
+    this.travelPerChar = adv;
+    hilog.info(DOMAIN, TAG, 'recalcTravel lineWidth=%{public}s adv=%{public}s cpl=%{public}s (D5/D6)',
+      this.maxTravelVp.toFixed(2), adv.toFixed(2), this.charsPerLineNum.toString());
   }
 
   /**
@@ -1777,48 +1820,25 @@ struct Index {
    * 不用 travelPerChar（最大行程/每行字数）—— 那会让纸移得比字距慢、末字屏 x 右漂。
    */
   private stepCarriageLeft(): void {
-    // 小幅纸移动：每字 dO = travelPerChar（= 小行程 / 每行字数），不是字宽
-    const dO: number = this.travelPerChar;
+    // D3：O −= advance（当前字符宽），不再用 travelPerChar 当行程
+    const dO: number = this.currentAdvance();
     let target: number = this.carriageOffsetVp - dO;
-    // 限位与载入钳制同口径：[-maxTravelVp, 0]（旧公式 -(stageWidth−56) 是错的，平板差 9.6 倍）
     const limit: number = -this.maxTravelVp;
     if (target < limit) {
       target = limit;
     }
-    // 30ms 线性单步（弹簧作废）。Canvas 路径：目标直接落逻辑值，30ms 插值由帧时钟在 landHead 帧起播。
-    if (this.canvasEnabled) {
-      this.carriageOffsetVp = target;
-    } else {
-      this.getUIContext().animateTo({ duration: 30, curve: Curve.Linear }, () => {
-        this.carriageOffsetVp = target;
-      });
-    }
-    // 总成竖向 jolt 1vp：Canvas 开时由帧时钟驱动，ArkUI 分支保留 animateTo
-    if (!this.canvasEnabled) {
-      this.getUIContext().animateTo({ duration: 20, curve: Curve.Linear }, () => {
-        this.joltYVp = 1;
-      });
-      this.getUIContext().animateTo({ duration: 20, delay: 20, curve: Curve.Linear }, () => {
-        this.joltYVp = 0;
-      });
-    }
+    this.carriageOffsetVp = target;
+    // 帧时钟下一帧把 paperOffsetVp 写成 K×O；这里只改逻辑值（纯数据，无 animateTo）
     this.commitSeq = this.commitSeq + 1;
-    hilog.info(DOMAIN, TAG, 'carriage offset -> %{public}s', target.toFixed(2));
+    hilog.info(DOMAIN, TAG, 'carriage offset -> %{public}s (dO=%{public}s)', target.toFixed(2), dO.toFixed(2));
   }
 
   /** 删除/覆盖删除：字车条右退一格，上限 0。 */
   private stepCarriageRight(): void {
-    let target: number = this.carriageOffsetVp + this.travelPerChar;
+    // D3 对称：删除时 O += advance，上限 0；70ms 弹簧由帧时钟的 deleteAnim 段驱动
+    let target: number = this.carriageOffsetVp + this.currentAdvance();
     if (target > 0) {
       target = 0;
-    }
-    if (this.canvasEnabled) {
-      this.canvasDeleteTargetVp = target;
-      this.canvasDeleteTick = this.canvasDeleteTick + 1;
-      this.carriageOffsetVp = target;
-      hilog.info(DOMAIN, TAG, 'trigger delete t=%{public}s target=%{public}s',
-        Date.now().toString(), target.toFixed(2));
-      return;
     }
     const springStarted: number = Date.now();
     hilog.info(DOMAIN, TAG, 'carriage spring start dur=70 target=%{public}s', target.toFixed(2));
@@ -2093,8 +2113,35 @@ struct Index {
     this.refreshAnimModes();
     if ((machine as MachineKind) === this.machineKind) {
       this.animMode = machine === (MachineKind.ELECTRIC_1960S as string) ? 'realistic' : mode;
+      // 第 26 批（批 3）：切模式跑 200ms 内插（K 从旧值到新值）
+      this.setModeK(true);
     }
     hilog.info(DOMAIN, TAG, 'anim mode set machine=%{public}s mode=%{public}s', machine, mode);
+  }
+
+  /**
+   * 第 26 批（批 3／§4.2）：模式系数 K 的生效——切模式 200ms 内插（D20），切机/冷启动直接落值。
+   * K＝1.0 写实／0.3 模拟；V＝K×O。过渡期间禁打字由 pendingChars 队列天然串行化（不另立旗）。
+   */
+  private setModeK(animate: boolean): void {
+    const to: number = rollerKFor(this.animMode, this.isTablet, this.machineKind);
+    if (!animate) {
+      this.modeK = to;
+      this.modeKFrom = to;
+      this.modeKTo = to;
+      this.modeT0 = -1;
+      hilog.info(DOMAIN, TAG, 'modeK set k=%{public}s mode=%{public}s', to.toFixed(3), this.animMode);
+      return;
+    }
+    if (Math.abs(this.modeK - to) < 0.001) {
+      return;
+    }
+    this.ensureFrameClock();
+    this.modeKFrom = this.modeK;
+    this.modeKTo = to;
+    this.modeT0 = this.frameNowMs;
+    hilog.info(DOMAIN, TAG, 'modeTrans start from=%{public}s to=%{public}s dur=%{public}s',
+      this.modeKFrom.toFixed(3), this.modeKTo.toFixed(3), MODE_TRANS_DUR_MS.toString());
   }
   private applyMachine(kind: MachineKind): void {
     // 换机时防御性清空预编辑串
@@ -2104,6 +2151,8 @@ struct Index {
     // 第 23 批（19 号稿 §4-3）：换机即读该机的动画模式（1960s 恒 realistic，电动单套）。
     this.animMode = kind === MachineKind.ELECTRIC_1960S ? 'realistic' : CustomizeStore.animMode(kind as string);
     this.refreshAnimModes();
+    // 第 26 批（批 3）：换机不跑 200ms 过渡（直接落 K）
+    this.setModeK(false);
     // 第 2 批 F3：字体跟机器走（custom.font.<machine>.family 为渲染唯一来源）
     this.applyMachineFont(CustomizeStore.fontFamily(kind as string));
     // 第 4 批 F8：每机独立音效包（唯一 preload 入口；双缓冲不静音）
@@ -2221,47 +2270,7 @@ struct Index {
     }
   }
 
-  /** 探测分层素材是否齐备；缺失则回退旧 carriage-strip.png。
-   *  §14：1920s 与 1930s 都有分层件（各自蓝图目录），1950s／1960s 无素材走兜底。 */
-  private detectLayers(): void {
-    if (!this.hasLayers()) {
-      this.useLayers = false;
-      return;
-    }
-    try {
-      const host = this.getUIContext().getHostContext();
-      if (host === undefined || host === null) {
-        this.useLayers = false;
-        return;
-      }
-      const rm: resourceManager.ResourceManager = host.resourceManager;
-      const names: string[] = rm.getRawFileListSync('layers/1920s-upright');
-      const need: string[] = ['knob.png', 'central-guide.png', 'paper-bail.png', 'roller-texture.jpg'];
-      let all: boolean = true;
-      for (const n of need) {
-        let found: boolean = false;
-        for (const got of names) {
-          if (got === n || got.endsWith('/' + n)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          all = false;
-        }
-      }
-      this.useLayers = all;
-      let joined: string = '';
-      for (const n of names) {
-        joined += n + ',';
-      }
-      hilog.info(DOMAIN, TAG, 'detectLayers names=[%{public}s] all=%{public}s count=%{public}s useLayers=%{public}s',
-        joined, all ? 'true' : 'false', names.length.toString(), this.useLayers ? 'true' : 'false');
-    } catch (e) {
-      this.useLayers = false;
-      hilog.error(DOMAIN, TAG, 'detectLayers failed, fallback to strip');
-    }
-  }
+  // 第 26 批（批 3／R-B2）：detectLayers 已删除（无机器图层可检测；layers/ 素材在批 3 清理）
 
   // ---------------- 纸片 ----------------
 
@@ -2639,14 +2648,7 @@ struct Index {
     return this.leverW() / this.bp().leverAspect;
   }
 
-  /** 分层件（1920s／1930s）才渲染 TypebarLayer／CarriageLayers；1950s／1960s 走 CarriageStrip 兜底 */
-  private hasLayers(): boolean {
-    // §14：四台机型都有分层件（各自蓝图目录）
-    return this.machineKind === MachineKind.UPRIGHT_1920S
-      || this.machineKind === MachineKind.PORTABLE_1930S
-      || this.machineKind === MachineKind.STREAMLINED_1950S
-      || this.machineKind === MachineKind.ELECTRIC_1960S;
-  }
+  // 第 26 批（批 3）：hasLayers 随 Canvas 机器层退役删除
   /** §14：机型蓝图的唯一选择点（Index 里唯一的机型分派） */
   private bp(): MachineBlueprint {
     if (this.machineKind === MachineKind.UPRIGHT_1920S) {
@@ -2689,61 +2691,7 @@ struct Index {
    * 双驱动（Index animateTo ＋ Canvas 帧时钟）是「拱多跑一截再往回拉」的根因。
    * fromStrike=true 表示这次调用是落字后的那次（拱由 Canvas 打击段自己跟，不再发 tick）。
    */
-  private animateArch(duration: number, fromStrike: boolean = false): void {
-    const target: number = this.clampedStrikeXVp();
-    if (!this.archInited) {
-      this.archInited = true;
-      this.archXVp = target;
-      if (this.canvasEnabled) {
-        this.canvasArchTargetVp = target;
-        this.canvasArchDurMs = duration;
-        this.canvasArchTick = this.canvasArchTick + 1;
-      }
-      return;
-    }
-    if (Math.abs(target - this.archXVp) < 0.05) {
-      return;
-    }
-    if (this.canvasEnabled) {
-      this.archXVp = target;
-      if (!fromStrike && this.animMode !== 'realistic') {
-        // 批 23（19 号稿 §4-5）：写实／电动模式下拱固定，不发 tick；只有模拟模式才推追踪器。
-        this.canvasArchTargetVp = target;
-        this.canvasArchDurMs = duration;
-        this.canvasArchTick = this.canvasArchTick + 1;
-        hilog.info(DOMAIN, TAG, 'trigger arch t=%{public}s target=%{public}s dur=%{public}d',
-          Date.now().toString(), target.toFixed(2), duration);
-      }
-      return;
-    }
-    const archStarted: number = Date.now();
-    hilog.info(DOMAIN, TAG, 'arch move start dur=%{public}d target=%{public}s', duration, target.toFixed(2));
-    this.getUIContext().animateTo({
-      duration: duration,
-      curve: Curve.FastOutSlowIn,
-      onFinish: (): void => {
-        hilog.info(DOMAIN, TAG, 'arch move finish dur=%{public}d dt=%{public}d value=%{public}s target=%{public}s',
-          duration, Date.now() - archStarted, this.archXVp.toFixed(2), target.toFixed(2));
-      }
-    }, () => {
-      this.archXVp = target;
-    });
-  }
 
-  private clampedStrikeXVp(): number {
-    const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
-    const raw: number = paperLeft + this.marginH() + this.currentLineWidthVp();
-    const paperRight: number = paperLeft + this.paperWidthVp;
-    const knobHalf: number = this.carriageHeight * 0.92 / 2;
-    const limit: number = paperRight - knobHalf;
-    if (raw > limit) {
-      // §15 第 3 步：钳制是安全网，正常文档里不该触发；触发即说明有超宽行漏网
-      hilog.warn(DOMAIN, TAG, 'strike clamped raw=%{public}s limit=%{public}s',
-        raw.toFixed(2), limit.toFixed(2));
-      return limit;
-    }
-    return raw;
-  }
 
   /** 当前行文本（供隐藏 Text 实测宽）。 */
   /** 第 16 批 2A：把 PaperRow[] 转成 Canvas 静态层需要的字符串数组。 */
@@ -3155,31 +3103,95 @@ struct Index {
   private queueChar(ch: string): void {
     const wasEmpty: boolean = this.pendingChars.length === 0;
     this.pendingChars.push(ch);
-    // 字杆层当前被隐藏（Index 里 `if (false && ...)`，拼装期），onArrive 不会来 →
-    // 一律走 120ms 起搏器，保证串行、每字一音，不靠 200ms 兜底（兜底只做最后防线）
-    const canvasClockOn: boolean = this.canvasDebugOpen
-      || (this.canvasEnabled && this.navStack[this.navStack.length - 1] === 'typewriter');
-    if (canvasClockOn) {
-      // 2B-6：Canvas 帧时钟路径（90ms 去程结束帧调 landHead；无 120ms 起搏器）
-      if (wasEmpty) {
-        hilog.info(DOMAIN, TAG, 'canvas strike start tick=%{public}s at=%{public}s',
-          this.canvasStrikeTick.toString(), Date.now().toString());
-        this.canvasStrikeTick = this.canvasStrikeTick + 1;
-        hilog.info(DOMAIN, TAG, 'trigger strike t=%{public}s target=%{public}s',
-          Date.now().toString(), this.clampedStrikeXVp().toFixed(2));
-      }
-    } else if (this.leverEnabled && this.hasLayers()) {
-      // 1920s：字杆 onArrive 驱动（串行，约 110ms/字）。
-      if (wasEmpty) {
-        hilog.info(DOMAIN, TAG, 'strike start tick=%{public}s at=%{public}s',
-          this.strikeTick.toString(), Date.now().toString());
-        this.strikeTick = this.strikeTick + 1;
-      }
-    } else {
-      // 非 1920s：120ms 起搏器（队列非空时起、空时停），同样串行
-      this.startPacer();
+    // 第 26 批（批 3）：唯一打击泵＝Index 帧时钟（85ms；字杆/色带由 strikePhase 驱动）。
+    // 旧三路（Canvas tick／1920s 字杆 onArrive／120ms 起搏器）随 Canvas 退役删除。
+    if (wasEmpty) {
+      this.armStrike();
     }
     this.armFallback();
+  }
+
+  // ---------------- 第 26 批：帧时钟（§4.3／R-B4） ----------------
+
+  /** 帧时钟宿主（Index）：Animator，1,000,000ms 线性、iterations −1；全稿只此一个时间源。 */
+  private ensureFrameClock(): void {
+    if (this.frameClock !== null) {
+      return;
+    }
+    const opts: AnimatorOptions = {
+      duration: 1000000, easing: 'linear', delay: 0, fill: 'forwards',
+      direction: 'normal', iterations: -1, begin: 0, end: 1000000,
+    };
+    const clock: AnimatorResult = Animator.create(opts);
+    clock.onFrame = (value: number): void => {
+      this.frameNowMs = value;
+      this.frameCount += 1;
+      this.tickFrame(value);
+    };
+    this.frameClock = clock;
+    clock.play();
+    hilog.info(DOMAIN, TAG, 'frame clock start (Index host)');
+  }
+
+  /** 每帧：打击落地、模式过渡内插、纸位移/导件字段回写。 */
+  private tickFrame(v: number): void {
+    // ① 打击：到点落字（§4.3 snap 约 85ms）
+    if (this.strikeAtMs >= 0) {
+      const t: number = v - this.strikeAtMs + this.strikeDurMs;
+      if (t >= this.strikeDurMs) {
+        this.strikeAtMs = -1;
+        this.strikePhase = 0;
+        this.onStrikeArrive();
+        if (this.pendingChars.length > 0) {
+          this.armStrike();
+        }
+      } else {
+        // 三角相位：去程 45ms 上升、回落 40ms
+        this.strikePhase = t < 45 ? t / 45.0 : (85.0 - t) / 40.0;
+      }
+    }
+    // ② 模式过渡 200ms（§4.2／D20）
+    if (this.modeT0 >= 0) {
+      const mt: number = v - this.modeT0;
+      if (mt >= 200) {
+        this.modeK = this.modeKTo;
+        this.modeT0 = -1;
+        hilog.info(DOMAIN, TAG, 'modeTrans finish dt=%{public}s k=%{public}s',
+          mt.toFixed(0), this.modeK.toFixed(3));
+      } else {
+        const p: number = mt / 200.0;
+        this.modeK = this.modeKFrom + (this.modeKTo - this.modeKFrom) * p;
+      }
+    }
+    // ③ 字段回写：纸面板 V＝K×O；导件写实固定/模拟追踪（§4.1 D3–D4、D10）
+    this.paperOffsetVp = this.modeK * this.carriageOffsetVp;
+    this.leverAngleVp = restDegFor(false) + swingDegFor(false) * this.leverRatioLogical;
+    const fixed: number = this.stageWidth * 0.5;
+    if (this.animMode === ANIM_MODE_SIMULATED) {
+      const tracked: number = Math.min(fixed + 0.7 * (-this.carriageOffsetVp), this.stageWidth);
+      this.guideXVp = tracked;
+    } else {
+      this.guideXVp = fixed;
+    }
+  }
+
+  /** 旋钮点按（Q15(a)）：进纸一行——批 3 只做转角与打点，纸面上滑留给换行编排复用（记后续待办）。 */
+  private onKnobAdvance(): void {
+    this.knobAngleDeg = (this.knobAngleDeg + 15) % 360;
+    this.audioService.vibrate();
+    hilog.info(DOMAIN, TAG, 'knob advance angle=%{public}s', this.knobAngleDeg.toFixed(0));
+  }
+
+  /** 武装一击：85ms 后由帧时钟触发 landHead；队列内连续击打串行。 */
+  private armStrike(): void {
+    if (this.strikeAtMs >= 0) {
+      return;
+    }
+    this.ensureFrameClock();
+    this.strikeAtMs = this.frameNowMs + this.strikeDurMs;
+    this.strikePhase = 0.01;
+    hilog.info(DOMAIN, TAG, 'strike start t=%{public}s target=%{public}s dur=85',
+      Date.now().toString(), (this.stageWidth * 0.5).toFixed(2));
   }
 
   /** 非 1920s 起搏器：每 120ms 落一字；队列空即停。 */
@@ -3261,13 +3273,8 @@ struct Index {
     this.arriveCount += 1;
     this.flushPending();
     // 队列还有字：续踢下一击（字杆串行，每字一摆）
-    const canvasContinue: boolean = this.canvasDebugOpen
-      || (this.canvasEnabled && this.navStack[this.navStack.length - 1] === 'typewriter');
-    if (canvasContinue && this.pendingChars.length > 0) {
-      this.canvasStrikeTick = this.canvasStrikeTick + 1;
-    } else if (this.leverEnabled && this.hasLayers()
-      && this.pendingChars.length > 0 && this.pacerTimer < 0) {
-      this.strikeTick = this.strikeTick + 1;
+    if (this.pendingChars.length > 0) {
+      this.armStrike();
     }
     const avg: number = this.arriveGapCount > 0 ? this.arriveGapSumMs / this.arriveGapCount : 0;
     hilog.info(DOMAIN, TAG,
@@ -3326,7 +3333,7 @@ struct Index {
     if (nextRaw > limit && this.docModel.getCursor().offset > 0) {
       hilog.info(DOMAIN, TAG,
         'autoWrap by position offset=%{public}s strikeX=%{public}s nextRaw=%{public}s limit=%{public}s',
-        this.carriageOffsetVp.toFixed(2), this.clampedStrikeXVp().toFixed(2),
+        this.carriageOffsetVp.toFixed(2), (this.stageWidth * 0.5).toFixed(2),
         nextRaw.toFixed(2), limit.toFixed(2));
       this.onNewline();
     }
@@ -3351,7 +3358,7 @@ struct Index {
       this.paperTopVp.toFixed(1), this.carriageOffsetVp.toFixed(1));
     hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s measW=%{public}s accumW=%{public}s strikeX=%{public}s',
       this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
-      this.currentLineWidthVp().toFixed(2), this.clampedStrikeXVp().toFixed(2));
+      this.currentLineWidthVp().toFixed(2), (this.stageWidth * 0.5).toFixed(2));
     this.scheduleSave();
     // 第 4 批 F11：落字成功即内存自增（不写盘；离页/导出前批量 flush）
     statsService.recordChar();
@@ -3368,7 +3375,7 @@ struct Index {
     }
     // 每次落字后把光标矩形推给输入法，候选窗跟着走
     this.pushCnCursor();
-    this.animateArch(90, true);
+    this.animateGuide();
   }
 
   /**
@@ -3412,9 +3419,15 @@ struct Index {
    * 上一版「行首中央件窗中心」与「guide = 边距 + 行宽」两种右移口径均作废。
    */
   private animateGuide(): void {
+    // 写实：导件固定 archFixX（D1）；模拟：追踪落字点（D10，屏边停住）。
+    // 最终字段由帧时钟 tickFrame 每帧回写；这里负责切模式/落字时的目标计算与日志口径。
     const fixed: number = this.stageWidth * 0.5;
-    if (this.guideXVp !== fixed) {
-      this.guideXVp = fixed;
+    let target: number = fixed;
+    if (this.animMode === ANIM_MODE_SIMULATED) {
+      target = Math.min(fixed + 0.7 * (-this.carriageOffsetVp), this.stageWidth);
+    }
+    if (Math.abs(this.guideXVp - target) > 0.01) {
+      this.guideXVp = target;
     }
   }
 
@@ -3488,9 +3501,9 @@ struct Index {
         this.recalcOffsetFromCursor(200);
         this.paperAnimateNext = true;
         this.recalcPaperHeight();
-        this.animateArch(200);
+        this.animateGuide();
       } else {
-        this.animateArch(90);
+        this.animateGuide();
       }
       const c1 = this.docModel.getCursor();
       hilog.info(DOMAIN, TAG, 'del after line=%{public}s lines=%{public}s paperTop=%{public}s',
@@ -3564,7 +3577,7 @@ struct Index {
       }
       this.backBusy = false;
       // §18 第 1 件：退行与纸移动同拍（250ms），拱 200ms 平滑滑到新目标
-      this.animateArch(200);
+      this.animateGuide();
       // §14.3 第 4 条：排队字逐字回落字队列（走字杆／起搏），不许循环直落
       // §18 第 4 件：放行前先确认忙窗已清
       if (!this.backBusy) {
@@ -3682,7 +3695,7 @@ struct Index {
       this.carriageOffsetVp = 0;
       // §18.10：换纸后拱必须滑回行首。此处 clear()+syncRows()+O=0 已就绪，
       // clampedStrikeXVp() 的目标即行首；300ms 与第②步新纸卷入同窗，t=600ms 同时到达。
-      this.animateArch(300);
+      this.animateGuide();
       // ★改：新纸从滚筒里卷出——动画开始前先把纸顶放到滚筒处藏起来（只露 2vp 纸底缘），
       // 再让 recalcPaperHeight() 把它推到起打位。纸顶从滚筒处往上长出来，不是从天上掉下来。
       this.paperTopVp = this.carriageTopVp;
@@ -3841,7 +3854,7 @@ struct Index {
         return;
       }
       this.newlineBusy = false;
-      this.animateArch(200);
+      this.animateGuide();
       // §14.3 第 4 条：换行编排结束后，排队字逐字回落字队列
       const q: string[] = this.queuedChars.slice(0);
       this.queuedChars = [];
@@ -4063,7 +4076,7 @@ struct Index {
     this.syncRows();
     // §18 第 2 件：载入后按当前光标重算 O（原来直接归 0，光标在深处时 O 与光标脱节）
     this.recalcOffsetFromCursor();
-    this.animateArch(90);
+    this.animateGuide();
     this.recalcPaperHeight();
     // 私有 docModel 不是 @State：借 docsRev 触发一次重建，纸面才会换成新文档
     this.docsRev = this.docsRev + 1;
@@ -4326,686 +4339,6 @@ struct Index {
           colors: [['#171310', 0.0], ['#241c16', 1.0]],
         })
 
-      if (!this.canvasDebugOpen && !(this.canvasEnabled
-        && this.navStack[this.navStack.length - 1] === 'typewriter')) {
-      Column() {
-        // 顶栏 56vp 本体不变，顶距 = 动态 topInset（深底渐变伸到状态栏下）
-        Column().width('100%').height(this.topInset)
-        TopBar({ title: this.docTitle, heightVp: this.topBarHeight, guideEnabled: this.guideEnabled,
-          onOpenHome: (): void => { this.popTo('home'); },
-          onOpenMenu: (): void => { this.menuOpen = true; } })
-
-        Column() {
-          Column().width('100%').height(this.paperTopGap)
-
-          Stack({ alignContent: Alignment.TopStart }) {
-            // ---- 字杆层（1920s）：zIndex 置顶，渲染在 PaperStage 之上；所在 Stack 不 clip 杆区 ----
-            // §14：字杆层重新启用——输入法落字要靠它驱动 onArrive（串行、每字一摆）
-            if (this.hasLayers()) {
-              // §14：1920s 走蓝图组件（几何在蓝图里），其余机型走 M 件
-              if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-                TypebarAssembly1920({
-                  stageWidth: this.stageWidth,
-                  paperWidthVp: this.paperWidthVp,
-                  carriageOffsetVp: this.carriageOffsetVp,
-                  currentLineWidthVp: this.currentLineWidthVp(),
-                  paperMarginH: this.marginH(),
-                  carriageHeight: this.carriageHeight,
-                  strikeLineVp: this.strikeLineVp,
-                  strikeTick: this.strikeTick,
-                  animScale: 1,
-                  onArrive: (): void => {
-                    this.onStrikeArrive();
-                  },
-                })
-              } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-                TypebarLayer1930({
-                  machineKind: this.machineKind,
-                  layerWidthVp: this.carriageHeight * 2.5,
-                  layerHeightVp: this.carriageHeight * 2.5,
-                  strikeTick: this.strikeTick,
-                  animScale: 1,
-                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
-                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
-                  onArrive: (): void => {
-                    this.onStrikeArrive();
-                  },
-                })
-                  .zIndex(10)
-              } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-                TypebarLayer1950({
-                  machineKind: this.machineKind,
-                  layerWidthVp: this.carriageHeight * 2.5,
-                  layerHeightVp: this.carriageHeight * 2.5,
-                  strikeTick: this.strikeTick,
-                  animScale: 1,
-                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
-                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
-                  onArrive: (): void => {
-                    this.onStrikeArrive();
-                  },
-                })
-                  .zIndex(10)
-              } else {
-                TypebarLayer1960({
-                  machineKind: this.machineKind,
-                  layerWidthVp: this.carriageHeight * 2.5,
-                  layerHeightVp: this.carriageHeight * 2.5,
-                  strikeTick: this.strikeTick,
-                  animScale: 1,
-                  offsetXVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp
-                    + this.marginH() + this.currentLineWidthVp() - this.carriageHeight * 2.5 / 2,
-                  offsetYVp: this.strikeLineVp - 0.115 * (this.carriageHeight * 2.5),
-                  onArrive: (): void => {
-                    this.onStrikeArrive();
-                  },
-                })
-                  .zIndex(10)
-              }
-            }
-
-            // ---- 滚筒（纸后）：底对齐纸面区底，纸底锚定在滚筒中心 ----
-            if (this.hasLayers() && this.useLayers) {
-              if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-                RollerAssembly1920({
-                  stageWidth: this.photoW(),
-                  joltYVp: this.joltYVp,
-          carriageOffsetVp: this.carriageOffsetVp,
-                  knobAngleDeg: this.knobAngle,
-                  paperWidthVp: this.paperWidthVp,
-                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                  canvasOffsetVp: this.carriageOffsetVp,
-                  paperLeftFixedVp: this.paperLeftFixed(),
-                  texOffsetYVp: this.texOffsetVp,
-                  carriageHeight: this.carriageHeight,
-                  carriageTopVp: this.carriageTopVp,
-                })
-              } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-                CarriageLayers1930({
-                  machineKind: this.machineKind,
-                  stageWidth: this.photoW(),
-                  joltYVp: this.joltYVp,
-                  knobAngleDeg: this.knobAngle,
-                  part: 'roller',
-                  rollerAngleDeg: this.knobAngle,
-                  paperWidthVp: this.paperWidthVp,
-                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                  canvasOffsetVp: this.carriageOffsetVp,
-                  strikeYVp: 0,
-                  paperLeftFixedVp: this.paperLeftFixed(),
-                  texOffsetYVp: this.texOffsetVp,
-                })
-                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                  .zIndex(1)
-              } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-                CarriageLayers1950({
-                  machineKind: this.machineKind,
-                  stageWidth: this.photoW(),
-                  joltYVp: this.joltYVp,
-                  knobAngleDeg: this.knobAngle,
-                  part: 'roller',
-                  rollerAngleDeg: this.knobAngle,
-                  paperWidthVp: this.paperWidthVp,
-                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                  canvasOffsetVp: this.carriageOffsetVp,
-                  strikeYVp: 0,
-                  paperLeftFixedVp: this.paperLeftFixed(),
-                  texOffsetYVp: this.texOffsetVp,
-                })
-                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                  .zIndex(1)
-              } else {
-                CarriageLayers1960({
-                  machineKind: this.machineKind,
-                  stageWidth: this.photoW(),
-                  joltYVp: this.joltYVp,
-                  knobAngleDeg: this.knobAngle,
-                  part: 'roller',
-                  rollerAngleDeg: this.knobAngle,
-                  paperWidthVp: this.paperWidthVp,
-                  paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                  strikeXVp: this.archXVp,
-                  rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                  canvasOffsetVp: this.carriageOffsetVp,
-                  strikeYVp: 0,
-                  paperLeftFixedVp: this.paperLeftFixed(),
-                  texOffsetYVp: this.texOffsetVp,
-                })
-                  .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                  .zIndex(1)
-              }
-            }
-
-            // ---- 字杆篮扇面（纸后、滚筒前）：独立层，不放进带 clip 的 roller Stack ----
-            // 篮扇本批隐藏（五件拼顺后再按 v5 加回）；开关不动素材
-            if (false && this.hasLayers() && this.useLayers) {
-              CarriageLayers({
-                stageWidth: this.photoW(),
-                joltYVp: this.joltYVp,
-                knobAngleDeg: this.knobAngle,
-                machineKind: this.machineKind,
-                part: 'basket',
-                paperWidthVp: this.paperWidthVp,
-                paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                strikeXVp: this.archXVp,
-                rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                canvasOffsetVp: this.carriageOffsetVp,
-                strikeYVp: 0,
-              })
-                .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                .zIndex(1.5)
-            }
-
-            // ---- 压纸卷 + 中央件 + 旋钮（纸前）：包在 Stack 里，zIndex 3 盖在纸上 ----
-            Stack({ alignContent: Alignment.TopStart }) {
-              if (this.hasLayers() && this.useLayers) {
-                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-                  MetalAssembly1920({
-                    stageWidth: this.photoW(),
-                    paperWidthVp: this.paperWidthVp,
-                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                    strikeXVp: this.archXVp,
-                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
-                    carriageHeight: this.carriageHeight,
-                    carriageTopVp: this.carriageTopVp,
-                    carriageOffsetVp: this.carriageOffsetVp,
-                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                    joltYVp: this.joltYVp,
-                    knobAngleDeg: this.knobAngle,
-                    canvasOffsetVp: this.carriageOffsetVp,
-                    texOffsetYVp: this.texOffsetVp,
-                    paperLeftFixedVp: this.paperLeftFixed(),
-                    bailShiftVp: this.isTablet ? -15 : 0,
-                  })
-                } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-                  CarriageLayers1930({
-                    machineKind: this.machineKind,
-                    stageWidth: this.photoW(),
-                    joltYVp: this.joltYVp,
-                    knobAngleDeg: this.knobAngle,
-                    part: 'metal',
-                    paperWidthVp: this.paperWidthVp,
-                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                    strikeXVp: this.archXVp,
-                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                    canvasOffsetVp: this.carriageOffsetVp,
-                    paperLeftFixedVp: this.paperLeftFixed(),
-                    texOffsetYVp: this.texOffsetVp,
-                    bailShiftVp: this.isTablet ? -15 : 0,
-                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
-                  })
-                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-                  CarriageLayers1950({
-                    machineKind: this.machineKind,
-                    stageWidth: this.photoW(),
-                    joltYVp: this.joltYVp,
-                    knobAngleDeg: this.knobAngle,
-                    part: 'metal',
-                    paperWidthVp: this.paperWidthVp,
-                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                    strikeXVp: this.archXVp,
-                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                    canvasOffsetVp: this.carriageOffsetVp,
-                    paperLeftFixedVp: this.paperLeftFixed(),
-                    texOffsetYVp: this.texOffsetVp,
-                    bailShiftVp: this.isTablet ? -15 : 0,
-                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
-                  })
-                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                } else {
-                  CarriageLayers1960({
-                    machineKind: this.machineKind,
-                    stageWidth: this.photoW(),
-                    joltYVp: this.joltYVp,
-                    knobAngleDeg: this.knobAngle,
-                    part: 'metal',
-                    paperWidthVp: this.paperWidthVp,
-                    paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-                    strikeXVp: this.archXVp,
-                    rollerOffsetVp: this.carriageOffsetVp * (this.isTablet ? this.ROLLER_K : this.ROLLER_K_PHONE),
-                    canvasOffsetVp: this.carriageOffsetVp,
-                    paperLeftFixedVp: this.paperLeftFixed(),
-                    texOffsetYVp: this.texOffsetVp,
-                    bailShiftVp: this.isTablet ? -15 : 0,
-                    strikeYVp: this.strikeLineVp - (this.carriageTopVp - this.carriageHeight / 2),
-                  })
-                    .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-                }
-
-                if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-                  // §14 二分测试：只搬支架，拨杆仍在下面走原路径
-                  BracketAssembly1920({
-                    stageWidth: this.stageWidth,
-                    paperWidthVp: this.paperWidthVp,
-                    carriageHeight: this.carriageHeight,
-                    carriageTopVp: this.carriageTopVp,
-                  })
-                } else {
-                  // 拨杆支点支架：销钉中心对齐 lever.png 支点孔 (0.500,0.952)
-                  Image(this.bracketSrc())
-                    .width(this.bracketW())
-                    .height(this.bracketH())
-                    .objectFit(ImageFit.Fill)
-                    .position({
-                      x: this.bracketLeftRel(),
-                      y: this.carriageTopVp - this.carriageHeight / 2 + this.bracketTopRel(),
-                    })
-                    .zIndex(8)
-                }
-
-                // 拨杆：§14 按机型选各自蓝图件（各件自带本机型素材与几何）
-                // 第 8 批 R2：等布局定稿再挂载，避免首帧拿到手机档常量
-                if (this.stageReady && this.machineKind === MachineKind.UPRIGHT_1920S) {
-                  LeverLayer({
-                    machineKind: this.machineKind,
-                    leverAspect: this.bp().leverAspect,
-                    leverPivotX: this.bp().bracketPivotX,
-                    leverPivotY: this.bp().leverPivotY,
-                  layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick(),
-                  resetEpoch: this.leverEpoch,
-                  restDeg: restDegFor(this.isTablet),
-                  swingDeg: swingDegFor(this.isTablet),
-                  dragRatio: this.leverRatio(),
-                  offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                  onSwingStart: (): void => {
-                    this.audioService.playCarriageReset();
-                  },
-                  })
-                } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-                LeverLayer1930({
-                  machineKind: this.machineKind,
-                  layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick(),
-                  resetEpoch: this.leverEpoch,
-                  restDeg: restDegFor(this.isTablet),
-                  swingDeg: swingDegFor(this.isTablet),
-                  dragRatio: this.leverRatio(),
-                  offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                  onSwingStart: (): void => {
-                    this.audioService.playCarriageReset();
-                  },
-                })
-                } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-                LeverLayer1950({
-                  machineKind: this.machineKind,
-                  layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick(),
-                  resetEpoch: this.leverEpoch,
-                  restDeg: restDegFor(this.isTablet),
-                  swingDeg: swingDegFor(this.isTablet),
-                  dragRatio: this.leverRatio(),
-                  offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                  onSwingStart: (): void => {
-                    this.audioService.playCarriageReset();
-                  },
-                })
-                } else {
-                LeverLayer1960({
-                  machineKind: this.machineKind,
-                  layerSizeVp: this.leverW(),
-                  newlineTick: this.newlineTick(),
-                  resetEpoch: this.leverEpoch,
-                  restDeg: restDegFor(this.isTablet),
-                  swingDeg: swingDegFor(this.isTablet),
-                  dragRatio: this.leverRatio(),
-                  offsetXVp: this.pinXRel() - this.leverW() / 2,
-                  offsetYVp: this.carriageTopVp - this.carriageHeight / 2 + this.pinYRel()
-                    - (this.leverW() / this.bp().leverAspect) * this.bp().leverPivotY,
-                  onSwingStart: (): void => {
-                    this.audioService.playCarriageReset();
-                  },
-                })
-                }
-              }
-            }
-            .width('100%')
-            .height('100%')
-            // §18.11：改回 Default——Transparent 会让这层不阻塞兄弟，但实测拨杆图收不到触摸，
-            // Default 保证自身+子节点优先响应（这一层只含压纸卷/中央件/拨杆，不挡底层交互）
-            .hitTestBehavior(HitTestMode.Default)
-            .zIndex(3)
-            // §18.11：拨杆节点自身收不到触摸（offset/position/Block/zIndex 四种都试过），
-            // 改在字车整层接纵向拖拽，按落点 x 判断是不是在拉杆（右侧 22% 区）
-            .gesture(
-              GestureGroup(GestureMode.Parallel,
-                // §18.12：点按入口也必须挂在总成层（拨杆节点自身收不到触摸）
-                TapGesture({ count: 1 })
-                  .onAction((e: GestureEvent) => {
-                    const tx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
-                    const onLever: boolean = tx > this.stageWidth * 0.78;
-                    hilog.info(DOMAIN, TAG, 'carriage tap x=%{public}s lever=%{public}s',
-                      tx.toFixed(1), onLever ? 'true' : 'false');
-                    if (onLever) {
-                      this.onNewline();
-                    }
-                  }),
-                PanGesture({ direction: PanDirection.Vertical })
-                .onActionStart((e: GestureEvent) => {
-                  const sx: number = e.fingerList.length > 0 ? e.fingerList[0].localX : 0;
-                  hilog.info(DOMAIN, TAG, 'carriage lever zone x=%{public}s', sx.toFixed(1));
-                  this.leverPanStart(sx > this.stageWidth * 0.78, 'carriage');
-                })
-                .onActionUpdate((e: GestureEvent) => {
-                  this.leverPanUpdate(e.offsetY);
-                })
-                .onActionEnd(() => {
-                  this.leverPanEnd();
-                })
-              )
-            )
-
-            // 页码轨锚定纸片：与纸片同高、同底
-            Stack({ alignContent: Alignment.TopEnd }) {
-              PaperStage({
-                regionHeightVp: this.regionHeightVp,
-                paperHeightVp: this.paperHeightVp,
-                paperKind: this.paperKind,
-                hasHeader: findPaper(this.paperKind).hasHeader,
-                hasRuledGrid: findPaper(this.paperKind).hasRuledGrid,
-                rows: this.rows,
-                hintText: this.hintText,
-                lineHeightVp: this.lineHeightVp,
-                fontSizeVp: this.fontSizeVp,
-                fontFamily: this.fontFamily,
-                marginHVp: this.marginH(),
-                marginTopVp: this.marginT(),
-                marginBottomVp: this.marginB(),
-                paperColor: this.customPaperColor,
-                texturePath: this.customPaperTexture,
-                inkColor: this.inkColor,
-                pageNo: this.sheetNo,
-                pageCount: this.sheetCount,
-                // 物理模型：纸偏移 = (导件 − 左边距) + O，行首即让第一字落在导件
-                offsetXVp: 0,
-                cursorXVp: this.marginH() + this.currentLineWidthVp(),
-                // 三角 y = 打击行（相对纸顶）− 8vp，且 ≥0
-                // 三角 y = 打击行 − 纸顶 − 8vp，且 ≥0（打击行固定）
-                cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
-                cursorVisible: true,
-                visibleBottomVp: this.paperContainerVp,
-                // 字杆层与拨杆层在纸之上渲染（E 项）
-
-              })
-                .id('typewriter__paper')
-                .width('100%')
-                .height(this.paperHeightVp)
-                // 第 24 批（R-B5）：旧ArkUI纸面（PaperStage）隐藏——纸面由 Canvas 之上的 PaperPanel 接管。
-                // 批 3 删 Canvas 时本组件与 id 一并退役（本行不改布局，只隐藏绘制）。
-                .opacity(0)
-
-            }
-
-            // 纸片容器：高 = 纸顶到滚筒，clip(true) 把纸底裁掉，不许在字体条/键盘区露出
-            .width(this.paperWidthVp)
-            .height(this.paperContainerVp)
-            // 纸与字同一刚体：容器 x 带 O，纸内不再重复 translate(O)
-            .offset({ x: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp, y: this.paperTopVp })
-            // 平时 clip(true) 裁掉纸底；换纸第①步切整张模式时不裁，整片飞出去
-            .clip(!this.paperFullSheet)
-            // 纸面不透明度 × 换装淡入淡出（§4：200ms，不重建编辑器）
-            .opacity(this.paperOpacity * this.switchFade)
-            // 纸夹在滚筒(1)与金属件(3)之间：滚筒只露下半截，纸须延伸到滚筒中心
-            .zIndex(2)
-            // §18.12：纸面这一层原本是默认命中策略（自身响应），会把字车层（zIndex 3）的
-            // 拨杆点按/拖拽全吃掉——纸面本身没有交互，改 None 让触摸穿透到字车层
-            .hitTestBehavior(HitTestMode.None)
-            // §18.12：拨杆触摸层（总成 Stack 的最后一个子节点＝最顶层，只覆盖右侧拨杆区）
-            Column()
-              .width(this.stageWidth * 0.22)
-              .height(this.carriageHeight * 1.6)
-              .id('typewriter__lever')
-              .position({
-                x: this.stageWidth * 0.78,
-                y: this.carriageTopVp - this.carriageHeight * 1.3,
-              })
-              .backgroundColor('#01000000')
-              .zIndex(20)
-              .hitTestBehavior(HitTestMode.Default)
-              .gesture(
-                GestureGroup(GestureMode.Parallel,
-                  TapGesture({ count: 1 })
-                    .onAction(() => {
-                      hilog.info(DOMAIN, TAG, 'carriage tap lever=true (overlay)');
-                      this.onNewline();
-                    }),
-                  // §18.11 拖拽：同一层接纵向拖拽，过半松手＝换行
-                  PanGesture({ direction: PanDirection.Vertical })
-                    .onActionStart(() => {
-                      this.leverPanStart(true, 'overlay');
-                    })
-                    .onActionUpdate((e: GestureEvent) => {
-                      this.leverPanUpdate(e.offsetY);
-                    })
-                    .onActionEnd(() => {
-                      this.leverPanEnd();
-                    })
-                )
-              )
-
-          }
-          .width('100%')
-          // §19：手机总成按 region 算（内层不许溢出容器）；平板仍用 availableHeightVp
-          // 第 5 批回批 F7（D0b-2）：desk 时取上半区高（creaseTop − topInset − topBar − paperTopGap，
-          // 与 region 公式同源）→ Stack 底边 = creaseTopVp；tablet/phone 沿用现行表达式
-          .height(this.layoutMode === 'desk'
-            ? Math.max(120, this.creaseTopVp - this.topInset - this.topBarHeight - this.paperTopGap)
-            : (this.isTablet ? this.availableHeightVp : this.regionHeightVp))
-          .clip(false)
-          .onAreaChange((oldA: Area, newA: Area) => {
-            this.stackTopGlobalYVp = newA.globalPosition.y as number;
-            const ht: number = newA.height as number;
-            if (Math.abs(ht - this.assemblyHeightVp) >= 1) {
-              this.assemblyHeightVp = ht;
-              hilog.info(DOMAIN, TAG, 'assembly Ht=%{public}s Hc=%{public}s', ht.toFixed(1), this.carriageHeight.toFixed(1));
-            }
-          })
-
-            // 只覆盖拨杆区（右侧 22%），拨杆层/纸面层被吃触摸的历史问题由此绕开。
-            Column()
-              .width(this.stageWidth * 0.22)
-              .height(this.carriageHeight * 1.6)
-              .position({
-                x: this.stageWidth * 0.78,
-                y: this.carriageTopVp - this.carriageHeight * 1.3,
-              })
-              .backgroundColor('rgba(0,0,0,0.002)')
-              .zIndex(20)
-              .hitTestBehavior(HitTestMode.Default)
-              .gesture(
-                GestureGroup(GestureMode.Parallel,
-                  TapGesture({ count: 1 })
-                    .onAction(() => {
-                      hilog.info(DOMAIN, TAG, 'carriage tap lever=true (overlay)');
-                      this.onNewline();
-                    }),
-                  PanGesture({ direction: PanDirection.Vertical })
-                    .onActionStart(() => {
-                      this.leverPanStart(true, 'overlay');
-                    })
-                    .onActionUpdate((e: GestureEvent) => {
-                      this.leverPanUpdate(e.offsetY);
-                    })
-                    .onActionEnd(() => {
-                      this.leverPanEnd();
-                    })
-                )
-              )
-
-            // 第 12 批 ①：1920s 旋钮视觉件已整体删除（含开关链），本层不再挂载任何旋钮件。
-        }
-        .width('100%')
-        .layoutWeight(1)
-
-        // 第 5 批回批 F7（D0b-2）：折痕带避让 Spacer——高度直接用折痕值（creaseBottom − creaseTop），
-        // 求值无循环：measureStage（refresh→derive→分支）→ recalcPaperHeight → build 读 layoutMode。
-        // 折痕 rect 退化（h≤0）时 Spacer=0 并走 50% 回退（creaseTop==creaseBottom==winH/2）。
-        // 仅 desk 模式插入；tablet/phone 模式不占位（现行纵向构成不变）。
-        if (this.layoutMode === 'desk') {
-          Column().width('100%')
-            .height(Math.max(0, this.creaseBottomVp - this.creaseTopVp))
-        }
-
-        if (this.hasLayers() && this.useLayers) {
-          // 1920s 的滚筒/中央件已在总成 Stack 内渲染；此处只占位保持纵向构成高度
-          Column().width('100%').height(0)
-        } else {
-          CarriageStrip({
-            machineKind: this.machineKind,
-            widthVp: this.photoW(),
-            photoWidthVp: this.stageWidth + this.maxTravelVp,
-            heightVp: this.carriageHeight,
-            guideXVp: this.guideXVp,
-            carriageOffsetVp: this.carriageOffsetVp,
-            guideVisible: false,
-          })
-            .margin({ top: -CARRIAGE_PAPER_OVERLAP_VP })
-        }
-
-        // §18.8：候选栏区**常驻 44vp**（英文/系统态渲染同高空占位），
-        // 切换语言时 Column 总高一根毫毛都不变 → 底板不移位、纸面区不压缩、候选栏无处可挡。
-        if (!this.isBuiltinCn()) {
-          // 英文／系统态：同宽同底色空占位（与中文态视觉一致）
-          Row()
-            .width('100%').height(this.CAND_BAR_HEIGHT_VP)
-            .backgroundColor('#1a1713')
-        } else if (!this.pinyinReady) {
-          // §17.3 第 3 条：词库未就绪只显示加载态；高度与就绪态**同为 44vp**（不许 38/44 两档）
-          Row() {
-            Text('正在加载…').fontSize(13).fontColor('rgba(232,221,201,0.55)')
-          }
-          .width('100%').height(this.CAND_BAR_HEIGHT_VP)
-          .justifyContent(FlexAlign.Center)
-          .backgroundColor('#1a1713')
-        } else {
-          CandidateBar({
-            candidates: this.candCurrent,
-            pinyin: this.cnPinyin,
-            pages: this.candPages,
-            page: this.candPage,
-            chipFontSize: this.candChipFontSize,
-            onPick: (i: number): void => { this.pinyinPick(i); },
-            onLongPress: (i: number): void => { this.pinyinPick(i); },
-            onPrev: (): void => {
-              if (this.candPage > 0) {
-                this.candPage = this.candPage - 1;
-                this.pinyinShown();
-              }
-            },
-            onNext: (): void => {
-              if (this.candPage + 1 < this.candPages) {
-                this.candPage = this.candPage + 1;
-                this.pinyinShown();
-              }
-            },
-          })
-        }
-
-        FontBar({
-          fontFamily: this.fontFamily,
-          fontLabel: this.fontLabelOfCurrentMachine(),
-          currentFamilyName: CustomizeStore.fontFamily(this.machineKind as string),
-          heightVp: this.fontBarHeight,
-          onOpenCustomize: (): void => { this.pushPage('customize'); },
-        })
-
-        // 第 24 批：键盘网格已迁到 Canvas 之上的兄弟层（p24_key_grid），
-        // 旧页面这里只留等高透明占位，保持 Column 布局（字体条／功能行位置不变）。
-        Row()
-          .width('100%')
-          .height(this.keybedHeight)
-
-        FunctionRow({
-          heightVp: this.functionRowHeight,
-          langLabel: this.langZh
-            ? this.resolveString($r('app.string.keyboard_lang_zh'))
-            : this.resolveString($r('app.string.keyboard_lang_en')),
-          deleteLabel: this.resolveString($r('app.string.keyboard_delete')),
-          newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
-          paperLabel: this.resolveString($r('app.string.keyboard_paper')),
-          backLineLabel: this.resolveString($r('app.string.keyboard_backline')),
-          charLabel: this.resolveString(this.symbolMode
-            ? $r('app.string.keyboard_letters') : $r('app.string.keyboard_symbols')),
-          // 第 13 批 ③：常驻选中态（EN 键 ⟺ langZh，字符键 ⟺ symbolMode）
-          langActive: this.langZh,
-          symbolActive: this.symbolMode,
-          onSymbols: (): void => {
-            this.symbolMode = !this.symbolMode;
-          },
-          onBackLine: (): void => {
-            this.onBackLine();
-          },
-          onPaperChange: (): void => {
-            this.onPaperChange();
-          },
-          onLang: (): void => {
-            this.langZh = !this.langZh;
-            this.applyChineseMode(this.langZh);
-            // §18.9：行高不再随语言变（中英共用中文行高），这里删掉赋值——
-            // 留住 recalcTravel（横向 travelPerChar 仍分语言）
-            // §15 第 4 步：travelPerChar 分语言，切语言必须重算（否则中文行 O 永不饱和）
-            this.recalcTravel();
-            // §18.8 第 2 件：纸顶 300ms 平滑滑到新位置，不许直接赋值跳变
-            this.paperAnimateNext = true;
-            this.recalcPaperHeight();
-          },
-          onDelete: (): void => {
-            // §13 第 9 步：组词中按删除只删拼音字母，不许删文档字符
-            if (this.isBuiltinCn() && this.pinyinSession !== null
-              && this.pinyinSession.getBuffer().length > 0) {
-              this.pinyinSession.backspace();
-              this.audioService.playBackspace();
-              this.audioService.vibrate();
-              this.pinyinRefresh();
-              hilog.info(DOMAIN, TAG, 'cn backspace in compose buf=%{public}s',
-                this.pinyinSession.getBuffer());
-              return;
-            }
-            this.onDelete();
-          },
-          onNewline: (): void => {
-            // §4 表：组词中按换行 = 把拼音串按原样上屏（拉丁字母），下一次才是真换行
-            if (this.isBuiltinCn() && this.pinyinSession !== null
-              && this.pinyinSession.getBuffer().length > 0) {
-              const buf: string = this.pinyinSession.getBuffer();
-              this.enqueueChinese(buf);
-              this.pinyinSession.cancel();
-              this.cnPinyin = '';
-              this.cnPreview = '';
-              this.candAll = [];
-              this.candCurrent = [];
-              hilog.info(DOMAIN, TAG, 'cn newline commits pinyin=%{public}s', buf);
-              return;
-            }
-            this.onNewline();
-          },
-        })
-        .id('typewriter__function_row')
-
-        // 功能行 52vp 本体不变，底距 = 动态 bottomInset
-        Column().width('100%').height(this.bottomInset)
-      }
-      .width(this.stageWidth)
-      .height(this.stageHeight)
-      .alignItems(HorizontalAlign.Start)
-      // 键盘避让：整体上移保打击行可见；收起归零，不留空区
-      .translate({ y: -this.kbShift })
-      }
 
       // 卷宗页（§5.1）：整页覆盖层，最后绘制、盖住主屏
       // §11 主页：冷启动首帧；从任何页返回也回这里
@@ -5204,118 +4537,6 @@ struct Index {
 
       // §6.1 设置页（最后渲染，盖在其他覆盖层之上）
       // 第 16 批 2A：Canvas 静态主屏调试页（临时；2B 切主屏后删除）
-      if (this.canvasDebugOpen || (this.canvasEnabled
-        && this.navStack[this.navStack.length - 1] === 'typewriter')) {
-        CanvasTypewriter({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
-          heightVp: this.winHeightVp > 0 ? this.winHeightVp : this.stageHeight,
-          topInset: this.topInset,
-          bottomInset: this.bottomInset,
-          isTablet: this.isTablet,
-          machineKind: this.machineKind,
-          paperKind: this.paperKind,
-          docTitle: this.docTitle,
-          guideEnabled: this.guideEnabled,
-          paperWidthVp: this.paperWidthVp,
-          paperHeightVp: this.paperHeightVp,
-          paperContainerVp: this.paperContainerVp,
-          paperResetTick: this.canvasPaperResetTick,
-          // 第 24 批（R-B5）：新 PaperPanel 接管纸面 → 旧纸层不画（批 3 随 Canvas 退役删）
-          paperHidden: this.paperHidden,
-          paperTopVp: this.paperTopVp,
-          carriageTopVp: this.carriageTopVp,
-          carriageHeightVp: this.carriageHeight,
-          strikeLineVp: this.strikeLineVp,
-          fontSizeVp: this.fontSizeVp,
-          lineHeightVp: this.lineHeightVp,
-          marginHVp: this.marginH(),
-          marginTVp: this.marginT(),
-          marginBVp: this.marginB(),
-          pageNo: this.sheetNo,
-          pageCount: this.sheetCount,
-          hintText: this.hintText,
-          lines: this.docLineTexts(),
-          cursorXVp: this.marginH() + this.currentLineWidthVp(),
-          cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
-          keybedHeightVp: this.keybedHeight,
-          functionRowHeightVp: this.functionRowHeight,
-          fontBarHeightVp: this.fontBarHeight,
-          candBarHeightVp: this.isTablet ? 0 : 44,
-          langLabel: 'EN',
-          deleteLabel: '删除',
-          newlineLabel: '换行',
-          paperLabel: '换纸',
-          backLineLabel: '退行',
-          charLabel: '字符',
-          fontFamily: this.fontFamily,
-          fontLabel: this.fontLabelOfCurrentMachine(),
-          inkColor: this.inkColor,
-          onOpenHome: (): void => { this.popTo('home'); },
-          onOpenMenu: (): void => { this.menuOpen = true; },
-          joltYVp: this.joltYVp,
-          carriageOffsetVp: this.carriageOffsetVp,
-          canvasEnabled: this.canvasEnabled,
-          animMode: this.animMode,
-          canvasDeleteTick: this.canvasDeleteTick,
-          canvasDeleteTargetVp: this.canvasDeleteTargetVp,
-          canvasBackTick: this.canvasBackTick,
-          canvasBackTargetVp: this.canvasBackTargetVp,
-          canvasPaperTick: this.canvasPaperTick,
-          canvasPaperMode: this.canvasPaperMode,
-          canvasPaperFromTopVp: this.canvasPaperFromTopVp,
-          canvasPaperFromBoxVp: this.canvasPaperFromBoxVp,
-          canvasPaperTopTargetVp: this.canvasPaperTopTargetVp,
-          canvasPaperBoxTargetVp: this.canvasPaperBoxTargetVp,
-          canvasPaperDurMs: this.canvasPaperDurMs,
-          initialCarriageOffsetVp: this.carriageOffsetVp,
-          initialArchXVp: this.archXVp,
-          initialPaperTopVp: this.paperTopVp,
-          initialPaperContainerVp: this.paperContainerVp,
-          canvasNewlineTick: this.newlineTick(),
-          canvasNewlineCarriageTargetVp: this.newlineCarriageTargetO,
-          clockActive: this.navStack[this.navStack.length - 1] === 'typewriter',
-          leverHDragVp: this.leverHForDrag(),
-          canvasLeverReleaseTick: this.canvasLeverReleaseTick,
-          canvasLeverReleaseCommit: this.canvasLeverReleaseCommit,
-          canvasArchTick: this.canvasArchTick,
-          canvasArchTargetVp: this.canvasArchTargetVp,
-          canvasArchDurMs: this.canvasArchDurMs,
-          canvasStrikeTick: this.canvasStrikeTick,
-          a11yEnabled: this.a11yOverlayEnabled,
-          onStrikeArrive: (): void => { this.onStrikeArrive(); },
-          candidates: this.candCurrent,
-          onCandidatePick: (i: number): void => { this.pinyinPick(i); },
-          onCandidateLong: (i: number): void => { this.pinyinPick(i); },
-          onFunctionKey: (key: string): void => {
-            if (key === 'lang') {
-              hilog.info(DOMAIN, TAG, 'canvas lang before=%{public}s engine=%{public}s', this.langZh ? 'true' : 'false', this.cnEngine);
-              this.langZh = !this.langZh;
-              this.applyChineseMode(this.langZh);
-              this.paperAnimateNext = true;
-              this.recalcTravel();
-              this.recalcPaperHeight();
-            } else if (key === 'delete') {
-              this.onDelete();
-            } else if (key === 'newline') {
-              this.onNewline();
-            } else if (key === 'paper') {
-              this.onPaperChange();
-            } else if (key === 'backline') {
-              this.onBackLine();
-            } else if (key === 'char') {
-              this.symbolMode = !this.symbolMode;
-            }
-          },
-          onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
-          onCapUp: (cap: CapDef): void => { this.onCapUp(cap); },
-          onLeverStart: (x: number): void => {
-            this.leverPanStart(x > this.stageWidth * 0.78, 'canvas');
-          },
-          onLeverUpdate: (dy: number): void => { this.leverPanUpdate(dy); },
-          onLeverEnd: (): void => { this.leverPanEnd(); },
-        })
-          .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
-      }
 
       // ---- 第 25 批（23 号稿批 2）：五区 UI 件按设计序挂在 Canvas 之上（与 Canvas 兄弟级）----
       // 设计序：顶栏 → 纸区（纸面板＋横尺＋落字导件＋拨杆＋旋钮）→ 字篮区 → 功能行 → 字体条 → 键盘区。
@@ -5341,15 +4562,6 @@ struct Index {
         .position({ x: 0, y: 0 })
         .hitTestBehavior(HitTestMode.None)
 
-        // 色带条（z1）：批 2 先挂在纸面板之下（画在纸前＝被纸盖住＝“藏好”）；批 3 升降时改绘制次序
-        Image($rawfile('ui-parts/ribbon-strip.png'))
-          .width(this.paperPanelWidthVp())
-          .height(this.paperPanelWidthVp() * 290 / 2736)
-          .objectFit(ImageFit.Fill)
-          .id('p25_ribbon')
-          .position({ x: this.paperPanelLeftVp(), y: this.ribbonTopVp() })
-          .hitTestBehavior(HitTestMode.None)
-
         // 纸面板（z1）：纸是 UI 面板，文字是 Text；直角、容器 clip 到纸区高
         PaperPanel({
           leftVp: this.paperPanelLeftVp(),
@@ -5372,6 +4584,17 @@ struct Index {
           .id('p25_paper_panel')
           .position({ x: this.paperPanelLeftVp(), y: this.paperZoneTopVp() })
 
+        // 色带条（z1，纸后绘制）：平时藏（strikePhase=0 → opacity 0）；击打时抬起盖在纸面（§4.3）
+        Image($rawfile('ui-parts/ribbon-strip.png'))
+          .width(this.paperPanelWidthVp())
+          .height(this.paperPanelWidthVp() * 290 / 2736)
+          .objectFit(ImageFit.Fill)
+          .opacity(this.strikePhase > 0.02 ? Math.min(1, this.strikePhase * 2) : 0)
+          .translate({ y: this.strikePhase * -12 })
+          .id('p25_ribbon')
+          .position({ x: this.paperPanelLeftVp(), y: this.paperCursorYVp() + this.paperZoneTopVp() - 8 })
+          .hitTestBehavior(HitTestMode.None)
+
         // 横尺与页边标记（z2）：图片件（刻度＋红三角＋齿状边 baked），只在有纸时显示
         Image($rawfile('ui-parts/ruler.png'))
           .width(this.paperPanelWidthVp())
@@ -5389,7 +4612,7 @@ struct Index {
           triangleH: 4,
         })
           .id('p25_strike_guide')
-          .position({ x: this.stageWidth * 0.5 - 3, y: this.paperZoneTopVp() })
+          .position({ x: this.guideXVp - 3, y: this.paperZoneTopVp() })
 
         // 字篮图形（z4）：图片件扇形底图，底缘与功能行顶缘重合 0vp
         Image($rawfile(this.basketFanRawfile()))
@@ -5398,6 +4621,17 @@ struct Index {
           .objectFit(ImageFit.Contain)
           .id('p25_basket')
           .position({ x: this.stageWidth * 0.5 - this.stageWidth * 0.4, y: this.basketTopVp() })
+          .hitTestBehavior(HitTestMode.None)
+
+        // 字杆（§4.3 打击动件）：只在中部一根，随 strikePhase 上摆、回落（正面看纵向缩短的近似）
+        Image($rawfile(this.typebarRawfile()))
+          .width(this.stageWidth * 0.2)
+          .height(H_BASKET_VP * 0.92)
+          .objectFit(ImageFit.Contain)
+          .opacity(this.strikePhase > 0.02 ? 0.96 : 0)
+          .translate({ y: this.strikePhase * -16 })
+          .id('p25_typebar')
+          .position({ x: this.stageWidth * 0.5 - this.stageWidth * 0.1, y: this.basketTopVp() + 2 })
           .hitTestBehavior(HitTestMode.None)
 
         // 功能行（z5）：扁平 HUD 金色 #c9a45c、圆角零、六项文字按钮
@@ -5512,30 +4746,37 @@ struct Index {
           .id('p25_key_grid')
           .position({ x: 0, y: this.keyGridTopVp() })
 
-        // 拨杆控件（z7）：Q14(a) 右缘竖向手柄（图片件 lever.png；拖拽时序在批 3）
+        // 拨杆控件（z7／Q14(a)）：右缘竖向手柄；点按＝换行、纵向拖拽过半触发（§5.2）
         Image($rawfile('ui-parts/lever.png'))
           .width(this.leverWidthVp())
           .height(this.leverHeightVp())
           .objectFit(ImageFit.Fill)
+          .rotate({ angle: this.leverAngleVp })
           .id('p25_lever')
           .position({ x: this.leverLeftVp(), y: this.leverTopVp() })
-          .hitTestBehavior(HitTestMode.None)
+          .onClick(() => { this.onNewline(); })
+          .gesture(PanGesture({ direction: PanDirection.Vertical })
+            .onActionStart(() => { this.leverPanStart(true, 'ui'); })
+            .onActionUpdate((e: GestureEvent) => { this.leverPanUpdate(e.offsetY); })
+            .onActionEnd(() => { this.leverPanEnd(); }))
 
         // 旋钮控件（z7）：Q15(a) 一对圆形按钮（图片件 knob-metal.png；点按进纸在批 3）
         Image($rawfile('ui-parts/knob-metal.png'))
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)
+          .rotate({ angle: this.knobAngleDeg })
           .id('p25_knob_left')
           .position({ x: this.knobLeftXVp(), y: this.knobTopVp() })
-          .hitTestBehavior(HitTestMode.None)
+          .onClick(() => { this.onKnobAdvance(); })
         Image($rawfile('ui-parts/knob-metal.png'))
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)
+          .rotate({ angle: this.knobAngleDeg })
           .id('p25_knob_right')
           .position({ x: this.knobRightXVp(), y: this.knobTopVp() })
-          .hitTestBehavior(HitTestMode.None)
+          .onClick(() => { this.onKnobAdvance(); })
 
         // 顶栏（App 铬，不属于机器）：与五区共用同一套几何（y=topInset）
         TopBar({
@@ -5563,9 +4804,7 @@ struct Index {
           deleteMode: this.deleteMode,
           onToggleSound: (): void => { this.toggleSound(); },
           onToggleVibrate: (): void => { this.toggleVibrate(); },
-          canvasEnabled: this.canvasEnabled,
           a11yEnabled: this.a11yOverlayEnabled,
-          onToggleCanvas: (): void => { this.canvasEnabled = !this.canvasEnabled; },
           onToggleA11y: (): void => { this.a11yOverlayEnabled = !this.a11yOverlayEnabled; },
           onVolume: (v: number): void => { this.setVolume(v); },
           onDeleteMode: (mode: string): void => { this.setDeleteMode(mode); },

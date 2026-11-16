@@ -50,9 +50,9 @@ export struct SettingsPage {
   /** F6：真实写盘与生效都在 Index（本页只发意图）。 */
   onToggleSound: () => void = (): void => {};
   onToggleVibrate: () => void = (): void => {};
-  canvasEnabled: boolean = true;
+
   a11yEnabled: boolean = false;
-  onToggleCanvas: () => void = (): void => {};
+
   onToggleA11y: () => void = (): void => {};
   onVolume: (v0to100: number) => void = (v0to100: number): void => {};
   onDeleteMode: (mode: string) => void = (mode: string): void => {};
@@ -165,14 +165,8 @@ export struct SettingsPage {
 
         // 2b Canvas 调试（2B-8 回滚 / 2C-2 无障碍覆盖层）
         Column() {
-          this.groupTitle('Canvas')
-          SettingsRow({
-            label: 'Canvas 主屏（回滚）',
-            mode: 'switch',
-            switchOn: this.canvasEnabled,
-            onToggle: (): void => { this.onToggleCanvas(); },
-          })
-          this.divider()
+          this.groupTitle('界面')
+          // 第 26 批（批 3）：Canvas 主屏开关随 CanvasTypewriter 退役一并删除（SWITCH_KEYS 4→3）
           SettingsRow({
             label: '无障碍覆盖层',
             mode: 'switch',
