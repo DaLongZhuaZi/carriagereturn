@@ -13,6 +13,12 @@ import { AppIcon } from './AppIcon';
 import { SettingsRow } from './SettingsRow';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { SpotlightStep } from './SpotlightOverlay';
+// 第 27 批（批 4）：标准件变体读写与登记
+import { CustomizeStore } from '../services/CustomizeStore';
+import { PART_VARIANTS, PartVariantSpec } from '../model/PartVariants';
+
+/** 换装页「标准件」分区只展示可切的四件（其余六件本批无变体或由既有入口驱动）。 */
+const PART_ROWS: string[] = ['key-grid', 'basket', 'knob', 'body-panel'];
 
 /** 第 23 批（19 号稿 §4-7）：机型页动画模式四行。 */
 interface AnimModeRow {
@@ -52,6 +58,8 @@ export struct CustomizePage {
   @Prop widthVp: number = 673.7;
   @Prop heightVp: number = 720;
   @Prop machineKind: string = '1920s-upright';
+  /** 第 27 批：换一件变体（只换 token，几何不动）。 */
+  onPickPart: (part: string, value: string) => void = (part: string, value: string): void => {};
   @Prop paperKind: string = 'LETTER';
   @Prop ribbonKind: string = 'BLACK';
   @Prop fontKind: string = '';
@@ -218,6 +226,34 @@ export struct CustomizePage {
                     .hitTestBehavior(HitTestMode.None)
                 }.width('100%').margin({ top: 10 })
               }, (r: AnimModeRow, idx: number) => r.machine + ':' + this.modeAt(idx))
+            }
+            .width('100%').margin({ top: 24 })
+            .opacity(this.revealN > 0 ? 1 : 0)
+
+            // ①b 第 27 批（批 4）：标准件变体（按区域换 token；换一件、其余九件不动）
+            Column() {
+              this.sectionTitle('标准件')
+              ForEach(PART_ROWS, (part: string) => {
+                Column() {
+                  Text(part === 'key-grid' ? '键盘帽形' : (part === 'basket' ? '字篮风格'
+                    : (part === 'knob' ? '旋钮面' : '机身配色')))
+                    .fontSize(13).fontColor('#8a7f70').width('100%')
+                    .hitTestBehavior(HitTestMode.None)
+                  Row() {
+                    ForEach(PART_VARIANTS.filter((s: PartVariantSpec) => s.part === part)[0].values,
+                      (v: string) => {
+                        Text(v)
+                          .fontSize(12)
+                          .fontColor(CustomizeStore.partVariant(part, this.machineKind) === v ? '#1a1a1a' : '#8a7f70')
+                          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                          .borderRadius(10)
+                          .backgroundColor(CustomizeStore.partVariant(part, this.machineKind) === v ? '#c9a45c' : '#f3ead8')
+                          .margin({ right: 8 })
+                          .onClick(() => { this.onPickPart(part, v); })
+                      }, (v: string) => part + ':' + v)
+                  }.width('100%').margin({ top: 6 })
+                }.width('100%').margin({ top: 10 })
+              }, (part: string) => part)
             }
             .width('100%').margin({ top: 24 })
             .opacity(this.revealN > 0 ? 1 : 0)

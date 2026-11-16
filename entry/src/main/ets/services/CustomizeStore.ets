@@ -18,6 +18,8 @@ import {
 import {
   CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize,
 } from '../model/CandidateCore';
+// 第 27 批（批 4／R-m24）：标准件变体值域与缺省
+import { defaultVariant, PartVariantSpec, PART_VARIANTS, sanitizeVariant } from '../model/PartVariants';
 
 /** 某张纸当前生效的自定义值（未设置的字段已回落 catalog 默认值）。 */
 export interface PaperValues {
@@ -41,6 +43,33 @@ const FIELD_TEXTURE: string = 'texture';
 
 /** 自定义值的唯一读写入口（全静态，无状态）。 */
 export class CustomizeStore {
+  // ---- 第 27 批（批 4）：标准件变体（10 件 × 4 机型 = 40 键）----
+
+  /** 某件在某机的变体值；未设／非法一律回落该机缺省（不抛）。 */
+  static partVariant(part: string, machine: string): string {
+    const raw: string = appPreferences.getString(PrefKeys.uiPartKey(part, machine), '');
+    if (raw.length === 0) {
+      return defaultVariant(part, machine);
+    }
+    return sanitizeVariant(part, machine, raw);
+  }
+
+  /** 写变体（只写 token；几何不动）。 */
+  static setPartVariant(part: string, machine: string, value: string): void {
+    const ok: string = sanitizeVariant(part, machine, value);
+    appPreferences.setString(PrefKeys.uiPartKey(part, machine), ok);
+  }
+
+  /** 该件的可选值列表（换装页渲染用）。 */
+  static partValues(part: string): string[] {
+    for (const s of PART_VARIANTS) {
+      if (s.part === part) {
+        return s.values;
+      }
+    }
+    return [];
+  }
+
   // ---- 每机字体（M-1：渲染唯一来源）----
 
   /** 某台机的字体族名；未设置返回 ''（下游用它回落该机的默认字体）。 */

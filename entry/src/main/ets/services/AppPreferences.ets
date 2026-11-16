@@ -70,6 +70,16 @@ export class PrefKeys {
   static readonly ACHIEVE_PREFIX: string = 'achieve.';
   /** 第 23 批（19 号稿 §4-1）：每机动画模式 `anim.mode.<machine>` = realistic／simulated（缺省 realistic）。 */
   static readonly ANIM_MODE_PREFIX: string = 'anim.mode.';
+  /**
+   * 第 27 批（23 号稿批 4／R-m24）：标准件变体 `ui.part.<part>.<machine>`，共 40 键（10 件 × 4 机型）。
+   * 值域由 model/PartVariants.ets 的 PART_VARIANTS 登记；非法值回落该机缺省。
+   */
+  static readonly UI_PART_PREFIX: string = 'ui.part.';
+
+  /** 某件在某机的变体键。 */
+  static uiPartKey(part: string, machine: string): string {
+    return PrefKeys.UI_PART_PREFIX + part + '.' + machine;
+  }
 
   /** 某台机的动画模式键。 */
   static animModeKey(machine: string): string {
@@ -160,6 +170,7 @@ export class PrefRegistry {
       { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
       // 第 26 批（批 3）：Canvas 主屏开关随 CanvasTypewriter 退役删除（SWITCH_KEYS 4→3）
+      { key: PrefKeys.UI_PART_PREFIX + '<part>.<machine>', type: 'string', defaultValue: '', owner: 'P27', note: '标准件变体 40 键（10 件×4 机型；值域 PartVariants）', removeAfter: '—' },
       { key: PrefKeys.ANIM_MODE_PREFIX, type: 'string', defaultValue: 'realistic', owner: 'B23', note: '每机动画模式：`anim.mode.<machine>` = realistic／simulated（19 号稿；缺省写实）' },
     ];
   }
@@ -183,6 +194,8 @@ export class PrefRegistry {
     const prefixes: string[] = [
       PrefKeys.GUIDE_PREFIX, PrefKeys.CUSTOM_FONT_PREFIX, PrefKeys.CUSTOM_PAPER_PREFIX,
       PrefKeys.STATS_EVENT_PREFIX, PrefKeys.ACHIEVE_PREFIX, PrefKeys.ANIM_MODE_PREFIX,
+      // 第 27 批（批 4）：10 件 × 4 机型 = 40 键（值域在 PartVariants 登记）
+      PrefKeys.UI_PART_PREFIX,
     ];
     for (let i = 0; i < prefixes.length; i++) {
       if (key.indexOf(prefixes[i]) === 0 && key.length > prefixes[i].length) {

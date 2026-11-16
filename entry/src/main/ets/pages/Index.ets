@@ -79,6 +79,8 @@ import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { PaperPanel } from '../components/PaperPanel';
 // 第 25 批（批 2／§3.2 #3）：落字导件（矢量例外：1vp 虚线＋倒三角）
 import { StrikeGuide } from '../components/StrikeGuide';
+// 第 27 批（批 4／R-m24）：标准件变体（10 件 × 4 机型 = 40 键）
+import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/PartVariants';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
@@ -133,6 +135,8 @@ const H_RULER_VP: number = 8;
 const H_BASKET_VP: number = 130;
 /** 功能行高（§D22：40vp；第 25 批按设计值，旧 52vp 常量留给旧页）。 */
 const H_FUNC_ROW_V2_VP: number = 40;
+/** 第 27 批（Q11a）：候选栏在键盘网格上方 44vp 常驻占位（中文模式显示候选、英文留空）。 */
+const H_CAND_V2_VP: number = 44;
 
 function emptyLayout(): KeymapLayout {
   return {
@@ -252,6 +256,8 @@ struct Index {
   @State leverAngleVp: number = 0;
   @State knobAngleDeg: number = 0;
   @State strikePhase: number = 0;
+  /** 第 27 批：变体变更计数（换装页改一件 → 重建该件，其余不动）。 */
+  @State partsRev: number = 0;
   /** 帧时钟本体（Animator，duration 1,000,000ms 线性、iterations −1）。 */
   private frameClock: AnimatorResult | null = null;
   private frameNowMs: number = 0;
@@ -1423,7 +1429,8 @@ struct Index {
   /** 纸区高 H_paperZone＝stageH − 其余四区（含横尺／字体条／底安全区）。 */
   private hPaperZoneVp(): number {
     const fixed: number = this.topInset + this.topBarHeight + PAPER_TOP_GAP_VP + H_RULER_VP
-      + H_BASKET_VP + H_FUNC_ROW_V2_VP + this.fontBarHeight + this.keybedHeight + this.bottomInset;
+      + H_BASKET_VP + H_FUNC_ROW_V2_VP + this.fontBarHeight + H_CAND_V2_VP
+      + this.keybedHeight + this.bottomInset;
     const h: number = this.canvasHeightVp() - fixed;
     return h > 120 ? h : 120;
   }
@@ -1450,8 +1457,11 @@ struct Index {
   /** 字体条顶缘（功能行下）。 */
   private fontBarTopVp(): number { return this.funcRowTopVp() + H_FUNC_ROW_V2_VP; }
 
-  /** 键盘网格顶缘（字体条下，底缘＝底安全区上）。 */
-  private keyGridTopVp(): number { return this.fontBarTopVp() + this.fontBarHeight; }
+  /** 候选栏顶缘（字体条下 44vp 常驻占位）。 */
+  private candBarTopVp(): number { return this.fontBarTopVp() + this.fontBarHeight; }
+
+  /** 键盘网格顶缘（候选栏下，底缘＝底安全区上）。 */
+  private keyGridTopVp(): number { return this.candBarTopVp() + H_CAND_V2_VP; }
 
   /** 拨杆手柄：右缘内侧，顶缘贴纸区顶下 20%，高＝纸区 60%（D13／§2.5 第 3 条）。 */
   private leverLeftVp(): number {
@@ -1470,10 +1480,9 @@ struct Index {
 
   /** 机身材质贴片（§2.5 第 5 条：机身面板；批 2 起取代 KeyGrid 过渡底板）。 */
   private bodyPanelRawfile(): string {
-    const k: string = this.machineKind as string;
-    const i: number = k.indexOf('-');
-    const slug: string = i > 0 ? k.substring(0, i) : k;
-    return 'ui-parts/bodypanel-' + slug + '-grain.png';
+    // 第 27 批：机身配色变体（跨机型混搭允许，Q3(a)）
+    const v: string = CustomizeStore.partVariant('body-panel', this.machineKind as string);
+    return 'ui-parts/bodypanel-' + bodySlugOfVariant(v) + '-grain.png';
   }
 
   /** 字杆贴片（§7.4 typebar-<machine>.png；§4.3 打击动件）。 */
@@ -1489,7 +1498,22 @@ struct Index {
     const k: string = this.machineKind as string;
     const i: number = k.indexOf('-');
     const slug: string = i > 0 ? k.substring(0, i) : k;
-    return 'ui-parts/basket-fan-' + slug + '.png';
+    // 第 27 批：字篮风格变体（flat-line★／metal-gradient）
+    const v: string = CustomizeStore.partVariant('basket', k);
+    return v === 'metal-gradient'
+      ? 'ui-parts/basket-fan-metal-' + slug + '.png'
+      : 'ui-parts/basket-fan-' + slug + '.png';
+  }
+
+  /** 第 27 批：旋钮面变体（metal-knurl★／matte-black，通用图）。 */
+  private knobRawfile(): string {
+    const v: string = CustomizeStore.partVariant('knob', this.machineKind as string);
+    return v === 'matte-black' ? 'ui-parts/knob-matteblack.png' : 'ui-parts/knob-metal.png';
+  }
+
+  /** 第 27 批：键盘帽形变体（rounded-rect★／round）。 */
+  private capShape(): string {
+    return CustomizeStore.partVariant('key-grid', this.machineKind as string);
   }
 
   /** 落字点标记的 y（相对纸面板顶；批 2 先按最后一行行中，批 3 帧时钟接管）。 */
@@ -1542,10 +1566,9 @@ struct Index {
 
   /** 键区过渡态底板色（23 号稿 §2.5 第 5 条机身色；批 2 机身面板挂载后由面板接管）。 */
   private machineBodyColor(): string {
-    if (this.machineKind === MachineKind.UPRIGHT_1920S) { return '#312b24'; }
-    if (this.machineKind === MachineKind.PORTABLE_1930S) { return '#3d3732'; }
-    if (this.machineKind === MachineKind.STREAMLINED_1950S) { return '#c8b9a6'; }
-    return '#928b82';
+    // 第 27 批：取机身配色变体（缺省＝本机 colorway）
+    const v: string = CustomizeStore.partVariant('body-panel', this.machineKind as string);
+    return bodyColorOfVariant(v);
   }
 
   /** 设备类型（phone / tablet / 2in1 / ...）。 */
@@ -4428,6 +4451,13 @@ struct Index {
           onFontSize: (v: number): void => { this.applyFontSize(v); },
           animModes: this.animModes,
           onPickAnimMode: (machine: string, mode: string): void => { this.setAnimMode(machine, mode); },
+          // 第 27 批（批 4）：标准件变体——只换 token、几何不动；换一件其余九件不动
+          onPickPart: (part: string, value: string): void => {
+            CustomizeStore.setPartVariant(part, this.machineKind as string, value);
+            this.partsRev = this.partsRev + 1;
+            hilog.info(DOMAIN, TAG, 'part variant part=%{public}s value=%{public}s machine=%{public}s',
+              part, value, this.machineKind as string);
+          },
           onBack: (): void => { this.popPage(); },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
@@ -4713,6 +4743,42 @@ struct Index {
           .height(this.fontBarHeight)
           .position({ x: 0, y: this.fontBarTopVp() })
 
+        // 候选栏（第 27 批／Q11a）：键盘网格上方 44vp 常驻占位（中文态出候选、英文态深底留空）
+        if (this.langZh && this.pinyinReady) {
+          CandidateBar({
+            candidates: this.candCurrent,
+            pinyin: this.cnPinyin,
+            pages: this.candPages,
+            page: this.candPage,
+            chipFontSize: this.candChipFontSize,
+            onPick: (i: number): void => { this.pinyinPick(i); },
+            onLongPress: (i: number): void => { this.pinyinPick(i); },
+            onPrev: (): void => {
+              if (this.candPage > 0) {
+                this.candPage = this.candPage - 1;
+                this.pinyinShown();
+              }
+            },
+            onNext: (): void => {
+              if (this.candPage + 1 < this.candPages) {
+                this.candPage = this.candPage + 1;
+                this.pinyinShown();
+              }
+            },
+          })
+            .id('p27_candbar')
+            .width(this.stageWidth)
+            .height(H_CAND_V2_VP)
+            .position({ x: 0, y: this.candBarTopVp() })
+        } else {
+          Row()
+            .id('p27_candbar_placeholder')
+            .width(this.stageWidth)
+            .height(H_CAND_V2_VP)
+            .backgroundColor('#1a1713')
+            .position({ x: 0, y: this.candBarTopVp() })
+        }
+
         // 键盘网格（z6）：43/49 帽真 Button＋真文字图例；机身面板已接管底板，不再自带 backing
         KeyGrid({
           machineKind: this.machineKind,
@@ -4724,6 +4790,8 @@ struct Index {
           layout: this.displayLayout(),
           overlayFontFamily: this.fontFamily,
           overlayFontSize: 15,
+          // 第 27 批：帽形变体（round 用 keycap-face-round-<slug>.png）
+          capShape: this.capShape(),
           // 图例色取 keymap 的 overlayColor（逐机口径，换帽色只换 token 不换几何）
           labelColor: this.displayLayout().overlayColor,
           originXVp: 0,
@@ -4761,7 +4829,7 @@ struct Index {
             .onActionEnd(() => { this.leverPanEnd(); }))
 
         // 旋钮控件（z7）：Q15(a) 一对圆形按钮（图片件 knob-metal.png；点按进纸在批 3）
-        Image($rawfile('ui-parts/knob-metal.png'))
+        Image($rawfile(this.knobRawfile()))
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)
@@ -4769,7 +4837,7 @@ struct Index {
           .id('p25_knob_left')
           .position({ x: this.knobLeftXVp(), y: this.knobTopVp() })
           .onClick(() => { this.onKnobAdvance(); })
-        Image($rawfile('ui-parts/knob-metal.png'))
+        Image($rawfile(this.knobRawfile()))
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)

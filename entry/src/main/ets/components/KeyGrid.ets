@@ -39,7 +39,8 @@ export struct KeyGrid {
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
   @Prop labelColor: string = '#312b24';
-  /** 第 25 批（批 2）：机身面板已接管底板 → 过渡态 showBacking／backingColor 已删。 */
+  /** 第 27 批（批 4）：帽形变体（rounded-rect★／round）；round 用 keycap-*-round-<slug>.png。 */
+  @Prop capShape: string = 'rounded-rect';
   /** 组件原点（vp，绝对坐标）：只用于打点核对挂载位置。 */
   @Prop originXVp: number = 0;
   @Prop originYVp: number = 0;
@@ -65,6 +66,22 @@ export struct KeyGrid {
       return cap.label.toUpperCase();
     }
     return cap.label;
+  }
+
+  /** 帽面贴片路径（第 27 批：按帽形变体切前缀）。 */
+  private faceRawfile(): string {
+    const mid: string = this.capShape === 'round' ? 'round-' : '';
+    return 'ui-parts/keycap-face-' + mid + this.slug() + '.png';
+  }
+
+  private pressedRawfile(): string {
+    const mid: string = this.capShape === 'round' ? 'round-' : '';
+    return 'ui-parts/keycap-pressed-' + mid + this.slug() + '.png';
+  }
+
+  private spacebarRawfile(): string {
+    const mid: string = this.capShape === 'round' ? 'round-' : '';
+    return 'ui-parts/spacebar-face-' + mid + this.slug() + '.png';
   }
 
   private capW(cap: CapDef): number { return Math.max(1, cap.wRatio * this.widthVp); }
@@ -95,7 +112,7 @@ export struct KeyGrid {
       // 空格条
       Button({ type: ButtonType.Normal, stateEffect: false }) {
         Stack() {
-          Image($rawfile('ui-parts/spacebar-face-' + this.slug() + '.png'))
+          Image($rawfile(this.spacebarRawfile()))
             .objectFit(ImageFit.Fill)
             .width('100%')
             .height('100%')
@@ -125,9 +142,7 @@ export struct KeyGrid {
       ForEach(this.layout.caps, (cap: CapDef) => {
         Button({ type: ButtonType.Normal, stateEffect: false }) {
           Stack() {
-            Image($rawfile(this.pressedId === cap.id
-              ? 'ui-parts/keycap-pressed-' + this.slug() + '.png'
-              : 'ui-parts/keycap-face-' + this.slug() + '.png'))
+            Image($rawfile(this.pressedId === cap.id ? this.pressedRawfile() : this.faceRawfile()))
               .objectFit(ImageFit.Fill)
               .width('100%')
               .height('100%')
