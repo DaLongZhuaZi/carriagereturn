@@ -84,6 +84,8 @@ export struct CanvasTypewriter {
   @Prop canvasArchDurMs: number = 90;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
+  /** 第 24 批（R-B5 过渡态）：为 true 时不画旧纸层与纸面文字——新 PaperPanel 已挂在上面。 */
+  @Prop paperHidden: boolean = false;
   /** 第 23 批（19 号稿 §4-3）：每机动画模式 'realistic' | 'simulated'（由 Index 传入）。 */
   @Prop @Watch('onAnimModeChanged') animMode: string = 'realistic';
   @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
@@ -1019,7 +1021,7 @@ export struct CanvasTypewriter {
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
     // 18 号稿 B2：背景（渐变＋机身）已移到下层静态 Canvas，只画一次；这里不再每帧 blit 全屏背景。
     this.drawRollerLayer(ctx);
-    if (this.paperLayer !== null) {
+    if (this.paperLayer !== null && !this.paperHidden) {
       ctx.save();
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
@@ -1317,6 +1319,10 @@ export struct CanvasTypewriter {
 
   /** 文字统一在主 Canvas 上画（OffscreenCanvas 看不到 registerFont 注册字体，会回落到系统字体）。 */
   private drawTexts(ctx: CanvasRenderingContext2D): void {
+    // 第 24 批（R-B5）：过渡态下旧纸面文字与新 PaperPanel 会重影 → 整体跳过。
+    if (this.paperHidden) {
+      return;
+    }
     ctx.textBaseline = 'middle';
     // 纸面文字（裁剪到纸容器）
     ctx.save();
@@ -1672,6 +1678,7 @@ export struct CanvasTypewriter {
     .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
+
 
 
 
