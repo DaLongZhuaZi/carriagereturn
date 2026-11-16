@@ -3,14 +3,16 @@
  *
  * 口径（23 号稿）：
  *  - 键帽是**真正的 Button**，图例是 Button 里的**真文字**（§2.3／§3.3 第 4 项「无 baked 文字」）；
- *  - 帽面用仓内图片贴片 `ui-parts/keycap-face-<slug>.png`，按下态用 `keycap-pressed-<slug>.png`（同尺寸，高光暗 30%）；
- *  - `hitAt` 的判定**语义**与 `PhotoKeybed` L181 一致：本组件把每个 CapDef 直接摆成 Button，
- *    点按即命中该帽（等价于原逐帽矩形判定 `|dx|≤w/2 且 |dy|≤h/2`，重叠区由 Stack 上层优先）；
+ *  - 帽面用仓内图片贴片 `ui-parts/keycap-face-<slug>.png`，按下态用 `keycap-pressed-<slug>.png`；
+ *  - **帽面与图例是两个显式的兄弟层**（Stack 内 Image ＋ Text）——第 6 轮实测「Button＋backgroundImage＋Text」
+ *    时文字没上屏（截图 1701 帽面全空白），故改成兄弟层，不再依赖 backgroundImage 与子内容的绘制次序；
+ *  - `hitAt` 语义与 `PhotoKeybed` L181 一致：每个 CapDef 直接摆成一个 Button，点按即命中该帽；
  *  - 按下态可见：命中帽下沉 2vp（§2.3 第 4 条）；
- *  - 长标签（Shift／Backspace／Return／空格）必须完整显示：`minFontSize` 自适应缩小，不许截断。
+ *  - 长标签（Shift／Backspace／Return／Caps Lock）必须完整显示：宽度约束＋`minFontSize` 自适应，不许截断。
  */
 import { MachineKind } from '../model/DocModel';
 import { CapDef, KeymapLayout } from '../model/KeymapModel';
+
 function emptyLayout(): KeymapLayout {
   return {
     machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
@@ -46,7 +48,6 @@ export struct KeyGrid {
     return i > 0 ? k.substring(0, i) : k;
   }
 
-  /** 图例：Shift/Caps 生效时显示大写。 */
   private labelOf(cap: CapDef): string {
     if (cap.rowIndex >= 0 && (this.shiftActive || this.capsActive)) {
       return cap.label.toUpperCase();
@@ -58,37 +59,56 @@ export struct KeyGrid {
 
   private capH(cap: CapDef): number { return Math.max(1, cap.hRatio * this.heightVp); }
 
+  private isCapsLock(cap: CapDef): boolean { return cap.label === 'Caps Lock' || cap.label === 'Shift'; }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 空格条：单独一个 Button（keymap 用矩形描述，不在 caps 里）
+      // 空格条
       Button({ type: ButtonType.Normal, stateEffect: false }) {
-        Text(' ')
-          .fontSize(this.overlayFontSize)
-          .fontColor(this.labelColor)
-          .fontFamily(this.overlayFontFamily)
+        Stack() {
+          Image($rawfile('ui-parts/spacebar-face-' + this.slug() + '.png'))
+            .objectFit(ImageFit.Fill)
+            .width('100%')
+            .height('100%')
+            .hitTestBehavior(HitTestMode.None)
+          Text(' ')
+            .fontSize(this.overlayFontSize)
+            .fontColor(this.labelColor)
+            .fontFamily(this.overlayFontFamily)
+        }
+        .width('100%')
+        .height('100%')
       }
       .width(Math.max(1, this.layout.spaceXMax - this.layout.spaceXMin))
       .height(Math.max(1, this.layout.spaceYMax - this.layout.spaceYMin))
       .position({ x: this.layout.spaceXMin, y: this.layout.spaceYMin })
       .backgroundColor(Color.Transparent)
-      .backgroundImage($rawfile('ui-parts/spacebar-face-' + this.slug() + '.png'), ImageRepeat.NoRepeat)
-      .backgroundImageSize(ImageSize.FILL)
       .borderRadius(0)
       .translate({ y: this.pressedId === 'space' ? 2 : 0 })
 
-      // 逐帽 Button：位置＝帽心 − 半帽宽/高（与原 hitAt 的矩形判定同几何）
+      // 逐帽：Button 内 Stack{ Image(帽面/按下态) + Text(图例) }
       ForEach(this.layout.caps, (cap: CapDef) => {
         Button({ type: ButtonType.Normal, stateEffect: false }) {
-          Text(this.labelOf(cap))
-            .fontSize(this.overlayFontSize)
-            .fontColor(this.labelColor)
-            .fontFamily(this.overlayFontFamily)
-            .width(this.capW(cap) - 4)
-            .maxLines(1)
-            .minFontSize(6)
-            .maxFontSize(this.overlayFontSize)
-            .textAlign(TextAlign.Center)
-            .padding(0)
+          Stack() {
+            Image($rawfile(this.pressedId === cap.id
+              ? 'ui-parts/keycap-pressed-' + this.slug() + '.png'
+              : 'ui-parts/keycap-face-' + this.slug() + '.png'))
+              .objectFit(ImageFit.Fill)
+              .width('100%')
+              .height('100%')
+              .hitTestBehavior(HitTestMode.None)
+            Text(this.labelOf(cap))
+              .fontSize(this.overlayFontSize)
+              .fontColor(this.labelColor)
+              .fontFamily(this.overlayFontFamily)
+              .width(this.capW(cap) - 4)
+              .textAlign(TextAlign.Center)
+              .maxLines(1)
+              .minFontSize(6)
+              .maxFontSize(this.overlayFontSize)
+          }
+          .width('100%')
+          .height('100%')
         }
         .width(this.capW(cap))
         .height(this.capH(cap))
@@ -97,12 +117,6 @@ export struct KeyGrid {
           y: cap.yRatio * this.heightVp - this.capH(cap) / 2,
         })
         .backgroundColor(Color.Transparent)
-        .backgroundImage(
-          $rawfile(this.pressedId === cap.id
-            ? 'ui-parts/keycap-pressed-' + this.slug() + '.png'
-            : 'ui-parts/keycap-face-' + this.slug() + '.png'),
-          ImageRepeat.NoRepeat)
-        .backgroundImageSize(ImageSize.FILL)
         .borderRadius(0)
         .translate({ y: this.pressedId === cap.id ? 2 : 0 })
         .onTouch((e: TouchEvent) => {
@@ -120,7 +134,4 @@ export struct KeyGrid {
     .height(this.heightVp)
   }
 }
-
-
-
 
