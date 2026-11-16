@@ -916,11 +916,12 @@ export struct CanvasTypewriter {
     if (!this.frameActive()) { this.draw(); }
   }
 
-  /** 可移动滚筒层：随 carriageOffsetVp 平移；底座/键床不动。 */
+  /** 滚筒层：**固定不动**（用户 2026-11-16 定案：机器固定、只有纸走）；底座/键床不动。 */
   private drawRollerLayer(ctx: CanvasRenderingContext2D): void {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX() + this.renderO;
+    // 滚筒不跟 renderO 走：旧口径（paperX+renderO）在 O 走满 −64vp 时会把滚筒推出屏幕（批 22 §0 根因 1）。
+    const paperLeft: number = this.paperX();
     const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
     const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
@@ -983,7 +984,8 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.bailLayer, this.paperX() + this.renderO, this.bailY);
     }
     if (this.bracketLayer !== null) {
-      ctx.drawImage(this.bracketLayer, this.bracketX0 + this.renderO, this.bracketY0);
+      // 金属座（拨杆支架）固定：不带 renderO（用户 2026-11-16 定案；旧版每帧带 O 上屏会跟着滚筒左右移）。
+      ctx.drawImage(this.bracketLayer, this.bracketX0, this.bracketY0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
@@ -1213,14 +1215,12 @@ export struct CanvasTypewriter {
     }
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    const paperLeft: number = this.paperX() + this.renderO;
-    const knobD: number = Hc * 0.92;
-    const baseLeft: number = (this.widthVp - this.paperWidthVp) / 2 - knobD;
-    const baseW: number = this.paperWidthVp + 2 * knobD;
-    const bracketW: number = 60;
-    const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.renderO;
-    const bracketTop: number = this.carriageTopVp - Hc / 2 + Hc + 24 - bracketH;
+    // 批 22：支架已固定（buildMachineLayer 里烘焙在 O=0 基准），拨杆销钉改用同一份几何，
+    // 不再自己重算——旧版少了 stackTop() 导致销钉比支架图高 104vp（扳手悬空的直接原因）。
+    const bracketW: number = this.bracketW;
+    const bracketH: number = this.bracketH;
+    const bracketLeft: number = this.bracketX0;
+    const bracketTop: number = this.bracketY0;
     const leverW: number = this.isTablet
       ? Hc * 1.84 * this.leverSizeRatio(spec)
       : Hc * 2.5 * this.leverSizeRatio(spec);
