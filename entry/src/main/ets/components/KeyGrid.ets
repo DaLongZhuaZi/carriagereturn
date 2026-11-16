@@ -10,6 +10,7 @@
  *  - 按下态可见：命中帽下沉 2vp（§2.3 第 4 条）；
  *  - 长标签（Shift／Backspace／Return／Caps Lock）必须完整显示：宽度约束＋`minFontSize` 自适应，不许截断。
  */
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { MachineKind } from '../model/DocModel';
 import { CapDef, KeymapLayout } from '../model/KeymapModel';
 
@@ -60,6 +61,12 @@ export struct KeyGrid {
   private capH(cap: CapDef): number { return Math.max(1, cap.hRatio * this.heightVp); }
 
   private isCapsLock(cap: CapDef): boolean { return cap.label === 'Caps Lock' || cap.label === 'Shift'; }
+
+  aboutToAppear(): void {
+    hilog.info(0x0000, 'KeyGrid', 'mount w=%{public}s h=%{public}s caps=%{public}d space=%{public}s slug=%{public}s',
+      this.widthVp.toFixed(1), this.heightVp.toFixed(1), this.layout.caps.length,
+      (this.layout.spaceXMax - this.layout.spaceXMin).toFixed(1), this.slug());
+  }
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -134,4 +141,5 @@ export struct KeyGrid {
     .height(this.heightVp)
   }
 }
+
 
