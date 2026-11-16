@@ -14,6 +14,21 @@ import { SettingsRow } from './SettingsRow';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { SpotlightStep } from './SpotlightOverlay';
 
+/** 第 23 批（19 号稿 §4-7）：机型页动画模式四行。 */
+interface AnimModeRow {
+  machine: string;
+  label: string;
+  noteReal: string;
+  noteSim: string;
+  electric: boolean;
+}
+
+const ANIM_MODE_ROWS: AnimModeRow[] = [
+  { machine: '1920s-upright', label: '1920s 直立式', noteReal: '写实：纸筒带纸全幅，拱固定', noteSim: '模拟：拱移动，纸筒小幅', electric: false },
+  { machine: '1930s-portable', label: '1930s 便携式', noteReal: '写实：纸筒带纸全幅，拱固定', noteSim: '模拟：拱移动，纸筒小幅', electric: false },
+  { machine: '1950s-streamlined', label: '1950s 流线型', noteReal: '写实：纸筒带纸全幅，拱固定', noteSim: '模拟：拱移动，纸筒小幅', electric: false },
+  { machine: '1960s-electric', label: '1960s 电动式', noteReal: '电动单套动画：纸筒全幅、拱固定、回位 150ms', noteSim: '电动单套动画', electric: true },
+];
 const MACHINE_LABEL: Record<string, string> = {
   '1920s-upright': '1920s',
   '1930s-portable': '1930s',
@@ -52,6 +67,9 @@ export struct CustomizePage {
   @State pressedKey: string = '';
   onBack: () => void = (): void => {};
   onPickMachine: (k: string) => void = (): void => {};
+  /** 第 23 批（19 号稿 §4-7）：三台手动机的模式回显（1920s／1930s／1950s）。 */
+  @Prop animModes: string[] = ['realistic', 'realistic', 'realistic'];
+  onPickAnimMode: (machine: string, mode: string) => void = (): void => {};
   onPickPaper: (k: string) => void = (): void => {};
   onPickRibbon: (k: string) => void = (): void => {};
   onPickFont: (f: string) => void = (): void => {};
@@ -167,6 +185,42 @@ export struct CustomizePage {
             .id('customize__machine')
             .opacity(this.revealN > 0 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })
+
+            // ② 动画模式（第 23 批／19 号稿 §4-7）：每机一行；1960s 行写「电动单套」，不留空
+            Column() {
+              this.sectionTitle('动画')
+              ForEach(ANIM_MODE_ROWS, (r: AnimModeRow, i: number) => {
+                Column() {
+                  Row() {
+                    Text(r.label).fontSize(13).fontColor('#1a1a1a').layoutWeight(1)
+                      .hitTestBehavior(HitTestMode.None)
+                    if (r.electric) {
+                      Text('电动单套').fontSize(12).fontColor('#6b6156')
+                        .hitTestBehavior(HitTestMode.None)
+                    } else {
+                      Row() {
+                        Text('写实').fontSize(12)
+                          .fontColor(this.modeAt(i) === 'realistic' ? '#1a1a1a' : '#8a7f70')
+                          .padding({ left: 10, right: 10, top: 4, bottom: 4 }).borderRadius(8)
+                          .backgroundColor(this.modeAt(i) === 'realistic' ? '#e6d3ad' : '#f3ece0')
+                          .onClick(() => { this.onPickAnimMode(r.machine, 'realistic'); })
+                        Text('模拟').fontSize(12)
+                          .fontColor(this.modeAt(i) === 'simulated' ? '#1a1a1a' : '#8a7f70')
+                          .padding({ left: 10, right: 10, top: 4, bottom: 4 }).borderRadius(8)
+                          .backgroundColor(this.modeAt(i) === 'simulated' ? '#e6d3ad' : '#f3ece0')
+                          .margin({ left: 6 })
+                          .onClick(() => { this.onPickAnimMode(r.machine, 'simulated'); })
+                      }
+                    }
+                  }.width('100%')
+                  Text(r.electric ? r.noteReal : (this.modeAt(i) === 'simulated' ? r.noteSim : r.noteReal))
+                    .fontSize(11).fontColor('#6b6156').margin({ top: 3 })
+                    .hitTestBehavior(HitTestMode.None)
+                }.width('100%').margin({ top: 10 })
+              }, (r: AnimModeRow, idx: number) => r.machine + ':' + this.modeAt(idx))
+            }
+            .width('100%').margin({ top: 24 })
+            .opacity(this.revealN > 0 ? 1 : 0)
 
             // ② 纸张：四张纸卡
             Column() {
@@ -289,6 +343,10 @@ export struct CustomizePage {
         .layoutWeight(1).width('100%').scrollBar(BarState.Off)
   }
 
+  /** 第 23 批：第 i 行的当前模式（1960s 不在回显数组里，恒写实）。 */
+  private modeAt(i: number): string {
+    return i < this.animModes.length ? this.animModes[i] : 'realistic';
+  }
   build() {
     PageShell({
         guidePage: 'customize',
@@ -311,3 +369,5 @@ export function guideStepsForCustomize(): SpotlightStep[] {
     { text: $r('app.string.guide_customize_3'), anchorId: 'customize__manage_entry' },
   ];
 }
+
+

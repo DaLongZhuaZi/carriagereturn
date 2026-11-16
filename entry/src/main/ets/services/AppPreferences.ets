@@ -68,6 +68,13 @@ export class PrefKeys {
   static readonly STATS_EVENT_PREFIX: string = 'stats.event.';
   /** 成就：`achieve.<id>`。 */
   static readonly ACHIEVE_PREFIX: string = 'achieve.';
+  /** 第 23 批（19 号稿 §4-1）：每机动画模式 `anim.mode.<machine>` = realistic／simulated（缺省 realistic）。 */
+  static readonly ANIM_MODE_PREFIX: string = 'anim.mode.';
+
+  /** 某台机的动画模式键。 */
+  static animModeKey(machine: string): string {
+    return PrefKeys.ANIM_MODE_PREFIX + machine;
+  }
 
   /** 某页首次引导是否已看（页名用稳定英文 id，不用中文标题）。 */
   static guideSeen(page: string): string {
@@ -153,6 +160,7 @@ export class PrefRegistry {
       { key: PrefKeys.ACHIEVE_MIGRATED, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '上线首次全量评估/追认是否已跑过（只写一次；置位后不再弹汇总条）' },
       { key: PrefKeys.ACHIEVE_PREFIX, type: 'boolean', defaultValue: 'false', owner: 'F5', note: '成就达成状态（行为绑定口径：`achieve.<行为 id>`，例 `achieve.words_1000`；第 9 批起不再用机型 id）' },
       { key: PrefKeys.CANVAS_ENABLED, type: 'boolean', defaultValue: 'true', owner: 'Phase2', note: 'Canvas 主屏回滚开关（2B 起缺省 true；关闭回退 ArkUI 主屏）', removeAfter: 'Phase 2 完成后' },
+      { key: PrefKeys.ANIM_MODE_PREFIX, type: 'string', defaultValue: 'realistic', owner: 'B23', note: '每机动画模式：`anim.mode.<machine>` = realistic／simulated（19 号稿；缺省写实）' },
     ];
   }
 
@@ -175,7 +183,7 @@ export class PrefRegistry {
     }
     const prefixes: string[] = [
       PrefKeys.GUIDE_PREFIX, PrefKeys.CUSTOM_FONT_PREFIX, PrefKeys.CUSTOM_PAPER_PREFIX,
-      PrefKeys.STATS_EVENT_PREFIX, PrefKeys.ACHIEVE_PREFIX,
+      PrefKeys.STATS_EVENT_PREFIX, PrefKeys.ACHIEVE_PREFIX, PrefKeys.ANIM_MODE_PREFIX,
     ];
     for (let i = 0; i < prefixes.length; i++) {
       if (key.indexOf(prefixes[i]) === 0 && key.length > prefixes[i].length) {

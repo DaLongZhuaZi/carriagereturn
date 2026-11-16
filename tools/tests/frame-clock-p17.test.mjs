@@ -49,7 +49,7 @@ test('换纸：canvasPaperTick＋目标 prop 两侧齐备，且 Index 先写目�
 
 test('退行：O 250ms 与纸 300ms 是两条独立通道（back 处理里不再碰纸字段）', () => {
   const b = bodyOf(canvas, 'private startBackO(): void');
-  assert.ok(b.includes('this.oDur = 250;'), '退行 O 不是 250ms');
+  assert.ok(b.includes('this.oDur = this.machineKind === MachineKind.ELECTRIC_1960S ? 150 : 250;'), '退行 O 不是 250ms（1960s 150ms）');
   assert.ok(!b.includes('paperFromTop'), '退行仍在 back 处理里自己起纸动画（纸段应只由纸段 tick 驱动）');
   assert.ok(b.includes("this.markFirstFrame('back')"));
   // 纸段由 Index 侧退行发：recalcPaperHeight 的 canvas 分支发 tick，退行传 kind='back'
@@ -101,7 +101,8 @@ test('换行纸段：目标在 150ms 边界由 Index 算好后发 tick（不在 
   const oEnd = canvas.indexOf('if (this.oActive)', oStart);
   assert.ok(oStart > 0 && oEnd > oStart, '找不到换行 O 帧内块');
   const oframe = canvas.slice(oStart, oEnd);
-  assert.ok(oframe.includes('>= 450') && oframe.includes('/ 250'), '换行 O 不是 450ms 后 250ms');
+  assert.ok(oframe.includes('>= 450') && (oframe.includes('/ this.newlineODur')),
+    '换行 O 不是 450ms 后按时长（250／1960s 150ms）');
   assert.ok(oframe.includes('this.nlJoltActive = true;'), '换行复位 jolt 未起');
   assert.ok(canvas.includes('this.nlJolt = 2 * nt / 20;'), '换行复位 jolt 峰值不是 2vp');
   assert.ok(canvas.includes('this.strikeJolt = jt / 20;'), '打击 jolt 峰值不是 1vp');
@@ -266,3 +267,5 @@ test('20 连打：只要 90ms 打击按帧到达，200ms armFallback 不会触�
   }
   assert.equal(fallbackFires, 0);
 });
+
+

@@ -897,6 +897,10 @@ struct Index {
   /** 第 16 批 2A：Canvas 静态主屏调试页（临时入口，2B 切换后删除）。 */
   @State canvasDebugOpen: boolean = false;
   @State canvasEnabled: boolean = true;
+  /** 第 23 批（19 号稿 §4-3）：当前机型的动画模式；1960s 恒 realistic（电动单套）。 */
+  @State animMode: string = 'realistic';
+  /** 机型页四行的模式回显（顺序＝ANIM_ROWS：1920s／1930s／1950s；1960s 固定 realistic）。 */
+  @State animModes: string[] = ['realistic', 'realistic', 'realistic'];
   @State a11yOverlayEnabled: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
@@ -1901,11 +1905,34 @@ struct Index {
     this.pushPage('export');
   }
 
+  /** 第 23 批（19 号稿 §4-9／§4-7）：三台手动机的模式回显（1960s 不在此列，固定电动单套）。 */
+  private refreshAnimModes(): void {
+    const manual: string[] = [MachineKind.UPRIGHT_1920S as string,
+      MachineKind.PORTABLE_1930S as string, MachineKind.STREAMLINED_1950S as string];
+    const next: string[] = [];
+    for (let i = 0; i < manual.length; i++) {
+      next.push(CustomizeStore.animMode(manual[i]));
+    }
+    this.animModes = next;
+  }
+
+  /** 机型页切模式：落盘 + 刷新回显 + 若切的是当前机则立即生效（重挂载/过渡由 Canvas 处理）。 */
+  private setAnimMode(machine: string, mode: string): void {
+    CustomizeStore.setAnimMode(machine, mode);
+    this.refreshAnimModes();
+    if ((machine as MachineKind) === this.machineKind) {
+      this.animMode = machine === (MachineKind.ELECTRIC_1960S as string) ? 'realistic' : mode;
+    }
+    hilog.info(DOMAIN, TAG, 'anim mode set machine=%{public}s mode=%{public}s', machine, mode);
+  }
   private applyMachine(kind: MachineKind): void {
     // 换机时防御性清空预编辑串
     this.cnPreview = '';
     const prevKind: MachineKind = this.machineKind;
     this.machineKind = kind;
+    // 第 23 批（19 号稿 §4-3）：换机即读该机的动画模式（1960s 恒 realistic，电动单套）。
+    this.animMode = kind === MachineKind.ELECTRIC_1960S ? 'realistic' : CustomizeStore.animMode(kind as string);
+    this.refreshAnimModes();
     // 第 2 批 F3：字体跟机器走（custom.font.<machine>.family 为渲染唯一来源）
     this.applyMachineFont(CustomizeStore.fontFamily(kind as string));
     // 第 4 批 F8：每机独立音效包（唯一 preload 入口；双缓冲不静音）
@@ -2506,7 +2533,8 @@ struct Index {
     }
     if (this.canvasEnabled) {
       this.archXVp = target;
-      if (!fromStrike) {
+      if (!fromStrike && this.animMode !== 'realistic') {
+        // 批 23（19 号稿 §4-5）：写实／电动模式下拱固定，不发 tick；只有模拟模式才推追踪器。
         this.canvasArchTargetVp = target;
         this.canvasArchDurMs = duration;
         this.canvasArchTick = this.canvasArchTick + 1;
@@ -4910,6 +4938,8 @@ struct Index {
           onOpenFontManager: (): void => { this.pushPage('fontmanager'); },
           onOpenPaperCustom: (): void => { this.pushPage('papercustom'); },
           onFontSize: (v: number): void => { this.applyFontSize(v); },
+          animModes: this.animModes,
+          onPickAnimMode: (machine: string, mode: string): void => { this.setAnimMode(machine, mode); },
           onBack: (): void => { this.popPage(); },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
@@ -5068,6 +5098,7 @@ struct Index {
           joltYVp: this.joltYVp,
           carriageOffsetVp: this.carriageOffsetVp,
           canvasEnabled: this.canvasEnabled,
+          animMode: this.animMode,
           canvasDeleteTick: this.canvasDeleteTick,
           canvasDeleteTargetVp: this.canvasDeleteTargetVp,
           canvasBackTick: this.canvasBackTick,
@@ -5412,3 +5443,5 @@ struct Index {
     })
   }
 }
+
+

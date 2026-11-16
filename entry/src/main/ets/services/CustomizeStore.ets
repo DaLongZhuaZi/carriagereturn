@@ -62,6 +62,17 @@ export class CustomizeStore {
     appPreferences.setNumber(PrefKeys.customFont(machine, FIELD_SIZE), size <= 0 ? 0 : clampFontSize(size));
   }
 
+  // ---- 每机动画模式（第 23 批／19 号稿 §4-1）----
+
+  /** 某台机的动画模式；未设置或非法返回 'realistic'（缺省写实，Q4(a)）。 */
+  static animMode(machine: string): string {
+    const v: string = appPreferences.getString(PrefKeys.animModeKey(machine), 'realistic');
+    return v === 'simulated' ? 'simulated' : 'realistic';
+  }
+
+  static setAnimMode(machine: string, mode: string): void {
+    appPreferences.setString(PrefKeys.animModeKey(machine), mode === 'simulated' ? 'simulated' : 'realistic');
+  }
   // ---- 导入字体列表（B-2 冷启动重注册的数据源）----
 
   static importedFonts(): ImportedFont[] {
@@ -173,3 +184,4 @@ export class CustomizeStore {
     return appPreferences.getBool(PrefKeys.CUSTOM_ENABLED, true);
   }
 }
+

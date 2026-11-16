@@ -21,6 +21,8 @@ import { findMachine, findPaper, MachineSpec, PaperSpec, TOP_BAR_HEIGHT_VP, PAPE
 import { KeymapParser, KeymapLayout, CapDef } from '../model/KeymapModel';
 import { CanvasTransform, computeTransform, referenceMetrics } from '../model/CanvasGeometry';
 import { restDegFor, swingDegFor, dragRatioFor } from '../model/LeverAngleCore';
+import { rollerKFor, archFixXFor, ANIM_MODE_SIMULATED, MODE_TRANS_DUR_MS,
+  modeTransRollerK, modeTransArchX } from '../model/AnimModeModel';
 import { TopBar } from './TopBar';
 
 const CDOMAIN: number = 0x0100;
@@ -82,6 +84,8 @@ export struct CanvasTypewriter {
   @Prop canvasArchDurMs: number = 90;
   @Prop @Watch('onCanvasStrikeTickChanged') canvasStrikeTick: number = 0;
   @Prop canvasEnabled: boolean = false;
+  /** 第 23 批（19 号稿 §4-3）：每机动画模式 'realistic' | 'simulated'（由 Index 传入）。 */
+  @Prop @Watch('onAnimModeChanged') animMode: string = 'realistic';
   @Prop @Watch('onDeleteTickChanged') canvasDeleteTick: number = 0;
   @Prop canvasDeleteTargetVp: number = 0;
   /**
@@ -216,6 +220,15 @@ export struct CanvasTypewriter {
   /** 下一段用的时长（Index tick 给的时长在下一段起段时消费）。 */
   private archDurNext: number = 90;
   private pendingArch: boolean = false;
+  /** 第 23 批（19 号稿 §4-4／§4-8）：视觉位移系数 K 与模式过渡状态机。 */
+  private rollerK: number = 1.0;
+  private modeTransActive: boolean = false;
+  private modeTransT0: number = 0;
+  private modeTransDurMs: number = MODE_TRANS_DUR_MS;
+  private rollerKFrom: number = 1.0;
+  private rollerKTo: number = 1.0;
+  private archTransFrom: number = 0;
+  private archTransTo: number = 0;
   private lastArchTick: number = 0;
   private renderO: number = 0;
   private oActive: boolean = false;
@@ -244,6 +257,8 @@ export struct CanvasTypewriter {
   private newlineOFrom: number = 0;
   private newlineOTo: number = 0;
   private newlineOT0: number = 0;
+  /** 批 23（19 号稿 §2.5）：1960s 回位 150ms Linear，其余 250ms。 */
+  private newlineODur: number = 250;
   private newlineOJoltStarted: boolean = false;
   private nlJolt: number = 0;
   private nlJoltT0: number = 0;
@@ -354,7 +369,7 @@ export struct CanvasTypewriter {
     this.oFrom = this.renderO;
     this.oTo = this.canvasBackTargetVp;
     this.oT0 = this.frameNow;
-    this.oDur = 250;
+    this.oDur = this.machineKind === MachineKind.ELECTRIC_1960S ? 150 : 250;
     this.oSpring = false;
     this.oActive = true;
     this.drawKindTag = 'back';
@@ -370,6 +385,7 @@ export struct CanvasTypewriter {
     this.newlineOTo = this.canvasNewlineCarriageTargetVp;
     this.newlineOActive = true;
     this.newlineOT0 = this.frameNow;
+    this.newlineODur = this.machineKind === MachineKind.ELECTRIC_1960S ? 150 : 250;
     this.newlineOJoltStarted = false;
     this.nlJoltActive = false;
     this.nlJolt = 0;
@@ -464,7 +480,8 @@ export struct CanvasTypewriter {
   /** 是否有活动动画或拨杆拖拽（§2.2 空闲规则／§2.7 去重的唯一判据）。 */
   private frameActive(): boolean {
     return this.strikeWait || this.archActive || this.oActive || this.paperActive
-      || this.newlineOActive || this.nlJoltActive || this.leverActive || this.leverAnimActive;
+      || this.newlineOActive || this.nlJoltActive || this.leverActive || this.leverAnimActive
+      || this.modeTransActive;
   }
   onCarriageChanged(): void {
     if (this.oActive) { return; }
@@ -754,7 +771,8 @@ export struct CanvasTypewriter {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
-    const paperLeft: number = this.paperX() + this.renderO;
+    // 批 23（19 号稿 §4-4）：静态层烘焙恒按 O=0（旧版把构建时的 live O 烘了进去，切机会错位）。
+    const paperLeft: number = this.paperX();
     const knobD: number = Hc * 0.92;
     const baseW: number = this.paperWidthVp + 2 * knobD;
     const baseLeft: number = Math.max(0, paperLeft - knobD);
@@ -920,8 +938,8 @@ export struct CanvasTypewriter {
   private drawRollerLayer(ctx: CanvasRenderingContext2D): void {
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
-    // 滚筒不跟 renderO 走：旧口径（paperX+renderO）在 O 走满 −64vp 时会把滚筒推出屏幕（批 22 §0 根因 1）。
-    const paperLeft: number = this.paperX();
+    // 批 23（19 号稿 §4-4）：滚筒随纸一起走，位移用 visualO（写实 V=O／模拟 V=0.3×O）。
+    const paperLeft: number = this.paperX() + this.visualO();
     const rollW: number = this.paperWidthVp / spec.rollerWidthRatio;
     const rollX: number = paperLeft - (rollW - this.paperWidthVp) / 2;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
@@ -960,11 +978,43 @@ export struct CanvasTypewriter {
     ctx.drawImage(this.imgCentral, ax - w / 2, strikeAbs - Hg * spec.centralWindowY, w, Hg);
   }
 
+  /** 视觉位移：V = K × O（19 号稿 §2.1 不变量——逻辑 O 永远全幅，与模式无关）。 */
+  private visualO(): number { return this.renderO * this.rollerK; }
+
+  /** 写实／电动下的拱固定位置（行首落字点，Q7 定案）。 */
+  private archFixX(): number { return archFixXFor(this.paperX(), this.marginHVp); }
+
+  /** 每帧按模式刷新 K；过渡期间由状态机接管。 */
+  private refreshRollerK(): void {
+    if (!this.modeTransActive) {
+      this.rollerK = rollerKFor(this.animMode, this.isTablet, this.machineKind);
+    }
+  }
+
+  /** 19 号稿 §4-8：同机切模式跑 200ms 过渡（切机走 applyInitialSync，不跑过渡）。 */
+  onAnimModeChanged(): void {
+    const to: number = rollerKFor(this.animMode, this.isTablet, this.machineKind);
+    if (Math.abs(to - this.rollerK) < 0.001) { return; }
+    this.rollerKFrom = this.rollerK;
+    this.rollerKTo = to;
+    this.archTransFrom = this.renderArchX >= 0 ? this.renderArchX : this.archFixX();
+    this.archTransTo = this.animMode === ANIM_MODE_SIMULATED
+      ? this.paperX() + this.carriageOffsetVp * to + this.cursorXVp : this.archFixX();
+    this.modeTransT0 = this.frameNow;
+    this.modeTransDurMs = MODE_TRANS_DUR_MS;
+    this.modeTransActive = true;
+    hilog.info(CDOMAIN, CTAG, 'modeTrans start mode=%{public}s kFrom=%{public}s kTo=%{public}s',
+      this.animMode, this.rollerKFrom.toFixed(3), this.rollerKTo.toFixed(3));
+  }
   private draw(): void {
     if (!this.ready) { return; }
     // 批 20 帧率取证：每次真正上屏都记一条（含时钟时间戳与墙钟），用于数「一次动画上了几帧」。
     hilog.info(CDOMAIN, CTAG, 'draw frame t=%{public}s ms=%{public}s tag=%{public}s',
       this.frameNow.toFixed(1), Date.now().toString(), this.drawKindTag);
+    // 第 23 批验收打点（19 号稿 §5）：每次上屏记视觉状态——O 逻辑值、K、视觉位移 V、拱 x。
+    hilog.info(CDOMAIN, CTAG, 'visible mode=%{public}s O=%{public}s k=%{public}s v=%{public}s arch=%{public}s',
+      this.animMode, this.renderO.toFixed(2), this.rollerK.toFixed(3),
+      this.visualO().toFixed(2), this.renderArchX.toFixed(2));
     const ctx: CanvasRenderingContext2D = this.ctx;
     ctx.clearRect(0, 0, this.widthVp, this.heightVp);
     // 18 号稿 B2：背景（渐变＋机身）已移到下层静态 Canvas，只画一次；这里不再每帧 blit 全屏背景。
@@ -974,14 +1024,14 @@ export struct CanvasTypewriter {
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
       const clipH: number = Math.max(0, this.paperY() + (this.renderPaperContainer >= 0 ? this.renderPaperContainer : this.paperContainerVp) - clipY);
-      ctx.rect(this.paperX() + this.renderO, clipY, this.paperWidthVp, clipH);
+      ctx.rect(this.paperX() + this.visualO(), clipY, this.paperWidthVp, clipH);
       ctx.clip();
-      ctx.drawImage(this.paperLayer, this.paperX() + this.renderO, this.paperY());
+      ctx.drawImage(this.paperLayer, this.paperX() + this.visualO(), this.paperY());
       ctx.restore();
     }
     this.drawArchLayer(ctx);
     if (this.bailLayer !== null) {
-      ctx.drawImage(this.bailLayer, this.paperX() + this.renderO, this.bailY);
+      ctx.drawImage(this.bailLayer, this.paperX() + this.visualO(), this.bailY);
     }
     if (this.bracketLayer !== null) {
       // 金属座（拨杆支架）固定：不带 renderO（用户 2026-11-16 定案；旧版每帧带 O 上屏会跟着滚筒左右移）。
@@ -1013,6 +1063,7 @@ export struct CanvasTypewriter {
       this.frameClock.onFrame = (value: number): void => {
         this.frameSeq += 1;
         this.frameNow = value;
+        this.refreshRollerK();
         if (this.strikeWait) {
           const jt: number = value - this.strikeT0;
           if (jt <= 20) { this.strikeJolt = jt / 20; }
@@ -1028,13 +1079,34 @@ export struct CanvasTypewriter {
         // 批 20：拱＝单一帧时钟驱动的追踪器。目标每帧实时算（paperX + renderO + cursorXVp，
         // 与 Index clampedStrikeXVp 同口径）；目标动了就按时间重锚一段（打击 90／换行退行 200／换纸 300），
         // ease-out 不过冲 → 单调收敛，不再出现「多跑一截再往回拉」的双驱动。
-        const archTarget: number = this.paperX() + this.carriageOffsetVp + this.cursorXVp;
+        // 批 23（19 号稿 §4-8）：模式过渡状态机（200ms；K Linear、拱 ease-out 三次方）。
+        if (this.modeTransActive) {
+          const mp: number = this.modeTransDurMs > 0 ? (value - this.modeTransT0) / this.modeTransDurMs : 1;
+          if (mp >= 1) {
+            this.rollerK = this.rollerKTo;
+            this.renderArchX = this.archTransTo;
+            this.modeTransActive = false;
+            hilog.info(CDOMAIN, CTAG, 'modeTrans done t=%{public}s k=%{public}s arch=%{public}s', value.toFixed(1), this.rollerK.toFixed(3), this.renderArchX.toFixed(2));
+          } else {
+            this.rollerK = modeTransRollerK(this.rollerKFrom, this.rollerKTo, mp);
+            this.renderArchX = modeTransArchX(this.archTransFrom, this.archTransTo, mp);
+            hilog.info(CDOMAIN, CTAG, 'modeTrans frame t=%{public}s k=%{public}s arch=%{public}s', value.toFixed(1), this.rollerK.toFixed(3), this.renderArchX.toFixed(2));
+          }
+        }
+        // 批 23（19 号稿 §4-5）：拱按模式分流——模拟＝追踪（目标 paperX + O×K + cursorXVp）；
+        // 写实／电动＝固定在行首落字点 archFixX（Q7 定案 paperX+marginH，手机 97.3vp）。
+        const archTarget: number = this.animMode === ANIM_MODE_SIMULATED
+          ? this.paperX() + this.carriageOffsetVp * this.rollerK + this.cursorXVp
+          : this.archFixX();
         if (this.renderArchX < 0) { this.renderArchX = archTarget; }
+        if (this.animMode !== ANIM_MODE_SIMULATED && !this.modeTransActive) {
+          this.renderArchX = this.archFixX();
+        }
         if (this.pendingArch) {
           this.pendingArch = false;
           this.archDurNext = this.canvasArchDurMs > 1 ? this.canvasArchDurMs : 200;
         }
-        if (this.archActive) {
+        if (this.archActive && this.animMode === ANIM_MODE_SIMULATED && !this.modeTransActive) {
           if (Math.abs(archTarget - this.archToX) > 0.4) {
             this.archFromX = this.renderArchX;
             this.archToX = archTarget;
@@ -1051,7 +1123,8 @@ export struct CanvasTypewriter {
             this.renderArchX = this.archFromX + (this.archToX - this.archFromX) * ae;
           }
         }
-        if (!this.archActive && Math.abs(archTarget - this.renderArchX) > 0.2) {
+        if (!this.archActive && this.animMode === ANIM_MODE_SIMULATED && !this.modeTransActive
+          && Math.abs(archTarget - this.renderArchX) > 0.2) {
           this.archFromX = this.renderArchX;
           this.archToX = archTarget;
           this.archT0 = value;
@@ -1084,7 +1157,7 @@ export struct CanvasTypewriter {
             hilog.info(CDOMAIN, CTAG, 'anim start newline reset t=%{public}s dt=%{public}s',
               value.toFixed(1), (value - this.newlineOT0).toFixed(1));
           }
-          const no: number = (value - this.newlineOT0 - 450) / 250;
+          const no: number = (value - this.newlineOT0 - 450) / this.newlineODur;
           if (no >= 1) {
             this.renderO = this.newlineOTo;
             this.newlineOActive = false;
@@ -1248,9 +1321,9 @@ export struct CanvasTypewriter {
     // 纸面文字（裁剪到纸容器）
     ctx.save();
     ctx.beginPath();
-    ctx.rect(this.paperX() + this.renderO, this.paperY(), this.paperWidthVp, this.paperContainerVp);
+    ctx.rect(this.paperX() + this.visualO(), this.paperY(), this.paperWidthVp, this.paperContainerVp);
     ctx.clip();
-    const paperLeft: number = this.paperX() + this.renderO;
+    const paperLeft: number = this.paperX() + this.visualO();
     const paperTop: number = this.paperY();
     const ps: PaperSpec = this.paperSpec();
     if (ps.hasHeader) {
@@ -1400,7 +1473,7 @@ export struct CanvasTypewriter {
       if (hitAny) {
         return;
       }
-      if (t.x > this.widthVp * 0.78 && t.y > this.carriageTopVp
+      if (t.x > this.widthVp * 0.78 + this.visualO() && t.y > this.carriageTopVp
         && t.y < this.carriageTopVp + this.carriageHeightVp) {
         // 批 2（§7）：按下从静止角起算；角度只写 Canvas 内部字段。
         this.leverActive = true;
@@ -1599,6 +1672,12 @@ export struct CanvasTypewriter {
     .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
+
+
+
+
+
+
 
 
 

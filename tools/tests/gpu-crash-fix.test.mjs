@@ -39,10 +39,11 @@ test('Phase 1 B1：前层已拆成 bail 条带 + bracket 小框，全屏透明�
   assert.ok(canvas.includes('private bracketLayer: ImageBitmap | null = null;'));
   assert.ok(canvas.includes('ctxBail.drawImage(this.imgBail, 0, 0, this.paperWidthVp, bailH0);'),
     '压纸卷不是按 O=0 烘焙进独立条带');
-  assert.ok(canvas.includes('ctx.drawImage(this.bailLayer, this.paperX() + this.renderO, this.bailY);'),
+  assert.ok(canvas.includes('ctx.drawImage(this.bailLayer, this.paperX() + this.visualO(), this.bailY);'),
     'bail 条带未带 live O 上屏');
-  assert.ok(canvas.includes('ctx.drawImage(this.bracketLayer, this.bracketX0 + this.renderO, this.bracketY0);'),
-    'bracket 未带 live O 上屏');
+  // 批 22 起：支架固定（用户定案「机器固定、只有纸走」之前的口径已改），bail 仍随纸走。
+  assert.ok(canvas.includes('ctx.drawImage(this.bracketLayer, this.bracketX0, this.bracketY0);'),
+    'bracket 未按固定位置上屏（批 22 起支架应固定、不带 renderO）');
 });
 
 test('Phase 1 B2：静态 Canvas 只画一次，字车 Canvas 不再每帧 blit 全屏背景', () => {
@@ -68,3 +69,4 @@ test('Phase 0 打点仍在：draw frame / frame tick / anim arrive（验收口�
   assert.ok(canvas.includes("'frame tick now=%{public}s interval=%{public}s'"));
   assert.ok(canvas.includes("'anim arrive arch t=%{public}s dt=%{public}s x=%{public}s'"));
 });
+

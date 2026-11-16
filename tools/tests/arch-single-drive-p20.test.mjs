@@ -26,7 +26,7 @@ test('拱单驱动：canvas 开时 Index 不再 animateTo 拱（fromStrike 不�
   const canvasBranch = f.slice(f.indexOf('if (this.canvasEnabled) {'), f.indexOf('const archStarted'));
   assert.ok(!canvasBranch.includes('animateTo'), 'canvas 开时 Index 仍在 animateTo 拱（双驱动未除');
   assert.ok(canvasBranch.includes('this.archXVp = target;'), 'canvas 开时未同步逻辑值');
-  assert.ok(canvasBranch.includes('if (!fromStrike) {'), '未按 fromStrike 区分打击/其他');
+  assert.ok(canvasBranch.includes("if (!fromStrike && this.animMode !== 'realistic') {"), '未按 fromStrike＋模式区分打击/其他（批 23：写实不发 tick）');
   assert.ok(canvasBranch.includes('this.canvasArchTick = this.canvasArchTick + 1;'), '未发拱目标 tick');
   // canvas 关的分支仍保留 animateTo（回滚）
   assert.ok(f.includes('curve: Curve.FastOutSlowIn'), 'canvas 关的 animateTo 回滚路径被删了');
@@ -37,7 +37,7 @@ test('拱单驱动：canvas 开时 Index 不再 animateTo 拱（fromStrike 不�
 test('Canvas 侧：archXVp prop／snap 已删，拱目标改为实时算（paperX+renderO+cursorXVp）', () => {
   assert.ok(!canvas.includes("onArchChanged"), 'Canvas 仍有 arch 的 @Watch（snap 源）');
   assert.ok(!canvas.includes("archXVp: number = 0"), 'Canvas 仍保留 archXVp @Prop');
-  assert.ok(canvas.includes('const archTarget: number = this.paperX() + this.carriageOffsetVp + this.cursorXVp;'),
+  assert.ok(canvas.includes('? this.paperX() + this.carriageOffsetVp * this.rollerK + this.cursorXVp'),
     '拱目标不是 paperX+renderO+cursorXVp（与 Index clampedStrikeXVp 同口径）');
   assert.ok(!canvas.includes('const ax: number = this.renderArchX >= 0 ? this.renderArchX\n      : (this.archXVp'),
     'drawArchLayer 仍读 archXVp');
@@ -97,5 +97,6 @@ test('追踪器仿真：单调收敛、不过冲、60/120Hz 同时长同落点',
   const steady = chase(Array.from({ length: 60 }, (_, i) => i * 8.3333), () => 150, 90);
   assert.equal(steady[steady.length - 1], 150);
 });
+
 
 
