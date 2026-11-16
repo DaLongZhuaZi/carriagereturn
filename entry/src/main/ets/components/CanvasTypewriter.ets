@@ -283,6 +283,12 @@ export struct CanvasTypewriter {
   private frameLastValue: number = 0;
   /** 批 20 帧率取证：当前绘制所属动画种类标签。 */
   private drawKindTag: string = 'idle';
+  /**
+   * Phase 2 前置：文字独立上层 Canvas。拱/纸/拨杆转原生 transform 后必然压在字车 Canvas 之上，
+   * 只有把文字再抬到它们之上，才保得住「纸 → 拱 → 压纸卷 → 文字」的原 z 序（批 21 实拍验证过被遮）。
+   */
+  private ctxText: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  private textReady: boolean = false;
   /** §8 启动延迟打点：tick 到来时记 kind＋t0，紧随的那一帧记 first frame。 */
   private firstKind: string = '';
   private firstT0: number = 0;
@@ -981,7 +987,7 @@ export struct CanvasTypewriter {
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
-    this.drawTexts(ctx);
+    this.drawTextOverlay();
     this.paperDirty = false;
   }
 
@@ -1227,6 +1233,13 @@ export struct CanvasTypewriter {
     ctx.rotate(angleDeg * Math.PI / 180);
     ctx.drawImage(this.imgLever, -leverW * spec.leverPivotX, -leverH * spec.leverPivotY, leverW, leverH);
     ctx.restore();
+  }
+
+  /** Phase 2 前置：文字层——只清屏＋重绘文字，不做任何位图 blit（Phase 0 已证 CPU 不是瓶颈）。 */
+  private drawTextOverlay(): void {
+    if (!this.textReady) { return; }
+    this.ctxText.clearRect(0, 0, this.widthVp, this.heightVp);
+    this.drawTexts(this.ctxText);
   }
 
   /** 文字统一在主 Canvas 上画（OffscreenCanvas 看不到 registerFont 注册字体，会回落到系统字体）。 */
@@ -1540,6 +1553,15 @@ export struct CanvasTypewriter {
           const probeW: number = this.ctx.measureText('Hello, World! 0123456789').width;
           hilog.info(CDOMAIN, CTAG, 'canvas ready w=%{public}s h=%{public}s fontProbeW=%{public}s',
             this.widthVp.toFixed(1), this.heightVp.toFixed(1), probeW.toFixed(2));
+        })
+      // Phase 2 前置：文字层（最上层 Canvas）。拱/纸后续转原生 transform 时，文字仍压在它们之上。
+      Canvas(this.ctxText)
+        .width('100%')
+        .height('100%')
+        .hitTestBehavior(HitTestMode.None)
+        .onReady(() => {
+          this.textReady = true;
+          this.drawTextOverlay();
         })
       // 2C：Canvas 页透明原生锚点（SpotlightOverlay getRectangleById 用；不参与命中）
       Column().id('typewriter__paper').width(this.paperWidthVp).height(this.paperContainerVp)
