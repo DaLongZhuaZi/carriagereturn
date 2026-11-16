@@ -270,6 +270,15 @@ export struct CanvasTypewriter {
   private frameLastValue: number = 0;
   /** 批 20 帧率取证：当前绘制所属动画种类标签。 */
   private drawKindTag: string = 'idle';
+  // ==== Phase 0 探针（仅 exp/gpu-probe 分支；修法分支删除）====
+  /** 0=off 1=E1 基准 2=clearRect-only(E3 等效) 3=E4 小 clip 4=E4 纸区 clip 5=无文字 6=无背景+前层 7=E6 transform */
+  private probeMode: number = 0;
+  private probeRemaining: number = 0;
+  private probeSkipMask: number = 0;
+  private probeClipMode: number = 0;
+  private probeTapCount: number = 0;
+  private probeTapAt: number = 0;
+  @State probeX: number = 0;
   /** §8 启动延迟打点：tick 到来时记 kind＋t0，紧随的那一帧记 first frame。 */
   private firstKind: string = '';
   private firstT0: number = 0;
@@ -442,6 +451,48 @@ export struct CanvasTypewriter {
     this.firstLogged = false;
   }
 
+  /** Phase 0：连点「字符」5 次切换探针模式（运行时开关，无需重建）。 */
+  private probeTap(): void {
+    const now: number = Date.now();
+    if (now - this.probeTapAt > 2500) { this.probeTapCount = 1; } else { this.probeTapCount += 1; }
+    this.probeTapAt = now;
+    if (this.probeTapCount >= 5) {
+      this.probeTapCount = 0;
+      this.probeMode = (this.probeMode + 1) % 8;
+      hilog.info(CDOMAIN, CTAG, 'probe mode=%{public}d', this.probeMode);
+      this.startProbe();
+    }
+  }
+
+  /** Phase 0：功能键一键一模式（char=1 E1、backline=2 纯clearRect、paper=3 小clip、newline=4 纸区clip、delete=5 无文字、lang=7 E6 transform）。 */
+  private probeSelect(key: string): boolean {
+    let mode: number = 0;
+    if (key === 'char') { mode = 1; }
+    else if (key === 'backline') { mode = 2; }
+    else if (key === 'paper') { mode = 3; }
+    else if (key === 'newline') { mode = 4; }
+    else if (key === 'delete') { mode = 5; }
+    else if (key === 'lang') { mode = 7; }
+    if (mode === 0) { return false; }
+    this.probeMode = mode;
+    this.startProbe();
+    return true;
+  }
+  private startProbe(): void {
+    this.probeSkipMask = 0;
+    this.probeClipMode = 0;
+    this.probeRemaining = 0;
+    if (this.probeMode === 0) { return; }
+    if (this.probeMode === 1) { this.probeRemaining = 200; }
+    else if (this.probeMode === 2) { this.probeRemaining = 200; this.probeSkipMask = 255; }
+    else if (this.probeMode === 3) { this.probeRemaining = 200; this.probeClipMode = 1; }
+    else if (this.probeMode === 4) { this.probeRemaining = 200; this.probeClipMode = 2; }
+    else if (this.probeMode === 5) { this.probeRemaining = 200; this.probeSkipMask = 32; }
+    else if (this.probeMode === 6) { this.probeRemaining = 200; this.probeSkipMask = 1 | 16; }
+    else if (this.probeMode === 7) { this.probeRemaining = 0; }
+    hilog.info(CDOMAIN, CTAG, 'probe start mode=%{public}d n=%{public}d mask=%{public}d clip=%{public}d',
+      this.probeMode, this.probeRemaining, this.probeSkipMask, this.probeClipMode);
+  }
   /** 是否有活动动画或拨杆拖拽（§2.2 空闲规则／§2.7 去重的唯一判据）。 */
   private frameActive(): boolean {
     return this.strikeWait || this.archActive || this.oActive || this.paperActive
@@ -917,14 +968,32 @@ export struct CanvasTypewriter {
     hilog.info(CDOMAIN, CTAG, 'draw frame t=%{public}s ms=%{public}s tag=%{public}s',
       this.frameNow.toFixed(1), Date.now().toString(), this.drawKindTag);
     const ctx: CanvasRenderingContext2D = this.ctx;
-    ctx.clearRect(0, 0, this.widthVp, this.heightVp);
-    if (this.backgroundLayer !== null) {
-      ctx.drawImage(this.backgroundLayer, 0, 0);
-    } else if (this.machineLayer !== null) {
-      ctx.drawImage(this.machineLayer, 0, 0);
+    // Phase 0 探针：clip 面积对照（E4）
+    const probeClip: boolean = this.probeMode > 0 && this.probeClipMode > 0;
+    if (probeClip) {
+      ctx.save();
+      ctx.beginPath();
+      if (this.probeClipMode === 1) {
+        const cx: number = this.paperX() + this.renderO + this.cursorXVp;
+        const cy: number = this.stackTop() + this.strikeLineVp - 40;
+        ctx.rect(cx - 40, cy - 40, 80, 80);
+      } else {
+        ctx.rect(this.paperX() + this.renderO, this.paperY(), this.paperWidthVp,
+          this.renderPaperContainer >= 0 ? this.renderPaperContainer : this.paperContainerVp);
+      }
+      ctx.clip();
     }
-    this.drawRollerLayer(ctx);
-    if (this.paperLayer !== null) {
+    const skip: number = this.probeMode > 0 ? this.probeSkipMask : 0;
+    ctx.clearRect(0, 0, this.widthVp, this.heightVp);
+    if ((skip & 1) === 0) {
+      if (this.backgroundLayer !== null) {
+        ctx.drawImage(this.backgroundLayer, 0, 0);
+      } else if (this.machineLayer !== null) {
+        ctx.drawImage(this.machineLayer, 0, 0);
+      }
+    }
+    if ((skip & 2) === 0) { this.drawRollerLayer(ctx); }
+    if ((skip & 4) === 0 && this.paperLayer !== null) {
       ctx.save();
       ctx.beginPath();
       const clipY: number = Math.max(this.paperY(), this.stackTop() + TOP_BAR_HEIGHT_VP);
@@ -934,14 +1003,15 @@ export struct CanvasTypewriter {
       ctx.drawImage(this.paperLayer, this.paperX() + this.renderO, this.paperY());
       ctx.restore();
     }
-    this.drawArchLayer(ctx);
-    if (this.machineFrontLayer !== null) {
+    if ((skip & 8) === 0) { this.drawArchLayer(ctx); }
+    if ((skip & 16) === 0 && this.machineFrontLayer !== null) {
       ctx.drawImage(this.machineFrontLayer, this.renderO, 0);
     }
-    this.drawLever(ctx);
-    this.drawTypebar(ctx);
-    this.drawTexts(ctx);
+    if ((skip & 64) === 0) { this.drawLever(ctx); }
+    if ((skip & 128) === 0) { this.drawTypebar(ctx); }
+    if ((skip & 32) === 0) { this.drawTexts(ctx); }
     this.paperDirty = false;
+    if (probeClip) { ctx.restore(); }
   }
 
   /** 打击 90ms 由 Canvas 帧时钟驱动，结束帧调 onStrikeArrive；200ms fallback 由 Index 保留。 */
@@ -964,6 +1034,12 @@ export struct CanvasTypewriter {
       this.frameClock.onFrame = (value: number): void => {
         this.frameSeq += 1;
         this.frameNow = value;
+        if (this.probeMode === 7) { this.probeX = value % 240; }
+        if (this.probeRemaining > 0) {
+          this.probeRemaining -= 1;
+          this.draw();
+          if (this.probeRemaining === 0) { hilog.info(CDOMAIN, CTAG, 'probe done mode=%{public}d', this.probeMode); }
+        }
         if (this.strikeWait) {
           const jt: number = value - this.strikeT0;
           if (jt <= 20) { this.strikeJolt = jt / 20; }
@@ -1091,7 +1167,7 @@ export struct CanvasTypewriter {
         const activeNow: boolean = this.frameActive();
         const otherActive: boolean = this.strikeWait || this.archActive || this.oActive || this.paperActive
           || this.newlineOActive || this.nlJoltActive || this.leverAnimActive;
-        const needDraw: boolean = otherActive || (this.leverActive && this.leverDirty);
+        const needDraw: boolean = this.probeRemaining === 0 && (otherActive || (this.leverActive && this.leverDirty));
         if (needDraw) {
           this.draw();
           this.leverDirty = false;
@@ -1311,6 +1387,7 @@ export struct CanvasTypewriter {
         const keyW: number = (right - left - gap * 5) / 6;
         const idx: number = Math.floor((t.x - left) / (keyW + gap));
         const keys: string[] = ['lang', 'delete', 'newline', 'paper', 'backline', 'char'];
+        if (this.probeSelect(keys[idx])) { return; }
         if (idx >= 0 && idx < 6) {
           this.onFunctionKey(keys[idx]);
         }
@@ -1493,6 +1570,11 @@ export struct CanvasTypewriter {
             this.widthVp.toFixed(1), this.heightVp.toFixed(1), probeW.toFixed(2));
         })
       // 2C：Canvas 页透明原生锚点（SpotlightOverlay getRectangleById 用；不参与命中）
+      if (this.probeMode === 7) {
+        Column().width(80).height(80).backgroundColor('#884400')
+          .position({ x: 100, y: 600 })
+          .translate({ x: this.probeX, y: 0 })
+      }
       Column().id('typewriter__paper').width(this.paperWidthVp).height(this.paperContainerVp)
         .position({ x: this.paperX(), y: this.paperY() })
         .opacity(0.01).hitTestBehavior(HitTestMode.None)
@@ -1528,5 +1610,9 @@ export struct CanvasTypewriter {
     .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
+
+
+
+
 
 
