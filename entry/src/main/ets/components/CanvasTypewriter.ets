@@ -150,7 +150,13 @@ export struct CanvasTypewriter {
   private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
   private ready: boolean = false;
   private machineLayer: ImageBitmap | null = null;
-  private machineFrontLayer: ImageBitmap | null = null;
+  private bailLayer: ImageBitmap | null = null;
+  private bracketLayer: ImageBitmap | null = null;
+  private bailY: number = 0;
+  private bracketX0: number = 0;
+  private bracketY0: number = 0;
+  private bracketW: number = 60;
+  private bracketH: number = 26;
   private paperLayer: ImageBitmap | null = null;
   private backgroundLayer: ImageBitmap | null = null;
   @State keymap: KeymapLayout = {
@@ -717,8 +723,17 @@ export struct CanvasTypewriter {
     const h: number = Math.max(1, Math.round(this.heightVp));
     const off: OffscreenCanvas = new OffscreenCanvas(w, h);
     const ctx: OffscreenCanvasRenderingContext2D = off.getContext('2d');
-    const offFront: OffscreenCanvas = new OffscreenCanvas(w, h);
-    const ctxFront: OffscreenCanvasRenderingContext2D = offFront.getContext('2d');
+    // 18 号稿 B1：前层不再用全屏透明位图；拆成「压纸卷条带」＋「拨杆支架小框」两块小纹理，
+    // 都按 renderO=0 烘焙，draw() 里带 live O 上屏（省掉每帧 13.6MB 的全屏透明 blit）。
+    const bailH0: number = this.paperWidthVp / 9.6678;
+    const offBail: OffscreenCanvas = new OffscreenCanvas(Math.max(1, Math.round(this.paperWidthVp)),
+      Math.max(1, Math.round(bailH0)));
+    const ctxBail: OffscreenCanvasRenderingContext2D = offBail.getContext('2d');
+    const bkW0: number = 60;
+    const bkH0: number = bkW0 / this.spec().bracketAspect;
+    const offBk: OffscreenCanvas = new OffscreenCanvas(Math.max(1, Math.round(bkW0)),
+      Math.max(1, Math.round(bkH0)));
+    const ctxBk: OffscreenCanvasRenderingContext2D = offBk.getContext('2d');
     const spec: MachineSpec = this.spec();
     const Hc: number = this.carriageHeightVp;
     const carrAbs: number = this.stackTop() + this.carriageTopVp;
@@ -750,20 +765,22 @@ export struct CanvasTypewriter {
     ctx.font = '13vp sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(this.machineNamePlate(), plateLeft + 55, baseY + 18);
-    // 压纸卷（纸之上）
-    const bailH: number = this.paperWidthVp / 9.6678;
-    const bailY: number = carrAbs - bailH / 2 + (this.isTablet ? -15 : 0);
+    // 压纸卷（纸之上）：18 号稿 B1——烘焙进独立条带，blit 时带 live O（不再用全屏透明前层）
+    this.bailY = carrAbs - bailH0 / 2 + (this.isTablet ? -15 : 0);
     if (this.imgBail !== null) {
-      ctxFront.drawImage(this.imgBail, paperLeft, bailY, this.paperWidthVp, bailH);
+      ctxBail.drawImage(this.imgBail, 0, 0, this.paperWidthVp, bailH0);
     }
     // 中央件改为 drawArchLayer 按 archXVp 单独绘制。
-    // 拨杆支点支架
-    const bracketW: number = 60;
-    const bracketH: number = bracketW / spec.bracketAspect;
-    const bracketLeft: number = baseLeft + baseW - bracketW - 10 + this.renderO;
-    const bracketTop: number = carrAbs - Hc / 2 + Hc + 24 - bracketH;
+    // 拨杆支点支架：烘焙进独立小框（O=0 基准），blit 时带 live O
+    const bracketW: number = bkW0;
+    const bracketH: number = bkH0;
+    const baseLeft0: number = Math.max(0, this.paperX() - knobD);
+    this.bracketX0 = baseLeft0 + baseW - bracketW - 10;
+    this.bracketY0 = carrAbs - Hc / 2 + Hc + 24 - bracketH;
+    this.bracketW = bracketW;
+    this.bracketH = bracketH;
     if (this.imgBracket !== null) {
-      ctxFront.drawImage(this.imgBracket, bracketLeft, bracketTop, bracketW, bracketH);
+      ctxBk.drawImage(this.imgBracket, 0, 0, bracketW, bracketH);
     }
 
     // 键带图
@@ -779,7 +796,8 @@ export struct CanvasTypewriter {
     ctx.fillRect(0, this.heightVp - this.bottomInset - this.functionRowHeightVp, this.widthVp, this.functionRowHeightVp);
     this.drawFunctionRow(ctx);
     this.machineLayer = off.transferToImageBitmap();
-    this.machineFrontLayer = offFront.transferToImageBitmap();
+    this.bailLayer = offBail.transferToImageBitmap();
+    this.bracketLayer = offBk.transferToImageBitmap();
     this.machineBuildCount++;
     hilog.info(CDOMAIN, CTAG, 'static layer rebuilt: machine count=%{public}d', this.machineBuildCount);
   }
@@ -935,8 +953,11 @@ export struct CanvasTypewriter {
       ctx.restore();
     }
     this.drawArchLayer(ctx);
-    if (this.machineFrontLayer !== null) {
-      ctx.drawImage(this.machineFrontLayer, this.renderO, 0);
+    if (this.bailLayer !== null) {
+      ctx.drawImage(this.bailLayer, this.paperX() + this.renderO, this.bailY);
+    }
+    if (this.bracketLayer !== null) {
+      ctx.drawImage(this.bracketLayer, this.bracketX0 + this.renderO, this.bracketY0);
     }
     this.drawLever(ctx);
     this.drawTypebar(ctx);
@@ -1528,5 +1549,7 @@ export struct CanvasTypewriter {
     .onTouch((e: TouchEvent): void => { this.onCanvasTouch(e); })
   }
 }
+
+
 
 
