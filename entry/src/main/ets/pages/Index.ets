@@ -72,6 +72,8 @@ import { PhotoKeybed } from '../components/PhotoKeybed';
 import { KeyGrid } from '../components/KeyGrid';
 import { FunctionRow } from '../components/FunctionRow';
 import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
+// 第 24 批（23 号稿批 1／§4.4）：新 UI 件——纸面板（纸是 UI 面板，文字是 Text）
+import { PaperPanel } from '../components/PaperPanel';
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
@@ -114,6 +116,11 @@ const GROW_DURATION_MS: number = 60; // 硬曲线：纸移动 50–70ms，写死
 const BELL_REMAINING: number = 8;
 /** 换纸计时打点开关（第 0 批；第 9 批 F12 起默认 true＝随正常构建开启；只写 hilog，不写 prefs、不上传；排查完也不回滚）。 */
 const PAPER_CHANGE_TRACE: boolean = true;
+/**
+ * 第 24 批（23 号稿 §4.4 Q16(a)）：纸面板满幅口径的两侧面板边距。
+ * 23 号稿 362.7vp 档的基线数 Pw＝330.7 → panelMargin＝(362.7−330.7)/2＝16vp；本机按实测 stageW 重算。
+ */
+const PANEL_MARGIN_VP: number = 16;
 
 function emptyLayout(): KeymapLayout {
   return {
@@ -226,6 +233,11 @@ struct Index {
   private queuedChars: string[] = [];
   /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
   @State paperContainerVp: number = 0;
+  /**
+   * 第 24 批（23 号稿 R-B5 过渡态）：Canvas 旧纸面隐藏开关（全仓新名，批 1 前 grep 确认无重名）。
+   * 批 1 恒为 true（新 PaperPanel 在 Canvas 之上接管纸面）；批 3 随 Canvas 退役，本 prop 同删。
+   */
+  @State paperHidden: boolean = true;
   @State paperTopTargetVp: number = 0;
   @State paperContainerTargetVp: number = 0;
   private paperAnimateNext: boolean = false;
@@ -1341,6 +1353,54 @@ struct Index {
       return this.photoWidthCap;
     }
     return this.stageWidth;
+  }
+
+  // ---------------- 第 24 批：新 UI 件（批 1 试点）几何（23 号稿 §3.2.1／附录 A） ----------------
+
+  /** 画布高（vp）：Canvas 的 heightVp 同式（批 3 去掉 Canvas 后改为 stageHeight 直读）。 */
+  private canvasHeightVp(): number {
+    return this.winHeightVp > 0 ? this.winHeightVp : this.stageHeight;
+  }
+
+  /** 画布宽（vp）：Canvas 的 widthVp 同式。 */
+  private canvasWidthVp(): number {
+    return this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth;
+  }
+
+  /** 纸面板宽 Pw：Q16(a) 满幅面板 = stageW − 2×panelMargin（D4）。 */
+  private paperPanelWidthVp(): number {
+    return this.stageWidth - 2 * PANEL_MARGIN_VP;
+  }
+
+  /** 纸面板左缘：paperBaseX + V（D2／D4；批 1 只跟逻辑 O，K＝1 写实口径，帧时钟接线在批 3）。 */
+  private paperPanelLeftVp(): number {
+    return this.stageWidth * 0.5 - this.marginH() + this.carriageOffsetVp;
+  }
+
+  /** 纸面板顶缘＝纸区顶缘（与 Canvas paperY() 同式：topInset＋顶栏＋纸顶距＋paperTop）。 */
+  private paperPanelTopVp(): number {
+    return this.topInset + this.topBarHeight + this.paperTopGap + this.paperTopVp;
+  }
+
+  /** 键盘网格顶缘＝Canvas keybedTop() 同式（页面高 − 底安全区 − 功能行 − 键盘区高）。 */
+  private keyGridTopVp(): number {
+    return this.canvasHeightVp() - this.bottomInset - this.functionRowHeight - this.keybedHeight;
+  }
+
+  /** 纸纹贴片名（§7.4：纸只有 texture 维，无 machine 维）。 */
+  private paperPanelTexture(): string {
+    if (this.paperKind === PaperKind.MANUSCRIPT) { return 'paper-manuscript.png'; }
+    if (this.paperKind === PaperKind.POSTCARD) { return 'paper-postcard.png'; }
+    if (this.paperKind === PaperKind.MEMO) { return 'paper-memo.png'; }
+    return 'paper-letter.png';
+  }
+
+  /** 键区过渡态底板色（23 号稿 §2.5 第 5 条机身色；批 2 机身面板挂载后由面板接管）。 */
+  private machineBodyColor(): string {
+    if (this.machineKind === MachineKind.UPRIGHT_1920S) { return '#312b24'; }
+    if (this.machineKind === MachineKind.PORTABLE_1930S) { return '#3d3732'; }
+    if (this.machineKind === MachineKind.STREAMLINED_1950S) { return '#c8b9a6'; }
+    return '#928b82';
   }
 
   /** 设备类型（phone / tablet / 2in1 / ...）。 */
@@ -4573,6 +4633,9 @@ struct Index {
                 .id('typewriter__paper')
                 .width('100%')
                 .height(this.paperHeightVp)
+                // 第 24 批（R-B5）：旧ArkUI纸面（PaperStage）隐藏——纸面由 Canvas 之上的 PaperPanel 接管。
+                // 批 3 删 Canvas 时本组件与 id 一并退役（本行不改布局，只隐藏绘制）。
+                .opacity(0)
 
             }
 
@@ -4749,32 +4812,11 @@ struct Index {
           onOpenCustomize: (): void => { this.pushPage('customize'); },
         })
 
-        KeyGrid({
-          machineKind: this.machineKind,
-          shiftActive: this.shiftActive,
-          capsActive: this.capsLock,
-          // 第 5 批回批 F7（D0b-2）：desk 用折叠带图（1930s 无折叠分支恒用手机带，组件内静态分支）
-          foldBand: this.layoutMode === 'desk',
-          widthVp: this.photoW(),
-          heightVp: this.keybedHeight,
-          layout: this.displayLayout(),
-          overlayFontFamily: this.fontFamily,
-          commitSeq: this.commitSeq,
-          onCapDown: (cap: CapDef): void => {
-            this.onCapDown(cap);
-          },
-          onCapSlide: (cap: CapDef): void => {
-            if (!cap.isExtra && cap.label !== ' ') {
-              this.audioService.playKey();
-            }
-          },
-          onCapUp: (cap: CapDef): void => {
-            // Shift 松开即清（多触点：松开 Shift 不影响正在按的字母）
-            if (cap.label === 'Shift') {
-              this.shiftActive = false;
-            }
-          },
-        })
+        // 第 24 批：键盘网格已迁到 Canvas 之上的兄弟层（p24_key_grid），
+        // 旧页面这里只留等高透明占位，保持 Column 布局（字体条／功能行位置不变）。
+        Row()
+          .width('100%')
+          .height(this.keybedHeight)
 
         FunctionRow({
           heightVp: this.functionRowHeight,
@@ -5066,6 +5108,8 @@ struct Index {
           paperHeightVp: this.paperHeightVp,
           paperContainerVp: this.paperContainerVp,
           paperResetTick: this.canvasPaperResetTick,
+          // 第 24 批（R-B5）：新 PaperPanel 接管纸面 → 旧纸层不画（批 3 随 Canvas 退役删）
+          paperHidden: this.paperHidden,
           paperTopVp: this.paperTopVp,
           carriageTopVp: this.carriageTopVp,
           carriageHeightVp: this.carriageHeight,
@@ -5159,6 +5203,65 @@ struct Index {
           onLeverEnd: (): void => { this.leverPanEnd(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // ---- 第 24 批（23 号稿批 1／R-B5 过渡态）：新 UI 件挂在 Canvas 之上 ----
+      // 与 CanvasTypewriter 兄弟级（不是它的子级）；批 1 只挂纸面板＋键盘网格，旧纸面由 paperHidden 藏起，
+      // 旧机器层（压纸卷／滚筒／拨杆）仍在底下（批 3 随 Canvas 退役）。批 3 删 Canvas 挂载时两件原地留下。
+      if (this.navStack[this.navStack.length - 1] === 'typewriter') {
+        PaperPanel({
+          leftVp: this.paperPanelLeftVp(),
+          topVp: this.paperPanelTopVp(),
+          widthVp: this.paperPanelWidthVp(),
+          heightVp: this.paperPanelWidthVp() * 1.414,
+          containerVp: this.paperContainerVp,
+          textureRawfile: this.paperPanelTexture(),
+          lines: this.docLineTexts(),
+          fontSizeVp: this.fontSizeVp,
+          lineHeightVp: this.lineHeightVp,
+          marginHVp: this.marginH(),
+          marginTVp: this.marginT() + 20,
+          fontFamily: this.fontFamily,
+          textColor: this.inkColor,
+          cursorXVp: this.marginH() + this.currentLineWidthVp(),
+          cursorYVp: Math.max(0, this.strikeLineVp - this.paperTopVp - 8),
+          cursorVisible: true,
+        })
+          .id('p24_paper_panel')
+          .position({ x: this.paperPanelLeftVp(), y: this.paperPanelTopVp() })
+
+        KeyGrid({
+          machineKind: this.machineKind,
+          shiftActive: this.shiftActive,
+          capsActive: this.capsLock,
+          foldBand: this.layoutMode === 'desk',
+          widthVp: this.canvasWidthVp(),
+          heightVp: this.keybedHeight,
+          layout: this.displayLayout(),
+          overlayFontFamily: this.fontFamily,
+          overlayFontSize: 15,
+          labelColor: '#312b24',
+          backingColor: this.machineBodyColor(),
+          showBacking: true,
+          originXVp: 0,
+          originYVp: this.keyGridTopVp(),
+          commitSeq: this.commitSeq,
+          onCapDown: (cap: CapDef): void => {
+            this.onCapDown(cap);
+          },
+          onCapSlide: (cap: CapDef): void => {
+            if (!cap.isExtra && cap.label !== ' ') {
+              this.audioService.playKey();
+            }
+          },
+          onCapUp: (cap: CapDef): void => {
+            if (cap.label === 'Shift') {
+              this.shiftActive = false;
+            }
+          },
+        })
+          .id('p24_key_grid')
+          .position({ x: 0, y: this.keyGridTopVp() })
       }
 
       if (this.settingsOpen) {

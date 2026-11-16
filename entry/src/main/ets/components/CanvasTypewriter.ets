@@ -1319,11 +1319,10 @@ export struct CanvasTypewriter {
 
   /** 文字统一在主 Canvas 上画（OffscreenCanvas 看不到 registerFont 注册字体，会回落到系统字体）。 */
   private drawTexts(ctx: CanvasRenderingContext2D): void {
-    // 第 24 批（R-B5）：过渡态下旧纸面文字与新 PaperPanel 会重影 → 整体跳过。
-    if (this.paperHidden) {
-      return;
-    }
     ctx.textBaseline = 'middle';
+    // 第 24 批（R-B5）：过渡态下旧纸面文字与新 PaperPanel 会重影 → 只跳纸面块与键帽叠字；
+    // 字体条／候选栏／功能行文字照常画（它们不在纸面，整层 return 会让功能行变空框——第 24 批实测）。
+    if (!this.paperHidden) {
     // 纸面文字（裁剪到纸容器）
     ctx.save();
     ctx.beginPath();
@@ -1368,7 +1367,9 @@ export struct CanvasTypewriter {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // 键帽叠字（裁剪到键带区）
+    }
+    // 键帽叠字（裁剪到键带区）——同属旧键盘带，paperHidden 期间由 KeyGrid 接管，这里一并跳过
+    if (!this.paperHidden) {
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, this.keybedTop(), this.widthVp, this.keybedHeightVp);
@@ -1382,6 +1383,7 @@ export struct CanvasTypewriter {
       ctx.fillText(cap.label, cap.xRatio * this.keybedWidth(), this.keybedTop() + cap.yRatio * this.keybedHeightVp);
     }
     ctx.restore();
+    }
     // 候选栏（中文候选 chip）
     if (this.candBarHeightVp > 0 && this.candidates.length > 0) {
       const cy: number = this.fontBarTop() - this.candBarHeightVp;

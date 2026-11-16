@@ -1,0 +1,20 @@
+keycap-face-1920s.png       * maxmin=0.235  hf=0.008  PASS
+keycap-face-1930s.png       * maxmin=0.435  hf=0.012  PASS
+keycap-face-1950s.png       * maxmin=0.278  hf=0.004  PASS
+keycap-face-1960s.png       * maxmin=0.451  hf=0.008  PASS
+keycap-pressed-1920s.png    * maxmin=0.200  hf=0.008  PASS
+keycap-pressed-1930s.png    * maxmin=0.306  hf=0.008  PASS
+keycap-pressed-1950s.png    * maxmin=0.239  hf=0.004  PASS
+keycap-pressed-1960s.png    * maxmin=0.384  hf=0.004  PASS
+paper-letter.png              maxmin=0.086  hf=0.016  PASS
+paper-manuscript.png        * maxmin=0.263  hf=0.016  PASS
+paper-memo.png                maxmin=0.145  hf=0.012  PASS
+paper-postcard.png          * maxmin=0.380  hf=0.035  PASS
+spacebar-face-1920s.png       maxmin=0.075  hf=0.004  PASS
+spacebar-face-1930s.png       maxmin=0.055  hf=0.004  PASS
+spacebar-face-1950s.png     * maxmin=0.376  hf=0.008  PASS
+spacebar-face-1960s.png       maxmin=0.059  hf=0.008  PASS
+
+[SCOPE] batch-1 set (paper-* + keycap-*/spacebar-*)
+[RULE] PASS if hf <= 0.15 (grain); maxmin printed for reference; '*' = the two disagree
+[RESULT] parts=16 PASS=16 FAIL=0

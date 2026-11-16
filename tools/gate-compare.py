@@ -44,6 +44,19 @@ REGIONS: List[Tuple[str, float, float, float, float]] = [
 ]
 REGION_ORDER = [r[0] for r in REGIONS]
 
+# 第 24 批（23 号稿 §10.1）：五区重定义——y 范围取批 1 真机实测分配（1224×2776 截图，px → 归一化）。
+# 旧基线 1083–1087（机器照片路线）作废；新基线＝1703 起（批报告 §0 登记）。
+PROFILES: Dict[str, List[Tuple[str, float, float, float, float]]] = {
+    "legacy": REGIONS,
+    "p24": [
+        ("topbar",   0.00, 1.00, 149 / 2776.0, 337 / 2776.0),   # App 铬 149–337px
+        ("paper",    0.00, 1.00, 945 / 2776.0, 1370 / 2776.0),  # 纸区 945–1370px
+        ("basket",   0.00, 1.00, 1370 / 2776.0, 1799 / 2776.0), # 字篮区（批 1 暂由旧字车层占位）1370–1799px
+        ("keyboard", 0.00, 1.00, 1924 / 2776.0, 2507 / 2776.0), # 键盘区 1924–2507px
+        ("funcrow",  0.00, 1.00, 2507 / 2776.0, 2683 / 2776.0), # 功能行 2507–2683px
+    ],
+}
+
 
 def load_rgb(path: str) -> Image.Image:
     if not os.path.isfile(path):
@@ -85,7 +98,8 @@ def parse_band(text: str | None) -> Tuple[float, float] | None:
 
 
 def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD,
-                   exclude_band: Tuple[float, float] | None = None) -> Dict[str, dict]:
+                   exclude_band: Tuple[float, float] | None = None,
+                   regions: List[Tuple[str, float, float, float, float]] | None = None) -> Dict[str, dict]:
     if base.shape != cur.shape:
         raise ValueError(f"shape mismatch: {base.shape} vs {cur.shape}")
     # max 通道差
@@ -93,7 +107,7 @@ def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD
     maxdiff = diff.max(axis=2)
     h, w = maxdiff.shape
     out: Dict[str, dict] = {}
-    for region in REGIONS:
+    for region in (regions if regions is not None else REGIONS):
         name = region[0]
         left, top, right, bottom = region_box((w, h), region)
         block = maxdiff[top:bottom, left:right]
@@ -120,7 +134,7 @@ def compare_arrays(base: np.ndarray, cur: np.ndarray, threshold: int = THRESHOLD
 
 
 def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHOLD,
-        exclude_band: Tuple[float, float] | None = None) -> dict:
+        exclude_band: Tuple[float, float] | None = None, profile: str = "legacy") -> dict:
     base_img = load_rgb(baseline)
     cur_img = load_rgb(current)
     if scale:
@@ -135,7 +149,8 @@ def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHO
         cur_img = resize_to(cur_img, base_img.size)
     base = np.asarray(base_img)
     cur = np.asarray(cur_img)
-    regions = compare_arrays(base, cur, threshold, exclude_band)
+    regions_spec = PROFILES.get(profile, REGIONS)
+    regions = compare_arrays(base, cur, threshold, exclude_band, regions_spec)
     passed = all(v["passed"] for v in regions.values())
     return {
         "baseline": os.path.abspath(baseline),
@@ -145,8 +160,9 @@ def run(baseline: str, current: str, scale: str | None, threshold: int = THRESHO
         "threshold": threshold,
         "exclude_band": list(exclude_band) if exclude_band is not None else None,
         "regions": regions,
+        "profile": profile,
         "verdict": "PASS" if passed else "FAIL",
-        "criterion": "四区超阈值像素占比全部为 0.00% 才通过",
+        "criterion": "各判区超阈值像素占比全部为 0.00% 才通过",
     }
 
 
@@ -156,7 +172,7 @@ def print_table(result: dict) -> None:
     print(f"尺寸: {result['size'][0]}x{result['size'][1]}  阈值: {result['threshold']}  "
           f"判据: {result['criterion']}")
     print(f"{'区域':<12}{'像素数':>10}{'超阈像素':>10}{'占比':>8}{'最大通道差':>10}  结果")
-    for name in REGION_ORDER:
+    for name in result["regions"].keys():
         r = result["regions"][name]
         print(f"{name:<12}{r['pixels']:>10}{r['over_threshold']:>10}{r['percent']:>7.2f}%"
               f"{r['max_channel_diff']:>10}  {'PASS' if r['passed'] else 'FAIL'}")
@@ -248,6 +264,8 @@ def main(argv: List[str]) -> int:
     ap.add_argument("baseline", nargs="?", help="基线图（当前有效基线见 AGENTS.md 回归门口径）")
     ap.add_argument("current", nargs="?", help="当前截图")
     ap.add_argument("--scale", default=None, help="统一缩放，例如 400x640（历史口径）")
+    ap.add_argument("--profile", default="legacy", choices=list(PROFILES.keys()),
+                    help="判区口径：legacy＝旧四区（机器照片路线，已作废留档）；p24＝批 1 五区实测分配")
     ap.add_argument("--exclude-band", default=None,
                     help="排除归一化纵带 y0:y1（例如半开态 0.46:0.54），该带不参与四区统计")
     ap.add_argument("--threshold", type=int, default=THRESHOLD)
@@ -266,7 +284,7 @@ def main(argv: List[str]) -> int:
         return 2
     try:
         result = run(args.baseline, args.current, args.scale, args.threshold,
-                     parse_band(args.exclude_band))
+                     parse_band(args.exclude_band), args.profile)
     except Exception as exc:
         print(f"[gate-compare] 失败: {exc}", file=sys.stderr)
         return 2

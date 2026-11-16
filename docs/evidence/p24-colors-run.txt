@@ -1,0 +1,5 @@
+paper-panel   want #eee4ce  worst=0.087  PASS  (245,238,220) dev=0.068; (251,243,224) dev=0.087; (249,238,220) dev=0.068
+key-grid      want #f2ead6  worst=0.037  PASS  (248,237,206) dev=0.037; (249,238,207) dev=0.033; (248,237,206) dev=0.037
+function-row  SKIP  ����Ƭ��δ�Ǽǲ����㣨����ֻ�Ǽǹ�ʽ��
+
+�ھ���ÿ�� 3 �㣨PartContract.ets �� colorSamples������һͨ��ƫ�� �� 10%��FAIL 0 ��

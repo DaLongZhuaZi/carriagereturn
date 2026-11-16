@@ -92,17 +92,22 @@ export const STAGE_1920S_PHONE: StageMetrics = {
   charsPerLine: 27,
   lineWidth: 275.4,
   maxRows: 13,
-  // 五区：批 1 由 measureStage 实测后回填（此处先按设计稿 D22／D23 的定值占位，实测不同以实测为准）。
-  H_topBar: 0,
-  H_paperZone: 0,
-  H_basket: 0,
-  H_funcRow: 40,
-  H_keyGrid: 0,
+  // 五区（批 1 真机实测回填，ADA-AL00U 1224×2776，1vp=3.375px；实证见批报告 §3 推导表）：
+  // 顶栏 149–337px＝55.7vp；纸区 945–1370px＝125.9vp；字篮带 1370–1924px＝164.1vp（批 1 仍由旧字车层占位）；
+  // 键盘区 1924–2507px＝172.7vp；功能行 2507–2683px＝52.1vp。
+  // 五区之和 570.5vp ≠ stageH 822.5vp：差 252.0vp＝顶部空带（337–945px）＋底安全区；
+  // 闭合要等批 2／3 五区重排后成立（批 1 只登记实测分配，见批报告不符点 #2）。
+  H_topBar: 55.7,
+  H_paperZone: 125.9,
+  H_basket: 164.1,
+  H_funcRow: 52.1,
+  H_keyGrid: 172.7,
   gridMargin: 12,
   leverW: 10,
   leverMargin: 8,
   knobMargin: 8,
-  knobD: 0,
+  // D14：knobD＝H_paperZone×0.18（批 1 按实测纸区高重算）
+  knobD: 22.66,
 };
 
 /** 替换规则五条（23 号稿 §3.3 第 4 项，全件共用）。 */

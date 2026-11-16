@@ -1,0 +1,24 @@
+{
+  "note": "第 24 批 批 1 真机实测（ADA-AL00U 1224×2776，1vp=3.375px；2026-11-17 02:0x 构建）",
+  "stageW": 362.7,
+  "stageH": 822.5,
+  "pxPerVp": 3.375,
+  "funcRowH": 52.1,
+  "paperPanelRect": {
+    "leftVp": 156.3,
+    "topVp": 279.9,
+    "widthVp": 330.7,
+    "heightPhVp": 467.6,
+    "containerVp": 126
+  },
+  "keyGridRect": {
+    "originXVp": 0,
+    "originYVp": 570,
+    "widthVp": 362.7,
+    "heightVp": 172.7,
+    "caps": 43
+  },
+  "paperLeftAfter20Chars": 108,
+  "carriageOffsetAfter20Chars": -48.3,
+  "note2": "行末 paperLeft／paperRight 未在批 1 触达（现行 O 步进仍是旧口径），故不列实测；D8/D4 推导值见脚本输出与批报告推导表"
+}

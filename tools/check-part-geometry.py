@@ -94,8 +94,68 @@ def main() -> int:
                 ok = dev <= TOL
                 bad += 0 if ok else 1
                 print(f"  {key:<20} meas={float(meas[key]):>9.2f}  derived={want:>9.2f}  dev={dev:>5.2f}  {'PASS' if ok else 'FAIL'}")
-    print(f"\n[RESULT] inconsistencies={bad} (tol {TOL}vp)")
+
+    # ---- §10.2(a) 逐帽抽查：契约（keymap CapDef）vs 真机 dump 的帽心 ----
+    if "--caps-dump" in sys.argv:
+        cap_bad = check_caps(sys.argv[sys.argv.index("--caps-dump") + 1],
+                             s["stageW"], s["H_keyGrid"])
+        bad += cap_bad
+
+    print(f"\n[RESULT] inconsistencies={bad} (tol {TOL}vp；帽心 tol 2%)")
     return 0 if bad == 0 else 1
+
+
+def check_caps(dump_path: str, grid_w: float, grid_h: float) -> int:
+    """读 uitest dumpLayout 的 JSON：取键区单字符标签节点中心，与 keymap CapDef 帽心（比例×网格尺寸）比对。
+
+    判据：|devX|/gridW ≤ 0.02 且 |devY|/gridH ≤ 0.02（§3.3 硬契约 ≤2%）。
+    键区原点＝键盘网格挂载点（批 1 实测 originYVp＝570.0vp、originX＝0），px→vp 用 3.375（1224/362.7）。
+    """
+    import json
+    keymap = os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile", "keymap",
+                          "1920s-upright-keymap.json")
+    with open(dump_path, encoding="utf-8") as fh:
+        dump = json.load(fh)
+    with open(keymap, encoding="utf-8") as fh:
+        km = json.load(fh)
+    band = km["bands"]["phone"]
+    caps = {}
+    for row in km["rows"]:
+        for c in row["caps"]:
+            caps[c["label"]] = ((c["x"] - band["x0"]) / float(band["w"]),
+                                (row["y"] - band["y0"]) / float(band["h"]))
+    px_per_vp = 3.375
+    origin_y_vp = 570.0
+    origin_x_vp = 0.0
+    found = []
+
+    def walk(n):
+        a = n.get("attributes", {}) or {}
+        txt = (a.get("text") or "").strip()
+        b = a.get("bounds") or ""
+        m = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", b)
+        if m and txt in caps:
+            cx = (int(m.group(1)) + int(m.group(3))) / 2.0 / px_per_vp - origin_x_vp
+            cy = (int(m.group(2)) + int(m.group(4))) / 2.0 / px_per_vp - origin_y_vp
+            found.append((txt, cx, cy))
+        for ch in n.get("children", []) or []:
+            walk(ch)
+
+    walk(dump)
+    print(f"\n[逐帽抽查 dump] {dump_path}  实测帽心数={len(found)}/{len(caps)}")
+    worst = 0.0
+    bad = 0
+    for txt, cx, cy in found:
+        want_x, want_y = caps[txt][0] * grid_w, caps[txt][1] * grid_h
+        dx = abs(cx - want_x) / grid_w
+        dy = abs(cy - want_y) / grid_h
+        worst = max(worst, dx, dy)
+        if dx > 0.02 or dy > 0.02:
+            bad += 1
+            print(f"  FAIL {txt:<12} meas=({cx:.2f},{cy:.2f}) want=({want_x:.2f},{want_y:.2f}) "
+                  f"dx%={dx * 100:.2f} dy%={dy * 100:.2f}")
+    print(f"  帽心最大偏差 = {worst * 100:.2f}%（判据 ≤2%）  {'PASS' if bad == 0 else 'FAIL'}")
+    return bad
 
 
 if __name__ == "__main__":
