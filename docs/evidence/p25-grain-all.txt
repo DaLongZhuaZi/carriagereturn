@@ -1,0 +1,53 @@
+basket-fan-1920s.png        * maxmin=0.580  hf=0.090  PASS
+basket-fan-1930s.png        * maxmin=0.486  hf=0.122  PASS
+basket-fan-1950s.png        * maxmin=0.337  hf=0.098  PASS
+basket-fan-1960s.png        * maxmin=0.851  hf=0.090  PASS
+basket-fan-metal-1920s.png    maxmin=0.875  hf=0.267  FAIL
+basket-fan-metal-1930s.png    maxmin=0.796  hf=0.169  FAIL
+basket-fan-metal-1950s.png  * maxmin=0.906  hf=0.102  PASS
+basket-fan-metal-1960s.png  * maxmin=0.329  hf=0.090  PASS
+bodypanel-1920s-grain.png   * maxmin=0.298  hf=0.031  PASS
+bodypanel-1930s-grain.png   * maxmin=0.376  hf=0.039  PASS
+bodypanel-1950s-grain.png   * maxmin=0.459  hf=0.039  PASS
+bodypanel-1960s-grain.png   * maxmin=0.243  hf=0.047  PASS
+keycap-face-1920s.png       * maxmin=0.235  hf=0.008  PASS
+keycap-face-1930s.png       * maxmin=0.435  hf=0.012  PASS
+keycap-face-1950s.png       * maxmin=0.278  hf=0.004  PASS
+keycap-face-1960s.png       * maxmin=0.451  hf=0.008  PASS
+keycap-face-round-1920s.png   maxmin=0.020  hf=0.004  PASS
+keycap-face-round-1930s.png   maxmin=0.063  hf=0.008  PASS
+keycap-face-round-1950s.png   maxmin=0.027  hf=0.004  PASS
+keycap-face-round-1960s.png * maxmin=0.482  hf=0.004  PASS
+keycap-pressed-1920s.png    * maxmin=0.200  hf=0.008  PASS
+keycap-pressed-1930s.png    * maxmin=0.306  hf=0.008  PASS
+keycap-pressed-1950s.png    * maxmin=0.239  hf=0.004  PASS
+keycap-pressed-1960s.png    * maxmin=0.384  hf=0.004  PASS
+keycap-pressed-round-1920s.png  maxmin=0.012  hf=0.000  PASS
+keycap-pressed-round-1930s.png  maxmin=0.051  hf=0.004  PASS
+keycap-pressed-round-1950s.png  maxmin=0.020  hf=0.000  PASS
+keycap-pressed-round-1960s.png* maxmin=0.533  hf=0.004  PASS
+knob-matteblack.png         * maxmin=0.675  hf=0.000  PASS
+knob-metal.png              * maxmin=0.576  hf=0.039  PASS
+lever.png                   * maxmin=0.804  hf=0.027  PASS
+paper-letter.png              maxmin=0.086  hf=0.016  PASS
+paper-manuscript.png        * maxmin=0.263  hf=0.016  PASS
+paper-memo.png                maxmin=0.145  hf=0.012  PASS
+paper-postcard.png          * maxmin=0.380  hf=0.035  PASS
+ribbon-strip.png            * maxmin=0.541  hf=0.110  PASS
+ruler.png                   * maxmin=1.000  hf=0.122  PASS
+spacebar-face-1920s.png       maxmin=0.075  hf=0.004  PASS
+spacebar-face-1930s.png       maxmin=0.055  hf=0.004  PASS
+spacebar-face-1950s.png     * maxmin=0.376  hf=0.008  PASS
+spacebar-face-1960s.png       maxmin=0.059  hf=0.008  PASS
+spacebar-face-round-1920s.png* maxmin=0.380  hf=0.008  PASS
+spacebar-face-round-1930s.png* maxmin=0.235  hf=0.004  PASS
+spacebar-face-round-1950s.png* maxmin=0.341  hf=0.008  PASS
+spacebar-face-round-1960s.png* maxmin=0.196  hf=0.004  PASS
+typebar-1920s.png             maxmin=0.898  hf=0.165  FAIL
+typebar-1930s.png           * maxmin=0.996  hf=0.055  PASS
+typebar-1950s.png           * maxmin=0.722  hf=0.082  PASS
+typebar-1960s.png           * maxmin=0.996  hf=0.078  PASS
+
+[SCOPE] ALL 32
+[RULE] PASS if hf <= 0.15 (grain); maxmin printed for reference; '*' = the two disagree
+[RESULT] parts=49 PASS=46 FAIL=3

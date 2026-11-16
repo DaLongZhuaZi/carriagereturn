@@ -1,0 +1,9 @@
+paper-panel   want #eee4ce  worst=0.087  PASS  (245,238,220) dev=0.068; (251,243,224) dev=0.087; (249,238,220) dev=0.068
+key-grid      want #f2ead6  worst=0.037  PASS  (248,237,206) dev=0.037; (249,238,207) dev=0.033; (248,237,206) dev=0.037
+function-row  SKIP  ����Ƭ��δ�Ǽǲ����㣨����ֻ�Ǽǹ�ʽ��
+ruler         want #beb4a8  worst=0.304  FAIL  (164,164,164) dev=0.137; (219,219,219) dev=0.304; (211,211,211) dev=0.256
+basket        want #beb4a8  worst=0.342  FAIL  (125,125,125) dev=0.342; (224,224,224) dev=0.333; (222,222,222) dev=0.321
+lever         want #beb4a8  worst=0.621  FAIL  (218,218,218) dev=0.298; (164,164,164) dev=0.137; (72,72,74) dev=0.621
+knob          want #beb4a8  worst=0.250  FAIL  (208,204,210) dev=0.250; (152,154,158) dev=0.200; (144,146,150) dev=0.242
+
+�ھ���ÿ�� 3 �㣨PartContract.ets �� colorSamples������һͨ��ƫ�� �� 10%��FAIL 4 ��

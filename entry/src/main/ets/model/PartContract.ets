@@ -92,22 +92,21 @@ export const STAGE_1920S_PHONE: StageMetrics = {
   charsPerLine: 27,
   lineWidth: 275.4,
   maxRows: 13,
-  // 五区（批 1 真机实测回填，ADA-AL00U 1224×2776，1vp=3.375px；实证见批报告 §3 推导表）：
-  // 顶栏 149–337px＝55.7vp；纸区 945–1370px＝125.9vp；字篮带 1370–1924px＝164.1vp（批 1 仍由旧字车层占位）；
-  // 键盘区 1924–2507px＝172.7vp；功能行 2507–2683px＝52.1vp。
-  // 五区之和 570.5vp ≠ stageH 822.5vp：差 252.0vp＝顶部空带（337–945px）＋底安全区；
-  // 闭合要等批 2／3 五区重排后成立（批 1 只登记实测分配，见批报告不符点 #2）。
+  // 五区（第 25 批＝批 2 重排后的真机实测，ADA-AL00U 1224×2776，1vp=3.375px）：
+  // 顶栏 149–337px＝55.7vp；纸区 351–1371px＝302.2vp；横尺 8vp；字篮 1398–1837px＝130vp；
+  // 功能行 1837–1972px＝40vp（D22）；字体条 38vp；键盘区 2100–2683px＝172.7vp；底安全区 27.8vp。
+  // 五区＋字体条＋底安全区合计＝822.5vp（stageH），闭合成立（批 2 报告 §3）。
   H_topBar: 55.7,
-  H_paperZone: 125.9,
-  H_basket: 164.1,
-  H_funcRow: 52.1,
+  H_paperZone: 302.2,
+  H_basket: 130,
+  H_funcRow: 40,
   H_keyGrid: 172.7,
   gridMargin: 12,
   leverW: 10,
   leverMargin: 8,
   knobMargin: 8,
-  // D14：knobD＝H_paperZone×0.18（批 1 按实测纸区高重算）
-  knobD: 22.66,
+  // D14：knobD＝H_paperZone×0.18＝54.4vp（跨骑纸面板下沿两角）
+  knobD: 54.4,
 };
 
 /** 替换规则五条（23 号稿 §3.3 第 4 项，全件共用）。 */
@@ -183,15 +182,15 @@ export const PARTS: PartContract[] = [
     z: 2,
     geometryFormula: 'w＝Pw；h＝8vp；页边三角：左＝paperLeft＋marginH、右＝paperRight−marginH（D12）',
     material: 'brass-ruler',
-    color: '',
+    color: '#beb4a8',
     finish: 0,
     variants: ['—（颜色由机身壳变体定）'],
     replaceRules: REPLACE_RULES,
     anim: '与纸面板同视觉位移 V（D11）',
     affordance: '不接受手势（刻度是标尺，不是控件）',
-    status: 'formula',
+    status: 'filled',
     rawfile: 'ui-parts/ruler.png',
-    colorSamples: [],
+    colorSamples: [[0.5, 0.5], [0.3, 0.5], [0.7, 0.5]],
   },
   {
     id: 'strike-guide',
@@ -219,15 +218,15 @@ export const PARTS: PartContract[] = [
     z: 4,
     geometryFormula: 'w＝stageW×0.8；h＝H_basket（扇形几何，高≈宽×0.5）',
     material: 'basket-metal',
-    color: '',
+    color: '#beb4a8',
     finish: 0,
     variants: ['basketStyle: flat-line★/metal-gradient'],
     replaceRules: REPLACE_RULES,
     anim: '字杆绕左右向水平枢轴旋转、正面看纵向缩短（§4.3）；扇形底图不动',
     affordance: '不接受手势（机械件）',
-    status: 'formula',
+    status: 'filled',
     rawfile: 'ui-parts/basket-fan-1920s.png',
-    colorSamples: [],
+    colorSamples: [[0.5, 0.78], [0.45, 0.75], [0.55, 0.75]],
   },
   {
     id: 'lever',
@@ -237,15 +236,15 @@ export const PARTS: PartContract[] = [
     z: 7,
     geometryFormula: 'w＝10vp；h＝H_paperZone×0.6；angle＝rest＋ratio×swing（D16）',
     material: 'black-metal-matte',
-    color: '',
+    color: '#beb4a8',
     finish: 0,
     variants: ['leverShape: vertical-handle★'],
     replaceRules: REPLACE_RULES,
     anim: '被拖拽时按 dragRatio 摆动（D16）；过一次换行',
     affordance: '竖向拖拽：dragRatio＝clamp(dy/leverH,0,1)，过半触发换行',
-    status: 'formula',
+    status: 'filled',
     rawfile: 'ui-parts/lever.png',
-    colorSamples: [],
+    colorSamples: [[0.5, 0.3], [0.5, 0.5], [0.5, 0.7]],
   },
   {
     id: 'knob',
@@ -255,15 +254,15 @@ export const PARTS: PartContract[] = [
     z: 7,
     geometryFormula: '直径 knobD＝H_paperZone×0.18；每进纸一行转 15°（D17，24 齿）',
     material: 'metal-knurl',
-    color: '',
+    color: '#beb4a8',
     finish: 0,
     variants: ['knobFace: metal-knurl★/matte-black'],
     replaceRules: REPLACE_RULES,
     anim: '换行时转 15°（D17）',
     affordance: '点按＝进纸一行（Q15(a)，批 2 挂载）',
-    status: 'formula',
+    status: 'filled',
     rawfile: 'ui-parts/knob-metal.png',
-    colorSamples: [],
+    colorSamples: [[0.5, 0.5], [0.35, 0.5], [0.65, 0.5]],
   },
   {
     id: 'body-panel',

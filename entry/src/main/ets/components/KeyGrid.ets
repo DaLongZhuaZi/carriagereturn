@@ -39,9 +39,7 @@ export struct KeyGrid {
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
   @Prop labelColor: string = '#312b24';
-  /** 过渡态键区底板色（机身色）；批 2 机身面板接管后本 prop 删。 */
-  @Prop backingColor: string = '#312b24';
-  @Prop showBacking: boolean = true;
+  /** 第 25 批（批 2）：机身面板已接管底板 → 过渡态 showBacking／backingColor 已删。 */
   /** 组件原点（vp，绝对坐标）：只用于打点核对挂载位置。 */
   @Prop originXVp: number = 0;
   @Prop originYVp: number = 0;
@@ -94,14 +92,6 @@ export struct KeyGrid {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 过渡态底板：机身色，遮住 Canvas 旧键带照片（批 2 删）
-      if (this.showBacking) {
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(this.backingColor)
-      }
-
       // 空格条
       Button({ type: ButtonType.Normal, stateEffect: false }) {
         Stack() {

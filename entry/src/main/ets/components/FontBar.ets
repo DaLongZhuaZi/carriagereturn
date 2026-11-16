@@ -13,20 +13,24 @@ export struct FontBar {
   @Prop currentFamilyName: string = '';
   /** 点字体条进换装页（§4）；不改布局，只加一个点击入口。 */
   onOpenCustomize: () => void = (): void => {};
+  /** 第 25 批（批 2 机器配色）：字体名颜色——深机身米白、浅机身深色。 */
+  @Prop fgColor: string = '#beb4a8';
+  /** 第 25 批：上下细线颜色（浅机身跟着变深）。 */
+  @Prop lineColor: string = '#3a332b';
 
   build() {
     Column() {
-      Column().width('100%').height(1).backgroundColor('#3a332b')
+      Column().width('100%').height(1).backgroundColor(this.lineColor)
       // 第 5 批回批：文字用显示名（'Courier Prime'），字体族仍用传入族名（M-1：机器偏好是唯一渲染来源）
       Text(this.fontLabel.length > 0 ? this.fontLabel : this.currentFamilyName)
         .fontSize(13)
-        .fontColor('#beb4a8')
+        .fontColor(this.fgColor)
         .fontFamily(this.currentFamilyName.length > 0 ? this.currentFamilyName : this.fontFamily)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
-      Column().width('100%').height(1).backgroundColor('#3a332b')
+      Column().width('100%').height(1).backgroundColor(this.lineColor)
     }
     .width('100%')
     .height(this.heightVp)

@@ -15,12 +15,16 @@ export struct TopBar {
   @Prop guideEnabled: boolean = true;
   /** 右汉堡：下拉菜单（收藏／设置／导出）。 */
   onOpenMenu: () => void = (): void => {};
+  /** 第 25 批（批 2 机器配色）：App 铬前景色——深机身用米白，浅机身用深色（可读性）。 */
+  @Prop fgColor: string = '#dbccb3';
+  /** 第 25 批：引导 "?" 的点击回调（默认走原有 GuideBridge）。 */
+
 
   build() {
     Row() {
       // 左：主页（系统 symbol）
       Stack() {
-        AppIcon({ kind: 'folder', iconSize: 24, color: '#dbccb3' })
+        AppIcon({ kind: 'folder', iconSize: 24, color: this.fgColor })
       }
       .width(44)
       .height(44)
@@ -31,7 +35,7 @@ export struct TopBar {
       // 中：文档标题（系统字体 15vp 居中）
       Text(this.title)
         .fontSize(15)
-        .fontColor('#dbccb3')
+        .fontColor(this.fgColor)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
@@ -40,7 +44,7 @@ export struct TopBar {
       // 第 10 批：引导 "?"
       if (this.guideEnabled) {
         Stack() {
-          AppIcon({ kind: 'help', iconSize: 24, color: '#dbccb3' })
+          AppIcon({ kind: 'help', iconSize: 24, color: this.fgColor })
         }
         .width(44)
         .height(44)
@@ -49,7 +53,7 @@ export struct TopBar {
 
       // 右：汉堡菜单（系统 symbol）—— §2.1 三件套
       Stack() {
-        AppIcon({ kind: 'menu', iconSize: 24, color: '#dbccb3' })
+        AppIcon({ kind: 'menu', iconSize: 24, color: this.fgColor })
       }
       .width(44)
       .height(44)

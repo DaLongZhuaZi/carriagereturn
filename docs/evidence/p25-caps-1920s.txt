@@ -1,0 +1,19 @@
+item                    contract     derived     dev  verdict
+D1 archFixX               181.35      181.35    0.00  PASS
+D2 paperBaseX             156.35      156.35    0.00  PASS
+Q16a Pw                   330.70      330.70    0.00  PASS
+D7 Ph                     467.61      467.61    0.00  PASS
+D7 lineHeight              30.00       30.00    0.00  PASS
+D5 charsPerLine            27.00       27.00    0.00  PASS
+D5 lineWidth              275.40      275.40    0.00  PASS
+D7 maxRows                 13.00       13.00    0.00  PASS
+
+[D8] ��ĩ paperLeft(�Ƶ�) = -119.05vp����ü� 119.05vp��
+[D4] ��ĩ paperRight(�Ƶ�) = 211.65vp
+[D9] ��ĩ�Ҳü� = 0.00vp
+[D24] �����Ҳü� = 124.35vp
+
+[��ñ��� dump] docs\evidence\p25-dump-1920s.json  ʵ��ñ����=43/43
+  ñ�����ƫ�� = 0.11%���о� ��2%��  PASS
+
+[RESULT] inconsistencies=0 (tol 1.0vp��ñ�� tol 2%)

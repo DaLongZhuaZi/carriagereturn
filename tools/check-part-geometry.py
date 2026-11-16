@@ -97,23 +97,30 @@ def main() -> int:
 
     # ---- §10.2(a) 逐帽抽查：契约（keymap CapDef）vs 真机 dump 的帽心 ----
     if "--caps-dump" in sys.argv:
+        km_name = "1920s-upright-keymap.json"
+        if "--keymap" in sys.argv:
+            km_name = sys.argv[sys.argv.index("--keymap") + 1]
+        origin_y = s.get("keyGridOriginY", 570.0)
+        if "--origin-y" in sys.argv:
+            origin_y = float(sys.argv[sys.argv.index("--origin-y") + 1])
         cap_bad = check_caps(sys.argv[sys.argv.index("--caps-dump") + 1],
-                             s["stageW"], s["H_keyGrid"])
+                             s["stageW"], s["H_keyGrid"], km_name, origin_y)
         bad += cap_bad
 
     print(f"\n[RESULT] inconsistencies={bad} (tol {TOL}vp；帽心 tol 2%)")
     return 0 if bad == 0 else 1
 
 
-def check_caps(dump_path: str, grid_w: float, grid_h: float) -> int:
+def check_caps(dump_path: str, grid_w: float, grid_h: float,
+               keymap_name: str = "1920s-upright-keymap.json",
+               origin_y_vp: float = 570.0) -> int:
     """读 uitest dumpLayout 的 JSON：取键区单字符标签节点中心，与 keymap CapDef 帽心（比例×网格尺寸）比对。
 
     判据：|devX|/gridW ≤ 0.02 且 |devY|/gridH ≤ 0.02（§3.3 硬契约 ≤2%）。
     键区原点＝键盘网格挂载点（批 1 实测 originYVp＝570.0vp、originX＝0），px→vp 用 3.375（1224/362.7）。
     """
     import json
-    keymap = os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile", "keymap",
-                          "1920s-upright-keymap.json")
+    keymap = os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile", "keymap", keymap_name)
     with open(dump_path, encoding="utf-8") as fh:
         dump = json.load(fh)
     with open(keymap, encoding="utf-8") as fh:
@@ -122,10 +129,11 @@ def check_caps(dump_path: str, grid_w: float, grid_h: float) -> int:
     caps = {}
     for row in km["rows"]:
         for c in row["caps"]:
-            caps[c["label"]] = ((c["x"] - band["x0"]) / float(band["w"]),
-                                (row["y"] - band["y0"]) / float(band["h"]))
+            # 同一 label 可能有多帽（1960s 左右两个 Shift）：保留候选列表，取最近者比对
+            caps.setdefault(c["label"], []).append(
+                ((c["x"] - band["x0"]) / float(band["w"]),
+                 (row["y"] - band["y0"]) / float(band["h"])))
     px_per_vp = 3.375
-    origin_y_vp = 570.0
     origin_x_vp = 0.0
     found = []
 
@@ -137,7 +145,9 @@ def check_caps(dump_path: str, grid_w: float, grid_h: float) -> int:
         if m and txt in caps:
             cx = (int(m.group(1)) + int(m.group(3))) / 2.0 / px_per_vp - origin_x_vp
             cy = (int(m.group(2)) + int(m.group(4))) / 2.0 / px_per_vp - origin_y_vp
-            found.append((txt, cx, cy))
+            # 只取键区带内的节点：dump 含常驻主页等其它层，单字符文本（'0'/'A' 等）会误命中
+            if -6.0 <= cy <= grid_h + 6.0:
+                found.append((txt, cx, cy))
         for ch in n.get("children", []) or []:
             walk(ch)
 
@@ -146,11 +156,17 @@ def check_caps(dump_path: str, grid_w: float, grid_h: float) -> int:
     worst = 0.0
     bad = 0
     for txt, cx, cy in found:
-        want_x, want_y = caps[txt][0] * grid_w, caps[txt][1] * grid_h
+        best = None
+        for (rx, ry) in caps[txt]:
+            wx, wy = rx * grid_w, ry * grid_h
+            dd = max(abs(cx - wx) / grid_w, abs(cy - wy) / grid_h)
+            if best is None or dd < best[0]:
+                best = (dd, wx, wy)
+        dd, want_x, want_y = best
         dx = abs(cx - want_x) / grid_w
         dy = abs(cy - want_y) / grid_h
-        worst = max(worst, dx, dy)
-        if dx > 0.02 or dy > 0.02:
+        worst = max(worst, dd)
+        if dd > 0.02:
             bad += 1
             print(f"  FAIL {txt:<12} meas=({cx:.2f},{cy:.2f}) want=({want_x:.2f},{want_y:.2f}) "
                   f"dx%={dx * 100:.2f} dy%={dy * 100:.2f}")
