@@ -83,10 +83,12 @@ export struct KeyGrid {
             .fontSize(this.overlayFontSize)
             .fontColor(this.labelColor)
             .fontFamily(this.overlayFontFamily)
+            .width(this.capW(cap) - 4)
             .maxLines(1)
-            .minFontSize(8)
+            .minFontSize(6)
             .maxFontSize(this.overlayFontSize)
             .textAlign(TextAlign.Center)
+            .padding(0)
         }
         .width(this.capW(cap))
         .height(this.capH(cap))
@@ -118,6 +120,7 @@ export struct KeyGrid {
     .height(this.heightVp)
   }
 }
+
 
 
 
