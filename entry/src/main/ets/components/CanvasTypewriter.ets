@@ -503,7 +503,9 @@ export struct CanvasTypewriter {
   }
   onPaperReset(): void {
     // 纸容器从整张 Ph 缩回纸盒时必须全画布重绘；redrawPaper 只清裁剪区，旧纸会残留。
-    this.draw();
+    // 18 号稿 §4.3：与 onFrame 同源守卫——帧时钟活动时只置脏，上屏交给下一帧，回到「每帧最多一次 draw()」。
+    this.paperDirty = true;
+    if (!this.frameActive()) { this.draw(); }
   }
   onDocChanged(): void {
     // §2.7 去重：只失效纸层、不上屏；上屏由帧时钟下一帧 draw() 完成（≤1 帧）。
@@ -514,7 +516,9 @@ export struct CanvasTypewriter {
   }
 
   onCandidatesChanged(): void {
-    this.draw();
+    // 18 号稿 §4.3：候选栏变更是低频事件，但动画期间同帧再调 draw() 会变 double-draw；加同源守卫。
+    this.paperDirty = true;
+    if (!this.frameActive()) { this.draw(); }
   }
 
   /** 2A-4：换机只重建机器层；换纸只重建纸层；两者都走一次 §2.5 初值同步（字段按新机/新纸重置）。 */
