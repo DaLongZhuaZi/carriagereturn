@@ -69,6 +69,7 @@ import { TopBar } from '../components/TopBar';
 import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
 import { PhotoKeybed } from '../components/PhotoKeybed';
+import { KeyGrid } from '../components/KeyGrid';
 import { FunctionRow } from '../components/FunctionRow';
 import { PaperStage, PAPER_INITIAL_HEIGHT_VP } from '../components/PaperStage';
 import { TypebarLayer } from '../components/TypebarLayer';
@@ -4748,7 +4749,7 @@ struct Index {
           onOpenCustomize: (): void => { this.pushPage('customize'); },
         })
 
-        PhotoKeybed({
+        KeyGrid({
           machineKind: this.machineKind,
           shiftActive: this.shiftActive,
           capsActive: this.capsLock,
@@ -5443,5 +5444,6 @@ struct Index {
     })
   }
 }
+
 
 

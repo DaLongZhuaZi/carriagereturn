@@ -9,11 +9,18 @@
  *  - 按下态可见：命中帽下沉 2vp（§2.3 第 4 条）；
  *  - 长标签（Shift／Backspace／Return／空格）必须完整显示：`minFontSize` 自适应缩小，不许截断。
  */
-import { CapDef, KeymapLayout, emptyLayout } from '../model/KeymapModel';
+import { MachineKind } from '../model/DocModel';
+import { CapDef, KeymapLayout } from '../model/KeymapModel';
+function emptyLayout(): KeymapLayout {
+  return {
+    machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0,
+    hitRadius: 10, spaceR: 8, overlayColor: '#000000', overlayFontSize: 14, widthVp: 390, heightVp: 186,
+  };
+}
 
 @Component
 export struct KeyGrid {
-  @Prop machineKind: string = '1920s-upright';
+  @Prop machineKind: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop widthVp: number = 362.7;
   @Prop heightVp: number = 186;
   @Prop layout: KeymapLayout = emptyLayout();
@@ -22,15 +29,21 @@ export struct KeyGrid {
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
   @Prop labelColor: string = '#2b2620';
+  /** 过渡期惰性 prop：PhotoKeybed 挂载块原样保留用（KeyGrid 不消费）。 */
+  @Prop foldBand: boolean = false;
+  @Prop commitSeq: number = 0;
   /** 当前被按下的帽 id（按下态图＋下沉 2vp）。 */
   @State pressedId: string = '';
   onCapDown: (cap: CapDef) => void = (cap: CapDef): void => {};
   onCapUp: (cap: CapDef) => void = (cap: CapDef): void => {};
+  /** 过渡期惰性回调（PhotoKeybed 的滑动语义，KeyGrid 暂不消费）。 */
+  onCapSlide: (cap: CapDef) => void = (cap: CapDef): void => {};
 
   /** 机型短名：'1920s-upright' → '1920s'（贴片命名口径，§7.4）。 */
   private slug(): string {
-    const i: number = this.machineKind.indexOf('-');
-    return i > 0 ? this.machineKind.substring(0, i) : this.machineKind;
+    const k: string = this.machineKind as string;
+    const i: number = k.indexOf('-');
+    return i > 0 ? k.substring(0, i) : k;
   }
 
   /** 图例：Shift/Caps 生效时显示大写。 */
@@ -59,7 +72,7 @@ export struct KeyGrid {
       .position({ x: this.layout.spaceXMin, y: this.layout.spaceYMin })
       .backgroundColor(Color.Transparent)
       .backgroundImage($rawfile('ui-parts/spacebar-face-' + this.slug() + '.png'), ImageRepeat.NoRepeat)
-      .backgroundImageSize(ImageSize.Fill)
+      .backgroundImageSize(ImageSize.FILL)
       .borderRadius(0)
       .translate({ y: this.pressedId === 'space' ? 2 : 0 })
 
@@ -87,7 +100,7 @@ export struct KeyGrid {
             ? 'ui-parts/keycap-pressed-' + this.slug() + '.png'
             : 'ui-parts/keycap-face-' + this.slug() + '.png'),
           ImageRepeat.NoRepeat)
-        .backgroundImageSize(ImageSize.Fill)
+        .backgroundImageSize(ImageSize.FILL)
         .borderRadius(0)
         .translate({ y: this.pressedId === cap.id ? 2 : 0 })
         .onTouch((e: TouchEvent) => {
@@ -105,3 +118,6 @@ export struct KeyGrid {
     .height(this.heightVp)
   }
 }
+
+
+
