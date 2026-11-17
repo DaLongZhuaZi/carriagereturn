@@ -110,6 +110,15 @@ export struct Carriage26 {
     return d;
   }
 
+  /** 锯齿齿序列（175 齿 × 2vp ＋ 174 缝 × 2vp ＝ 698vp）。 */
+  private teeth(): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < 175; i++) {
+      out.push(i);
+    }
+    return out;
+  }
+
   /** 锯齿边（齿高 3vp、齿宽 4vp，覆盖 700vp 宽）。 */
   private sawPath(): string {
     const maxX: number = 700 * this.sx;
@@ -206,9 +215,14 @@ export struct Carriage26 {
           .width(7 * this.sx).height(6 * this.sy)
           .position({ x: (PAPER_LEFT + 25 + 165 - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 5 * this.sy })
         // 锯齿下沿
-        Path({ commands: this.sawPath() }).fill('#6a6a6d')
-          .width(700 * this.sx).height(3 * this.sy)
-          .position({ x: 0, y: 9 * this.sy })
+        // 锯齿下沿（可见三角齿：齿宽 2vp、齿高 3vp、间距 2vp；175 齿覆盖 700vp）
+        Row({ space: 2 * this.sx }) {
+          ForEach(this.teeth(), (t: number) => {
+            Column().width(2 * this.sx).height(3 * this.sy).backgroundColor('#2b2b2f')
+          }, (t: number) => 'saw' + t.toString())
+        }
+        .width(700 * this.sx).height(3 * this.sy)
+        .position({ x: 0, y: 9 * this.sy })
       }
       .width(700 * this.sx).height(12 * this.sy)
       .clip(true)
