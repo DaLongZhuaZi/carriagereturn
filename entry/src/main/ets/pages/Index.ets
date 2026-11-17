@@ -86,6 +86,7 @@ import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../mode
 import { Cheek } from '../components/Cheek';
 import { SteelPlate } from '../components/SteelPlate';
 import { KeyWell } from '../components/KeyWell';
+import { TopZone26, Lid26, Roller26, Curl26, CarriageFront26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, PaperPanel26, TopDeck26 } from '../components/type26/Parts26';
 
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -333,6 +334,8 @@ struct Index {
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
   @State hintText: string = '';
   @State docTitle: string = '';
+  /** 26 号稿：黄铜铭牌点按显示文档名（1.6s 后自动收起）。 */
+  @State plateHint: boolean = false;
   @State inkColor: string = '#1a1a1a';
   @State keymapLayout: KeymapLayout = emptyLayout();
 
@@ -1423,79 +1426,57 @@ struct Index {
     return this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth;
   }
 
-  /** 纸面板宽 Pw：Q16(a) 满幅面板 = stageW − 2×panelMargin（D4）。 */
+  // ===== 26 号稿 §6：五区 y-map（手机 362.7×822.5 基准，绝对屏幕坐标）=====
+  /** 横向缩放（手机 362.7vp 基准）。 */
+  private xk(): number { return this.stageWidth > 0 ? this.stageWidth / 362.7 : 1; }
+  /** 纵向缩放（手机 822.5vp 基准）。 */
+  private yk(): number { const h: number = this.canvasHeightVp(); return h > 0 ? h / 822.5 : 1; }
+  private t26x(base: number): number { return base * this.xk(); }
+  private t26y(base: number): number { return base * this.yk(); }
+
+  /** §6.1：纸宽 220vp（平板 0.606×stageW）。 */
   private paperPanelWidthVp(): number {
-    return this.stageWidth - 2 * PANEL_MARGIN_VP;
+    return this.isTablet ? this.stageWidth * 0.606 : 220 * this.xk();
+  }
+  /** §6.1：行宽 165vp（纸宽 220 − 左 25 − 右 30）。 */
+  private lineWidth26(): number { return this.paperPanelWidthVp() - 55 * this.xk(); }
+  /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
+  private typeFontSize(): number { return 11.9 * (this.paperPanelWidthVp() / 220); }
+  /** §6.1：纸 V=0 左缘（paperBaseX 不变）。 */
+  private paperPanelBaseXVp(): number { return this.stageWidth * 0.5 - 25 * this.xk(); }
+  private paperPanelLeftVp(): number { return this.paperPanelBaseXVp() + this.paperOffsetVp; }
+  private paperPanelTopVp(): number { return this.t26y(104); }
+  private paperZoneTopVp(): number { return this.t26y(104); }
+  private hPaperZoneVp(): number { return this.t26y(258.4); }
+  private paperZoneBottomVp(): number { return this.t26y(362.4); }
+  private rulerTopVp(): number { return this.t26y(356); }
+  private basketTopVp(): number { return this.t26y(376); }
+  private funcRowTopVp(): number { return this.t26y(514); }
+  private fontBarTopVp(): number { return this.t26y(550); }
+  private candBarTopVp(): number { return this.t26y(578); }
+  private keyGridTopVp(): number { return this.t26y(622.3); }
+
+  /** 纸卷上移量（光标行超出可见区时整卷上移）。 */
+  private paperScroll26(): number {
+    const n: number = this.docModel.getCursor().line;
+    const lh: number = this.lineHeightVp;
+    const topMargin: number = 12 * this.yk();
+    const visible: number = this.hPaperZoneVp() - topMargin - 6 * this.yk();
+    const over: number = topMargin + n * lh + lh - visible;
+    return over > 0 ? over : 0;
+  }
+  /** 落字点 y（相对纸顶）。 */
+  private paperCursorY26(): number {
+    return 12 * this.yk() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
   }
 
-  /** 纸基线 paperBaseX（D2＝archFixX−marginH），不含 V。 */
-  private paperPanelBaseXVp(): number {
-    return this.stageWidth * 0.5 - this.marginH();
-  }
-
-  /** 纸面板左缘：paperBaseX + V（D2／D4；V＝K×O 由帧时钟写进 paperOffsetVp）。 */
-  private paperPanelLeftVp(): number {
-    return this.paperPanelBaseXVp() + this.paperOffsetVp;
-  }
-
-  /** 纸面板顶缘＝纸区顶缘（与 Canvas paperY() 同式：topInset＋顶栏＋纸顶距＋paperTop）。 */
-  private paperPanelTopVp(): number {
-    return this.topInset + this.topBarHeight + this.paperTopGap + this.paperTopVp;
-  }
-
-  // ---- 第 25 批（批 2）：五区布局（设计序：顶栏→纸区→横尺→字篮区→功能行→字体条→键盘区）----
-  // 五区合计约束恒等于 stageH：差额（顶部空带＋底安全区）如实登记（批 2 报告不符点）。
-  /** 纸区高 H_paperZone＝stageH − 其余四区（含横尺／字体条／底安全区）。 */
-  private hPaperZoneVp(): number {
-    const fixed: number = this.topInset + this.topBarHeight + PAPER_TOP_GAP_VP + H_RULER_VP
-      + H_BASKET_VP + H_FUNC_ROW_V2_VP + this.fontBarHeight + H_CAND_V2_VP
-      + this.keybedHeight + this.bottomInset;
-    const h: number = this.canvasHeightVp() - fixed;
-    return h > 120 ? h : 120;
-  }
-
-  /** 纸区顶缘（顶栏下 4vp）。 */
-  private paperZoneTopVp(): number {
-    return this.topInset + this.topBarHeight + PAPER_TOP_GAP_VP;
-  }
-
-  /** 纸区底缘＝横尺顶缘。 */
-  private paperZoneBottomVp(): number {
-    return this.paperZoneTopVp() + this.hPaperZoneVp();
-  }
-
-  /** 横尺顶缘。 */
-  private rulerTopVp(): number { return this.paperZoneBottomVp(); }
-
-  /** 字篮区顶缘（横尺下）。 */
-  private basketTopVp(): number { return this.rulerTopVp() + H_RULER_VP; }
-
-  /** 功能行顶缘（字篮底缘重合 0vp）。 */
-  private funcRowTopVp(): number { return this.basketTopVp() + H_BASKET_VP; }
-
-  /** 字体条顶缘（功能行下）。 */
-  private fontBarTopVp(): number { return this.funcRowTopVp() + H_FUNC_ROW_V2_VP; }
-
-  /** 候选栏顶缘（字体条下 44vp 常驻占位）。 */
-  private candBarTopVp(): number { return this.fontBarTopVp() + this.fontBarHeight; }
-
-  /** 键盘网格顶缘（候选栏下，底缘＝底安全区上）。 */
-  private keyGridTopVp(): number { return this.candBarTopVp() + H_CAND_V2_VP; }
-
-  /** 拨杆手柄：右缘内侧，顶缘贴纸区顶下 20%，高＝纸区 60%（D13／§2.5 第 3 条）。 */
-  private leverLeftVp(): number {
-    return this.paperPanelLeftVp() + this.paperPanelWidthVp() - this.leverWidthVp() - this.leverMarginVp();
-  }
+  /** 旋钮直径：46.5vp live（§6.2，沿用现行值）。 */
+  private knobDVp26(): number { return 46.5 * this.xk(); }
+  /** 拨杆几何（旧接口保留给引导锚点）。 */
   private leverWidthVp(): number { return 10; }
   private leverMarginVp(): number { return 8; }
   private leverTopVp(): number { return this.paperZoneTopVp() + this.hPaperZoneVp() * 0.2; }
   private leverHeightVp(): number { return this.hPaperZoneVp() * 0.6; }
-
-  /** 旋钮直径 knobD＝H_paperZone×0.18（D14）；跨骑纸面板下沿左右两角（半在纸内、半在机身）。 */
-  private knobDVp(): number { return this.hPaperZoneVp() * 0.18; }
-  private knobLeftXVp(): number { return this.paperPanelLeftVp() - this.knobDVp() / 2; }
-  private knobRightXVp(): number { return this.paperPanelLeftVp() + this.paperPanelWidthVp() - this.knobDVp() / 2; }
-  private knobTopVp(): number { return this.paperZoneBottomVp() - this.knobDVp() / 2; }
 
   /** 机身材质贴片（§2.5 第 5 条：机身面板；批 2 起取代 KeyGrid 过渡底板）。 */
   // 第 33 批（批 29 并入项）：bodyPanelRawfile 已删——旧 grain 图 4 张同日删除，机身底改 tierTile。
@@ -1724,8 +1705,16 @@ struct Index {
       // 物理模型：行程上限 = 可用行宽（舞台宽 − 2×28），不再是 min(舞台宽×0.35,180)
       this.maxTravelVp = stageW - 2 * 28;
       this.carriageHeight = (stageW + this.maxTravelVp) / CARRIAGE_STRIP_ASPECT;
-      this.fontBarHeight = FONT_BAR_HEIGHT_VP;
+      this.fontBarHeight = 28 * (this.canvasHeightVp() > 0 ? this.canvasHeightVp() / 822.5 : 1);
       this.keybedHeight = stageW / KEYBAND_ASPECT;
+      // 26 号稿 §6.4：平板键井高按 stageW/2.1005；若超出 26 y-map 的键盘槽位则压到槽内
+      if (newTablet) {
+        const slotTop: number = 622.3 * (winH > 0 ? winH / 822.5 : 1);
+        const maxH: number = winH - slotTop - this.bottomInset - 4;
+        if (maxH > 120 && this.keybedHeight > maxH) {
+          this.keybedHeight = maxH;
+        }
+      }
       this.functionRowHeight = FUNCTION_ROW_HEIGHT_VP;
       const carriageConsumed: number = this.carriageHeight - CARRIAGE_PAPER_OVERLAP_VP;
       // §18.8／§19：候选栏区**常驻 44vp**，已含在布局里——手机 region 必须减掉它，
@@ -1767,8 +1756,8 @@ struct Index {
       if (computedFs > 26) {
         computedFs = 26;
       }
-      // 第 2 批 F3：用户覆盖值优先；键不存在（0）走现算值（B-3）
-      this.fontSizeVp = effectiveFontSize(CustomizeStore.fontSize(this.machineKind as string), computedFs);
+      // 26 号稿 §6.1：纸宽 220vp 口径下正文 11.9vp（配置重算，不算改逻辑）
+      this.fontSizeVp = this.paperPanelWidthVp() / 220 * 11.9;
       this.measureAdvance();
       // §18.9：行高与语言无关，唯一公式 fontSize×30/17
       this.lineHeightVp = lineHeightOf(this.fontSizeVp);
@@ -1791,33 +1780,10 @@ struct Index {
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
       // ①纸宽：平板 0.72×stageWidth（MLR 485vp / 72%），手机维持 0.82×stageWidth
       // 纸卷收窄留边：平板 0.66×stageWidth（左右各留深底空隙），手机维持 0.82
-      this.paperWidthVp = (this.isTablet ? 0.66 : 0.82) * this.stageWidth;
-      // §19 修法 1：手机纸宽按「木底座装得下」反推——baseW = Pw × (1 + 2×0.17×0.92)，
-      // 要求底座左右各留 8vp，故 Pw ≤ (stageW − 16) / K。系数与 CarriageLayers 的 baseW()/knobD() 同源。
-      if (!this.isTablet) {
-        const phoneMarginVp: number = 8;
-        const baseK: number = 1 + 2 * 0.17 * 0.92;
-        const maxPw: number = (this.stageWidth - 2 * phoneMarginVp) / baseK;
-        if (this.paperWidthVp > maxPw) {
-          this.paperWidthVp = maxPw;
-        }
-      }
-      // ①零件尺寸加顶：Hc 取 min(Pw×0.17, 纸带高×0.67)，使 Hg=1.5Hc 不超纸带、
-    // 旋钮/拨杆/字杆随 Hc 同步缩小；字杆/拨杆锚点（打击行/滚筒）不动。
-    // 手机纸带 316vp 时 min 取 Pw×0.17（不回归）；平板 1 行纸带 92vp 时被 0.67×92 顶住。
-    this.carriageHeight = this.paperWidthVp * 0.17;
-      // §19.2：手机 maxTravel 再封顶——滚筒左缘满行程时不许出屏：
-      // maxTravel ≤ paperLeftFixed − (rollW − Pw)/2（手机约 42.8vp）
-      let mt: number = Math.min(64, this.paperWidthVp * 0.25);
-      if (!this.isTablet) {
-        const rollWPw: number = this.paperWidthVp / this.bp().rollerWidthRatio;
-        const paperLeftFixed: number = (this.stageWidth - this.paperWidthVp) / 2;
-        const cap: number = paperLeftFixed - (rollWPw - this.paperWidthVp) / 2;
-        if (cap > 0 && mt > cap) {
-          mt = cap;
-        }
-      }
-      this.maxTravelVp = mt;
+      this.paperWidthVp = this.paperPanelWidthVp();
+      // 26 号稿 §6.1：纸宽 220vp 固定；行宽 165vp 由边距导出（旧 275.4vp 作废）
+      this.carriageHeight = this.paperWidthVp * 0.17;
+      this.maxTravelVp = this.lineWidth26();
       this.recalcTravel();
       this.recalcPaperHeight();
 
@@ -1866,7 +1832,7 @@ struct Index {
    */
   private recalcTravel(): void {
     // D5：可用行宽＝纸面板 Pw − 2×marginH（不是旧纸宽 paperWidthVp）
-    const usable: number = this.paperPanelWidthVp() - 2 * this.marginH();
+    const usable: number = this.lineWidth26();
     const adv: number = this.currentAdvance();
     const perLine: number = Math.floor(usable / adv);
     this.charsPerLineNum = perLine > 6 ? perLine : 6;
@@ -3096,6 +3062,23 @@ struct Index {
     return false;
   }
 
+  /** 26 号稿 §8：出纸槽点按（按上次格式导出；格式选择在导出设置页，暂走导出页入口）。 */
+  private onExportSlot(): void {
+    hilog.info(DOMAIN, TAG, 'export slot tap -> export page (last format)');
+    this.pushPage('export');
+  }
+
+  /** 26 号稿 §8：黄铜铭牌点按仅显示文档名（改名入口在文档列表页）。 */
+  private onPlateTap(): void {
+    this.plateHint = true;
+    hilog.info(DOMAIN, TAG, 'plate tap title=%{public}s', this.docTitle);
+    setTimeout(() => { this.plateHint = false; }, 1600);
+    // §8：成就解锁时铭牌亮起，点开看成就（目标页＝现行成就列表页＝收藏页）
+    if (this.achieveRev > 0) {
+      this.pushPage('collection');
+    }
+  }
+
   private onCapDown(cap: CapDef): void {
     if (cap.isExtra) {
       return;
@@ -3143,12 +3126,21 @@ struct Index {
     // Down 只给高亮 + 震动；主击打音移到 onArrive（与落字、纸移动同帧）
     this.audioService.vibrate();
     if (this.symbolMode) {
-      // 符号模式：直接提交帽上字符，不做大小写转换、不查上档表
-      this.queueChar(cap.label);
+      // 符号模式：优先落 altText（数字行／标点的符号面），否则落 label
+      const alt: string | undefined = cap.altText;
+      this.queueChar(alt !== undefined && alt.length > 0 ? alt : cap.label);
       return;
     }
     const up: boolean = this.shiftActive || this.capsLock;
-    const ch: string = up ? cap.label : cap.label.toLowerCase();
+    if (up) {
+      // 26 号稿：上档字符优先（数字行的 !@#$…、标点的 _ + { } 等）
+      const upText: string | undefined = cap.upText;
+      if (upText !== undefined && upText.length > 0) {
+        this.queueChar(upText);
+        return;
+      }
+    }
+    const ch: string = up ? cap.label.toUpperCase() : cap.label.toLowerCase();
     this.queueChar(ch);
   }
 
@@ -4617,317 +4609,107 @@ struct Index {
       // z 序按 §3.1：机身面板 0 → 色带条/纸面板 1 → 横尺 2 → 落字导件 3 → 字篮 4 → 功能行 5 →
       // 键盘网格 6 → 拨杆/旋钮 7 。批 3 删 Canvas 挂载时这些件原地留下、不再重挂。
       if (this.navStack[this.navStack.length - 1] === 'typewriter') {
-        // 机身面板（z0／第 28 批 §2.2 叠放式分区）：满幅机身基准档 + 纸井覆块 + 键床覆块 + 1vp 档界
-        Stack({ alignContent: Alignment.TopStart }) {
-          // 满幅机身基准档：底色 token ＋本档贴片平铺
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor(this.tierColor('base'))
-            .backgroundImage($rawfile(this.tierTile('base')), ImageRepeat.XY)
+        // ===== 26 号稿（打字页面推倒重来）：整屏一台打字机，五区绝对定位（§6 y-map）=====
+        // 层序：盖子 → 顶区 → 滚筒 → 纸 → 卷曲 → 字车正面 → 字篮 → 功能行／字体牌／候选条 → 黑井 → 键帽
+        Lid26({
+          machine: this.machineKind,
+          widthVp: this.canvasWidthVp(),
+          heightVp: this.canvasHeightVp(),
+          sx: this.xk(), sy: this.yk(),
+        })
+          .id('p26_lid')
 
-          // 纸井覆块（手机 y 88、高 hPaperZoneVp；平板 y 88、高 176.0——平板分支已写、未验收 R6(b)）
-          Column()
-            .id('p28_paperwell')
-            .width('100%')
-            .height(this.isTablet ? 176.0 : this.hPaperZoneVp())
-            .backgroundColor(this.tierColor('paperwell'))
-            .backgroundImage($rawfile(this.tierTile('paperwell')), ImageRepeat.XY)
-            .position({ x: 0, y: 88 })
-          // 档界 1vp：纸井上沿／下沿（相邻档中间值）
-          Column().width('100%').height(1)
-            .backgroundColor(mixHexColor(this.tierColor('paperwell'), this.tierColor('base')))
-            .position({ x: 0, y: 88 })
-          Column().width('100%').height(1)
-            .backgroundColor(mixHexColor(this.tierColor('paperwell'), this.tierColor('base')))
-            .position({ x: 0, y: 88 + (this.isTablet ? 176.0 : this.hPaperZoneVp()) - 1 })
+        // 机器顶部深色带（顶区底）
+        TopDeck26({
+          widthVp: this.canvasWidthVp(),
+          heightVp: this.t26y(104),
+          sx: this.xk(), sy: this.yk(),
+        })
+          .id('p26_top_deck')
+          .position({ x: 0, y: 0 })
 
-          // 第 32 批：机身基准档纵向渐变（顶 +0.0125、底 −0.0125 L，全幅子件）
-          Column()
-            .width('100%').height('100%')
-            .linearGradient({
-              direction: GradientDirection.Bottom,
-              colors: [[shiftHexColor(this.tierColor('base'), 0.0125), 0.0],
-                [shiftHexColor(this.tierColor('base'), -0.0125), 1.0]],
-            })
-            .opacity(0.22)
-            .hitTestBehavior(HitTestMode.None)
+        Roller26({
+          machine: this.machineKind,
+          widthVp: this.canvasWidthVp(),
+          sx: this.xk(), sy: this.yk(),
+          joltYVp: this.joltYVp,
+        })
+          .id('p26_roller')
 
-          // 第 32 批（25 号稿 §2.3）：凹槽框——代码绘制四条 border（顶/左/右 10vp，底带＝区底缘−覆块底缘）
-          // 顶带
-          Column().width('100%').height(10)
-            .linearGradient({
-              direction: GradientDirection.Bottom,
-              colors: [[shiftHexColor(this.tierColor('paperwell'), 0.005), 0.0],
-                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
-            })
-            .id('p32_groove_top')
-            .position({ x: 0, y: 88 })
-            .hitTestBehavior(HitTestMode.None)
-          // 底带（覆块底缘 → 区底缘）
-          Column().width('100%').height(16.2)
-            .linearGradient({
-              direction: GradientDirection.Bottom,
-              colors: [[shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 0.0],
-                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
-            })
-            .id('p32_groove_bottom')
-            .position({ x: 0, y: 88 + this.hPaperZoneVp() })
-            .hitTestBehavior(HitTestMode.None)
-          // 左带
-          Column().width(10).height(this.hPaperZoneVp() - 10)
-            .linearGradient({
-              direction: GradientDirection.Right,
-              colors: [[shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 0.0],
-                [shiftHexColor(this.tierColor('paperwell'), 0.0), 1.0]],
-            })
-            .id('p32_groove_left')
-            .position({ x: 0, y: 98 })
-            .hitTestBehavior(HitTestMode.None)
-          // 右带
-          Column().width(10).height(this.hPaperZoneVp() - 10)
-            .linearGradient({
-              direction: GradientDirection.Right,
-              colors: [[shiftHexColor(this.tierColor('paperwell'), 0.0), 0.0],
-                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
-            })
-            .id('p32_groove_right')
-            .position({ x: this.stageWidth - 10, y: 98 })
-            .hitTestBehavior(HitTestMode.None)
+          .position({ x: 0, y: 0 })
 
-          // 键床覆块（手机 y＝候选栏顶缘、高＝候选栏 44＋键床；平板 y 480、高 240）
-          Column()
-            .id('p28_keybed')
-            .width('100%')
-            .height(this.isTablet ? 240 : (H_CAND_V2_VP + this.keybedHeight))
-            .backgroundColor(this.tierColor('keybed'))
-            .backgroundImage($rawfile(this.tierTile('keybed')), ImageRepeat.XY)
-            .position({ x: 0, y: this.isTablet ? 480 : this.candBarTopVp() })
-          // 档界 1vp：键床上沿／下沿
-          Column().width('100%').height(1)
-            .backgroundColor(mixHexColor(this.tierColor('keybed'), this.tierColor('base')))
-            .position({ x: 0, y: this.isTablet ? 480 : this.candBarTopVp() })
-          Column().width('100%').height(1)
-            .backgroundColor(mixHexColor(this.tierColor('keybed'), this.tierColor('base')))
-            .position({
-              x: 0,
-              y: (this.isTablet ? 480 : this.candBarTopVp())
-                + (this.isTablet ? 240 : (H_CAND_V2_VP + this.keybedHeight)) - 1,
-            })
-        }
-        .width(this.canvasWidthVp())
-        .height(this.canvasHeightVp())
-        .id('p25_body_panel')
-        .position({ x: 0, y: 0 })
-        .hitTestBehavior(HitTestMode.None)
+          .position({ x: 0, y: 0 })
 
-        // ---- 第 31 批（24 号稿 §6 批 31）：滚筒挂载（纸面板之前＝纸盖住滚筒带中段）----
-        // 挂载顺序：滚筒 → 左颊 → PaperPanel → 右颊；只靠挂载位置定层，不用 .zIndex。
-        if (this.hasLayers() && this.useLayers) {
-          if (this.machineKind === MachineKind.UPRIGHT_1920S) {
-            RollerAssembly1920({
-              stageWidth: this.stageWidth,
-              joltYVp: this.joltYVp,
-              carriageOffsetVp: this.carriageOffsetVp,
-              knobAngleDeg: this.knobAngle,
-              paperWidthVp: this.paperWidthVp,
-              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-              strikeXVp: this.guideXVp,
-              rollerOffsetVp: this.paperOffsetVp,
-              canvasOffsetVp: this.carriageOffsetVp,
-              paperLeftFixedVp: this.paperLeftFixed(),
-              texOffsetYVp: this.texOffsetVp,
-              carriageHeight: this.carriageHeight,
-              carriageTopVp: this.carriageTopVp,
-            })
-              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
-          } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
-            CarriageLayers1930({
-              machineKind: this.machineKind,
-              stageWidth: this.stageWidth,
-              joltYVp: this.joltYVp,
-              knobAngleDeg: this.knobAngle,
-              part: 'roller',
-              rollerAngleDeg: this.knobAngle,
-              paperWidthVp: this.paperWidthVp,
-              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-              strikeXVp: this.guideXVp,
-              rollerOffsetVp: this.paperOffsetVp,
-              canvasOffsetVp: this.carriageOffsetVp,
-              strikeYVp: 0,
-              paperLeftFixedVp: this.paperLeftFixed(),
-              texOffsetYVp: this.texOffsetVp,
-            })
-              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
-          } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
-            CarriageLayers1950({
-              machineKind: this.machineKind,
-              stageWidth: this.stageWidth,
-              joltYVp: this.joltYVp,
-              knobAngleDeg: this.knobAngle,
-              part: 'roller',
-              rollerAngleDeg: this.knobAngle,
-              paperWidthVp: this.paperWidthVp,
-              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-              strikeXVp: this.guideXVp,
-              rollerOffsetVp: this.paperOffsetVp,
-              canvasOffsetVp: this.carriageOffsetVp,
-              strikeYVp: 0,
-              paperLeftFixedVp: this.paperLeftFixed(),
-              texOffsetYVp: this.texOffsetVp,
-            })
-              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
-          } else {
-            CarriageLayers1960({
-              machineKind: this.machineKind,
-              stageWidth: this.stageWidth,
-              joltYVp: this.joltYVp,
-              knobAngleDeg: this.knobAngle,
-              part: 'roller',
-              rollerAngleDeg: this.knobAngle,
-              paperWidthVp: this.paperWidthVp,
-              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
-              strikeXVp: this.guideXVp,
-              rollerOffsetVp: this.paperOffsetVp,
-              canvasOffsetVp: this.carriageOffsetVp,
-              strikeYVp: 0,
-              paperLeftFixedVp: this.paperLeftFixed(),
-              texOffsetYVp: this.texOffsetVp,
-            })
-              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
-          }
-        }
+          .position({ x: 0, y: 0 })
 
-        // 左颊（24 号稿 §2.4）：16vp，x=140.35，y=纸区顶 88，高=hPaperZoneVp
-        Cheek({ machine: this.machineKind, heightVp: this.hPaperZoneVp() })
-          .id('p31_cheek_left')
-          .position({ x: 140.35, y: 88 })
-
-        // 纸面板（z1）：纸是 UI 面板，文字是 Text；直角、容器 clip 到纸区高
-        PaperPanel({
-          leftVp: this.paperPanelLeftVp(),
-          topVp: this.paperZoneTopVp(),
+        PaperPanel26({
           widthVp: this.paperPanelWidthVp(),
-          heightVp: this.paperPanelWidthVp() * 1.414,
-          containerVp: this.hPaperZoneVp(),
-          textureRawfile: this.paperPanelTexture(),
+          heightVp: this.hPaperZoneVp(),
+          sx: this.xk(), sy: this.yk(),
           lines: this.docLineTexts(),
           fontSizeVp: this.fontSizeVp,
           lineHeightVp: this.lineHeightVp,
-          marginHVp: this.marginH(),
-          marginTVp: this.marginT() + 20,
+          marginLVp: 25 * this.xk(),
+          marginRVp: 30 * this.xk(),
+          marginTVp: 12 * this.yk(),
           fontFamily: this.fontFamily,
           textColor: this.inkColor,
-          cursorXVp: this.marginH() + this.currentLineWidthVp(),
-          cursorYVp: this.paperCursorYVp(),
-          cursorVisible: true,
+          cursorXVp: this.currentLineWidthVp(),
+          cursorYVp: this.paperCursorY26(),
+          scrollYVp: this.paperScroll26(),
+          textureRawfile: this.paperPanelTexture(),
         })
-          .id('p25_paper_panel')
-          .position({ x: this.paperPanelLeftVp(), y: this.paperZoneTopVp() })
+          .id('p26_paper')
+          .position({ x: this.paperPanelLeftVp(), y: this.t26y(104) })
 
-        // 右颊（24 号稿 §2.4）：16vp，x=346.7
-        Cheek({ machine: this.machineKind, heightVp: this.hPaperZoneVp() })
-          .id('p31_cheek_right')
-          .position({ x: 346.7, y: 88 })
-
-        // 色带条（z1，纸后绘制）：平时藏（strikePhase=0 → opacity 0）；击打时抬起盖在纸面（§4.3）
-        Image($rawfile('ui-parts/ribbon-strip.png'))
-          .width(this.paperPanelWidthVp())
-          .height(this.paperPanelWidthVp() * 290 / 2736)
-          .objectFit(ImageFit.Fill)
-          .opacity(this.strikePhase > 0.02 ? Math.min(1, this.strikePhase * 2) : 0)
-          .translate({ y: this.strikePhase * -12 })
-          .id('p25_ribbon')
-          .position({ x: this.paperPanelLeftVp(), y: this.paperCursorYVp() + this.paperZoneTopVp() - 8 })
-          .hitTestBehavior(HitTestMode.None)
-
-        // 横尺与页边标记（z2）：图片件（刻度＋红三角＋齿状边 baked），只在有纸时显示
-        Image($rawfile('ui-parts/ruler.png'))
-          .width(this.paperPanelWidthVp())
-          .height(H_RULER_VP)
-          .objectFit(ImageFit.Fill)
-          .id('p25_ruler')
-          .position({ x: this.paperPanelLeftVp(), y: this.rulerTopVp() })
-          .hitTestBehavior(HitTestMode.None)
-
-        // 落字导件（z3）：矢量例外（1vp 虚线＋倒三角），锚点 archFixX
-        StrikeGuide({
-          lineHeightVp: 12,
-          color: '#beb4a8',
-          triangleW: 6,
-          triangleH: 4,
+        Curl26({
+          sx: this.xk(), sy: this.yk(),
+          paperLeftVp: this.paperPanelLeftVp(),
+          paperWidthVp: this.paperPanelWidthVp(),
+          paperTopVp: this.t26y(104),
         })
-          .id('p25_strike_guide')
-          .position({ x: this.guideXVp - 3, y: this.paperZoneTopVp() })
+          .id('p26_curl')
+          .position({ x: this.paperPanelLeftVp(), y: this.t26y(104) - 65 * this.yk() })
 
-        // 字篮图形（z4）：图片件扇形底图，底缘与功能行顶缘重合 0vp
-        Image($rawfile(this.basketFanRawfile()))
-          .width(this.stageWidth * 0.8)
-          .height(H_BASKET_VP)
-          .objectFit(ImageFit.Contain)
-          .id('p25_basket')
-          .position({ x: this.stageWidth * 0.5 - this.stageWidth * 0.4, y: this.basketTopVp() })
-          .hitTestBehavior(HitTestMode.None)
 
-        // 字篮框（24 号稿 §2.6）：代码绘制——两侧臂 archFixX±145vp＋枢轴座（字篮区底缘中点）
-        Column()
-          .width(2)
-          .height(H_BASKET_VP * 0.78)
-          .backgroundColor(this.tierColor('base'))
-          .id('p31_basket_arm_l')
-          .position({ x: this.stageWidth * 0.5 - 145, y: this.basketTopVp() + 10 })
-          .hitTestBehavior(HitTestMode.None)
-        Column()
-          .width(2)
-          .height(H_BASKET_VP * 0.78)
-          .backgroundColor(this.tierColor('base'))
-          .id('p31_basket_arm_r')
-          .position({ x: this.stageWidth * 0.5 + 143, y: this.basketTopVp() + 10 })
-          .hitTestBehavior(HitTestMode.None)
-        Row()
-          .width(26)
-          .height(7)
-          .borderRadius(3)
-          .backgroundColor(this.tierColor('base'))
-          .id('p31_basket_pivot')
-          .position({ x: this.stageWidth * 0.5 - 13, y: this.basketTopVp() + H_BASKET_VP - 9 })
-          .hitTestBehavior(HitTestMode.None)
+        CarriageFront26({
+          machine: this.machineKind,
+          widthVp: this.canvasWidthVp(),
+          sx: this.xk(), sy: this.yk(),
+          paperLeftVp: this.paperPanelLeftVp(),
+          paperWidthVp: this.paperPanelWidthVp(),
+          leverOffsetVp: this.paperOffsetVp,
+          leverAngle: this.leverAngleVp,
+          knobAngle: this.knobAngle,
+          strikePhase: this.strikePhase,
+          knobDVp: this.knobDVp26(),
+          onKnob: (): void => { this.onKnobAdvance(); },
+          onLeverTap: (): void => { this.onNewline(); },
+          onLeverStart: (): void => { this.leverPanStart(true, 'ui'); },
+          onLeverUpdate: (dy: number): void => { this.leverPanUpdate(dy); },
+          onLeverEnd: (): void => { this.leverPanEnd(); },
+        })
+          .id('p26_carriage_front')
+          .position({ x: 0, y: 0 })
 
-        // 字杆（§4.3 打击动件）：只在中部一根，随 strikePhase 上摆、回落（正面看纵向缩短的近似）
-        Image($rawfile(this.typebarRawfile()))
-          .width(this.stageWidth * 0.2)
-          .height(H_BASKET_VP * 0.92)
-          .objectFit(ImageFit.Contain)
-          .opacity(this.strikePhase > 0.02 ? 0.96 : 0)
-          .translate({ y: this.strikePhase * -16 })
-          .id('p25_typebar')
-          .position({ x: this.stageWidth * 0.5 - this.stageWidth * 0.1, y: this.basketTopVp() + 2 })
-          .hitTestBehavior(HitTestMode.None)
+        Basket26({
+          machine: this.machineKind,
+          widthVp: 300 * this.xk(),
+          heightVp: this.t26y(138),
+          sx: this.xk(), sy: this.yk(),
+        })
+          .id('p26_basket')
+          .position({ x: 31.35 * this.xk(), y: this.t26y(376) })
 
-        // 功能行（z5）：扁平 HUD 金色 #c9a45c、圆角零、六项文字按钮
-        FunctionRow({
-          heightVp: H_FUNC_ROW_V2_VP,
-          rowBg: this.tierColor('base'),
+        FunctionCaps26({
+          widthVp: 216 * this.xk(),
+          heightVp: this.t26y(36),
+          sx: this.xk(), sy: this.yk(),
           langLabel: this.langZh
             ? this.resolveString($r('app.string.keyboard_lang_zh'))
             : this.resolveString($r('app.string.keyboard_lang_en')),
-          deleteLabel: this.resolveString($r('app.string.keyboard_delete')),
-          newlineLabel: this.resolveString($r('app.string.keyboard_newline')),
-          paperLabel: this.resolveString($r('app.string.keyboard_paper')),
-          backLineLabel: this.resolveString($r('app.string.keyboard_backline')),
-          charLabel: this.resolveString(this.symbolMode
-            ? $r('app.string.keyboard_letters') : $r('app.string.keyboard_symbols')),
           langActive: this.langZh,
           symbolActive: this.symbolMode,
-          onSymbols: (): void => {
-            this.symbolMode = !this.symbolMode;
-          },
-          onBackLine: (): void => {
-            this.onBackLine();
-          },
-          onPaperChange: (): void => {
-            this.onPaperChange();
-          },
           onLang: (): void => {
             this.langZh = !this.langZh;
             this.applyChineseMode(this.langZh);
@@ -4942,8 +4724,6 @@ struct Index {
               this.audioService.playBackspace();
               this.audioService.vibrate();
               this.pinyinRefresh();
-              hilog.info(DOMAIN, TAG, 'cn backspace in compose buf=%{public}s',
-                this.pinyinSession.getBuffer());
               return;
             }
             this.onDelete();
@@ -4958,89 +4738,48 @@ struct Index {
               this.cnPreview = '';
               this.candAll = [];
               this.candCurrent = [];
-              hilog.info(DOMAIN, TAG, 'cn newline commits pinyin=%{public}s', buf);
               return;
             }
             this.onNewline();
           },
+          onPaper: (): void => { this.onPaperChange(); },
+          onBackLine: (): void => { this.onBackLine(); },
+          onSymbols: (): void => { this.symbolMode = !this.symbolMode; },
         })
-          .id('p25_function_row')
-          .width(this.stageWidth)
-          .height(H_FUNC_ROW_V2_VP)
-          .position({ x: 0, y: this.funcRowTopVp() })
+          .id('p26_function_caps')
+          .position({ x: 73.35 * this.xk(), y: this.t26y(514) })
 
-        // 字体条：38vp，当前字体名（键盘网格上方常驻）
-        FontBar({
-          fontFamily: this.fontFamily,
-          fontLabel: this.fontLabelOfCurrentMachine(),
-          currentFamilyName: CustomizeStore.fontFamily(this.machineKind as string),
-          heightVp: this.fontBarHeight,
-          fgColor: this.chromeFgColor(),
-          lineColor: this.chromeLineColor(),
-          onOpenCustomize: (): void => { this.pushPage('customize'); },
+        FontPlate26({
+          widthVp: 346.7 * this.xk(),
+          heightVp: this.t26y(28),
+          sx: this.xk(), sy: this.yk(),
+          label: this.fontLabelOfCurrentMachine(),
+          onFont: (): void => { this.pushPage('customize'); },
         })
-          .id('p25_font_bar')
-          .width(this.stageWidth)
-          .height(this.fontBarHeight)
-          .position({ x: 0, y: this.fontBarTopVp() })
+          .id('p26_font_plate')
+          .position({ x: 8 * this.xk(), y: this.t26y(550) })
 
-        // 候选栏（第 27 批／Q11a）：键盘网格上方 44vp 常驻占位（中文态出候选、英文态深底留空）
-        if (this.langZh && this.pinyinReady) {
-          CandidateBar({
-            candidates: this.candCurrent,
-            pinyin: this.cnPinyin,
-            pages: this.candPages,
-            page: this.candPage,
-            chipFontSize: this.candChipFontSize,
-            onPick: (i: number): void => { this.pinyinPick(i); },
-            onLongPress: (i: number): void => { this.pinyinPick(i); },
-            onPrev: (): void => {
-              if (this.candPage > 0) {
-                this.candPage = this.candPage - 1;
-                this.pinyinShown();
-              }
-            },
-            onNext: (): void => {
-              if (this.candPage + 1 < this.candPages) {
-                this.candPage = this.candPage + 1;
-                this.pinyinShown();
-              }
-            },
-          })
-            .id('p27_candbar')
-            .width(this.stageWidth)
-            .height(H_CAND_V2_VP)
-            .position({ x: 0, y: this.candBarTopVp() })
-        } else {
-          // 第 28 批（§2.2）：默认态 44vp 带取键床档 token／贴片（与键床读作一体；旧 #1a1713 深底作废）
-          Row()
-            .id('p27_candbar_placeholder')
-            .width(this.stageWidth)
-            .height(H_CAND_V2_VP)
-            .backgroundColor(this.tierColor('keybed'))
-            .backgroundImage($rawfile(this.tierTile('keybed')), ImageRepeat.XY)
-            .position({ x: 0, y: this.candBarTopVp() })
-        }
-
-        // 键盘网格（z6）：43/49 帽真 Button＋真文字图例；机身面板已接管底板，不再自带 backing
-        // 第 32 批（25 号稿 §2.2）：钢板（键床底板，x 8..354.7，y 622.3..794.9，圆角 12vp）
-        SteelPlate({
-          machine: this.machineKind,
-          widthVp: this.stageWidth - 16,
-          heightVp: this.keybedHeight,
+        CandStrip26({
+          widthVp: 346.7 * this.xk(),
+          heightVp: this.t26y(44),
+          sx: this.xk(), sy: this.yk(),
+          candidates: this.langZh && this.pinyinReady ? this.candCurrent : [],
+          pinyin: this.langZh && this.pinyinReady ? this.cnPinyin : '',
+          onPick: (i: number): void => { this.pinyinPick(i); },
         })
-          .id('p32_steel_plate')
-          .position({ x: 8, y: this.keyGridTopVp() })
+          .id('p26_cand_strip')
+          .position({ x: 8 * this.xk(), y: this.t26y(578) })
 
-        // 第 33 批（26 号稿 §7.8）：黑井（z 4.0，盖钢板；四角开孔露钢板螺丝）
+        // 黑井（z 4.0，盖钢板；四角开孔露钢板螺丝）
         KeyWell({
           machine: this.machineKind,
-          widthVp: this.stageWidth - 16,
+          widthVp: 346.7 * this.xk(),
           heightVp: this.keybedHeight,
         })
           .id('p33_key_well')
-          .position({ x: 8, y: this.keyGridTopVp() })
+          .position({ x: 8 * this.xk(), y: this.keyGridTopVp() })
 
+        // 键盘（z 4.1，陷进黑井）
         KeyGrid({
           machineKind: this.machineKind,
           shiftActive: this.shiftActive,
@@ -5051,74 +4790,56 @@ struct Index {
           layout: this.displayLayout(),
           overlayFontFamily: this.fontFamily,
           overlayFontSize: 15,
-          // 第 27 批：帽形变体（round 用 keycap-face-round-<slug>.png）
           capShape: this.capShape(),
-          // 图例色取 keymap 的 overlayColor（逐机口径，换帽色只换 token 不换几何）
           labelColor: this.displayLayout().overlayColor,
           originXVp: 0,
           originYVp: this.keyGridTopVp(),
           commitSeq: this.commitSeq,
-          onCapDown: (cap: CapDef): void => {
-            this.onCapDown(cap);
-          },
+          onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
           onCapSlide: (cap: CapDef): void => {
             if (!cap.isExtra && cap.label !== ' ') {
               this.audioService.playKey();
             }
           },
           onCapUp: (cap: CapDef): void => {
-            if (cap.label === 'Shift') {
-              this.shiftActive = false;
-            }
+            if (cap.label === 'Shift') { this.shiftActive = false; }
           },
         })
           .id('p25_key_grid')
           .position({ x: 0, y: this.keyGridTopVp() })
 
-        // 拨杆控件（z7／Q14(a)）：右缘竖向手柄；点按＝换行、纵向拖拽过半触发（§5.2）
-        Image($rawfile('ui-parts/lever.png'))
-          .width(this.leverWidthVp())
-          .height(this.leverHeightVp())
-          .objectFit(ImageFit.Fill)
-          .rotate({ angle: this.leverAngleVp })
-          .id('p25_lever')
-          .position({ x: this.leverLeftVp(), y: this.leverTopVp() })
-          .onClick(() => { this.onNewline(); })
-          .gesture(PanGesture({ direction: PanDirection.Vertical })
-            .onActionStart(() => { this.leverPanStart(true, 'ui'); })
-            .onActionUpdate((e: GestureEvent) => { this.leverPanUpdate(e.offsetY); })
-            .onActionEnd(() => { this.leverPanEnd(); }))
-
-        // 旋钮控件（z7）：Q15(a) 一对圆形按钮（图片件 knob-metal.png；点按进纸在批 3）
-        Image($rawfile(this.knobRawfile()))
-          .width(this.knobDVp())
-          .height(this.knobDVp())
-          .objectFit(ImageFit.Fill)
-          .rotate({ angle: this.knobAngle })
-          .id('p25_knob_left')
-          .position({ x: this.knobLeftXVp(), y: this.knobTopVp() })
-          .onClick(() => { this.onKnobAdvance(); })
-        Image($rawfile(this.knobRawfile()))
-          .width(this.knobDVp())
-          .height(this.knobDVp())
-          .objectFit(ImageFit.Fill)
-          .rotate({ angle: this.knobAngle })
-          .id('p25_knob_right')
-          .position({ x: this.knobRightXVp(), y: this.knobTopVp() })
-          .onClick(() => { this.onKnobAdvance(); })
-
-        // 顶栏（App 铬，不属于机器）：与五区共用同一套几何（y=topInset）
-        TopBar({
-          title: this.docTitle,
-          heightVp: this.topBarHeight,
-          fgColor: this.chromeFgColor(),
+        TopZone26({
+          machine: this.machineKind,
+          widthVp: this.canvasWidthVp(),
+          heightVp: this.t26y(104),
+          sx: this.xk(), sy: this.yk(),
+          docTitle: this.docTitle,
+          soundOn: this.soundEnabled,
           guideEnabled: this.guideEnabled,
-          onOpenHome: (): void => { this.popTo('home'); },
-          onOpenMenu: (): void => { this.menuOpen = true; },
+          achGlow: this.achieveRev > 0,
+          onBack: (): void => { this.popPage(); },
+          onMenu: (): void => { this.menuOpen = true; },
+          onLibrary: (): void => { this.popTo('home'); },
+          onBell: (): void => { this.toggleSound(); },
+          onExportSlot: (): void => { this.onExportSlot(); },
+          onPlate: (): void => { this.onPlateTap(); },
+          onGuide: (): void => { this.replayPageGuide(); },
         })
-          .id('p25_top_bar')
-          .width(this.stageWidth)
-          .position({ x: 0, y: this.topInset })
+          .id('p26_top_zone')
+          .position({ x: 0, y: 0 })
+
+        // 黄铜铭牌点按提示（文档名，1.6s 自动收起）
+        if (this.plateHint) {
+          Text(this.docTitle.length > 0 ? this.docTitle : '未命名')
+            .fontSize(13).fontColor('#2a1f10').maxLines(1)
+            .textAlign(TextAlign.Center)
+            .width(140 * this.xk()).height(24 * this.yk())
+            .backgroundColor('#d8b874')
+            .border({ width: 1, color: '#6d5326' })
+            .borderRadius(3)
+            .position({ x: 150 * this.xk() + 62 * this.xk() + 8 * this.xk(), y: 16 * this.yk() })
+            .hitTestBehavior(HitTestMode.None)
+        }
       }
 
       if (this.settingsOpen) {

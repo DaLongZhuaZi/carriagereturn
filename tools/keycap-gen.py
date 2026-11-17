@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""第 33 批（26 号稿 §7.8）：3D 键帽帽身生成（顶面＋侧壁＋底影，一张图，透明底）。
+"""【已作废·DEPRECATED 2026-11-18／第 34 批】第 33 批的三矩形扁平帽身生成器。
 
-口径：帽身一次成型；四机按 §10 键帽 token；图例不 baked（ArkUI Text 叠加）。
-输出：entry/src/main/resources/rawfile/ui-parts/cap3d-<slug>.png（4 张）。
+26 号稿 v2 修正 3：PIL 三矩形帽身是扁平 tile，门四目视硬标准不通过。
+第 34 批起帽身一律用 503×512 真 3D 生成件 `cap3d-<slug>.png`（仓内已入库），
+本脚本只留档，**不得再运行、不得再用它生成帽身**（运行会直接退出）。
+
+原口径（留档）：帽身一次成型；四机按 §10 键帽 token；图例不 baked（ArkUI Text 叠加）。
 """
 import os
+import sys
+
+if __name__ == "__main__":
+    print("DEPRECATED: 三矩形帽身已作废（26 号稿修正 3）。请使用仓内 cap3d-<slug>.png（503×512）。")
+    sys.exit(1)
+
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

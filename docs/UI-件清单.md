@@ -88,3 +88,8 @@
 | 字篮图形（金属渐变档） | `basket-fan-metal-1920s.png`／`-1930s`／`-1950s`／`-1960s` | `basketStyle`＝金属渐变（Q12(b)：两段线性渐变金属高光 #beb4a8 → 机身中调 #574d43、刻线 1vp 深色 70%、下缘 2vp 底边阴影） | 50.5–60.5% |
 | 旋钮控件（哑光黑） | `knob-matteblack.png`（通用 1 张） | `knobFace`＝哑光黑 | 23.6% |
 
+
+## 6. deprecated（2026-11-18／第 34 批：26 号稿整机一体后）
+
+- keycap-face-*.png、keycap-pressed-*.png、keycap-face-round-*.png、keycap-pressed-round-*.png、spacebar-face-*.png、spacebar-face-round-*.png、asket-fan-*.png（含 metal 档）：**deprecated**——打字页面已改用 cap3d-<slug>.png（503×512）与 asket-fan-3d.png；这些平面件机型页仍在用，**暂不删除**，待机型页重做批再删。
+- 	ools/keycap-gen.py（三矩形扁平帽身）：**作废**，不得再生成帽身。

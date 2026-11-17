@@ -34,6 +34,10 @@ export interface CapDef {
   rRatio: number;
   /** 第 13 批 ①：形状 'circle' | 'rounded-rect'。 */
   shape: string;
+  /** 26 号稿（键位表）：Shift/Caps 生效时落的字符（数字行符号、标点上档）；空＝按 label。 */
+  upText?: string;
+  /** 26 号稿（键位表）：符号面板模式下落的字符；空＝按 label。 */
+  altText?: string;
 }
 
 /** 一台机器的键位表（已换算到显示 vp）。 */
