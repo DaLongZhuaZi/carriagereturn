@@ -83,6 +83,7 @@ import { StrikeGuide } from '../components/StrikeGuide';
 import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/PartVariants';
 // 第 28 批（24 号稿 §2.1）：三档 token 与贴片
 import { tierTileRawfile, tierToken } from '../model/MachineCatalog';
+import { Cheek } from '../components/Cheek';
 
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -267,11 +268,10 @@ struct Index {
   /**
    * 第 26 批（批 3／§4.3）：帧时钟驱动的 ArkUI 字段（Canvas 退役后唯一的动画事实源）。
    * paperOffsetVp＝K×O（纸面板左移）；guideXVp＝落字导件 x；leverAngleVp＝拨杆摆角；
-   * knobAngleDeg＝旋钮角；strikePhase＝打击相位 0..1（字杆/色带）。
+   * strikePhase＝打击相位 0..1（字杆/色带）。旋钮改读累积 knobAngle（第 31 批）。
    */
   @State paperOffsetVp: number = 0;
   @State leverAngleVp: number = 0;
-  @State knobAngleDeg: number = 0;
   @State strikePhase: number = 0;
   /** 第 27 批：变体变更计数（换装页改一件 → 重建该件，其余不动）。 */
   @State partsRev: number = 0;
@@ -1255,7 +1255,7 @@ struct Index {
   @State symbolMode: boolean = false;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
   /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
-  @State useLayers: boolean = false;
+  @State useLayers: boolean = true;
   /** 动态安全区（vp）：取不到时 topInset 回退 28、bottomInset 回退 0（§2.9）。 */
   @State topInset: number = 28;
   @State bottomInset: number = 0;
@@ -1592,6 +1592,14 @@ struct Index {
     return tierTileRawfile(this.machineKind, tier);
   }
 
+  /** 第 31 批（a443787 L2643 照抄）：四机都有分层件，恒 true。 */
+  private hasLayers(): boolean {
+    return this.machineKind === MachineKind.UPRIGHT_1920S
+      || this.machineKind === MachineKind.PORTABLE_1930S
+      || this.machineKind === MachineKind.STREAMLINED_1950S
+      || this.machineKind === MachineKind.ELECTRIC_1960S;
+  }
+
   private machineBodyColor(): string {
     // 第 27 批：取机身配色变体（缺省＝本机 colorway）
     const v: string = CustomizeStore.partVariant('body-panel', this.machineKind as string);
@@ -1921,12 +1929,7 @@ struct Index {
         this.joltYVp = 0;
       });
     }
-    // 旋钮走纸期间累计转 21°/行，线性、不回零
-    // 转角物理口径：一行行高 ÷ 滚筒周长 × 360（平板约 59°/行），滚筒与旋钮同角
-    const perLineDeg: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
-    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
-      this.knobAngle = this.knobAngle + perLineDeg;
-    });
+    // 第 31 批：旋钮累积已提前到 t=150（advancePaperOneLine），此处不再累加
     void start;
   }
 
@@ -3225,11 +3228,30 @@ struct Index {
     }
   }
 
-  /** 旋钮点按（Q15(a)）：进纸一行——批 3 只做转角与打点，纸面上滑留给换行编排复用（记后续待办）。 */
+  /** 第 31 批（Q15a）：旋钮点按进纸一行——只动纸与筒面，不动字车、不复位导件、不发叮声。 */
+  private advancePaperOneLine(): void {
+    this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+      this.animatePaperHeight('newline');
+      this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
+      this.knobAngle = this.knobAngle + this.perLineDeg();
+    });
+  }
+
+  /** 一行行高对应的滚筒／旋钮转角（度）：lineHeight ÷ 滚筒周长 × 360。 */
+  private perLineDeg(): number {
+    return this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
+  }
+
+  /** 第 31 批（Q15a）：点按进纸；newlineBusy 忙时忽略本次点按（不排队、不震动）。 */
   private onKnobAdvance(): void {
-    this.knobAngleDeg = (this.knobAngleDeg + 15) % 360;
+    if (this.newlineBusy) {
+      hilog.info(DOMAIN, TAG, 'knob advance ignored: newline busy');
+      return;
+    }
     this.audioService.vibrate();
-    hilog.info(DOMAIN, TAG, 'knob advance angle=%{public}s', this.knobAngleDeg.toFixed(0));
+    this.advancePaperOneLine();
+    hilog.info(DOMAIN, TAG, 'knob advance line paperTop=%{public}s knob=%{public}s',
+      this.paperTopVp.toFixed(1), this.knobAngle.toFixed(1));
   }
 
   /** 武装一击：85ms 后由帧时钟触发 landHead；队列内连续击打串行。 */
@@ -3844,11 +3866,8 @@ struct Index {
     setTimeout(() => {
       // 第 17 批批 1：Canvas 路径由 recalcPaperHeight 内部算目标后发纸段 tick（kind=newline）；
       // ArkUI 回滚分支仍走 animateTo。旧写法在 tick 时读滞后 prop，纸上滑实际不动。
-      this.animatePaperHeight('newline');
-      // 纹理纵向滚一行高（纸速=筒面线速度），与纸上滑同步 300ms EaseInOut
-      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
-        this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
-      });
+      // 第 31 批（Q15a）：纸上滑＋筒面纹理＋转角三件同拍（300ms EaseInOut，t=150 起）
+      this.advancePaperOneLine();
     }, 150);
     // 编排自测：0/150/350/600 采样（数字代替录屏验单调性）
     const marks: number[] = [0, 150, 350, 600];
@@ -3861,15 +3880,11 @@ struct Index {
     }
     const t0: number = 450;
     setTimeout(() => {
-      const perLineDeg2: number = this.lineHeightVp / (Math.PI * this.carriageHeight) * 360;
       if (this.canvasEnabled) {
         // 第 17 批批 1：Canvas 路径——O 回位由帧时钟在 t0+450ms 起 250ms 插值（jolt 2vp 同起点），
         // 逻辑值在这里直接落到目标（与 animateTo「同步赋终值」同口径）；旋钮角照旧走 ArkUI 值。
         this.carriageOffsetVp = (this.newlineCarriageTargetO < -0.001 || this.newlineMoveDown)
           ? this.newlineCarriageTargetO : 0;
-        this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
-          this.knobAngle = this.knobAngle + perLineDeg2;
-        });
         if (this.newlineCarriageTargetO >= -0.001 && !this.newlineMoveDown) {
           this.guideXVp = this.marginH();
         }
@@ -3877,9 +3892,6 @@ struct Index {
         // 「下移一行」分支：字车滑到下一行文字末尾的 O（小行程口径），不回 0
         this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
           this.carriageOffsetVp = this.newlineCarriageTargetO;
-        });
-        this.getUIContext().animateTo({ duration: 250, curve: Curve.Linear }, () => {
-          this.knobAngle = this.knobAngle + perLineDeg2;
         });
       } else {
         this.resetCarriageAndGuide();
@@ -4651,6 +4663,88 @@ struct Index {
         .position({ x: 0, y: 0 })
         .hitTestBehavior(HitTestMode.None)
 
+        // ---- 第 31 批（24 号稿 §6 批 31）：滚筒挂载（纸面板之前＝纸盖住滚筒带中段）----
+        // 挂载顺序：滚筒 → 左颊 → PaperPanel → 右颊；只靠挂载位置定层，不用 .zIndex。
+        if (this.hasLayers() && this.useLayers) {
+          if (this.machineKind === MachineKind.UPRIGHT_1920S) {
+            RollerAssembly1920({
+              stageWidth: this.stageWidth,
+              joltYVp: this.joltYVp,
+              carriageOffsetVp: this.carriageOffsetVp,
+              knobAngleDeg: this.knobAngle,
+              paperWidthVp: this.paperWidthVp,
+              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+              strikeXVp: this.guideXVp,
+              rollerOffsetVp: this.paperOffsetVp,
+              canvasOffsetVp: this.carriageOffsetVp,
+              paperLeftFixedVp: this.paperLeftFixed(),
+              texOffsetYVp: this.texOffsetVp,
+              carriageHeight: this.carriageHeight,
+              carriageTopVp: this.carriageTopVp,
+            })
+              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
+          } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
+            CarriageLayers1930({
+              machineKind: this.machineKind,
+              stageWidth: this.stageWidth,
+              joltYVp: this.joltYVp,
+              knobAngleDeg: this.knobAngle,
+              part: 'roller',
+              rollerAngleDeg: this.knobAngle,
+              paperWidthVp: this.paperWidthVp,
+              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+              strikeXVp: this.guideXVp,
+              rollerOffsetVp: this.paperOffsetVp,
+              canvasOffsetVp: this.carriageOffsetVp,
+              strikeYVp: 0,
+              paperLeftFixedVp: this.paperLeftFixed(),
+              texOffsetYVp: this.texOffsetVp,
+            })
+              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
+          } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
+            CarriageLayers1950({
+              machineKind: this.machineKind,
+              stageWidth: this.stageWidth,
+              joltYVp: this.joltYVp,
+              knobAngleDeg: this.knobAngle,
+              part: 'roller',
+              rollerAngleDeg: this.knobAngle,
+              paperWidthVp: this.paperWidthVp,
+              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+              strikeXVp: this.guideXVp,
+              rollerOffsetVp: this.paperOffsetVp,
+              canvasOffsetVp: this.carriageOffsetVp,
+              strikeYVp: 0,
+              paperLeftFixedVp: this.paperLeftFixed(),
+              texOffsetYVp: this.texOffsetVp,
+            })
+              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
+          } else {
+            CarriageLayers1960({
+              machineKind: this.machineKind,
+              stageWidth: this.stageWidth,
+              joltYVp: this.joltYVp,
+              knobAngleDeg: this.knobAngle,
+              part: 'roller',
+              rollerAngleDeg: this.knobAngle,
+              paperWidthVp: this.paperWidthVp,
+              paperLeftVp: (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp,
+              strikeXVp: this.guideXVp,
+              rollerOffsetVp: this.paperOffsetVp,
+              canvasOffsetVp: this.carriageOffsetVp,
+              strikeYVp: 0,
+              paperLeftFixedVp: this.paperLeftFixed(),
+              texOffsetYVp: this.texOffsetVp,
+            })
+              .position({ x: 0, y: this.carriageTopVp - this.carriageHeight / 2 })
+          }
+        }
+
+        // 左颊（24 号稿 §2.4）：16vp，x=140.35，y=纸区顶 88，高=hPaperZoneVp
+        Cheek({ machine: this.machineKind, heightVp: this.hPaperZoneVp() })
+          .id('p31_cheek_left')
+          .position({ x: 140.35, y: 88 })
+
         // 纸面板（z1）：纸是 UI 面板，文字是 Text；直角、容器 clip 到纸区高
         PaperPanel({
           leftVp: this.paperPanelLeftVp(),
@@ -4672,6 +4766,11 @@ struct Index {
         })
           .id('p25_paper_panel')
           .position({ x: this.paperPanelLeftVp(), y: this.paperZoneTopVp() })
+
+        // 右颊（24 号稿 §2.4）：16vp，x=346.7
+        Cheek({ machine: this.machineKind, heightVp: this.hPaperZoneVp() })
+          .id('p31_cheek_right')
+          .position({ x: 346.7, y: 88 })
 
         // 色带条（z1，纸后绘制）：平时藏（strikePhase=0 → opacity 0）；击打时抬起盖在纸面（§4.3）
         Image($rawfile('ui-parts/ribbon-strip.png'))
@@ -4710,6 +4809,30 @@ struct Index {
           .objectFit(ImageFit.Contain)
           .id('p25_basket')
           .position({ x: this.stageWidth * 0.5 - this.stageWidth * 0.4, y: this.basketTopVp() })
+          .hitTestBehavior(HitTestMode.None)
+
+        // 字篮框（24 号稿 §2.6）：代码绘制——两侧臂 archFixX±145vp＋枢轴座（字篮区底缘中点）
+        Column()
+          .width(2)
+          .height(H_BASKET_VP * 0.78)
+          .backgroundColor(this.tierColor('base'))
+          .id('p31_basket_arm_l')
+          .position({ x: this.stageWidth * 0.5 - 145, y: this.basketTopVp() + 10 })
+          .hitTestBehavior(HitTestMode.None)
+        Column()
+          .width(2)
+          .height(H_BASKET_VP * 0.78)
+          .backgroundColor(this.tierColor('base'))
+          .id('p31_basket_arm_r')
+          .position({ x: this.stageWidth * 0.5 + 143, y: this.basketTopVp() + 10 })
+          .hitTestBehavior(HitTestMode.None)
+        Row()
+          .width(26)
+          .height(7)
+          .borderRadius(3)
+          .backgroundColor(this.tierColor('base'))
+          .id('p31_basket_pivot')
+          .position({ x: this.stageWidth * 0.5 - 13, y: this.basketTopVp() + H_BASKET_VP - 9 })
           .hitTestBehavior(HitTestMode.None)
 
         // 字杆（§4.3 打击动件）：只在中部一根，随 strikePhase 上摆、回落（正面看纵向缩短的近似）
@@ -4895,7 +5018,7 @@ struct Index {
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)
-          .rotate({ angle: this.knobAngleDeg })
+          .rotate({ angle: this.knobAngle })
           .id('p25_knob_left')
           .position({ x: this.knobLeftXVp(), y: this.knobTopVp() })
           .onClick(() => { this.onKnobAdvance(); })
@@ -4903,7 +5026,7 @@ struct Index {
           .width(this.knobDVp())
           .height(this.knobDVp())
           .objectFit(ImageFit.Fill)
-          .rotate({ angle: this.knobAngleDeg })
+          .rotate({ angle: this.knobAngle })
           .id('p25_knob_right')
           .position({ x: this.knobRightXVp(), y: this.knobTopVp() })
           .onClick(() => { this.onKnobAdvance(); })

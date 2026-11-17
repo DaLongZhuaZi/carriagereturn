@@ -176,7 +176,7 @@ export struct CarriageLayers {
             .height(5)
             .backgroundColor('#e8ddc9')
             .opacity(0.85)
-            .position({ x: this.rollX(), y: this.hc() })
+            .position({ x: this.rollX() - this.canvasOffsetVp, y: this.hc() })
         }
         .width(this.stageWidth)
         .height(this.hc())

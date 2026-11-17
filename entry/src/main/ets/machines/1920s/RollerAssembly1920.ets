@@ -36,7 +36,5 @@ export struct RollerAssembly1920 {
       paperLeftFixedVp: this.paperLeftFixedVp,
       texOffsetYVp: this.texOffsetYVp,
     })
-      .offset({ y: this.carriageTopVp - this.carriageHeight / 2 })
-      .zIndex(1)
   }
 }
