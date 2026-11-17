@@ -201,7 +201,7 @@ export struct KeyGrid {
   @Builder
   capImage(p: K33Placed) {
     if (p.kind === 'return') {
-      Image($rawfile('ui-parts/cap3d-return.png'))
+      Image($rawfile('ui-parts/cap3d-return-v2.png'))
         .objectFit(ImageFit.Fill).width('100%').height('100%')
         .hitTestBehavior(HitTestMode.None)
     } else if (p.kind === 'space') {
@@ -280,6 +280,18 @@ export struct KeyGrid {
                 Text(p.legend).fontSize(11).fontColor('#1a1a1a')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
                 Text(p.sub).fontSize(8).fontColor('#3a3630')
+                  .fontFamily(this.overlayFontFamily).maxLines(1)
+              }
+              .justifyContent(FlexAlign.Center)
+              .width('100%').height('100%')
+              .translate({ y: -KB_LEGEND_UP })
+              .hitTestBehavior(HitTestMode.None)
+            } else if (p.kind === 'caps') {
+              // 26 号稿：SHIFT LOCK 两行小字（31vp 键宽放不下单行 10 字）
+              Column() {
+                Text('SHIFT').fontSize(6.5).fontColor('#1a1a1a')
+                  .fontFamily(this.overlayFontFamily).maxLines(1)
+                Text('LOCK').fontSize(6.5).fontColor('#1a1a1a')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
               }
               .justifyContent(FlexAlign.Center)

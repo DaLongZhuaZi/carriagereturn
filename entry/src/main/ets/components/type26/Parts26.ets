@@ -189,21 +189,34 @@ export struct TopZone26 {
       .position({ x: 10 * this.sx, y: 46 * this.sy })
       .onClick(() => { this.onBack(); })
 
-      // 边铃（x 12–40，y 60–88）：开＝直立＋小红点，关＝倾斜 15°＋无红点
-      Stack({ alignContent: Alignment.Center }) {
+      // 边铃（x 12–40，y 60–88）：开＝直立＋小红点，关＝倾斜 15°＋无红点（铃身＋铃口＋顶钮，约 20vp 高）
+      Stack({ alignContent: Alignment.TopStart }) {
         Column()
-          .width(24 * this.sx).height(22 * this.sy)
-          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], [BRASS, 0.6], ['#7c5f2d', 1.0]] })
-          .borderRadius({ topLeft: 12 * this.sx, topRight: 12 * this.sx, bottomLeft: 3, bottomRight: 3 })
-          .border({ width: 1, color: '#5f4a22' })
-        Column().width(26 * this.sx).height(2).backgroundColor('#6b5327').position({ x: 1 * this.sx, y: 21 * this.sy })
+          .width(18 * this.sx).height(14 * this.sy)
+          .linearGradient({
+            direction: GradientDirection.Right,
+            colors: [['#e6c886', 0.0], [BRASS_HI, 0.35], [BRASS, 0.7], ['#7a5c28', 1.0]],
+          })
+          .borderRadius({ topLeft: 9 * this.sx, topRight: 9 * this.sx, bottomLeft: 2, bottomRight: 2 })
+          .position({ x: 5 * this.sx, y: 7 * this.sy })
+        Column().width(26 * this.sx).height(4 * this.sy)
+          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], ['#6d5327', 1.0]] })
+          .borderRadius(2)
+          .position({ x: 1 * this.sx, y: 20 * this.sy })
+        Column().width(28 * this.sx).height(3 * this.sy).backgroundColor('#4a3a1c')
+          .position({ x: 0, y: 25 * this.sy })
+        Column().width(4 * this.sx).height(4 * this.sx).backgroundColor(BRASS_HI)
+          .borderRadius(2 * this.sx)
+          .position({ x: 12 * this.sx, y: 3 * this.sy })
         if (this.soundOn) {
-          Circle().width(5).height(5).fill('#e0483c').position({ x: 18 * this.sx, y: 2 * this.sy })
+          Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
+            .borderRadius(3 * this.sx)
+            .position({ x: 20 * this.sx, y: 8 * this.sy })
         }
       }
-      .width(28 * this.sx).height(26 * this.sy)
+      .width(28 * this.sx).height(28 * this.sy)
       .rotate({ angle: this.soundOn ? 0 : 15 })
-      .position({ x: 12 * this.sx, y: 62 * this.sy })
+      .position({ x: 12 * this.sx, y: 60 * this.sy })
       .onClick(() => { this.onBell(); })
 
       // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
@@ -255,6 +268,8 @@ export struct TopZone26 {
     }
     .width(this.widthVp).height(this.heightVp)
     .clip(true)
+    // 空白处不挡下面字车拨杆的拖拽（子件仍各自可点）
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 }
 
@@ -315,270 +330,35 @@ export struct Lid26 {
 }
 
 // ---------------------------------------------------------------------------
-// 滚筒（纸后）：深钢柱面＋两端筒身（旋钮在 CarriageFront 里，画在纸之上）
-// ---------------------------------------------------------------------------
-@Component
-export struct Roller26 {
-  @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
-  @Prop widthVp: number = 362.7;
-  @Prop sx: number = 1;
-  @Prop sy: number = 1;
-  @Prop joltYVp: number = 0;
-
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      // 柱身：x 8–354.7，中心 y 104（高 88）；纵向柱面明暗（上亮、中暗、下反光）
-      Column()
-        .width((MACHINE_X1 - MACHINE_X0) * this.sx)
-        .height(88 * this.sy)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#5a5a5f', 0.0], ['#3a3a3e', 0.12], ['#141416', 0.55],
-            ['#0e0e10', 0.72], ['#33333a', 0.9], ['#1c1c20', 1.0]],
-        })
-        .borderRadius(6)
-        .position({ x: MACHINE_X0 * this.sx, y: 60 * this.sy })
-        .translate({ y: this.joltYVp })
-      // 上沿高光
-      Column().width((MACHINE_X1 - MACHINE_X0) * this.sx).height(2 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [['#8f8f95', 0.0], ['#8f8f9500', 1.0]] })
-        .position({ x: MACHINE_X0 * this.sx, y: 60 * this.sy })
-      // 两端轴头（露出的筒身）
-      Column().width(10 * this.sx).height(40 * this.sy).backgroundColor('#2a2a2d')
-        .position({ x: MACHINE_X0 * this.sx, y: 84 * this.sy })
-      Column().width(10 * this.sx).height(40 * this.sy).backgroundColor('#2a2a2d')
-        .position({ x: (MACHINE_X1 - 10) * this.sx, y: 84 * this.sy })
-    }
-    .width(this.widthVp).height(180 * this.sy)
-    .hitTestBehavior(HitTestMode.None)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 纸顶卷曲覆盖层：把 paper-curl.png 的纸区裁到纸宽（只留卷起的纸，不留它的滚筒）
-// ---------------------------------------------------------------------------
-@Component
-export struct Curl26 {
-  @Prop sx: number = 1;
-  @Prop sy: number = 1;
-  @Prop paperLeftVp: number = 156;
-  @Prop paperWidthVp: number = 220;
-  @Prop paperTopVp: number = 104;
-
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Image($rawfile('ui-parts/paper-curl.png'))
-        .width(379 * this.sx)
-        .height(123 * this.sy)
-        .objectFit(ImageFit.Fill)
-        .position({ x: -61.4 * this.sx, y: 0 })
-        .hitTestBehavior(HitTestMode.None)
-    }
-    .width(this.paperWidthVp)
-    .height(70 * this.sy)
-    .clip(true)
-    .hitTestBehavior(HitTestMode.None)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 字车正面：横尺＋锯齿边＋红三角＋中央指针＋色带＋压纸杆＋旋钮＋拨杆
-// 全部画在纸之上（z 5.2 起）。
-// ---------------------------------------------------------------------------
-@Component
-export struct CarriageFront26 {
-  @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
-  @Prop widthVp: number = 362.7;
-  @Prop sx: number = 1;
-  @Prop sy: number = 1;
-  @Prop paperLeftVp: number = 156;
-  @Prop paperWidthVp: number = 220;
-  @Prop leverOffsetVp: number = 0;
-  @Prop leverAngle: number = 0;
-  @Prop knobAngle: number = 0;
-  @Prop strikePhase: number = 0;
-  @Prop knobDVp: number = 46.5;
-  onKnob: () => void = (): void => {};
-  onLeverTap: () => void = (): void => {};
-  onLeverStart: () => void = (): void => {};
-  onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
-  onLeverEnd: () => void = (): void => {};
-
-  /** 横尺刻度：密排短竖线（每 4vp 一根）。 */
-  private ticks(): number[] {
-    const out: number[] = [];
-    for (let x = 14; x < MACHINE_X1 - 10; x += 4) {
-      out.push(x);
-    }
-    return out;
-  }
-
-  /** 锯齿边：横尺下沿一排小三角。 */
-  private sawPath(): string {
-    const maxX: number = (MACHINE_X1 - MACHINE_X0) * this.sx;
-    const toothW: number = 4 * this.sx;
-    const toothH: number = 3 * this.sy;
-    let d: string = 'M0 0';
-    let x: number = 0;
-    while (x < maxX) {
-      d += ' L' + (x + toothW / 2).toFixed(1) + ' ' + toothH.toFixed(1) + ' L' + (x + toothW).toFixed(1) + ' 0';
-      x += toothW;
-    }
-    return d;
-  }
-
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      // ---- 横尺（y 356–368）----
-      Stack({ alignContent: Alignment.TopStart }) {
-        Column().width('100%').height('100%')
-          .linearGradient({
-            direction: GradientDirection.Bottom,
-            colors: [['#e6e6e8', 0.0], ['#b4b4b4', 0.45], ['#7d7d80', 1.0]],
-          })
-        // 细刻度
-        ForEach(this.ticks(), (x: number) => {
-          Column().width(1).height(5 * this.sy).backgroundColor('#3d3d40')
-            .position({ x: (x - MACHINE_X0) * this.sx, y: 0 })
-        }, (x: number) => 't' + x.toString())
-        // 两个红三角（左右边距标记，随纸走）
-        Path({ commands: 'M0 0 L' + (7 * this.sx).toFixed(1) + ' 0 L' + (3.5 * this.sx).toFixed(1) + ' ' + (6 * this.sy).toFixed(1) + ' Z' }).fill(RED26)
-          .width(7 * this.sx).height(6 * this.sy)
-          .position({ x: (this.paperLeftVp + 25 - MACHINE_X0) * this.sx - 3.5 * this.sx, y: 5 * this.sy })
-        Path({ commands: 'M0 0 L' + (7 * this.sx).toFixed(1) + ' 0 L' + (3.5 * this.sx).toFixed(1) + ' ' + (6 * this.sy).toFixed(1) + ' Z' }).fill(RED26)
-          .width(7 * this.sx).height(6 * this.sy)
-          .position({ x: (this.paperLeftVp + 25 + 165 - MACHINE_X0) * this.sx - 3.5 * this.sx, y: 5 * this.sy })
-        // 锯齿下沿
-        Path({ commands: this.sawPath() }).fill('#6a6a6d')
-          .width((MACHINE_X1 - MACHINE_X0) * this.sx).height(3 * this.sy)
-          .position({ x: 0, y: 9 * this.sy })
-      }
-      .width((MACHINE_X1 - MACHINE_X0) * this.sx)
-      .height(12 * this.sy)
-      .clip(true)
-      .position({ x: MACHINE_X0 * this.sx, y: Y_RULER * this.sy })
-
-      // ---- 中央指针（金属针＋红三角尖，钉在机中心 181vp）----
-      Column().width(3 * this.sx).height(14 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], [STEEL, 1.0]] })
-        .position({ x: (181 - MACHINE_X0) * this.sx - 1.5 * this.sx, y: (Y_RULER - 14) * this.sy })
-      Path({ commands: 'M0 0 L' + (8 * this.sx).toFixed(1) + ' 0 L' + (4 * this.sx).toFixed(1) + ' ' + (7 * this.sy).toFixed(1) + ' Z' }).fill(RED26)
-        .width(8 * this.sx).height(7 * this.sy)
-        .position({ x: (181 - MACHINE_X0) * this.sx - 4 * this.sx, y: (Y_RULER - 7) * this.sy })
-
-      // ---- 色带（y 370–374）：常态即红带，击打时抬起 12vp ----
-      Column().width((MACHINE_X1 - MACHINE_X0) * this.sx).height(4 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [['#e04a42', 0.0], [RED26, 0.55], ['#8f1f1c', 1.0]] })
-        .position({ x: MACHINE_X0 * this.sx, y: Y_RIBBON * this.sy })
-        .translate({ y: -12 * this.sy * this.strikePhase })
-
-      // ---- 压纸杆（细金属杆横过纸面下部，两端小黑压轮）----
-      Column().width((MACHINE_X1 - MACHINE_X0 - 30) * this.sx).height(4 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], ['#5c5c5f', 1.0]] })
-        .position({ x: (MACHINE_X0 + 15) * this.sx, y: 344 * this.sy })
-      Circle().width(9 * this.sx).height(9 * this.sx).fill('#111111')
-        .position({ x: (MACHINE_X0 + 15) * this.sx, y: 341.5 * this.sy })
-      Circle().width(9 * this.sx).height(9 * this.sx).fill('#111111')
-        .position({ x: (MACHINE_X1 - 24) * this.sx, y: 341.5 * this.sy })
-
-      // ---- 旋钮（双端，d 46.5，点按进纸一行）----
-      Image($rawfile('ui-parts/knob-metal.png'))
-        .width(this.knobDVp * this.sx).height(this.knobDVp * this.sx)
-        .objectFit(ImageFit.Fill)
-        .rotate({ angle: this.knobAngle })
-        .position({ x: -16 * this.sx, y: (104 - this.knobDVp / 2) * this.sy })
-        .onClick(() => { this.onKnob(); })
-      Image($rawfile('ui-parts/knob-metal.png'))
-        .width(this.knobDVp * this.sx).height(this.knobDVp * this.sx)
-        .objectFit(ImageFit.Fill)
-        .rotate({ angle: this.knobAngle })
-        .position({
-          x: MACHINE_X1 * this.sx - 18 * this.sx,
-          y: (104 - this.knobDVp / 2) * this.sy,
-        })
-        .onClick(() => { this.onKnob(); })
-
-      // ---- 拨杆（装在字车上，随字车移动；V=0 x 165–225）----
-      Stack({ alignContent: Alignment.TopStart }) {
-        Image($rawfile('ui-parts/lever.png'))
-          .width(34 * this.sx).height(110 * this.sy)
-          .objectFit(ImageFit.Fill)
-      }
-      .width(34 * this.sx).height(110 * this.sy)
-      .rotate({ angle: this.leverAngle })
-      .position({ x: 165 * this.sx + this.leverOffsetVp, y: 230 * this.sy })
-      .onClick(() => { this.onLeverTap(); })
-      .gesture(PanGesture({ direction: PanDirection.Vertical })
-        .onActionStart(() => { this.onLeverStart(); })
-        .onActionUpdate((e: GestureEvent) => { this.onLeverUpdate(e.offsetY); })
-        .onActionEnd(() => { this.onLeverEnd(); }))
-    }
-    .width(this.widthVp)
-    .height(Y_GRID * this.sy)
-    .hitTestBehavior(HitTestMode.Transparent)
-  }
-}
-
-// ---------------------------------------------------------------------------
 // 字篮（扇形井：曲线口＋3D 扇形＋枢轴＋井边阴影缝）
 // ---------------------------------------------------------------------------
 @Component
 export struct Basket26 {
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
-  @Prop widthVp: number = 346.7;
+  @Prop widthVp: number = 240;
   @Prop heightVp: number = 138;
   @Prop sx: number = 1;
   @Prop sy: number = 1;
 
-  /** 井口曲线（矢高 14vp，按屏幕实际 vp 生成）。 */
-  private wellPath(): string {
-    const w: number = this.widthVp;
-    const h: number = this.heightVp;
-    const sag: number = 14 * (this.heightVp / 138);
-    return 'M0 ' + sag.toFixed(1) + ' Q' + (w / 2).toFixed(1) + ' 0 ' + w.toFixed(1) + ' '
-      + sag.toFixed(1) + ' L' + w.toFixed(1) + ' ' + h.toFixed(1) + ' L0 ' + h.toFixed(1) + ' Z';
-  }
-
-  private maskPath(): string {
-    const w: number = this.widthVp;
-    const sag: number = 14 * (this.heightVp / 138);
-    return 'M0 -20 L' + w.toFixed(1) + ' -20 L' + w.toFixed(1) + ' ' + sag.toFixed(1)
-      + ' Q' + (w / 2).toFixed(1) + ' 0 0 ' + sag.toFixed(1) + ' Z';
-  }
-
-  private arcPath(): string {
-    const w: number = this.widthVp;
-    const sag: number = 14 * (this.heightVp / 138);
-    return 'M0 ' + sag.toFixed(1) + ' Q' + (w / 2).toFixed(1) + ' 0 ' + w.toFixed(1) + ' ' + sag.toFixed(1);
-  }
-
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 井底（深色，随井口曲线裁）
-      Path({ commands: this.wellPath() }).fill('#100e0c')
-        .width(this.widthVp).height(this.heightVp)
-
-      // 3D 扇形（占井宽 80%，枢轴在底部中央，顶部被井口罩住）
+      // 井：曲线口（顶部半圆拱；井宽 240 → 拱半径 120，矢高 138vp＝466px）
       Stack({ alignContent: Alignment.Bottom }) {
-        basketFanImage(this.machine)
+        Column().width('100%').height('100%').backgroundColor('#100e0c')
+        // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
+        Stack({ alignContent: Alignment.Bottom }) {
+          basketFanImage(this.machine)
+        }
+        .width(213 * this.sx).height(134 * this.sy)
+        .hitTestBehavior(HitTestMode.None)
       }
-      .width(277 * this.sx).height(174 * this.sy)
-      .position({ x: (this.widthVp - 277 * this.sx) / 2, y: this.heightVp - 174 * this.sy })
-      .hitTestBehavior(HitTestMode.None)
+      .width(this.widthVp).height(this.heightVp)
+      .borderRadius({ topLeft: this.widthVp / 2, topRight: this.widthVp / 2, bottomLeft: 0, bottomRight: 0 })
+      .clip(true)
+      // 井边阴影缝（1vp＝3.4px，2–4px 口径）
+      .border({ width: 1, color: '#000000' })
 
-      // 井口罩（盖色）＋井边阴影缝（2–4px）
-      Path({ commands: this.maskPath() }).fill(lidColor(this.machine))
-        .width(this.widthVp).height(this.heightVp)
-        .hitTestBehavior(HitTestMode.None)
-      Path({ commands: this.arcPath() }).stroke('#000000').strokeWidth(1.2).fillOpacity(0)
-        .width(this.widthVp).height(this.heightVp)
-        .hitTestBehavior(HitTestMode.None)
-      Path({ commands: this.arcPath() }).stroke('#6a6259').strokeWidth(0.6).fillOpacity(0)
-        .width(this.widthVp).height(this.heightVp)
-        .translate({ y: 1.2 })
-        .hitTestBehavior(HitTestMode.None)
-
-      // 枢轴（y 514 = 井底，x 181）
+      // 枢轴（井底中央 y 514、x 181）
       Row()
         .width(26 * this.sx).height(8 * this.sy)
         .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], ['#4c4c4f', 1.0]] })
@@ -586,7 +366,6 @@ export struct Basket26 {
         .position({ x: this.widthVp / 2 - 13 * this.sx, y: this.heightVp - 8 * this.sy })
     }
     .width(this.widthVp).height(this.heightVp)
-    .clip(true)
   }
 }
 

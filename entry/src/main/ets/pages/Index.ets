@@ -86,7 +86,8 @@ import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../mode
 import { Cheek } from '../components/Cheek';
 import { SteelPlate } from '../components/SteelPlate';
 import { KeyWell } from '../components/KeyWell';
-import { TopZone26, Lid26, Roller26, Curl26, CarriageFront26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, PaperPanel26, TopDeck26 } from '../components/type26/Parts26';
+import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, TopDeck26 } from '../components/type26/Parts26';
+import { Carriage26 } from '../components/type26/Carriage26';
 
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -1442,9 +1443,11 @@ struct Index {
   private lineWidth26(): number { return this.paperPanelWidthVp() - 55 * this.xk(); }
   /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
   private typeFontSize(): number { return 11.9 * (this.paperPanelWidthVp() / 220); }
-  /** §6.1：纸 V=0 左缘（paperBaseX 不变）。 */
-  private paperPanelBaseXVp(): number { return this.stageWidth * 0.5 - 25 * this.xk(); }
-  private paperPanelLeftVp(): number { return this.paperPanelBaseXVp() + this.paperOffsetVp; }
+  /** §6.1：纸 V=0 左缘（156vp）。 */
+  private paperPanelBaseXVp(): number { return 156 * this.xk(); }
+  /** 批 35 修正口径：字车中心＝滚筒中心＝纸中心；V=0 在 266vp。 */
+  private carriageCenterXVp(): number { return 266 * this.xk() + this.carriageOffsetVp; }
+  private paperPanelLeftVp(): number { return this.carriageCenterXVp() - 110 * this.xk(); }
   private paperPanelTopVp(): number { return this.t26y(104); }
   private paperZoneTopVp(): number { return this.t26y(104); }
   private hPaperZoneVp(): number { return this.t26y(258.4); }
@@ -2823,8 +2826,8 @@ struct Index {
 
   /** 行宽只认舞台宽（§2.5）。 */
   private charsPerLine(): number {
-    // 可用行宽 = 纸宽 − 2×28vp（不用舞台宽）
-    const usable: number = this.paperWidthVp - 2 * this.marginH();
+    // 26 号稿 §6.1：可用行宽 165vp（纸宽 220 − 左 25 − 右 30），不是 paper-kind 的 marginH×2
+    const usable: number = this.lineWidth26();
     // §12.2 第 3 条：中文按 CJK 字宽算（约 16 字/行），英文按英文字宽（约 26 字/行）
     const unit: number = this.langZh
       ? (this.advCjkVp > 0 ? this.advCjkVp : this.fontSizeVp)
@@ -4628,24 +4631,18 @@ struct Index {
           .id('p26_top_deck')
           .position({ x: 0, y: 0 })
 
-        Roller26({
+
+        // 字车总成（容器：滚筒＋纸＋卷曲＋横尺＋色带＋压纸杆＋拨杆＋旋钮；整体随 V 一次位移）
+        Carriage26({
           machine: this.machineKind,
           widthVp: this.canvasWidthVp(),
+          heightVp: this.canvasHeightVp(),
           sx: this.xk(), sy: this.yk(),
-          joltYVp: this.joltYVp,
-        })
-          .id('p26_roller')
-
-          .position({ x: 0, y: 0 })
-
-          .position({ x: 0, y: 0 })
-
-          .position({ x: 0, y: 0 })
-
-        PaperPanel26({
-          widthVp: this.paperPanelWidthVp(),
-          heightVp: this.hPaperZoneVp(),
-          sx: this.xk(), sy: this.yk(),
+          offsetXVp: this.carriageOffsetVp,
+          leverAngle: 0,
+          knobAngle: this.knobAngle,
+          strikePhase: this.strikePhase,
+          knobDVp: this.knobDVp26(),
           lines: this.docLineTexts(),
           fontSizeVp: this.fontSizeVp,
           lineHeightVp: this.lineHeightVp,
@@ -4658,48 +4655,64 @@ struct Index {
           cursorYVp: this.paperCursorY26(),
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
-        })
-          .id('p26_paper')
-          .position({ x: this.paperPanelLeftVp(), y: this.t26y(104) })
-
-        Curl26({
-          sx: this.xk(), sy: this.yk(),
-          paperLeftVp: this.paperPanelLeftVp(),
-          paperWidthVp: this.paperPanelWidthVp(),
-          paperTopVp: this.t26y(104),
-        })
-          .id('p26_curl')
-          .position({ x: this.paperPanelLeftVp(), y: this.t26y(104) - 65 * this.yk() })
-
-
-        CarriageFront26({
-          machine: this.machineKind,
-          widthVp: this.canvasWidthVp(),
-          sx: this.xk(), sy: this.yk(),
-          paperLeftVp: this.paperPanelLeftVp(),
-          paperWidthVp: this.paperPanelWidthVp(),
-          leverOffsetVp: this.paperOffsetVp,
-          leverAngle: this.leverAngleVp,
-          knobAngle: this.knobAngle,
-          strikePhase: this.strikePhase,
-          knobDVp: this.knobDVp26(),
           onKnob: (): void => { this.onKnobAdvance(); },
           onLeverTap: (): void => { this.onNewline(); },
           onLeverStart: (): void => { this.leverPanStart(true, 'ui'); },
           onLeverUpdate: (dy: number): void => { this.leverPanUpdate(dy); },
           onLeverEnd: (): void => { this.leverPanEnd(); },
         })
-          .id('p26_carriage_front')
+          .id('p35_carriage')
           .position({ x: 0, y: 0 })
+
+        // 落字指针（钉在机中心 181vp，不随字车移动）
+        Column().width(2 * this.xk()).height(10 * this.yk())
+          .backgroundColor('#8f8f92')
+          .position({ x: 181 * this.xk() - 1 * this.xk(), y: this.t26y(347) })
+          .hitTestBehavior(HitTestMode.None)
+        Path({ commands: 'M0 0 L' + (7 * this.xk()).toFixed(1) + ' 0 L' + (3.5 * this.xk()).toFixed(1) + ' ' + (6 * this.yk()).toFixed(1) + ' Z' })
+          .fill('#c8322d')
+          .width(7 * this.xk()).height(6 * this.yk())
+          .position({ x: 181 * this.xk() - 3.5 * this.xk(), y: this.t26y(356) })
+          .hitTestBehavior(HitTestMode.None)
+
+        TopZone26({
+          machine: this.machineKind,
+          widthVp: this.canvasWidthVp(),
+          heightVp: this.t26y(104),
+          sx: this.xk(), sy: this.yk(),
+          docTitle: this.docTitle,
+          soundOn: this.soundEnabled,
+          guideEnabled: this.guideEnabled,
+          achGlow: this.achieveRev > 0,
+          onBack: (): void => { this.popPage(); },
+          onMenu: (): void => { this.menuOpen = true; },
+          onLibrary: (): void => { this.popTo('home'); },
+          onBell: (): void => { this.toggleSound(); },
+          onExportSlot: (): void => { this.onExportSlot(); },
+          onPlate: (): void => { this.onPlateTap(); },
+          onGuide: (): void => { this.replayPageGuide(); },
+        })
+          .id('p26_top_zone')
+          .position({ x: 0, y: 0 })
+
+        // 拨杆交互代理：视觉拨杆在字车容器里（被顶区盖住触摸），这里是顶层透明热区，几何与拨杆一致
+        Column()
+          .width(18 * this.xk()).height(74 * this.yk())
+          .position({ x: 120 * this.xk() + this.paperOffsetVp, y: 39 * this.yk() })
+          .onClick((): void => { this.onNewline(); })
+          .gesture(PanGesture({ direction: PanDirection.Vertical })
+            .onActionStart((): void => { this.leverPanStart(true, 'ui'); })
+            .onActionUpdate((e: GestureEvent): void => { this.leverPanUpdate(e.offsetY); })
+            .onActionEnd((): void => { this.leverPanEnd(); }))
 
         Basket26({
           machine: this.machineKind,
-          widthVp: 300 * this.xk(),
+          widthVp: 240 * this.xk(),
           heightVp: this.t26y(138),
           sx: this.xk(), sy: this.yk(),
         })
           .id('p26_basket')
-          .position({ x: 31.35 * this.xk(), y: this.t26y(376) })
+          .position({ x: 61 * this.xk(), y: this.t26y(376) })
 
         FunctionCaps26({
           widthVp: 216 * this.xk(),
@@ -4808,25 +4821,6 @@ struct Index {
           .id('p25_key_grid')
           .position({ x: 0, y: this.keyGridTopVp() })
 
-        TopZone26({
-          machine: this.machineKind,
-          widthVp: this.canvasWidthVp(),
-          heightVp: this.t26y(104),
-          sx: this.xk(), sy: this.yk(),
-          docTitle: this.docTitle,
-          soundOn: this.soundEnabled,
-          guideEnabled: this.guideEnabled,
-          achGlow: this.achieveRev > 0,
-          onBack: (): void => { this.popPage(); },
-          onMenu: (): void => { this.menuOpen = true; },
-          onLibrary: (): void => { this.popTo('home'); },
-          onBell: (): void => { this.toggleSound(); },
-          onExportSlot: (): void => { this.onExportSlot(); },
-          onPlate: (): void => { this.onPlateTap(); },
-          onGuide: (): void => { this.replayPageGuide(); },
-        })
-          .id('p26_top_zone')
-          .position({ x: 0, y: 0 })
 
         // 黄铜铭牌点按提示（文档名，1.6s 自动收起）
         if (this.plateHint) {
