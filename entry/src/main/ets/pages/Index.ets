@@ -82,8 +82,9 @@ import { StrikeGuide } from '../components/StrikeGuide';
 // 第 27 批（批 4／R-m24）：标准件变体（10 件 × 4 机型 = 40 键）
 import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/PartVariants';
 // 第 28 批（24 号稿 §2.1）：三档 token 与贴片
-import { tierTileRawfile, tierToken } from '../model/MachineCatalog';
+import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../model/MachineCatalog';
 import { Cheek } from '../components/Cheek';
+import { SteelPlate } from '../components/SteelPlate';
 
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -1583,13 +1584,20 @@ struct Index {
 
   /** 键区过渡态底板色（23 号稿 §2.5 第 5 条机身色；批 2 机身面板挂载后由面板接管）。 */
   /** 第 28 批（24 号稿 §2.1）：三档色（paperwell／base／keybed）。 */
-  private tierColor(tier: string): string {
+  private tierColor(tier: 'paperwell' | 'base' | 'keybed' | 'steel'): string {
     return tierToken(this.machineKind, tier);
   }
 
   /** 第 28 批：三档颗粒贴片（ui-parts/tile-<slug>-<tier>.png）。 */
-  private tierTile(tier: string): string {
+  private tierTile(tier: 'paperwell' | 'base' | 'keybed'): string {
     return tierTileRawfile(this.machineKind, tier);
+  }
+
+  /** 第 32 批（25 号稿 §2.3）：凹槽框内侧阴影 ΔL（1920s/1930s −0.008、1960s −0.015、1950s −0.030）。 */
+  private grooveInnerDL(): number {
+    if (this.machineKind === MachineKind.STREAMLINED_1950S) { return -0.030; }
+    if (this.machineKind === MachineKind.ELECTRIC_1960S) { return -0.015; }
+    return -0.008;
   }
 
   /** 第 31 批（a443787 L2643 照抄）：四机都有分层件，恒 true。 */
@@ -4637,6 +4645,59 @@ struct Index {
             .backgroundColor(mixHexColor(this.tierColor('paperwell'), this.tierColor('base')))
             .position({ x: 0, y: 88 + (this.isTablet ? 176.0 : this.hPaperZoneVp()) - 1 })
 
+          // 第 32 批：机身基准档纵向渐变（顶 +0.0125、底 −0.0125 L，全幅子件）
+          Column()
+            .width('100%').height('100%')
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [[shiftHexColor(this.tierColor('base'), 0.0125), 0.0],
+                [shiftHexColor(this.tierColor('base'), -0.0125), 1.0]],
+            })
+            .opacity(0.22)
+            .hitTestBehavior(HitTestMode.None)
+
+          // 第 32 批（25 号稿 §2.3）：凹槽框——代码绘制四条 border（顶/左/右 10vp，底带＝区底缘−覆块底缘）
+          // 顶带
+          Column().width('100%').height(10)
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [[shiftHexColor(this.tierColor('paperwell'), 0.005), 0.0],
+                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
+            })
+            .id('p32_groove_top')
+            .position({ x: 0, y: 88 })
+            .hitTestBehavior(HitTestMode.None)
+          // 底带（覆块底缘 → 区底缘）
+          Column().width('100%').height(16.2)
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [[shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 0.0],
+                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
+            })
+            .id('p32_groove_bottom')
+            .position({ x: 0, y: 88 + this.hPaperZoneVp() })
+            .hitTestBehavior(HitTestMode.None)
+          // 左带
+          Column().width(10).height(this.hPaperZoneVp() - 10)
+            .linearGradient({
+              direction: GradientDirection.Right,
+              colors: [[shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 0.0],
+                [shiftHexColor(this.tierColor('paperwell'), 0.0), 1.0]],
+            })
+            .id('p32_groove_left')
+            .position({ x: 0, y: 98 })
+            .hitTestBehavior(HitTestMode.None)
+          // 右带
+          Column().width(10).height(this.hPaperZoneVp() - 10)
+            .linearGradient({
+              direction: GradientDirection.Right,
+              colors: [[shiftHexColor(this.tierColor('paperwell'), 0.0), 0.0],
+                [shiftHexColor(this.tierColor('paperwell'), this.grooveInnerDL()), 1.0]],
+            })
+            .id('p32_groove_right')
+            .position({ x: this.stageWidth - 10, y: 98 })
+            .hitTestBehavior(HitTestMode.None)
+
           // 键床覆块（手机 y＝候选栏顶缘、高＝候选栏 44＋键床；平板 y 480、高 240）
           Column()
             .id('p28_keybed')
@@ -4965,6 +5026,15 @@ struct Index {
         }
 
         // 键盘网格（z6）：43/49 帽真 Button＋真文字图例；机身面板已接管底板，不再自带 backing
+        // 第 32 批（25 号稿 §2.2）：钢板（键床底板，x 8..354.7，y 622.3..794.9，圆角 12vp）
+        SteelPlate({
+          machine: this.machineKind,
+          widthVp: this.stageWidth - 16,
+          heightVp: this.keybedHeight,
+        })
+          .id('p32_steel_plate')
+          .position({ x: 8, y: this.keyGridTopVp() })
+
         KeyGrid({
           machineKind: this.machineKind,
           shiftActive: this.shiftActive,

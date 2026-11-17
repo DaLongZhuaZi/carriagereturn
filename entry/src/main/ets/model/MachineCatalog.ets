@@ -116,16 +116,18 @@ export const KEYBED_HEIGHT_VP: number = 186;
  * 校验口径：每档采样对照本档 token ±10%（32×32 区块均值），ΔL 下限 0.010。
  */
 const TIER_TOKENS: Record<string, string[]> = {
-  '1920s-upright': ['#25201b', '#312b24', '#3b342b'],
-  '1930s-portable': ['#342f2b', '#3d3732', '#453e38'],
-  '1950s-streamlined': ['#c6b7a4', '#c8b9a6', '#cabba7'],
-  '1960s-electric': ['#8e8880', '#928b82', '#96908a'],
+  // 第 32 批（25 号稿 §2.1）：第 4 元 steel（钢板）；顺序钉死 [paperwell, base, keybed, steel]
+  '1920s-upright': ['#25201b', '#312b24', '#3b342b', '#5e5e5e'],
+  '1930s-portable': ['#342f2b', '#3d3732', '#453e38', '#636363'],
+  '1950s-streamlined': ['#c6b7a4', '#c8b9a6', '#cabba7', '#d0c9b9'],
+  '1960s-electric': ['#8e8880', '#928b82', '#96908a', '#a59f96'],
 };
 
-/** 三档 token 的索引：paperwell=0／base=1／keybed=2。 */
+/** 四档 token 的索引：paperwell=0／base=1／keybed=2／steel=3（第 32 批加 steel）。 */
 export function tierIndex(tier: string): number {
   if (tier === 'paperwell') { return 0; }
   if (tier === 'keybed') { return 2; }
+  if (tier === 'steel') { return 3; }
   return 1;
 }
 
@@ -133,7 +135,7 @@ export function tierIndex(tier: string): number {
  * 取某机某档的色值（§2.1）。供分区背景／边线／Cheek（批 31）使用；
  * 非法机型回落 1920s，非法档回落 base。
  */
-export function tierToken(machine: MachineKind, tier: string): string {
+export function tierToken(machine: MachineKind, tier: 'paperwell' | 'base' | 'keybed' | 'steel'): string {
   const row: string[] | undefined = TIER_TOKENS[machine as string];
   const idx: number = tierIndex(tier);
   if (row !== undefined) {
@@ -142,8 +144,44 @@ export function tierToken(machine: MachineKind, tier: string): string {
   return TIER_TOKENS['1920s-upright'][idx];
 }
 
-/** 第 28 批：每档贴片名（ui-parts 下，slug 词表钉死）。 */
-export function tierTileRawfile(machine: MachineKind, tier: string): string {
+/** 第 32 批（25 号稿 §2.1）：钢板贴片名（拉丝纹理，独立于三档 tile，禁用 tierTileRawfile('steel')）。 */
+export function plateRawfile(machine: MachineKind): string {
+  const k: string = machine as string;
+  const i: number = k.indexOf('-');
+  const slug: string = i > 0 ? k.substring(0, i) : k;
+  return 'ui-parts/plate-' + slug + '.png';
+}
+
+/**
+ * 第 32 批（25 号稿 §2.4）：按目标亮度差 ΔL 整体缩放 sRGB 色（线性空间缩放各通道，回 sRGB 取整）。
+ * 代码一律调本函数，不写死端色。
+ */
+export function shiftHexColor(hex: string, dL: number): string {
+  const toLin = (v: number): number => {
+    const c: number = v / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const toSrgb = (c: number): number => {
+    const v: number = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+    return v;
+  };
+  const lr: number = toLin(Number.parseInt(hex.substring(1, 3), 16));
+  const lg: number = toLin(Number.parseInt(hex.substring(3, 5), 16));
+  const lb: number = toLin(Number.parseInt(hex.substring(5, 7), 16));
+  const L: number = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  if (L <= 0.00001) {
+    return hex;
+  }
+  const k: number = (L + dL) / L;
+  const out = (c: number): string => {
+    const v: number = Math.max(0, Math.min(255, Math.round(toSrgb(c * k) * 255)));
+    return (v < 16 ? '0' : '') + v.toString(16);
+  };
+  return '#' + out(lr) + out(lg) + out(lb);
+}
+
+/** 第 28 批：每档贴片名（ui-parts 下，slug 词表钉死；不含 steel）。 */
+export function tierTileRawfile(machine: MachineKind, tier: 'paperwell' | 'base' | 'keybed'): string {
   const k: string = machine as string;
   const i: number = k.indexOf('-');
   const slug: string = i > 0 ? k.substring(0, i) : k;
