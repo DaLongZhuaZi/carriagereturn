@@ -85,6 +85,7 @@ import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/P
 import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../model/MachineCatalog';
 import { Cheek } from '../components/Cheek';
 import { SteelPlate } from '../components/SteelPlate';
+import { KeyWell } from '../components/KeyWell';
 
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
@@ -1497,11 +1498,7 @@ struct Index {
   private knobTopVp(): number { return this.paperZoneBottomVp() - this.knobDVp() / 2; }
 
   /** 机身材质贴片（§2.5 第 5 条：机身面板；批 2 起取代 KeyGrid 过渡底板）。 */
-  private bodyPanelRawfile(): string {
-    // 第 27 批：机身配色变体（跨机型混搭允许，Q3(a)）
-    const v: string = CustomizeStore.partVariant('body-panel', this.machineKind as string);
-    return 'ui-parts/bodypanel-' + bodySlugOfVariant(v) + '-grain.png';
-  }
+  // 第 33 批（批 29 并入项）：bodyPanelRawfile 已删——旧 grain 图 4 张同日删除，机身底改 tierTile。
 
   /** 字杆贴片（§7.4 typebar-<machine>.png；§4.3 打击动件）。 */
   private typebarRawfile(): string {
@@ -5033,6 +5030,15 @@ struct Index {
           heightVp: this.keybedHeight,
         })
           .id('p32_steel_plate')
+          .position({ x: 8, y: this.keyGridTopVp() })
+
+        // 第 33 批（26 号稿 §7.8）：黑井（z 4.0，盖钢板；四角开孔露钢板螺丝）
+        KeyWell({
+          machine: this.machineKind,
+          widthVp: this.stageWidth - 16,
+          heightVp: this.keybedHeight,
+        })
+          .id('p33_key_well')
           .position({ x: 8, y: this.keyGridTopVp() })
 
         KeyGrid({
