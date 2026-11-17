@@ -109,6 +109,46 @@ export const FONT_BAR_HEIGHT_VP: number = 38;
 /** §18.8／§19：候选栏高度（常驻占位）。CandidateBar 与布局 region 共用这一个常量，不许两处各写 44 */
 export const CANDIDATE_BAR_HEIGHT_VP: number = 44;
 export const KEYBED_HEIGHT_VP: number = 186;
+
+/**
+ * 第 28 批（24 号稿 §2.1）：机身三档色 token（4 机×3 档＝12 个）。
+ * 顺序固定 [纸井 paperwell, 机身基准 base, 键床 keybed]；相对亮度 L 与档差 ΔL 见稿内表。
+ * 校验口径：每档采样对照本档 token ±10%（32×32 区块均值），ΔL 下限 0.010。
+ */
+const TIER_TOKENS: Record<string, string[]> = {
+  '1920s-upright': ['#25201b', '#312b24', '#3b342b'],
+  '1930s-portable': ['#342f2b', '#3d3732', '#453e38'],
+  '1950s-streamlined': ['#c6b7a4', '#c8b9a6', '#cabba7'],
+  '1960s-electric': ['#8e8880', '#928b82', '#96908a'],
+};
+
+/** 三档 token 的索引：paperwell=0／base=1／keybed=2。 */
+export function tierIndex(tier: string): number {
+  if (tier === 'paperwell') { return 0; }
+  if (tier === 'keybed') { return 2; }
+  return 1;
+}
+
+/**
+ * 取某机某档的色值（§2.1）。供分区背景／边线／Cheek（批 31）使用；
+ * 非法机型回落 1920s，非法档回落 base。
+ */
+export function tierToken(machine: MachineKind, tier: string): string {
+  const row: string[] | undefined = TIER_TOKENS[machine as string];
+  const idx: number = tierIndex(tier);
+  if (row !== undefined) {
+    return row[idx];
+  }
+  return TIER_TOKENS['1920s-upright'][idx];
+}
+
+/** 第 28 批：每档贴片名（ui-parts 下，slug 词表钉死）。 */
+export function tierTileRawfile(machine: MachineKind, tier: string): string {
+  const k: string = machine as string;
+  const i: number = k.indexOf('-');
+  const slug: string = i > 0 ? k.substring(0, i) : k;
+  return 'ui-parts/tile-' + slug + '-' + tier + '.png';
+}
 export const FUNCTION_ROW_HEIGHT_VP: number = 52;
 export const KEYBOARD_HEIGHT_VP: number = KEYBED_HEIGHT_VP + FUNCTION_ROW_HEIGHT_VP;
 

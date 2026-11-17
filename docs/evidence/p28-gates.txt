@@ -1,0 +1,5 @@
+paperwell  mean=[37.1 32.1 28.1] med=[37. 32. 28.] token=(37, 32, 27) worst=3.9% PASS L=0.01514
+base       mean=[49.8 42.8 34.9] med=[50. 43. 35.] token=(49, 43, 36) worst=3.0% PASS L=0.02510
+keybed     mean=[59. 52. 42.] med=[59. 52. 42.] token=(59, 52, 43) worst=2.3% PASS L=0.03555
+dL paperwell-base = -0.00996  |dL|=0.00996 >= 0.010 ? False
+dL keybed-base    = +0.01045  >= 0.010 ? True

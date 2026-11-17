@@ -81,6 +81,9 @@ import { PaperPanel } from '../components/PaperPanel';
 import { StrikeGuide } from '../components/StrikeGuide';
 // 第 27 批（批 4／R-m24）：标准件变体（10 件 × 4 机型 = 40 键）
 import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/PartVariants';
+// 第 28 批（24 号稿 §2.1）：三档 token 与贴片
+import { tierTileRawfile, tierToken } from '../model/MachineCatalog';
+
 import { TypebarLayer } from '../components/TypebarLayer';
 import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
@@ -109,6 +112,20 @@ import { LeverLayer1950 } from '../machines/1950s/LeverLayer';
 import { LeverLayer1960 } from '../machines/1960s/LeverLayer';
 import { TypebarLayer1950 } from '../machines/1950s/TypebarLayer';
 import { TypebarLayer1960 } from '../machines/1960s/TypebarLayer';
+
+/** 第 28 批：两色中点（档界 1vp 边线用；相邻档中间值）。 */
+function mixHexColor(a: string, b: string): string {
+  const pa: number[] = [Number.parseInt(a.substring(1, 3), 16), Number.parseInt(a.substring(3, 5), 16),
+    Number.parseInt(a.substring(5, 7), 16)];
+  const pb: number[] = [Number.parseInt(b.substring(1, 3), 16), Number.parseInt(b.substring(3, 5), 16),
+    Number.parseInt(b.substring(5, 7), 16)];
+  let out: string = '#';
+  for (let i = 0; i < 3; i++) {
+    const v: number = Math.round((pa[i] + pb[i]) / 2);
+    out += (v < 16 ? '0' : '') + v.toString(16);
+  }
+  return out;
+}
 
 const TAG: string = 'MainScreen';
 const DOMAIN: number = 0x0100;
@@ -1565,6 +1582,16 @@ struct Index {
   private chromeLineColor(): string { return this.isLightMachine() ? '#8a7f70' : '#3a332b'; }
 
   /** 键区过渡态底板色（23 号稿 §2.5 第 5 条机身色；批 2 机身面板挂载后由面板接管）。 */
+  /** 第 28 批（24 号稿 §2.1）：三档色（paperwell／base／keybed）。 */
+  private tierColor(tier: string): string {
+    return tierToken(this.machineKind, tier);
+  }
+
+  /** 第 28 批：三档颗粒贴片（ui-parts/tile-<slug>-<tier>.png）。 */
+  private tierTile(tier: string): string {
+    return tierTileRawfile(this.machineKind, tier);
+  }
+
   private machineBodyColor(): string {
     // 第 27 批：取机身配色变体（缺省＝本机 colorway）
     const v: string = CustomizeStore.partVariant('body-panel', this.machineKind as string);
@@ -4573,18 +4600,50 @@ struct Index {
       // z 序按 §3.1：机身面板 0 → 色带条/纸面板 1 → 横尺 2 → 落字导件 3 → 字篮 4 → 功能行 5 →
       // 键盘网格 6 → 拨杆/旋钮 7 。批 3 删 Canvas 挂载时这些件原地留下、不再重挂。
       if (this.navStack[this.navStack.length - 1] === 'typewriter') {
-        // 机身面板（z0）：底色（§2.5 第 5 条机型色）＋颗粒贴片叠加（贴片是颗粒层，不直接当底色）
-        Stack() {
+        // 机身面板（z0／第 28 批 §2.2 叠放式分区）：满幅机身基准档 + 纸井覆块 + 键床覆块 + 1vp 档界
+        Stack({ alignContent: Alignment.TopStart }) {
+          // 满幅机身基准档：底色 token ＋本档贴片平铺
           Column()
             .width('100%')
             .height('100%')
-            .backgroundColor(this.machineBodyColor())
-          Image($rawfile(this.bodyPanelRawfile()))
+            .backgroundColor(this.tierColor('base'))
+            .backgroundImage($rawfile(this.tierTile('base')), ImageRepeat.XY)
+
+          // 纸井覆块（手机 y 88、高 hPaperZoneVp；平板 y 88、高 176.0——平板分支已写、未验收 R6(b)）
+          Column()
+            .id('p28_paperwell')
             .width('100%')
-            .height('100%')
-            .objectFit(ImageFit.Cover)
-            // 颗粒层不透明度：0.30 会把深机身提亮 24–30%（超色板 ±10%）→ 压到 0.15（实测深机 6–8%）
-            .opacity(0.15)
+            .height(this.isTablet ? 176.0 : this.hPaperZoneVp())
+            .backgroundColor(this.tierColor('paperwell'))
+            .backgroundImage($rawfile(this.tierTile('paperwell')), ImageRepeat.XY)
+            .position({ x: 0, y: 88 })
+          // 档界 1vp：纸井上沿／下沿（相邻档中间值）
+          Column().width('100%').height(1)
+            .backgroundColor(mixHexColor(this.tierColor('paperwell'), this.tierColor('base')))
+            .position({ x: 0, y: 88 })
+          Column().width('100%').height(1)
+            .backgroundColor(mixHexColor(this.tierColor('paperwell'), this.tierColor('base')))
+            .position({ x: 0, y: 88 + (this.isTablet ? 176.0 : this.hPaperZoneVp()) - 1 })
+
+          // 键床覆块（手机 y＝候选栏顶缘、高＝候选栏 44＋键床；平板 y 480、高 240）
+          Column()
+            .id('p28_keybed')
+            .width('100%')
+            .height(this.isTablet ? 240 : (H_CAND_V2_VP + this.keybedHeight))
+            .backgroundColor(this.tierColor('keybed'))
+            .backgroundImage($rawfile(this.tierTile('keybed')), ImageRepeat.XY)
+            .position({ x: 0, y: this.isTablet ? 480 : this.candBarTopVp() })
+          // 档界 1vp：键床上沿／下沿
+          Column().width('100%').height(1)
+            .backgroundColor(mixHexColor(this.tierColor('keybed'), this.tierColor('base')))
+            .position({ x: 0, y: this.isTablet ? 480 : this.candBarTopVp() })
+          Column().width('100%').height(1)
+            .backgroundColor(mixHexColor(this.tierColor('keybed'), this.tierColor('base')))
+            .position({
+              x: 0,
+              y: (this.isTablet ? 480 : this.candBarTopVp())
+                + (this.isTablet ? 240 : (H_CAND_V2_VP + this.keybedHeight)) - 1,
+            })
         }
         .width(this.canvasWidthVp())
         .height(this.canvasHeightVp())
@@ -4667,6 +4726,7 @@ struct Index {
         // 功能行（z5）：扁平 HUD 金色 #c9a45c、圆角零、六项文字按钮
         FunctionRow({
           heightVp: H_FUNC_ROW_V2_VP,
+          rowBg: this.tierColor('base'),
           langLabel: this.langZh
             ? this.resolveString($r('app.string.keyboard_lang_zh'))
             : this.resolveString($r('app.string.keyboard_lang_en')),
@@ -4771,11 +4831,13 @@ struct Index {
             .height(H_CAND_V2_VP)
             .position({ x: 0, y: this.candBarTopVp() })
         } else {
+          // 第 28 批（§2.2）：默认态 44vp 带取键床档 token／贴片（与键床读作一体；旧 #1a1713 深底作废）
           Row()
             .id('p27_candbar_placeholder')
             .width(this.stageWidth)
             .height(H_CAND_V2_VP)
-            .backgroundColor('#1a1713')
+            .backgroundColor(this.tierColor('keybed'))
+            .backgroundImage($rawfile(this.tierTile('keybed')), ImageRepeat.XY)
             .position({ x: 0, y: this.candBarTopVp() })
         }
 

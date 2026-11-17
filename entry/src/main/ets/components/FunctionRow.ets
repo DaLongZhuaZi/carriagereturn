@@ -57,6 +57,8 @@ struct MetalKey {
 @Component
 export struct FunctionRow {
   @Prop heightVp: number = 52;
+  /** 第 28 批（24 号稿 §2.2）：行容器底色取机身基准档 token（按钮 HUD_BG 不动）。 */
+  @Prop rowBg: string = '#241c16';
   @Prop langLabel: string = '';
   @Prop deleteLabel: string = '';
   @Prop newlineLabel: string = '';
@@ -136,6 +138,6 @@ export struct FunctionRow {
     .width('100%')
     .height(this.heightVp)
     .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-    .backgroundColor('#241c16')
+    .backgroundColor(this.rowBg)
   }
 }
