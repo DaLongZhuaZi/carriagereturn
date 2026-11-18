@@ -556,6 +556,8 @@ export struct PaperPanel26 {
   /** 批 36 §4.3：纸面标题（文档名）与页码（右上）。 */
   @Prop docTitle: string = '';
   @Prop pageNo: string = '';
+  /** 批 43：装纸/出纸时标题与光标淡入淡出（纸纹理不参与）。 */
+  @Prop contentOpacity: number = 1;
   /** 批 39 任务 8：打击相位 0..1（字杆影／色带影同步）。 */
   @Prop strikePhase: number = 0;
 
@@ -617,6 +619,7 @@ export struct PaperPanel26 {
           .fontSize(this.fontSizeVp + 1)
           .fontFamily(this.fontFamily)
           .fontColor(this.textColor)
+          .opacity(this.contentOpacity)
           .lineHeight(this.lineHeightVp)
           .width(this.textW())
           .textAlign(TextAlign.Start)
@@ -632,6 +635,7 @@ export struct PaperPanel26 {
           .fontSize(this.fontSizeVp - 1)
           .fontFamily(this.fontFamily)
           .fontColor(this.textColor)
+          .opacity(this.contentOpacity)
           .textAlign(TextAlign.End)
           .width(30 * this.sx)
           .position({ x: this.widthVp - this.marginRVp - 30 * this.sx, y: this.marginTVp })
@@ -664,6 +668,7 @@ export struct PaperPanel26 {
       if (this.cursorYVp >= 0 && this.cursorYVp < this.heightVp) {
         Column().width(1.6).height(this.fontSizeVp + 5)
           .backgroundColor('#3a342c')
+          .opacity(this.contentOpacity)
           .position({ x: this.marginLVp + this.cursorXVp, y: this.cursorYVp })
           .hitTestBehavior(HitTestMode.None)
       }

@@ -358,6 +358,10 @@ struct Index {
   @State carriageHeight: number = DESIGN_W / CARRIAGE_STRIP_ASPECT;
   @State fontBarHeight: number = FONT_BAR_HEIGHT_VP;
   @State keybedHeight: number = DESIGN_W / KEYBAND_ASPECT;
+  /** 批 43：装纸/出纸的纸位移（0＝到位；−362vp＝整张在屏幕上方）。 */
+  @State paperSlideVp: number = 0;
+  /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
+  @State paperContentOpacity: number = 1;
   @State functionRowHeight: number = FUNCTION_ROW_HEIGHT_VP;
   @State regionHeightVp: number = 461;
   /** 窗口可用尺寸（vp，onAreaChange 实测，减 inset 后）。 */
@@ -1177,6 +1181,50 @@ struct Index {
     this.onboardingVisible = true;
   }
 
+  /** 批 43：装纸——纸从屏幕上方 600ms 滑入（ease-out），到位后 150ms 标题/光标淡入。 */
+  private playPaperLoad(): void {
+    this.paperSlideVp = -362;
+    this.paperContentOpacity = 0;
+    this.getUIContext().animateTo({ duration: 600, curve: Curve.FastOutSlowIn }, () => {
+      this.paperSlideVp = 0;
+    });
+    setTimeout(() => {
+      this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+        this.paperContentOpacity = 1;
+      });
+      hilog.info(DOMAIN, TAG, 'paper load done slide=%{public}s', this.paperSlideVp.toFixed(1));
+    }, 600);
+    hilog.info(DOMAIN, TAG, 'paper load start from -362');
+  }
+
+  /** 批 43：出纸——标题/光标先淡出 150ms，纸再 600ms 上滑出屏（ease-in）。 */
+  private playPaperUnload(then: () => void): void {
+    this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+      this.paperContentOpacity = 0;
+    });
+    setTimeout(() => {
+      this.getUIContext().animateTo({ duration: 600, curve: Curve.EaseIn }, () => {
+        this.paperSlideVp = -362;
+      });
+      setTimeout(() => {
+        this.paperSlideVp = 0;
+        this.paperContentOpacity = 1;
+        hilog.info(DOMAIN, TAG, 'paper unload done');
+        then();
+      }, 620);
+    }, 150);
+  }
+
+  /** 批 43：离开打字页——先出纸再弹栈。 */
+  private leaveTyping(): void {
+    const top: string = this.navStack.length > 0 ? this.navStack[this.navStack.length - 1] : 'home';
+    if (top === 'typewriter') {
+      this.playPaperUnload(() => { this.popPage(); });
+    } else {
+      this.popPage();
+    }
+  }
+
   private pushPage(k: string): void {
     statsService.flushPending();
     statsService.flushFoldTyped();
@@ -1191,6 +1239,7 @@ struct Index {
     this.navStack = s;
     this.syncFromStack();
     this.applyStatusBarForTop();
+    if (k === 'typewriter') { this.playPaperLoad(); }
   }
 
   /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
@@ -4627,7 +4676,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onOpenDossier: (id: string): void => {
             this.openDossierId = id;
             hilog.info(DOMAIN, TAG, 'onOpenDossier id=%{public}s', id);
@@ -4662,7 +4711,7 @@ struct Index {
             hilog.info(DOMAIN, TAG, 'part variant part=%{public}s value=%{public}s machine=%{public}s',
               part, value, this.machineKind as string);
           },
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onPickMachine: (k: string): void => {
             this.applyMachine(k as MachineKind);
             hilog.info(DOMAIN, TAG, 'customize machine -> %{public}s', k);
@@ -4711,7 +4760,7 @@ struct Index {
               this.machineKind as string, family);
           },
           onFontDeleted: (): void => { this.refreshFontAfterDelete(); },
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
@@ -4738,7 +4787,7 @@ struct Index {
           achieveRev: this.achieveRev,
           totalWords: statsService.totalWords(),
           streakDays: statsService.consecutiveDays(),
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onPick: (kind: string): void => { this.collectionDetailKind = kind; this.pushPage('collectiondetail'); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
@@ -4753,7 +4802,7 @@ struct Index {
           totalWords: statsService.totalWords(),
           streakDays: statsService.consecutiveDays(),
           paperKindsUsed: statsService.paperKindsUsed(),
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onSetCurrent: (kind: string): void => {
             this.applyMachine(kind as MachineKind);
             // §10：手动关两个布尔量不够——栈里还留着 collection／collectiondetail，
@@ -4823,6 +4872,8 @@ struct Index {
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
           docTitle: this.docTitle,
+          paperSlideVp: this.paperSlideVp,
+          contentOpacity: this.paperContentOpacity,
           pageNo: this.paperPageNo(),
           onKnob: (): void => { this.onKnobAdvance(); },
           onLeverTap: (): void => { this.onNewline(); },
@@ -4861,7 +4912,7 @@ struct Index {
           soundOn: this.soundEnabled,
           guideEnabled: this.guideEnabled,
           achGlow: this.plateGlow,
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onBell: (): void => { this.toggleSound(); },
           onExportSlot: (): void => { this.onExportSlot(); },
           onPlate: (): void => { this.onPlateTap(); },
@@ -5067,7 +5118,7 @@ struct Index {
             }
             hilog.info(DOMAIN, TAG, 'cn engine -> %{public}s', next);
           },
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
         })
           .transition(TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut }))
       }
@@ -5078,7 +5129,7 @@ struct Index {
           widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: this.trashDocs,
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onRestore: (id: string): void => { this.restoreTrash(id); },
           onPurge: (id: string): void => { this.purgeTrash(id); },
         })
@@ -5093,7 +5144,7 @@ struct Index {
           dossierId: this.openDossierId,
           docs: this.listDocs(),
           deleteMode: this.deleteMode,
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onOpenPaper: (id: string): void => {
             // §5.2：点「打开」进打字页——栈退到 typewriter 层再载入
             this.loadDocument(id);
@@ -5126,7 +5177,7 @@ struct Index {
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.openDocId,
           deleteMode: this.deleteMode,
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onExport: (docId: string): void => { this.onExportDoc(docId); },
           onEdit: (id: string): void => {
             // 点正文页进打字机：栈退到 typewriter 层
@@ -5164,7 +5215,7 @@ struct Index {
           dossierId: this.exportDossierId,
           scope: this.exportScope,
           machineKind: this.machineKind as string,
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onBeforeExport: (scope: string, dossierId: string): boolean => {
             return this.prepareExport(scope, dossierId);
           },
@@ -5206,7 +5257,7 @@ struct Index {
             this.candChipFontSize = clampCandidateSize(n);
             appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, this.candChipFontSize);
           },
-          onBack: (): void => { this.popPage(); },
+          onBack: (): void => { this.leaveTyping(); },
           onToggleFuzzy: (): void => { this.toggleFuzzy(); },
           addPinyin: this.draftPinyin,
           onWordChanged: (w: string): void => {

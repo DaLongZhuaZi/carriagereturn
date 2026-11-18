@@ -64,6 +64,10 @@ export struct Carriage26 {
   @Prop scrollYVp: number = 0;
   @Prop textureRawfile: string = 'paper-letter.png';
   @Prop docTitle: string = '';
+  /** 批 43：装纸/出纸的纸位移（0＝到位；−362＝整张在屏幕上方）。 */
+  @Prop paperSlideVp: number = 0;
+  /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
+  @Prop contentOpacity: number = 1;
   @Prop pageNo: string = '';
 
   // ---- 交互 ----
@@ -163,11 +167,12 @@ export struct Carriage26 {
         scrollYVp: this.scrollYVp,
         textureRawfile: this.textureRawfile,
         docTitle: this.docTitle,
+        contentOpacity: this.contentOpacity,
         pageNo: this.pageNo,
       })
         .id('p35_paper')
           .hitTestBehavior(HitTestMode.None)
-        .position({ x: PAPER_LEFT * this.sx, y: 56 * this.sy })
+        .position({ x: PAPER_LEFT * this.sx, y: 56 * this.sy + this.paperSlideVp })
         // 批 39 修订：滚筒删除后纸顶＝干净直边；只加一条极淡的上缘阴影（1.5vp、黑 8%）
         Column().width(PAPER_W * this.sx).height(1.5 * this.sy)
           .linearGradient({
