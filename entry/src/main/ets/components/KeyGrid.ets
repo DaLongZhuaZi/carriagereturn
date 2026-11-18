@@ -45,6 +45,11 @@ export struct KeyGrid {
   @Prop heightVp: number = 186;
   @Prop layout: KeymapLayout = { machine: '', caps: [], spaceXMin: 0, spaceXMax: 0, spaceYMin: 0, spaceYMax: 0, hitRadius: 10, spaceR: 8, overlayColor: '#000000', overlayFontSize: 14, widthVp: 390, heightVp: 186 };
   @Prop shiftActive: boolean = false;
+  /** 批 36 §3.3：符号面板（Aa 切换）。 */
+  @Prop symbolMode: boolean = false;
+  /** 批 36 §7：平板等比缩放（手机 1）。 */
+  @Prop sx: number = 1;
+  @Prop sy: number = 1;
   @Prop capsActive: boolean = false;
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
@@ -73,8 +78,61 @@ export struct KeyGrid {
     return 'ui-parts/cap3d-space-' + this.slug() + '.png';
   }
 
+  /** 符号面板键位（与字母面板同键数／同宽，label 即所落字符）。 */
+  private symbolRows(): K33Row[] {
+    const r1: K33Key[] = [
+      K('~', '~', '', 21.6, 'k', '', ''), K('!', '!', '', 21.6, 'k', '', ''),
+      K('@', '@', '', 21.6, 'k', '', ''), K('#', '#', '', 21.6, 'k', '', ''),
+      K('$', '$', '', 21.6, 'k', '', ''), K('%', '%', '', 21.6, 'k', '', ''),
+      K('^', '^', '', 21.6, 'k', '', ''), K('&', '&', '', 21.6, 'k', '', ''),
+      K('*', '*', '', 21.6, 'k', '', ''), K('(', '(', '', 21.6, 'k', '', ''),
+      K(')', ')', '', 21.6, 'k', '', ''), K('+', '+', '', 21.6, 'k', '', ''),
+      K('Backspace', 'BACK SPACE', '', 43.2, 'back', '', ''),
+    ];
+    const r2: K33Key[] = [
+      K('Tab', 'TAB', '', 33.6, 'tab', '', ''),
+      K('{', '{', '', 22.4, 'k', '', ''), K('}', '}', '', 22.4, 'k', '', ''),
+      K('[', '[', '', 22.4, 'k', '', ''), K(']', ']', '', 22.4, 'k', '', ''),
+      K('|', '|', '', 22.4, 'k', '', ''), K('\\', '\\', '', 22.4, 'k', '', ''),
+      K(':', ':', '', 22.4, 'k', '', ''), K('"', '"', '', 22.4, 'k', '', ''),
+      K('<', '<', '', 22.4, 'k', '', ''), K('>', '>', '', 22.4, 'k', '', ''),
+      K('?', '?', '', 22.4, 'k', '', ''), K('/', '/', '', 22.4, 'k', '', ''),
+    ];
+    const r3: K33Key[] = [
+      K('Caps Lock', 'SHIFT LOCK', '', 31, 'caps', '', ''),
+      K(';', ';', '', 17.25, 'k', '', ''), K('\'', '\'', '', 17.25, 'k', '', ''),
+      K(',', ',', '', 17.25, 'k', '', ''), K('.', '.', '', 17.25, 'k', '', ''),
+      K('-', '-', '', 17.25, 'k', '', ''), K('/', '/', '', 17.25, 'k', '', ''),
+      K('=', '=', '', 17.25, 'k', '', ''), K('+', '+', '', 17.25, 'k', '', ''),
+      K('*', '*', '', 17.25, 'k', '', ''), K('&', '&', '', 17.25, 'k', '', ''),
+      K('^', '^', '', 17.25, 'k', '', ''), K('%', '%', '', 17.25, 'k', '', ''),
+      K('$', '$', '', 17.25, 'k', '', ''),
+      K('Return', 'RETURN', '', 41.4, 'return', '', ''),
+    ];
+    const r4: K33Key[] = [
+      K('Shift', 'SHIFT', '', 47, 'shift', '', ''),
+      K('§', '§', '', 21.17, 'k', '', ''), K('±', '±', '', 21.17, 'k', '', ''),
+      K('×', '×', '', 21.17, 'k', '', ''), K('÷', '÷', '', 21.17, 'k', '', ''),
+      K('≠', '≠', '', 21.17, 'k', '', ''), K('≤', '≤', '', 21.17, 'k', '', ''),
+      K('≥', '≥', '', 21.17, 'k', '', ''), K('∞', '∞', '', 21.17, 'k', '', ''),
+      K('¥', '¥', '', 21.17, 'k', '', ''), K('€', '€', '', 21.17, 'k', '', ''),
+      K('Shift', 'SHIFT', '', 47, 'shift', '', ''),
+    ];
+    const space: K33Key[] = [K(' ', '', '', 237, 'space', '', '')];
+    return [
+      { y: 0, keys: r1 },
+      { y: KB_ROW_H, keys: r2 },
+      { y: KB_ROW_H * 2, keys: r3 },
+      { y: KB_ROW_H * 3, keys: r4 },
+      { y: KB_ROW_H * 4, keys: space },
+    ];
+  }
+
   /** 5 行键位表（附录 A；键宽＝修正 1 的表，写死）。 */
   private rows(): K33Row[] {
+    if (this.symbolMode) {
+      return this.symbolRows();
+    }
     const digit: K33Key[] = [
       K('1', '!', '1', 21.6, 'k', '!', '!'), K('2', '@', '2', 21.6, 'k', '@', '@'),
       K('3', '#', '3', 21.6, 'k', '#', '#'), K('4', '$', '4', 21.6, 'k', '$', '$'),
@@ -137,9 +195,9 @@ export struct KeyGrid {
           px = KB_X0 + (KB_W - k.w) / 2;
         }
         out.push({
-          label: k.label, legend: k.legend, sub: k.sub, x: px,
-          y: rows[r].y + (KB_ROW_H - KB_CAP_H) / 2, w: k.w, kind: k.kind,
-          id: this.slug() + ':' + rows[r].y.toString() + ':' + i.toString(),
+          label: k.label, legend: k.legend, sub: k.sub, x: px * this.sx,
+          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w * this.sx, kind: k.kind,
+          id: (this.symbolMode ? 'S' : 'L') + ':' + rows[r].y.toString() + ':' + i.toString(),
           up: k.up, alt: k.alt,
         });
         x += k.w + KB_HGAP;
@@ -172,8 +230,9 @@ export struct KeyGrid {
       const keys: K33Key[] = rows[r].keys;
       for (let i = 0; i < keys.length; i++) {
         out.push({
-          label: '', legend: '', sub: '', x: x + keys[i].w + KB_HGAP / 2 - 1,
-          y: rows[r].y - KB_VGAP / 2 - KB_STEM_H / 2 + KB_VGAP, w: 2, kind: 'stem', id: 'stem:' + r + ':' + i,
+          label: '', legend: '', sub: '', x: (x + keys[i].w + KB_HGAP / 2 - 1) * this.sx,
+          y: (rows[r].y - KB_VGAP / 2 - KB_STEM_H / 2 + KB_VGAP) * this.sy, w: 2 * this.sx, kind: 'stem',
+          id: (this.symbolMode ? 'stems:' : 'steml:') + r + ':' + i,
           up: '', alt: '',
         });
         x += keys[i].w + KB_HGAP;
@@ -277,9 +336,9 @@ export struct KeyGrid {
             if (p.sub.length > 0 && p.kind === 'k') {
               // 数字行双图例：符号上、数字下（整组上移到顶面中心）
               Column() {
-                Text(p.legend).fontSize(11).fontColor('#1a1a1a')
+                Text(p.legend).fontSize(11 * this.sy).fontColor('#1a1a1a')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
-                Text(p.sub).fontSize(8).fontColor('#3a3630')
+                Text(p.sub).fontSize(8 * this.sy).fontColor('#3a3630')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
               }
               .justifyContent(FlexAlign.Center)
@@ -289,9 +348,9 @@ export struct KeyGrid {
             } else if (p.kind === 'caps') {
               // 26 号稿：SHIFT LOCK 两行小字（31vp 键宽放不下单行 10 字）
               Column() {
-                Text('SHIFT').fontSize(6.5).fontColor('#1a1a1a')
+                Text('SHIFT').fontSize(6.5 * this.sy).fontColor('#1a1a1a')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
-                Text('LOCK').fontSize(6.5).fontColor('#1a1a1a')
+                Text('LOCK').fontSize(6.5 * this.sy).fontColor('#1a1a1a')
                   .fontFamily(this.overlayFontFamily).maxLines(1)
               }
               .justifyContent(FlexAlign.Center)
@@ -300,7 +359,7 @@ export struct KeyGrid {
               .hitTestBehavior(HitTestMode.None)
             } else {
               Text(p.legend)
-                .fontSize(this.labelSize(p))
+                .fontSize(this.labelSize(p) * this.sy)
                 .fontColor(p.kind === 'return' ? '#ffffff' : '#1a1a1a')
                 .fontFamily(this.overlayFontFamily)
                 .width('100%').textAlign(TextAlign.Center).maxLines(1)
@@ -312,11 +371,11 @@ export struct KeyGrid {
         }
         .padding(0)
         .width(p.w)
-        .height(KB_CAP_H)
+        .height(KB_CAP_H * this.sy)
         .position({ x: p.x, y: p.y })
         .backgroundColor(Color.Transparent)
         .borderRadius(0)
-        .translate({ y: this.pressedId === p.id ? 2 : 0 })
+        .translate({ y: this.pressedId === p.id ? 2 * this.sy : 0 })
         .onTouch((e: TouchEvent) => {
           if (e.type === TouchType.Down) {
             this.pressedId = p.id;

@@ -39,13 +39,13 @@ export const MACHINE_X1: number = 354.7;
 @Builder
 export function lidTileImage(machine: MachineKind) {
   if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/tile-1920s-base.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.92)
+    Image($rawfile('ui-parts/tile-1920s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
   } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/tile-1930s-base.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.92)
+    Image($rawfile('ui-parts/tile-1930s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
   } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/tile-1950s-base.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.92)
+    Image($rawfile('ui-parts/tile-1950s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
   } else {
-    Image($rawfile('ui-parts/tile-1960s-base.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.92)
+    Image($rawfile('ui-parts/tile-1960s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
   }
 }
 
@@ -146,12 +146,9 @@ export struct TopZone26 {
   /** 成就解锁高亮（铭牌亮起）。 */
   @Prop achGlow: boolean = false;
   onBack: () => void = (): void => {};
-  onMenu: () => void = (): void => {};
-  onLibrary: () => void = (): void => {};
   onBell: () => void = (): void => {};
   onExportSlot: () => void = (): void => {};
   onPlate: () => void = (): void => {};
-  onGuide: () => void = (): void => {};
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -174,50 +171,22 @@ export struct TopZone26 {
       .position({ x: 150 * this.sx, y: 8 * this.sy })
       .onClick(() => { this.onPlate(); })
 
-      // 返回拨杆（机身左上角，y 48 起避开状态栏）：小钢拨杆＋球头
+      // 返回拨杆（x 8–24，y 48–80）：竖钢拨杆＋球头，与边铃横向错开
       Stack({ alignContent: Alignment.TopStart }) {
-        Column().width(5 * this.sx).height(22 * this.sy)
+        Column().width(4 * this.sx).height(24 * this.sy)
           .linearGradient({ direction: GradientDirection.Right, colors: [[STEEL_HI, 0.0], [STEEL, 0.5], ['#4a4a4d', 1.0]] })
           .borderRadius(2)
-          .rotate({ angle: 18 })
-          .position({ x: 8 * this.sx, y: 6 * this.sy })
-        Circle().width(9 * this.sx).height(9 * this.sx)
-          .fill(BRASS_HI).stroke('#5a4520').strokeWidth(1)
-          .position({ x: 3 * this.sx, y: 1 * this.sy })
+          .rotate({ angle: 16 })
+          .position({ x: 8 * this.sx, y: 5 * this.sy })
+        Column().width(9 * this.sx).height(9 * this.sx)
+          .backgroundColor(BRASS_HI)
+          .border({ width: 1, color: '#5a4520' })
+          .borderRadius(5 * this.sx)
+          .position({ x: 4 * this.sx, y: 0 })
       }
-      .width(34 * this.sx).height(34 * this.sy)
-      .position({ x: 10 * this.sx, y: 46 * this.sy })
+      .width(16 * this.sx).height(32 * this.sy)
+      .position({ x: 8 * this.sx, y: 48 * this.sy })
       .onClick(() => { this.onBack(); })
-
-      // 边铃（x 12–40，y 60–88）：开＝直立＋小红点，关＝倾斜 15°＋无红点（铃身＋铃口＋顶钮，约 20vp 高）
-      Stack({ alignContent: Alignment.TopStart }) {
-        Column()
-          .width(18 * this.sx).height(14 * this.sy)
-          .linearGradient({
-            direction: GradientDirection.Right,
-            colors: [['#e6c886', 0.0], [BRASS_HI, 0.35], [BRASS, 0.7], ['#7a5c28', 1.0]],
-          })
-          .borderRadius({ topLeft: 9 * this.sx, topRight: 9 * this.sx, bottomLeft: 2, bottomRight: 2 })
-          .position({ x: 5 * this.sx, y: 7 * this.sy })
-        Column().width(26 * this.sx).height(4 * this.sy)
-          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], ['#6d5327', 1.0]] })
-          .borderRadius(2)
-          .position({ x: 1 * this.sx, y: 20 * this.sy })
-        Column().width(28 * this.sx).height(3 * this.sy).backgroundColor('#4a3a1c')
-          .position({ x: 0, y: 25 * this.sy })
-        Column().width(4 * this.sx).height(4 * this.sx).backgroundColor(BRASS_HI)
-          .borderRadius(2 * this.sx)
-          .position({ x: 12 * this.sx, y: 3 * this.sy })
-        if (this.soundOn) {
-          Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
-            .borderRadius(3 * this.sx)
-            .position({ x: 20 * this.sx, y: 8 * this.sy })
-        }
-      }
-      .width(28 * this.sx).height(28 * this.sy)
-      .rotate({ angle: this.soundOn ? 0 : 15 })
-      .position({ x: 12 * this.sx, y: 60 * this.sy })
-      .onClick(() => { this.onBell(); })
 
       // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
       Stack({ alignContent: Alignment.TopStart }) {
@@ -233,38 +202,6 @@ export struct TopZone26 {
       .position({ x: 300 * this.sx, y: 60 * this.sy })
       .onClick(() => { this.onExportSlot(); })
 
-      // 库／菜单／引导（机身右上小钢件，避开状态栏）
-      Stack({ alignContent: Alignment.Center }) {
-        Column().width(24 * this.sx).height(24 * this.sy).backgroundColor('#3b332a')
-          .border({ width: 1.2, color: '#9a8158' }).borderRadius(12)
-          .shadow({ radius: 3, color: '#000000aa' })
-        Column().width(10 * this.sx).height(2).backgroundColor('#d9c9a8').position({ x: 6 * this.sx, y: 8 * this.sy })
-        Column().width(10 * this.sx).height(2).backgroundColor('#d9c9a8').position({ x: 6 * this.sx, y: 12 * this.sy })
-      }
-      .width(24 * this.sx).height(24 * this.sy)
-      .position({ x: Math.max(10, this.widthVp - 36 * this.sx), y: 44 * this.sy })
-      .onClick(() => { this.onMenu(); })
-
-      Stack({ alignContent: Alignment.Center }) {
-        Column().width(24 * this.sx).height(24 * this.sy).backgroundColor('#3b332a')
-          .border({ width: 1.2, color: '#9a8158' }).borderRadius(12)
-          .shadow({ radius: 3, color: '#000000aa' })
-        Column().width(11 * this.sx).height(8 * this.sy).border({ width: 1.4, color: '#d9c9a8' })
-          .borderRadius(1)
-      }
-      .width(24 * this.sx).height(24 * this.sy)
-      .position({ x: Math.max(10, this.widthVp - 66 * this.sx), y: 44 * this.sy })
-      .onClick(() => { this.onLibrary(); })
-
-      if (this.guideEnabled) {
-        Stack({ alignContent: Alignment.Center }) {
-          Text('?').fontSize(13).fontColor('#d9c9a8').fontWeight(FontWeight.Bold)
-        }
-        .width(22 * this.sx).height(22 * this.sy)
-        .border({ width: 1, color: '#6b5a44' }).borderRadius(11)
-        .position({ x: Math.max(10, this.widthVp - 90 * this.sx), y: 46 * this.sy })
-        .onClick(() => { this.onGuide(); })
-      }
     }
     .width(this.widthVp).height(this.heightVp)
     .clip(true)
@@ -302,27 +239,35 @@ export struct Lid26 {
       // 木纹底：base token ＋ 批 28 贴片（横向平铺、纵向拉伸）
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
       lidTileImage(this.machine)
-      // 柔光渐变：顶部略亮、底部略暗（清漆光泽）
+      // 柔光渐变：顶部略亮、底部略暗（ΔL ≥0.05）
       Column().width('100%').height('100%')
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [[lighten(lidColor(this.machine), 0.10), 0.0],
-            [lighten(lidColor(this.machine), 0.02), 0.35],
-            [lighten(lidColor(this.machine), -0.16), 1.0]],
+          colors: [[lighten(lidColor(this.machine), 0.20), 0.0],
+            [lidColor(this.machine), 0.30],
+            [lidColor(this.machine), 0.62],
+            [lighten(lidColor(this.machine), -0.28), 1.0]],
         })
         .opacity(0.55)
         .hitTestBehavior(HitTestMode.None)
-      // 清漆高光：上沿一道窄亮带
-      Column().width('100%').height(10 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [['#ffffff44', 0.0], ['#ffffff00', 1.0]] })
+      // 清漆光泽：盖面顶部一条柔和亮带（不是镜面反光）
+      Column().width('100%').height(26 * this.sy)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#ffffff26', 0.0], ['#ffffff10', 0.45], ['#ffffff00', 1.0]],
+        })
         .position({ x: 0, y: 0 })
         .hitTestBehavior(HitTestMode.None)
 
       // 字篮井区左右各两颗螺丝（上沿 y390、腰部 y470）
+      this.screw(24, 200)
+      this.screw(338, 200)
       this.screw(24, 390)
       this.screw(338, 390)
       this.screw(24, 470)
       this.screw(338, 470)
+      this.screw(24, 700)
+      this.screw(338, 700)
     }
     .width(this.widthVp).height(this.heightVp)
     .clip(true)
@@ -398,6 +343,7 @@ export struct FunctionCaps26 {
         })
         .borderRadius(4)
         .border({ width: 1, color: active ? '#c8322d' : '#8f8677' })
+        .shadow({ radius: 4, color: '#00000088', offsetX: 0, offsetY: 2 })
       if (label === 'BL') {
         // 退行：矢量箭头（不用 ↩ 字符，系统字体把它渲成蓝底 emoji）
         Stack({ alignContent: Alignment.TopStart }) {
@@ -419,6 +365,8 @@ export struct FunctionCaps26 {
           .padding({ left: 2, right: 2 })
           .translate({ y: -1.5 * this.sy })
       }
+      Column().width(38 * this.sx).height(2 * this.sy).backgroundColor('#2a221b')
+        .position({ x: -1 * this.sx, y: 31 * this.sy })
     }
     .width(36 * this.sx).height(30 * this.sy)
     .position({ x: (idx * 36) * this.sx, y: 3 * this.sy })
@@ -460,6 +408,7 @@ export struct FontPlate26 {
         })
         .borderRadius(2)
         .border({ width: 1, color: '#5c4720' })
+        .shadow({ radius: 3, color: '#00000099', offsetX: 0, offsetY: 1 })
       Text(this.label)
         .fontSize(11).fontColor('#2a1f10').fontFamily('CourierPrime').maxLines(1)
         .textAlign(TextAlign.Center).width(240 * this.sx)
@@ -475,6 +424,7 @@ export struct FontPlate26 {
 // ---------------------------------------------------------------------------
 @Component
 export struct CandStrip26 {
+  @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop widthVp: number = 346.7;
   @Prop heightVp: number = 44;
   @Prop sx: number = 1;
@@ -496,17 +446,21 @@ export struct CandStrip26 {
     Stack({ alignContent: Alignment.TopStart }) {
       Row()
         .width(300 * this.sx).height(30 * this.sy)
-        .backgroundColor('#241f19')
-        .border({ width: 1, color: '#4a4033' })
+        .backgroundColor(this.machine === MachineKind.STREAMLINED_1950S ? '#e8dfcc' : '#241f19')
+        .border({ width: 1.2, color: this.machine === MachineKind.STREAMLINED_1950S ? '#7a6647' : '#0b0908' })
         .borderRadius(2)
+        .shadow({ radius: 3, color: '#00000099', offsetX: 0, offsetY: 1 })
         .position({ x: (this.widthVp - 300 * this.sx) / 2, y: 7 * this.sy })
       Row({ space: 12 * this.sx }) {
         if (this.pinyin.length > 0) {
-          Text(this.pinyin + ' ').fontSize(13).fontColor('#b8a98f').fontFamily('CourierPrime')
+          Text(this.pinyin + ' ').fontSize(13)
+            .fontColor(this.machine === MachineKind.STREAMLINED_1950S ? '#5a4a33' : '#b8a98f')
+            .fontFamily('CourierPrime')
         }
         ForEach(this.shown(), (c: string, i: number) => {
           Text(c)
-            .fontSize(16).fontColor('#f0e8d8')
+            .fontSize(16)
+            .fontColor(this.machine === MachineKind.STREAMLINED_1950S ? '#241f19' : '#f0e8d8')
             .maxLines(1)
             .onClick(() => { this.onPick(i); })
         }, (c: string, i: number) => i.toString() + c)
@@ -543,6 +497,9 @@ export struct PaperPanel26 {
   /** 整卷上移量（光标行超出可见区时）。 */
   @Prop scrollYVp: number = 0;
   @Prop textureRawfile: string = 'paper-letter.png';
+  /** 批 36 §4.3：纸面标题（文档名）与页码（右上）。 */
+  @Prop docTitle: string = '';
+  @Prop pageNo: string = '';
 
   private textW(): number {
     return this.widthVp - this.marginLVp - this.marginRVp;
@@ -582,9 +539,40 @@ export struct PaperPanel26 {
       }
       .width(this.textW())
       .alignItems(HorizontalAlign.Start)
-      .position({ x: this.marginLVp, y: this.marginTVp })
+      .position({
+        x: this.marginLVp,
+        y: this.marginTVp + (this.docTitle.length > 0 ? this.lineHeightVp : 0),
+      })
       .translate({ y: -this.scrollYVp })
       .hitTestBehavior(HitTestMode.None)
+
+      // 标题（文档名；无标题文档不占行）
+      if (this.docTitle.length > 0) {
+        Text(this.docTitle)
+          .fontSize(this.fontSizeVp + 1)
+          .fontFamily(this.fontFamily)
+          .fontColor(this.textColor)
+          .lineHeight(this.lineHeightVp)
+          .width(this.textW())
+          .textAlign(TextAlign.Start)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .position({ x: this.marginLVp, y: this.marginTVp })
+          .translate({ y: -this.scrollYVp })
+          .hitTestBehavior(HitTestMode.None)
+      }
+      // 页码（右上）
+      if (this.pageNo.length > 0) {
+        Text(this.pageNo)
+          .fontSize(this.fontSizeVp - 1)
+          .fontFamily(this.fontFamily)
+          .fontColor(this.textColor)
+          .textAlign(TextAlign.End)
+          .width(30 * this.sx)
+          .position({ x: this.widthVp - this.marginRVp - 30 * this.sx, y: this.marginTVp })
+          .translate({ y: -this.scrollYVp })
+          .hitTestBehavior(HitTestMode.None)
+      }
 
       // 落字点（细竖标）
       if (this.cursorYVp >= 0 && this.cursorYVp < this.heightVp) {

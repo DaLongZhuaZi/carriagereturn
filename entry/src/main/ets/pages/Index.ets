@@ -15,6 +15,9 @@ import { curves, display, window } from '@kit.ArkUI';
 import Animator, { AnimatorOptions, AnimatorResult } from '@ohos.animator';
 import { ANIM_MODE_REALISTIC, ANIM_MODE_SIMULATED, SIM_ROLLER_K, MODE_TRANS_DUR_MS, rollerKFor } from '../model/AnimModeModel';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { ExportService } from '../services/ExportService';
+import { ExportResult, formatDateText } from '../model/ExportCore';
 import { resourceManager } from '@kit.LocalizationKit';
 import { util } from '@kit.ArkTS';
 import { deviceInfo } from '@kit.BasicServicesKit';
@@ -337,6 +340,13 @@ struct Index {
   @State docTitle: string = '';
   /** 26 号稿：黄铜铭牌点按显示文档名（1.6s 后自动收起）。 */
   @State plateHint: boolean = false;
+  /** 批 36：成就解锁铭牌亮起（600ms）。 */
+  @State plateGlow: boolean = false;
+  /** 批 36：出纸槽滑出副本动画进度 0..1（300ms）。 */
+  @State slotFly: number = 0;
+  @State slotFlyVisible: boolean = false;
+  /** 上次导出格式（出纸槽直出用；导出页保存时同步）。 */
+  @State lastExportFormat: string = 'text';
   @State inkColor: string = '#1a1a1a';
   @State keymapLayout: KeymapLayout = emptyLayout();
 
@@ -384,6 +394,7 @@ struct Index {
   @State creepOffsetVp: number = 0;
   @State lineHeightVp: number = 28;
   @State fontSizeVp: number = 17;
+  @State fontPlateLabel: string = 'Courier Prime';
   @State fontFamily: string = 'CourierPrime';
 
   @State guideXVp: number = 28;
@@ -1280,7 +1291,7 @@ struct Index {
       }).catch(() => {
         hilog.warn(DOMAIN, TAG, 'pinyin preload failed');
       });
-    }, 1500);
+    }, 380);
     // 读取持久化的中文引擎（默认内置拼音）
     this.readCnEngine();
     // 第 1 批：首启启动引导（ONBOARDING_SEEN 控制；延迟到首帧后）
@@ -1428,10 +1439,20 @@ struct Index {
   }
 
   // ===== 26 号稿 §6：五区 y-map（手机 362.7×822.5 基准，绝对屏幕坐标）=====
-  /** 横向缩放（手机 362.7vp 基准）。 */
-  private xk(): number { return this.stageWidth > 0 ? this.stageWidth / 362.7 : 1; }
-  /** 纵向缩放（手机 822.5vp 基准）。 */
-  private yk(): number { const h: number = this.canvasHeightVp(); return h > 0 ? h / 822.5 : 1; }
+  /** 批 36 §7：平板/折叠按同一台机器等比放大（k = min 宽比, 高比），手机 k=1。 */
+  private machineK26(): number {
+    const kw: number = this.stageWidth > 0 ? this.stageWidth / 362.7 : 1;
+    const kh: number = this.canvasHeightVp() > 0 ? this.canvasHeightVp() / 822.5 : 1;
+    const k: number = Math.min(kw, kh);
+    return k > 0 ? k : 1;
+  }
+  /** 等比缩放后机身水平居中偏移。 */
+  private machineOffsetX26(): number {
+    const w: number = 362.7 * this.machineK26();
+    return (this.stageWidth - w) / 2;
+  }
+  private xk(): number { return this.machineK26(); }
+  private yk(): number { return this.machineK26(); }
   private t26x(base: number): number { return base * this.xk(); }
   private t26y(base: number): number { return base * this.yk(); }
 
@@ -1459,18 +1480,30 @@ struct Index {
   private candBarTopVp(): number { return this.t26y(578); }
   private keyGridTopVp(): number { return this.t26y(622.3); }
 
+  /** 批 36 §4.3：标题占一行时的额外顶部偏移。 */
+  private paperTitleExtraVp(): number {
+    return this.docTitle.length > 0 ? this.lineHeightVp : 0;
+  }
+
+  /** 纸面页码（右上）：当前纸序号。 */
+  private paperPageNo(): string {
+    const meta = this.docModel.toDocData().meta;
+    const no: number = meta.sheetNo !== undefined && meta.sheetNo !== null ? meta.sheetNo : 0;
+    return no > 0 ? no.toString() : '1';
+  }
+
   /** 纸卷上移量（光标行超出可见区时整卷上移）。 */
   private paperScroll26(): number {
     const n: number = this.docModel.getCursor().line;
     const lh: number = this.lineHeightVp;
-    const topMargin: number = 52 * this.yk();
+    const topMargin: number = 56 * this.yk() + this.paperTitleExtraVp();
     const visible: number = this.hPaperZoneVp() - topMargin - 6 * this.yk();
     const over: number = topMargin + n * lh + lh - visible;
     return over > 0 ? over : 0;
   }
   /** 落字点 y（相对纸顶）。 */
   private paperCursorY26(): number {
-    return 52 * this.yk() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
+    return 56 * this.yk() + this.paperTitleExtraVp() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
   }
 
   /** 旋钮直径：46.5vp live（§6.2，沿用现行值）。 */
@@ -1988,6 +2021,7 @@ struct Index {
     }
     this.fontFamily = chosen.familyName + ', Noto Serif SC';
     this.docModel.setFont(chosen.font);
+    this.fontPlateLabel = fontDisplayName(chosen.font);
   }
 
   /** 字体条显示名（'Courier Prime'）：族名无空格，不能直接当界面文字（第 5 批回批修正）。 */
@@ -3067,8 +3101,8 @@ struct Index {
 
   /** 26 号稿 §8：出纸槽点按（按上次格式导出；格式选择在导出设置页，暂走导出页入口）。 */
   private onExportSlot(): void {
-    hilog.info(DOMAIN, TAG, 'export slot tap -> export page (last format)');
-    this.pushPage('export');
+    hilog.info(DOMAIN, TAG, 'export slot tap -> direct export format=%{public}s', this.lastExportFormat);
+    this.directExport();
   }
 
   /** 26 号稿 §8：黄铜铭牌点按仅显示文档名（改名入口在文档列表页）。 */
@@ -3080,6 +3114,97 @@ struct Index {
     if (this.achieveRev > 0) {
       this.pushPage('collection');
     }
+  }
+
+  /** 批 36 §3.4：字体条点按直接轮换到下一个字体（不打开换装页）。 */
+  private cycleFont(): void {
+    const family: string = CustomizeStore.fontFamily(this.machineKind as string);
+    let idx: number = -1;
+    for (let i = 0; i < FONTS.length; i++) {
+      if (FONTS[i].familyName === family) {
+        idx = i;
+        break;
+      }
+    }
+    const next: number = (idx + 1) % FONTS.length;
+    const fam: string = FONTS[next].familyName;
+    CustomizeStore.setFontFamily(this.machineKind as string, fam);
+    this.applyMachineFont(fam);
+    this.fontPrefsRev = this.fontPrefsRev + 1;
+    statsService.recordEvent(StatsEvents.FONT_CHANGED);
+    this.flushSave();
+    hilog.info(DOMAIN, TAG, 'font cycle -> %{public}s (idx %{public}d/%{public}d)',
+      fam, next, FONTS.length);
+  }
+
+  /** 批 36 §3.5：出纸槽直出——按上次格式导出，不弹格式选择；落盘到应用 exports/ 目录。 */
+  private async directExport(): Promise<void> {
+    const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    if (ctx === undefined || ctx === null) {
+      hilog.error(DOMAIN, TAG, 'direct export: no context');
+      return;
+    }
+    if (this.docId.length === 0) {
+      hilog.error(DOMAIN, TAG, 'direct export: no docId');
+      return;
+    }
+    const fmt: string = this.lastExportFormat;
+    const dir: string = ctx.filesDir + '/exports';
+    try {
+      fs.mkdirSync(dir);
+    } catch (e) {
+      // 目录已存在
+    }
+    let outPath: string = dir + '/carriage-' + Date.now().toString();
+    let ok: boolean = false;
+    if (fmt === 'pdf' || fmt === 'image') {
+      // image 直出需要导出模板渲染（ExportPage 内），本轮按 pdf 落盘并在自检登记不符点
+      outPath += '.pdf';
+      const meta = this.docModel.toDocData().meta;
+      const r: ExportResult = ExportService.buildPdf(this.docId, this.machineLabelText(),
+        this.docTitle, formatDateText(meta.createdAt), outPath);
+      ok = r.ok;
+      if (!r.ok) {
+        hilog.error(DOMAIN, TAG, 'direct export pdf failed: %{public}s', r.error);
+      }
+    } else {
+      outPath += '.txt';
+      const r: ExportResult = ExportService.buildTxt(this.docId);
+      if (r.ok && r.bytes !== null) {
+        try {
+          const f = fs.openSync(outPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
+          fs.writeSync(f.fd, r.bytes);
+          fs.closeSync(f);
+          ok = true;
+        } catch (e) {
+          hilog.error(DOMAIN, TAG, 'direct export write failed: %{public}s', JSON.stringify(e));
+        }
+      } else {
+        hilog.error(DOMAIN, TAG, 'direct export txt failed: %{public}s', r.error);
+      }
+    }
+    if (!ok) {
+      return;
+    }
+    statsService.recordEvent(StatsEvents.DOC_EXPORTED);
+    AchievementService.evaluate();
+    hilog.info(DOMAIN, TAG, 'direct export ok format=%{public}s path=%{public}s', fmt, outPath);
+    this.playSlotFly();
+  }
+
+  /** 批 36 §3.5：纸片从出纸槽滑出 40vp 后淡出（300ms）。 */
+  private playSlotFly(): void {
+    this.slotFlyVisible = true;
+    this.slotFly = 0;
+    setTimeout(() => {
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+        this.slotFly = 1;
+      });
+    }, 16);
+    setTimeout(() => {
+      this.slotFlyVisible = false;
+      this.slotFly = 0;
+    }, 1500);
   }
 
   private onCapDown(cap: CapDef): void {
@@ -3398,10 +3523,9 @@ struct Index {
     this.hintText = '';
     // ② 位置触发自动换行：下一字会让扣子触顶时先换行，不认字数
     //    raw > limit 与 clampedStrikeXVp 同一判据
-    const paperLeft: number = (this.stageWidth - this.paperWidthVp) / 2 + this.carriageOffsetVp;
-    const nextRaw: number = paperLeft + this.marginH()
-      + this.currentLineWidthVp() + this.charWidthVp(ch);
-    const limit: number = paperLeft + this.paperWidthVp - this.carriageHeight * 0.92 / 2;
+    // 批 36 §4.1（门八唯一例外）：换行阈值＝26 号稿行宽 165vp——23 字正好放下、第 24 字才换行
+    const nextRaw: number = this.currentLineWidthVp() + this.charWidthVp(ch);
+    const limit: number = this.lineWidth26();
     if (nextRaw > limit && this.docModel.getCursor().offset > 0) {
       hilog.info(DOMAIN, TAG,
         'autoWrap by position offset=%{public}s strikeX=%{public}s nextRaw=%{public}s limit=%{public}s',
@@ -3442,7 +3566,7 @@ struct Index {
       this.audioService.playBell();
     }
     // 行满自动换行：同样走换行回位，不许让字车条停在行末位置开始下一行
-    if (this.docModel.getCursor().offset >= this.charsPerLine()) {
+    if (this.docModel.getCursor().offset > this.charsPerLine()) {
       this.onNewline();
     }
     // 每次落字后把光标矩形推给输入法，候选窗跟着走
@@ -3979,6 +4103,12 @@ struct Index {
       this.closePageGuide();
     }
     this.achieveRev = this.achieveRev + 1;
+    if (n !== null) {
+      // 批 36：成就解锁时铭牌亮起 600ms
+      this.plateGlow = true;
+      setTimeout(() => { this.plateGlow = false; }, 600);
+      hilog.info(DOMAIN, TAG, 'plate glow on achievement=%{public}s', n.id);
+    }
     if (n === null) {
       this.achNoticeKind = '';
       this.achNoticeId = '';
@@ -4643,18 +4773,21 @@ struct Index {
           knobAngle: this.knobAngle,
           strikePhase: this.strikePhase,
           knobDVp: this.knobDVp26(),
+          soundOn: this.soundEnabled,
           lines: this.docLineTexts(),
           fontSizeVp: this.fontSizeVp,
           lineHeightVp: this.lineHeightVp,
           marginLVp: 25 * this.xk(),
           marginRVp: 30 * this.xk(),
-          marginTVp: 52 * this.yk(),
+          marginTVp: 56 * this.yk(),
           fontFamily: this.fontFamily,
           textColor: this.inkColor,
           cursorXVp: this.currentLineWidthVp(),
           cursorYVp: this.paperCursorY26(),
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
+          docTitle: this.docTitle,
+          pageNo: this.paperPageNo(),
           onKnob: (): void => { this.onKnobAdvance(); },
           onLeverTap: (): void => { this.onNewline(); },
           onLeverStart: (): void => { this.leverPanStart(true, 'ui'); },
@@ -4662,17 +4795,17 @@ struct Index {
           onLeverEnd: (): void => { this.leverPanEnd(); },
         })
           .id('p35_carriage')
-          .position({ x: 0, y: 0 })
+          .position({ x: 0 + this.machineOffsetX26(), y: 0 })
 
         // 落字指针（钉在机中心 181vp，不随字车移动）
         Column().width(2 * this.xk()).height(10 * this.yk())
           .backgroundColor('#8f8f92')
-          .position({ x: 181 * this.xk() - 1 * this.xk(), y: this.t26y(347) })
+          .position({ x: 181 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
           .hitTestBehavior(HitTestMode.None)
         Path({ commands: 'M0 0 L' + (7 * this.xk()).toFixed(1) + ' 0 L' + (3.5 * this.xk()).toFixed(1) + ' ' + (6 * this.yk()).toFixed(1) + ' Z' })
           .fill('#c8322d')
           .width(7 * this.xk()).height(6 * this.yk())
-          .position({ x: 181 * this.xk() - 3.5 * this.xk(), y: this.t26y(356) })
+          .position({ x: 181 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
           .hitTestBehavior(HitTestMode.None)
 
         TopZone26({
@@ -4683,27 +4816,45 @@ struct Index {
           docTitle: this.docTitle,
           soundOn: this.soundEnabled,
           guideEnabled: this.guideEnabled,
-          achGlow: this.achieveRev > 0,
+          achGlow: this.plateGlow,
           onBack: (): void => { this.popPage(); },
-          onMenu: (): void => { this.menuOpen = true; },
-          onLibrary: (): void => { this.popTo('home'); },
           onBell: (): void => { this.toggleSound(); },
           onExportSlot: (): void => { this.onExportSlot(); },
           onPlate: (): void => { this.onPlateTap(); },
-          onGuide: (): void => { this.replayPageGuide(); },
         })
           .id('p26_top_zone')
-          .position({ x: 0, y: 0 })
+          .position({ x: 0 + this.machineOffsetX26(), y: 0 })
 
         // 拨杆交互代理：视觉拨杆在字车容器里（被顶区盖住触摸），这里是顶层透明热区，几何与拨杆一致
         Column()
           .width(18 * this.xk()).height(74 * this.yk())
-          .position({ x: 120 * this.xk() + this.paperOffsetVp, y: 39 * this.yk() })
+          .position({ x: 120 * this.xk() + this.carriageOffsetVp + this.machineOffsetX26(), y: 39 * this.yk() })
           .onClick((): void => { this.onNewline(); })
           .gesture(PanGesture({ direction: PanDirection.Vertical })
             .onActionStart((): void => { this.leverPanStart(true, 'ui'); })
             .onActionUpdate((e: GestureEvent): void => { this.leverPanUpdate(e.offsetY); })
             .onActionEnd((): void => { this.leverPanEnd(); }))
+
+        // 边铃交互代理：边铃已在字车容器里（被顶区盖住触摸），顶层透明热区同几何
+        Column()
+          .width(28 * this.xk()).height(28 * this.yk())
+          .position({ x: 28 * this.xk() + this.carriageOffsetVp + this.machineOffsetX26(), y: 60 * this.yk() })
+          .onClick((): void => { this.toggleSound(); })
+
+        // 出纸槽滑出副本（300ms，纸片从槽口向上 40vp 后淡出）
+        if (this.slotFlyVisible) {
+          Column()
+            .width(46 * this.xk()).height(10 * this.yk())
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [['#fbf6e8', 0.0], ['#eee4ce', 0.6], ['#cfc4ad', 1.0]],
+            })
+            .borderRadius(1)
+            .border({ width: 1, color: '#8a7f6b' })
+            .position({ x: 302 * this.xk() + this.machineOffsetX26(), y: 62 * this.yk() - 40 * this.yk() * this.slotFly })
+            .opacity(1 - this.slotFly)
+            .hitTestBehavior(HitTestMode.None)
+        }
 
         Basket26({
           machine: this.machineKind,
@@ -4712,7 +4863,7 @@ struct Index {
           sx: this.xk(), sy: this.yk(),
         })
           .id('p26_basket')
-          .position({ x: 61 * this.xk(), y: this.t26y(376) })
+          .position({ x: 61 * this.xk() + this.machineOffsetX26(), y: this.t26y(376) })
 
         FunctionCaps26({
           widthVp: 216 * this.xk(),
@@ -4760,19 +4911,20 @@ struct Index {
           onSymbols: (): void => { this.symbolMode = !this.symbolMode; },
         })
           .id('p26_function_caps')
-          .position({ x: 73.35 * this.xk(), y: this.t26y(514) })
+          .position({ x: 73.35 * this.xk() + this.machineOffsetX26(), y: this.t26y(514) })
 
         FontPlate26({
           widthVp: 346.7 * this.xk(),
           heightVp: this.t26y(28),
           sx: this.xk(), sy: this.yk(),
-          label: this.fontLabelOfCurrentMachine(),
-          onFont: (): void => { this.pushPage('customize'); },
+          label: this.fontPlateLabel,
+          onFont: (): void => { this.cycleFont(); },
         })
           .id('p26_font_plate')
-          .position({ x: 8 * this.xk(), y: this.t26y(550) })
+          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(550) })
 
         CandStrip26({
+          machine: this.machineKind,
           widthVp: 346.7 * this.xk(),
           heightVp: this.t26y(44),
           sx: this.xk(), sy: this.yk(),
@@ -4781,7 +4933,7 @@ struct Index {
           onPick: (i: number): void => { this.pinyinPick(i); },
         })
           .id('p26_cand_strip')
-          .position({ x: 8 * this.xk(), y: this.t26y(578) })
+          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(578) })
 
         // 黑井（z 4.0，盖钢板；四角开孔露钢板螺丝）
         KeyWell({
@@ -4790,12 +4942,14 @@ struct Index {
           heightVp: this.keybedHeight,
         })
           .id('p33_key_well')
-          .position({ x: 8 * this.xk(), y: this.keyGridTopVp() })
+          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.keyGridTopVp() })
 
         // 键盘（z 4.1，陷进黑井）
         KeyGrid({
           machineKind: this.machineKind,
           shiftActive: this.shiftActive,
+          symbolMode: this.symbolMode,
+          sx: this.xk(), sy: this.yk(),
           capsActive: this.capsLock,
           foldBand: this.layoutMode === 'desk',
           widthVp: this.canvasWidthVp(),
@@ -4819,7 +4973,7 @@ struct Index {
           },
         })
           .id('p25_key_grid')
-          .position({ x: 0, y: this.keyGridTopVp() })
+          .position({ x: 0 + this.machineOffsetX26(), y: this.keyGridTopVp() })
 
 
         // 黄铜铭牌点按提示（文档名，1.6s 自动收起）
@@ -4984,6 +5138,7 @@ struct Index {
             return this.prepareExport(scope, dossierId);
           },
           onSaved: (format: string): void => {
+            this.lastExportFormat = format;
             statsService.recordEvent(StatsEvents.DOC_EXPORTED);
             // 第 9 批 F5：导出即边界——记完事件立刻判定一次（不等下一次保存）
             AchievementService.evaluate();
