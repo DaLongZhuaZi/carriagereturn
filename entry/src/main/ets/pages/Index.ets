@@ -3389,7 +3389,8 @@ struct Index {
 
   /** 第 31 批（Q15a）：旋钮点按进纸一行——只动纸与筒面，不动字车、不复位导件、不发叮声。 */
   private advancePaperOneLine(): void {
-    this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+    // 批 42（增补-8 §3）：与字车回位同步、同曲线、同时长（250ms FastOutSlowIn）
+    this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
       this.animatePaperHeight('newline');
       this.texOffsetVp = this.texOffsetVp - this.lineHeightVp;
       this.knobAngle = this.knobAngle + this.perLineDeg();
@@ -4026,9 +4027,9 @@ struct Index {
       // ArkUI 回滚分支仍走 animateTo。旧写法在 tick 时读滞后 prop，纸上滑实际不动。
       // 第 31 批（Q15a）：纸上滑＋筒面纹理＋转角三件同拍（300ms EaseInOut，t=150 起）
       this.advancePaperOneLine();
-    }, 150);
+    }, 0);
     // 编排自测：0/150/350/600 采样（数字代替录屏验单调性）
-    const marks: number[] = [0, 150, 350, 600];
+    const marks: number[] = [0, 125, 250];
     for (let k = 0; k < marks.length; k++) {
       const ms: number = marks[k];
       setTimeout(() => {
@@ -4036,7 +4037,7 @@ struct Index {
           ms.toString(), this.carriageOffsetVp.toFixed(2), this.paperTopVp.toFixed(1), this.knobAngle.toFixed(1));
       }, ms);
     }
-    const t0: number = 450;
+    const t0: number = 0;   // 批 42：与纸上滑同时起（原 450 为顺序编排）
     setTimeout(() => {
       if (this.canvasEnabled) {
         // 第 17 批批 1：Canvas 路径——O 回位由帧时钟在 t0+450ms 起 250ms 插值（jolt 2vp 同起点），
