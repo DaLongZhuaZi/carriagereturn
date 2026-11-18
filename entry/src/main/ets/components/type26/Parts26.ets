@@ -130,6 +130,40 @@ export struct TopDeck26 {
   }
 }
 
+/** 边距三角标记（批 36 修正：ArkUI 的 Path/Polygon fill 在真机不显色，改用逐行 Column 叠出三角，颜色必生效）。 */
+@Component
+export struct TriMark26 {
+  @Prop w: number = 7;
+  @Prop h: number = 6;
+  @Prop sx: number = 1;
+  @Prop sy: number = 1;
+  @Prop color: string = '#c8322d';
+
+  private stepRows(): number[] {
+    const a: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      a.push(i);
+    }
+    return a;
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      ForEach(this.stepRows(), (i: number) => {
+        Column()
+          .width((this.w * (8 - i) / 8) * this.sx)
+          .height((this.h / 8) * this.sy)
+          .backgroundColor(this.color)
+          .position({
+            x: (this.w * i / 16) * this.sx,
+            y: (this.h * i / 8) * this.sy,
+          })
+      }, (i: number) => 'tri' + i.toString())
+    }
+    .width(this.w * this.sx).height(this.h * this.sy)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 顶区（黑区 0–104）：黄铜铭牌／返回拨杆／边铃／出纸槽／库与菜单
 // ---------------------------------------------------------------------------

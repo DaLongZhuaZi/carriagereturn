@@ -12,7 +12,7 @@
  * 不存在第二套独立定位。
  */
 import { MachineKind } from '../../model/DocModel';
-import { PaperPanel26, BRASS, BRASS_HI } from './Parts26';
+import { PaperPanel26, TriMark26, BRASS, BRASS_HI } from './Parts26';
 
 /** 字车中心（V=0，vp）＝滚筒中心＝纸中心。 */
 const CX0: number = 266;
@@ -214,15 +214,9 @@ export struct Carriage26 {
           .width(700 * this.sx).height(12 * this.sy)
           .position({ x: 0, y: 0 })
         // 两个边距红三角（纸左缘 156／纸右缘 376；与中央指针 181 分明）
-        Polygon()
-          .points([[0, 0], [7 * this.sx, 0], [3.5 * this.sx, 6 * this.sy]])
-          .fill('#c8322d')
-          .width(7 * this.sx).height(6 * this.sy)
+        TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
           .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
-        Polygon()
-          .points([[0, 0], [7 * this.sx, 0], [3.5 * this.sx, 6 * this.sy]])
-          .fill('#c8322d')
-          .width(7 * this.sx).height(6 * this.sy)
+        TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
           .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
         // 锯齿下沿
         // 锯齿下沿（可见三角齿：齿宽 2vp、齿高 3vp、间距 2vp；175 齿覆盖 700vp）

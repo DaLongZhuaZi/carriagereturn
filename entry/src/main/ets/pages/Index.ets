@@ -89,7 +89,7 @@ import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../mode
 import { Cheek } from '../components/Cheek';
 import { SteelPlate } from '../components/SteelPlate';
 import { KeyWell } from '../components/KeyWell';
-import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, TopDeck26 } from '../components/type26/Parts26';
+import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, TopDeck26, TriMark26 } from '../components/type26/Parts26';
 import { Carriage26 } from '../components/type26/Carriage26';
 
 import { TypebarLayer } from '../components/TypebarLayer';
@@ -4828,10 +4828,7 @@ struct Index {
           .backgroundColor('#8f8f92')
           .position({ x: 181 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
           .hitTestBehavior(HitTestMode.None)
-        Polygon()
-          .points([[0, 0], [7 * this.xk(), 0], [3.5 * this.xk(), 6 * this.yk()]])
-          .fill('#c8322d')
-          .width(7 * this.xk()).height(6 * this.yk())
+        TriMark26({ w: 7, h: 6, sx: this.xk(), sy: this.yk() })
           .position({ x: 181 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
           .hitTestBehavior(HitTestMode.None)
 
