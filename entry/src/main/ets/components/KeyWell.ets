@@ -29,7 +29,7 @@ export struct KeyWell {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor(this.wellColor())
       // 批 40（任务 2）：井底改预渲染贴图（中央亮、边缘暗的径向渐变，1:1 铺满井）
-      Image($rawfile('ui-parts/keywell-floor-v1.png'))
+      Image($rawfile('ui-parts/keywell-floor-v2.png'))
         .width('100%').height('100%').objectFit(ImageFit.Contain)
         .hitTestBehavior(HitTestMode.None)
       // 井内侧壁：上沿亮线、下沿暗线

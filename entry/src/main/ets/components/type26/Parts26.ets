@@ -253,14 +253,19 @@ export struct Lid26 {
   @Builder
   screw(cx: number, cy: number) {
     Stack({ alignContent: Alignment.Center }) {
-      // 批 39（任务 9）：沉孔——螺丝嵌进盖面（实色低透明圆，不用模糊）
-      Column().width(10 * this.sx).height(10 * this.sx)
-        .backgroundColor('#1b2a24').opacity(0.35).borderRadius(5 * this.sx)
-        .position({ x: -2 * this.sx, y: -1.5 * this.sy })
-      Column().width(6 * this.sx).height(6 * this.sx)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], [STEEL, 0.55], ['#4d4d50', 1.0]] })
-        .borderRadius(3 * this.sx)
-      Column().width(4 * this.sx).height(1).backgroundColor('#242422').rotate({ angle: 28 })
+      // 批 42：沉孔暗环（比盖面暗 L≈0.06）→ 盘面（上亮下暗）→ 一字槽（长 70%、带高光边）
+      Column().width(11 * this.sx).height(11 * this.sx)
+        .backgroundColor('#0e1a15').opacity(0.45).borderRadius(5.5 * this.sx)
+        .position({ x: -2.5 * this.sx, y: -2 * this.sy })
+      Column().width(7 * this.sx).height(7 * this.sx)
+        .linearGradient({ direction: GradientDirection.Bottom,
+          colors: [['#e6e6ea', 0.0], ['#a9a9b0', 0.45], ['#5f5f66', 1.0]] })
+        .borderRadius(3.5 * this.sx)
+      Column().width(4.9 * this.sx).height(1.2 * this.sy)
+        .backgroundColor('#2b2b2e').rotate({ angle: 24 })
+      Column().width(4.9 * this.sx).height(0.5 * this.sy)
+        .backgroundColor('#f2f2f5').opacity(0.55).rotate({ angle: 24 })
+        .translate({ x: 0, y: -0.8 * this.sy })
     }
     .width(6 * this.sx).height(6 * this.sx)
     .position({ x: cx * this.sx - 3 * this.sx, y: cy * this.sy - 3 * this.sx })
@@ -314,8 +319,8 @@ export struct Basket26 {
         // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         // 批 40（任务 3）：井背改预渲染贴图（纵向渐变＋7 道杆影，上亮下暗）
-        Image($rawfile('ui-parts/fanwell-back-v1.png'))
-          .width('100%').height('100%').objectFit(ImageFit.Cover)
+        Image($rawfile('ui-parts/fanwell-back-v2.png'))
+          .width('100%').height('100%').objectFit(ImageFit.Contain)
           .position({ x: 0, y: 0 })
           .hitTestBehavior(HitTestMode.None)
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
@@ -338,12 +343,28 @@ export struct Basket26 {
         .position({ x: this.widthVp * 0.05, y: this.heightVp - 4 * this.sy })
         .hitTestBehavior(HitTestMode.None)
 
-      // 枢轴（井底中央 y 514、x 181）
+      // 枢轴（井底中央 y 514、x 181）——批 42：加接触影＋同心环纹＋中心铆钉点
+      Column().width(24 * this.sx).height(3 * this.sy)
+        .backgroundColor('#000000').opacity(0.10).borderRadius(2 * this.sx)
+        .position({ x: this.widthVp / 2 - 12 * this.sx, y: this.heightVp - 1 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
       Row()
         .width(26 * this.sx).height(8 * this.sy)
         .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], ['#4c4c4f', 1.0]] })
         .borderRadius(4)
         .position({ x: this.widthVp / 2 - 13 * this.sx, y: this.heightVp - 8 * this.sy })
+      Circle().width(9 * this.sx).height(9 * this.sx)
+        .fill('#00000000').border({ width: 0.5 * this.sx, color: '#00000055' })
+        .position({ x: this.widthVp / 2 - 4.5 * this.sx, y: this.heightVp - 7.5 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+      Circle().width(5 * this.sx).height(5 * this.sx)
+        .fill('#00000000').border({ width: 0.5 * this.sx, color: '#00000066' })
+        .position({ x: this.widthVp / 2 - 2.5 * this.sx, y: this.heightVp - 5.5 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+      Circle().width(2.5 * this.sx).height(2.5 * this.sx)
+        .fill('#d8d8dc').opacity(0.85)
+        .position({ x: this.widthVp / 2 - 1.25 * this.sx, y: this.heightVp - 4.25 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
     }
     .width(this.widthVp).height(this.heightVp)
   }

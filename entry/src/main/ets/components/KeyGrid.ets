@@ -333,6 +333,15 @@ export struct KeyGrid {
           Stack() {
             // 帽身（空格九宫格中心拉伸；红 RETURN 用 cap3d-return.png）
             this.capImage(p)
+            // 批 42：帽底接触影（1vp、黑 8%）＋顶面内凹（中央略暗、低透明圆角）
+            Column().width('88%').height(1 * this.sy)
+              .backgroundColor('#000000').opacity(0.08)
+              .position({ x: '6%', y: '97%' })
+              .hitTestBehavior(HitTestMode.None)
+            Column().width('62%').height('52%')
+              .backgroundColor('#000000').opacity(0.05)
+              .borderRadius(6 * this.sy)
+              .hitTestBehavior(HitTestMode.None)
             if (p.sub.length > 0 && p.kind === 'k') {
               // 数字行双图例：符号上、数字下（整组上移到顶面中心）
               Column() {
