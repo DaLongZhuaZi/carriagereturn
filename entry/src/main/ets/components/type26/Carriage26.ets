@@ -144,20 +144,6 @@ export struct Carriage26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // ---- 滚筒（深钢柱面，居中于纸）----
-      // 批 39：滚筒改柱面——顶部柔和高光带、底部阴影带、中间黑亮过渡（主光左上）
-      Column()
-        .width(ROLLER_W * this.sx).height(ROLLER_H * this.sy)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#6b6b72', 0.0], ['#4a4a51', 0.06], ['#2b2b31', 0.16],
-            ['#e2e2e8', 0.26], ['#3d3d44', 0.38], ['#15151a', 0.60],
-            ['#0a0a0d', 0.78], ['#26262c', 0.90], ['#101014', 1.0]],
-        })
-        .borderRadius(6 * this.sx)
-        .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
-        .position({ x: this.cx() - ROLLER_W / 2 * this.sx, y: ROLLER_Y * this.sy })
-
       // ---- 活纸（连续纸条，行文随字车上移）----
       PaperPanel26({
         widthVp: PAPER_W * this.sx,
@@ -179,31 +165,15 @@ export struct Carriage26 {
         pageNo: this.pageNo,
       })
         .id('p35_paper')
-        .position({ x: PAPER_LEFT * this.sx, y: 104 * this.sy })
-        .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
-
-      // ---- 纸顶卷曲（v2 整条：等比显示，纸部分与活纸同宽同左缘）----
-      Stack({ alignContent: Alignment.TopStart }) {
-        Image($rawfile('ui-parts/paper-curl-v3.png'))
-          .width(this.curlW()).height(this.curlH())
-          .objectFit(ImageFit.Fill)
-          .position({ x: this.curlLeft() - PAPER_LEFT * this.sx, y: 0 })
           .hitTestBehavior(HitTestMode.None)
-        // 卷曲下沿与活纸贴合的过渡（盖住资产底缘阴影，避免可见接缝）
-        Column()
-          .width('100%').height(8 * this.sy)
+        .position({ x: PAPER_LEFT * this.sx, y: 104 * this.sy })
+        // 批 39 修订：滚筒删除后纸顶＝干净直边；只加一条极淡的上缘阴影（1.5vp、黑 8%）
+        Column().width(PAPER_W * this.sx).height(1.5 * this.sy)
           .linearGradient({
             direction: GradientDirection.Bottom,
-            colors: [['#eee4ce00', 0.0], ['#eee4cecc', 0.6], ['#eee4ce', 1.0]],
+            colors: [['#00000014', 0.0], ['#00000000', 1.0]],
           })
-          .position({ x: 0, y: this.curlH() - 8 * this.sy })
-          .hitTestBehavior(HitTestMode.None)
-      }
-      .width(PAPER_W * this.sx)
-      .height(this.curlH())
-      .clip(true)
-      .position({ x: PAPER_LEFT * this.sx, y: this.curlTop() })
-      .hitTestBehavior(HitTestMode.None)
+          .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
 
       // ---- 横尺（700vp 宽，随机宽覆盖；随字车移动）----
       Stack({ alignContent: Alignment.TopStart }) {
@@ -250,32 +220,7 @@ export struct Carriage26 {
         .borderRadius(3.5 * this.sx)
         .position({ x: (PAPER_LEFT + PAPER_W - 3.5) * this.sx, y: 341.5 * this.sy })
 
-      // ---- 拨杆（carriage-lever.png 12×72，底座＝滚筒左端支架，杆身向上；整根在纸左侧）----
-      Image($rawfile('ui-parts/lever.png'))
-        .width(10.5 * this.sx).height(72 * this.sy)
-        .objectFit(ImageFit.Contain)
-        .rotate({ angle: this.leverAngle })
-        .position({ x: this.cx() - 138.6 * this.sx - 5.25 * this.sx, y: 40 * this.sy })
-        .onClick(() => { this.onLeverTap(); })
-        .gesture(PanGesture({ direction: PanDirection.Vertical })
-          .onActionStart(() => { this.onLeverStart(); })
-          .onActionUpdate((e: GestureEvent) => { this.onLeverUpdate(e.offsetY); })
-          .onActionEnd(() => { this.onLeverEnd(); }))
 
-      // ---- 双旋钮（贴滚筒端面，V=0 左完整可见、右在屏外由屏缘裁切）----
-      Image($rawfile('ui-parts/knob-side-v1.png'))
-        .width(this.knobDVp * this.xk2()).height(this.knobDVp / 1.228 * this.xk2())
-        .objectFit(ImageFit.Contain)
-        .rotate({ angle: this.knobAngle })
-        .position({ x: this.cx() - 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 / 1.228 * this.xk2() })
-        .onClick(() => { this.onKnob(); })
-      Image($rawfile('ui-parts/knob-side-v1.png'))
-        .width(this.knobDVp * this.xk2()).height(this.knobDVp / 1.228 * this.xk2())
-        .objectFit(ImageFit.Contain)
-        .rotate({ angle: this.knobAngle })
-        .scale({ x: -1, y: 1 })
-        .position({ x: this.cx() + 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 / 1.228 * this.xk2() })
-        .onClick(() => { this.onKnob(); })
     }
     .width(this.widthVp).height(this.heightVp)
     .translate({ x: this.offsetXVp })

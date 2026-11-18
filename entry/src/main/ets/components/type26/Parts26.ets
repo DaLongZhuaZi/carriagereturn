@@ -199,22 +199,6 @@ export struct TopZone26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 黄铜铭牌（x 150–212，y 8–48；批 39：改 plate-brass-blank-v1.png 渲染底＋Text 叠加）
-      Stack({ alignContent: Alignment.Center }) {
-        Image($rawfile('ui-parts/plate-brass-blank-v1.png'))
-          .width(62 * this.sx).height(40 * this.sy)
-          .objectFit(ImageFit.Contain)
-        Text(this.docTitle.length > 0 ? this.docTitle : '未命名')
-          .fontSize(9).fontColor('#2a1f10')
-          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          .textAlign(TextAlign.Center).width('100%').padding({ left: 3, right: 3 })
-      }
-      .width(62 * this.sx).height(40 * this.sy)
-      .shadow({ radius: this.achGlow ? 10 : 3, color: this.achGlow ? '#ffd777' : '#00000088' })
-      .border({ width: this.achGlow ? 1 : 0, color: '#ffe9a8' })
-      .position({ x: 150 * this.sx, y: 8 * this.sy })
-      .onClick(() => { this.onPlate(); })
-
       // 返回拨杆（x 8–24，y 48–80）：竖钢拨杆＋球头，与边铃横向错开
       Stack({ alignContent: Alignment.TopStart }) {
         Column().width(4 * this.sx).height(24 * this.sy)
@@ -231,23 +215,6 @@ export struct TopZone26 {
       .width(16 * this.sx).height(32 * this.sy)
       .position({ x: 8 * this.sx, y: 48 * this.sy })
       .onClick(() => { this.onBack(); })
-
-      // 边铃（机架固定 x 28–56；批 39：改 bell-brass-v1.png 渲染图，盒子按原图 1.244 等比）
-      Stack({ alignContent: Alignment.TopStart }) {
-        Image($rawfile('ui-parts/bell-brass-v1.png'))
-          .width(28 * this.sx).height(22.5 * this.sy)
-          .objectFit(ImageFit.Contain)
-          .position({ x: 0, y: 2.75 * this.sy })
-        if (this.soundOn) {
-          Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
-            .borderRadius(3 * this.sx)
-            .position({ x: 20 * this.sx, y: 8 * this.sy })
-        }
-      }
-      .width(28 * this.sx).height(28 * this.sy)
-      .rotate({ angle: this.soundOn ? 0 : 15 })
-      .position({ x: 28 * this.sx, y: 60 * this.sy })
-      .onClick(() => { this.onBell(); })
 
       // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
       Stack({ alignContent: Alignment.TopStart }) {

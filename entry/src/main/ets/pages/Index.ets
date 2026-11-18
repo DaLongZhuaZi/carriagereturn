@@ -4850,15 +4850,6 @@ struct Index {
           .id('p26_top_zone')
           .position({ x: 0 + this.machineOffsetX26(), y: 0 })
 
-        // 拨杆交互代理：视觉拨杆在字车容器里（被顶区盖住触摸），这里是顶层透明热区，几何与拨杆一致
-        Column()
-          .width(18 * this.xk()).height(74 * this.yk())
-          .position({ x: 120 * this.xk() + this.carriageOffsetVp + this.machineOffsetX26(), y: 39 * this.yk() })
-          .onClick((): void => { this.onNewline(); })
-          .gesture(PanGesture({ direction: PanDirection.Vertical })
-            .onActionStart((): void => { this.leverPanStart(true, 'ui'); })
-            .onActionUpdate((e: GestureEvent): void => { this.leverPanUpdate(e.offsetY); })
-            .onActionEnd((): void => { this.leverPanEnd(); }))
 
 
         // 出纸槽滑出副本（300ms，纸片从槽口向上 40vp 后淡出）
