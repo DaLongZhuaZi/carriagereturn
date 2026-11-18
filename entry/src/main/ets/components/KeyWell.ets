@@ -33,6 +33,17 @@ export struct KeyWell {
         .backgroundColor('#2a2a2e').opacity(0.55).borderRadius(this.widthVp * 0.3)
         .position({ x: this.widthVp * 0.22, y: this.heightVp * 0.28 })
         .hitTestBehavior(HitTestMode.None)
+      // 批 39（任务 9）：键杆淡淡倒影（实色低透明，不用 blur）
+      Row() {
+        ForEach([0, 1, 2, 3, 4], (i: number) => {
+          Column().width(2).height(this.heightVp * 0.40)
+            .backgroundColor('#000000').opacity(0.10)
+            .margin({ left: 26, right: 26 })
+        }, (i: number) => 'kref' + i)
+      }
+      .width('100%').position({ x: 0, y: this.heightVp * 0.24 })
+      .hitTestBehavior(HitTestMode.None)
+
       // 井内侧壁：上沿亮线、下沿暗线
       Column().width('100%').height(1.5).backgroundColor('#ffffff').opacity(0.12)
         .position({ x: 0, y: 0 })

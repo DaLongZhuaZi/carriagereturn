@@ -330,6 +330,22 @@ export struct Basket26 {
       Stack({ alignContent: Alignment.Bottom }) {
         // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
+        // 批 39（任务 9）：井背纵向渐变——只用深色 alpha（真机上白色 radial/blur 会渲染成黄块）
+        Column().width('100%').height('100%')
+          .linearGradient({ direction: GradientDirection.Bottom,
+            colors: [['#00000000', 0.0], ['#00000012', 0.45], ['#0000002e', 0.8], ['#0000004d', 1.0]] })
+          .hitTestBehavior(HitTestMode.None)
+        // 批 39（任务 9）：字杆投在井背上的软影（实色低透明细条，与杆平行）
+        Row() {
+          ForEach([0, 1, 2, 3, 4, 5, 6], (i: number) => {
+            Column().width(1.5 * this.sx).height(64 * this.sy)
+              .backgroundColor('#000000').opacity(0.06)
+              .margin({ left: 11 * this.sx, right: 11 * this.sx })
+          }, (i: number) => 'bar' + i)
+        }
+        .width('100%').position({ x: 0, y: this.heightVp - 70 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
         Stack({ alignContent: Alignment.Bottom }) {
           basketFanImage(this.machine)
