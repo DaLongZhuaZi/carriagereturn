@@ -227,7 +227,7 @@ export struct TopZone26 {
           .position({ x: 3 * this.sx, y: 1 * this.sy })
       }
       .width(50 * this.sx).height(12 * this.sy)
-      .position({ x: 300 * this.sx, y: 60 * this.sy })
+      .position({ x: 300 * this.sx, y: 14 * this.sy })
       .onClick(() => { this.onExportSlot(); })
 
     }
@@ -525,6 +525,8 @@ export struct PaperPanel26 {
   /** 批 36 §4.3：纸面标题（文档名）与页码（右上）。 */
   @Prop docTitle: string = '';
   @Prop pageNo: string = '';
+  /** 批 39 任务 8：打击相位 0..1（字杆影／色带影同步）。 */
+  @Prop strikePhase: number = 0;
 
   private textW(): number {
     return this.widthVp - this.marginLVp - this.marginRVp;
@@ -532,22 +534,29 @@ export struct PaperPanel26 {
 
   @Builder
   texture() {
-    // $rawfile 需字面量：按纸种静态分支
-    if (this.textureRawfile === 'paper-manuscript.png') {
-      Image($rawfile('ui-parts/paper-manuscript.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.55)
-    } else if (this.textureRawfile === 'paper-postcard.png') {
-      Image($rawfile('ui-parts/paper-postcard.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.55)
-    } else if (this.textureRawfile === 'paper-memo.png') {
-      Image($rawfile('ui-parts/paper-memo.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.55)
-    } else {
-      Image($rawfile('ui-parts/paper-letter.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(0.55)
-    }
+    // 批 39（任务 7）：统一换成 paper-cream-v1 中性纸纹理——opacity 1.0、Cover（等比缩放＋居中裁切，不 Fill 硬拉）
+    Image($rawfile('ui-parts/paper-cream-v1.png'))
+      .width('100%').height('100%').objectFit(ImageFit.Cover).opacity(1.0)
   }
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor('#faf8f2')
       this.texture()
+      // 批 39 任务 7：左右纸边极淡阴影（1.5vp、黑 9%），读得出纸有厚度
+      Column().width(1.5 * this.sx).height('100%')
+        .linearGradient({ direction: GradientDirection.Right, colors: [['#00000017', 0.0], ['#00000000', 1.0]] })
+        .position({ x: 0, y: 0 })
+        .hitTestBehavior(HitTestMode.None)
+      Column().width(1.5 * this.sx).height('100%')
+        .linearGradient({ direction: GradientDirection.Left, colors: [['#00000017', 0.0], ['#00000000', 1.0]] })
+        .position({ x: this.widthVp - 1.5 * this.sx, y: 0 })
+        .hitTestBehavior(HitTestMode.None)
+      // 批 39 任务 8：纸下沿静影（横尺压住纸下缘的上下关系，2vp）
+      Column().width('100%').height(2 * this.sy)
+        .linearGradient({ direction: GradientDirection.Top, colors: [['#0000001a', 0.0], ['#00000000', 1.0]] })
+        .position({ x: 0, y: this.heightVp - 2 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
       // 纸面文字（行高 lineHeight，左内缩 marginL，上内缩 marginT；整卷随 typing 上移）
       Column() {
         ForEach(this.lines, (line: string, i: number) => {
@@ -596,6 +605,28 @@ export struct PaperPanel26 {
           .width(30 * this.sx)
           .position({ x: this.widthVp - this.marginRVp - 30 * this.sx, y: this.marginTVp })
           .translate({ y: -this.scrollYVp })
+          .hitTestBehavior(HitTestMode.None)
+      }
+
+      // 批 39 任务 8：字杆打击影——随 strikePhase 从下方扫向落字点（细长、羽化、半透明）
+      if (this.strikePhase > 0.001) {
+        Column().width(3 * this.sx).height(96 * this.sy)
+          .backgroundColor('#00000026')
+          .borderRadius(2 * this.sx)
+          .blur(7)
+          .rotate({ angle: 12 })
+          .opacity(0.55 * Math.sin(Math.PI * this.strikePhase))
+          .position({ x: 181 * 0 + this.widthVp * 0.5 - 1.5 * this.sx,
+            y: 300 * this.sy - 90 * this.sy * this.strikePhase })
+          .hitTestBehavior(HitTestMode.None)
+      }
+      // 批 39 任务 8：色带影——色带抬起时在纸上投一道更淡的横影（与字杆影同步）
+      if (this.strikePhase > 0.001) {
+        Column().width('100%').height(10 * this.sy)
+          .linearGradient({ direction: GradientDirection.Bottom,
+            colors: [['#00000012', 0.0], ['#00000000', 1.0]] })
+          .opacity(Math.sin(Math.PI * this.strikePhase))
+          .position({ x: 0, y: this.heightVp - 30 * this.sy })
           .hitTestBehavior(HitTestMode.None)
       }
 

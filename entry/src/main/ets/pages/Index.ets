@@ -1469,9 +1469,9 @@ struct Index {
   /** 批 35 修正口径：字车中心＝滚筒中心＝纸中心；V=0 在 266vp。 */
   private carriageCenterXVp(): number { return 266 * this.xk() + this.carriageOffsetVp; }
   private paperPanelLeftVp(): number { return this.carriageCenterXVp() - 110 * this.xk(); }
-  private paperPanelTopVp(): number { return this.t26y(104); }
+  private paperPanelTopVp(): number { return this.t26y(56); }
   private paperZoneTopVp(): number { return this.t26y(104); }
-  private hPaperZoneVp(): number { return this.t26y(258.4); }
+  private hPaperZoneVp(): number { return this.t26y(306.4); }
   private paperZoneBottomVp(): number { return this.t26y(362.4); }
   private rulerTopVp(): number { return this.t26y(356); }
   private basketTopVp(): number { return this.t26y(376); }

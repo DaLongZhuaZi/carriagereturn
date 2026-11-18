@@ -147,7 +147,7 @@ export struct Carriage26 {
       // ---- 活纸（连续纸条，行文随字车上移）----
       PaperPanel26({
         widthVp: PAPER_W * this.sx,
-        heightVp: 258.4 * this.sy,
+        heightVp: 306.4 * this.sy,
         sx: this.sx, sy: this.sy,
         lines: this.lines,
         fontSizeVp: this.fontSizeVp,
@@ -159,6 +159,7 @@ export struct Carriage26 {
         textColor: this.textColor,
         cursorXVp: this.cursorXVp,
         cursorYVp: this.cursorYVp,
+        strikePhase: this.strikePhase,
         scrollYVp: this.scrollYVp,
         textureRawfile: this.textureRawfile,
         docTitle: this.docTitle,
@@ -166,7 +167,7 @@ export struct Carriage26 {
       })
         .id('p35_paper')
           .hitTestBehavior(HitTestMode.None)
-        .position({ x: PAPER_LEFT * this.sx, y: 104 * this.sy })
+        .position({ x: PAPER_LEFT * this.sx, y: 56 * this.sy })
         // 批 39 修订：滚筒删除后纸顶＝干净直边；只加一条极淡的上缘阴影（1.5vp、黑 8%）
         Column().width(PAPER_W * this.sx).height(1.5 * this.sy)
           .linearGradient({
