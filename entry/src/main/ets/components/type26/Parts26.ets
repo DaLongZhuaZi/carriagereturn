@@ -53,13 +53,13 @@ export function lidTileImage(machine: MachineKind) {
 @Builder
 export function basketFanImage(machine: MachineKind) {
   if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/basket-fan-3d.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
   } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/basket-fan-3d.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
   } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/basket-fan-3d.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
   } else {
-    Image($rawfile('ui-parts/basket-fan-3d.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
   }
 }
 
@@ -98,6 +98,19 @@ export function lighten(hex: string, k: number): string {
     return s.length < 2 ? '0' + s : s;
   };
   return '#' + t(f(r0)) + t(f(g0)) + t(f(b0));
+}
+
+/** 批 37：按通道等量加减（L 对称移动，均值不变——用于盖面清漆渐变）。 */
+export function shiftColor(hex: string, d: number): string {
+  const h: string = hex.charAt(0) === '#' ? hex.substring(1) : hex;
+  if (h.length < 6) { return '#adc4b8'; }
+  const f: (v: number) => string = (v: number): string => {
+    const x: number = Math.round(v + d);
+    const c: number = x < 0 ? 0 : (x > 255 ? 255 : x);
+    const t: string = c.toString(16);
+    return t.length < 2 ? '0' + t : t;
+  };
+  return '#' + f(parseInt(h.substring(0, 2), 16)) + f(parseInt(h.substring(2, 4), 16)) + f(parseInt(h.substring(4, 6), 16));
 }
 
 /** 黄铜token。 */
@@ -300,25 +313,23 @@ export struct Lid26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 木纹底：base token ＋ 批 28 贴片（横向平铺、纵向拉伸）
+      // 批 37（增补-2 §1）：光滑珐琅——纯色底，木纹贴片停用（文件保留在仓，不删）
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
-      lidTileImage(this.machine)
-      // 柔光渐变：顶部略亮、底部略暗（ΔL ≥0.05）
-      Column().width('100%').height('100%')
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [[lighten(lidColor(this.machine), 0.20), 0.0],
-            [lidColor(this.machine), 0.30],
-            [lidColor(this.machine), 0.62],
-            [lighten(lidColor(this.machine), -0.28), 1.0]],
-        })
-        .opacity(0.55)
         .hitTestBehavior(HitTestMode.None)
-      // 清漆光泽：盖面顶部一条柔和亮带（不是镜面反光）
-      Column().width('100%').height(26 * this.sy)
+      // 极轻纵向清漆渐变：顶 +10、底 −10（L ±0.04，均值仍＝token）；只铺可见盖面 104–370vp
+      Column().width('100%').height(266 * this.sy)
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [['#ffffff26', 0.0], ['#ffffff10', 0.45], ['#ffffff00', 1.0]],
+          colors: [[shiftColor(lidColor(this.machine), 10), 0.0],
+            [shiftColor(lidColor(this.machine), -10), 1.0]],
+        })
+        .position({ x: 0, y: this.topVp * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+      // 清漆亮带：盖面最上沿一层极轻的柔和亮带（只做光泽，不做纹理）
+      Column().width('100%').height(20 * this.sy)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#ffffff1a', 0.0], ['#ffffff0a', 0.5], ['#ffffff00', 1.0]],
         })
         .position({ x: 0, y: 0 })
         .hitTestBehavior(HitTestMode.None)
@@ -585,7 +596,7 @@ export struct PaperPanel26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Column().width('100%').height('100%').backgroundColor('#eee4ce')
+      Column().width('100%').height('100%').backgroundColor('#faf8f2')
       this.texture()
       // 纸面文字（行高 lineHeight，左内缩 marginL，上内缩 marginT；整卷随 typing 上移）
       Column() {

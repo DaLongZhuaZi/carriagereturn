@@ -180,7 +180,7 @@ export struct Carriage26 {
 
       // ---- 纸顶卷曲（v2 整条：等比显示，纸部分与活纸同宽同左缘）----
       Stack({ alignContent: Alignment.TopStart }) {
-        Image($rawfile('ui-parts/paper-curl-v2.png'))
+        Image($rawfile('ui-parts/paper-curl-v3.png'))
           .width(this.curlW()).height(this.curlH())
           .objectFit(ImageFit.Fill)
           .position({ x: this.curlLeft() - PAPER_LEFT * this.sx, y: 0 })

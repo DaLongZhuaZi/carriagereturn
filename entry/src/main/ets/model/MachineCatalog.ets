@@ -117,10 +117,11 @@ export const KEYBED_HEIGHT_VP: number = 186;
  */
 const TIER_TOKENS: Record<string, string[]> = {
   // 第 32 批（25 号稿 §2.1）：第 4 元 steel（钢板）；顺序钉死 [paperwell, base, keybed, steel]
-  '1920s-upright': ['#25201b', '#312b24', '#3b342b', '#5e5e5e'],
-  '1930s-portable': ['#342f2b', '#3d3732', '#453e38', '#636363'],
-  '1950s-streamlined': ['#c6b7a4', '#c8b9a6', '#cabba7', '#d0c9b9'],
-  '1960s-electric': ['#8e8880', '#928b82', '#96908a', '#a59f96'],
+  // 批 37（增补-2 §2）：base 改薄荷绿系（同一色相、不同明度）；paperwell/keybed/steel 不动
+  '1920s-upright': ['#25201b', '#adc4b8', '#3b342b', '#5e5e5e'],
+  '1930s-portable': ['#342f2b', '#8fae9e', '#453e38', '#636363'],
+  '1950s-streamlined': ['#c6b7a4', '#d3e0d8', '#cabba7', '#d0c9b9'],
+  '1960s-electric': ['#8e8880', '#c2d2c8', '#96908a', '#a59f96'],
 };
 
 /** 四档 token 的索引：paperwell=0／base=1／keybed=2／steel=3（第 32 批加 steel）。 */

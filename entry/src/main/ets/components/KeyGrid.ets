@@ -71,7 +71,7 @@ export struct KeyGrid {
   }
 
   private cap3dRawfile(): string {
-    return 'ui-parts/cap3d-' + this.slug() + '.png';
+    return 'ui-parts/cap3d-' + this.slug() + '-matte.png';
   }
 
   private space3dRawfile(): string {
