@@ -153,6 +153,7 @@ export struct Carriage26 {
             ['#0e0e10', 0.72], ['#33333a', 0.9], ['#1c1c20', 1.0]],
         })
         .borderRadius(6 * this.sx)
+        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
         .position({ x: this.cx() - ROLLER_W / 2 * this.sx, y: ROLLER_Y * this.sy })
 
       // ---- 活纸（连续纸条，行文随字车上移）----
@@ -177,6 +178,7 @@ export struct Carriage26 {
       })
         .id('p35_paper')
         .position({ x: PAPER_LEFT * this.sx, y: 104 * this.sy })
+        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
 
       // ---- 纸顶卷曲（v2 整条：等比显示，纸部分与活纸同宽同左缘）----
       Stack({ alignContent: Alignment.TopStart }) {

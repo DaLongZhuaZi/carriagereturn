@@ -4770,6 +4770,7 @@ struct Index {
 
         // 机器顶部深色带（顶区底）
         TopDeck26({
+          machine: this.machineKind,
           widthVp: this.canvasWidthVp(),
           heightVp: this.t26y(104),
           sx: this.xk(), sy: this.yk(),
@@ -4962,6 +4963,7 @@ struct Index {
         })
           .id('p33_key_well')
           .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.keyGridTopVp() })
+          .shadow({ radius: 8, color: '#00000022', offsetX: 0, offsetY: 3 })
 
         // 键盘（z 4.1，陷进黑井）
         KeyGrid({

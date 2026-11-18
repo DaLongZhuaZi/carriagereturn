@@ -123,6 +123,7 @@ export const RED26: string = '#c8322d';
 /** 机器顶部深色带（顶栏黑区 0–104vp 的底）。 */
 @Component
 export struct TopDeck26 {
+  @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop widthVp: number = 362.7;
   @Prop heightVp: number = 104;
   @Prop sx: number = 1;
@@ -130,14 +131,13 @@ export struct TopDeck26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
+      // 批 38 §3：顶栏去黑——与盖面同色薄荷绿（四机各用本机 token）
       Column()
         .width('100%').height('100%')
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#0d0b09', 0.0], ['#181310', 0.72], ['#241c16', 1.0]],
-        })
-      Column().width('100%').height(1).backgroundColor('#3b3128')
-        .position({ x: 0, y: this.heightVp - 1 })
+        .backgroundColor(lidColor(this.machine))
+      Column().width('100%').height(1.2 * this.sy)
+        .backgroundColor(shiftColor(lidColor(this.machine), -12))
+        .position({ x: 0, y: this.heightVp - 1.2 * this.sy })
     }
     .width(this.widthVp).height(this.heightVp)
   }
@@ -313,25 +313,22 @@ export struct Lid26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 批 37（增补-2 §1）：光滑珐琅——纯色底，木纹贴片停用（文件保留在仓，不删）
+      // 批 38 §1a：光滑珐琅——纯色底＋边缘倒角线（1.5vp、比 token 亮 L+0.08）
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         .hitTestBehavior(HitTestMode.None)
-      // 极轻纵向清漆渐变：顶 +10、底 −10（L ±0.04，均值仍＝token）；只铺可见盖面 104–370vp
-      Column().width('100%').height(266 * this.sy)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [[shiftColor(lidColor(this.machine), 10), 0.0],
-            [shiftColor(lidColor(this.machine), -10), 1.0]],
+      // 批 38 §1a：径向光泽（取代线性）——中心 (181,180) 亮 +12、四角暗 −10（ΔL≈0.086）
+      Column().width('100%').height('100%')
+        .radialGradient({
+          center: [77 * this.sx, 237 * this.sy],
+          radius: 300 * this.sx,
+          colors: [[shiftColor(lidColor(this.machine), 5), 0.0],
+            [shiftColor(lidColor(this.machine), -7), 0.5],
+            [shiftColor(lidColor(this.machine), -19), 1.0]],
         })
-        .position({ x: 0, y: this.topVp * this.sy })
         .hitTestBehavior(HitTestMode.None)
-      // 清漆亮带：盖面最上沿一层极轻的柔和亮带（只做光泽，不做纹理）
-      Column().width('100%').height(20 * this.sy)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#ffffff1a', 0.0], ['#ffffff0a', 0.5], ['#ffffff00', 1.0]],
-        })
-        .position({ x: 0, y: 0 })
+      // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）
+      Column().width('100%').height('100%')
+        .border({ width: 1.5 * this.sx, color: shiftColor(lidColor(this.machine), 26) })
         .hitTestBehavior(HitTestMode.None)
 
       // 字篮井区左右各两颗螺丝（上沿 y390、腰部 y470）
@@ -364,19 +361,21 @@ export struct Basket26 {
     Stack({ alignContent: Alignment.TopStart }) {
       // 井：曲线口（顶部半圆拱；井宽 240 → 拱半径 120，矢高 138vp＝466px）
       Stack({ alignContent: Alignment.Bottom }) {
-        Column().width('100%').height('100%').backgroundColor('#100e0c')
+        // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
+        Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
         Stack({ alignContent: Alignment.Bottom }) {
           basketFanImage(this.machine)
         }
         .width(213 * this.sx).height(134 * this.sy)
+        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
         .hitTestBehavior(HitTestMode.None)
       }
       .width(this.widthVp).height(this.heightVp)
       .borderRadius({ topLeft: this.widthVp / 2, topRight: this.widthVp / 2, bottomLeft: 0, bottomRight: 0 })
       .clip(true)
-      // 井边阴影缝（1vp＝3.4px，2–4px 口径）
-      .border({ width: 1, color: '#000000' })
+      // 批 38 §2：井口曲线＝一条细阴影线（1.2vp、黑 50%），不再是一圈实黑
+      .border({ width: 1.2 * this.sx, color: '#00000080' })
 
       // 枢轴（井底中央 y 514、x 181）
       Row()
