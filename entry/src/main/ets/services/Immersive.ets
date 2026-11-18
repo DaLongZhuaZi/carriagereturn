@@ -20,6 +20,18 @@ export interface Insets {
 }
 
 /** 打开沉浸式并读回安全区；失败回退 28/0 并记日志，不抛。 */
+/** 批 41：按页切换状态栏内容色（浅底页用深色图标，深底页用浅色）。 */
+export async function setStatusBarContentColor(ui: UIContext, color: string): Promise<void> {
+  const host = ui.getHostContext();
+  if (host === undefined || host === null) { return; }
+  try {
+    const win: window.Window = await window.getLastWindow(host as common.UIAbilityContext);
+    await win.setWindowSystemBarProperties({ statusBarContentColor: color });
+  } catch (e) {
+    hilog.error(DOMAIN, TAG, 'set statusBarContentColor failed');
+  }
+}
+
 export async function applyImmersive(ui: UIContext): Promise<Insets> {
   const host = ui.getHostContext();
   if (host === undefined || host === null) {

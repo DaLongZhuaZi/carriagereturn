@@ -1190,6 +1190,7 @@ struct Index {
     s.push(k);
     this.navStack = s;
     this.syncFromStack();
+    this.applyStatusBarForTop();
   }
 
   /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
@@ -1203,6 +1204,7 @@ struct Index {
     const s: string[] = this.navStack.slice(0, idx + 1);
     this.navStack = s;
     this.syncFromStack();
+    this.applyStatusBarForTop();
   }
 
   /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
@@ -1216,6 +1218,7 @@ struct Index {
     s.pop();
     this.navStack = s;
     this.syncFromStack();
+    this.applyStatusBarForTop();
     if (this.homeOpen) {
       // 第 4 批 F11：回主页时重取统计（卷宗删除/设置改目标后不依赖 aboutToAppear）
       this.statsRev = this.statsRev + 1;
@@ -2328,6 +2331,21 @@ struct Index {
       this.topInset = 28;
       this.bottomInset = 0;
       hilog.error(DOMAIN, TAG, 'immersive failed, fallback insets: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /** 批 41：状态栏内容色随页切换——打字机页是浅薄荷底，用深色图标；其余深底页用浅色。 */
+  private async applyStatusBarForTop(): Promise<void> {
+    const host = this.getUIContext().getHostContext();
+    if (host === undefined || host === null) { return; }
+    const top: string = this.navStack.length > 0 ? this.navStack[this.navStack.length - 1] : 'home';
+    const color: string = top === 'typewriter' ? '#3a3a3a' : '#dbccb3';
+    try {
+      const win: window.Window = await window.getLastWindow(host as common.UIAbilityContext);
+      await win.setWindowSystemBarProperties({ statusBarContentColor: color });
+      hilog.info(DOMAIN, TAG, 'statusBarContentColor -> %{public}s (top=%{public}s)', color, top);
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'statusBarContentColor switch failed');
     }
   }
 

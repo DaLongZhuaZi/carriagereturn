@@ -272,7 +272,7 @@ export struct Lid26 {
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         .hitTestBehavior(HitTestMode.None)
       // 批 40（任务 1）：机盖柔光改预渲染贴图（真机 radial/blur 会出黄块，一律走 PNG 1:1 叠加）
-      Image($rawfile('ui-parts/lid-sheen-v1.png'))
+      Image($rawfile('ui-parts/lid-sheen-v2.png'))
         .width('100%').height('100%').objectFit(ImageFit.Contain)
         .hitTestBehavior(HitTestMode.None)
 
@@ -315,7 +315,7 @@ export struct Basket26 {
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         // 批 40（任务 3）：井背改预渲染贴图（纵向渐变＋7 道杆影，上亮下暗）
         Image($rawfile('ui-parts/fanwell-back-v1.png'))
-          .width('100%').height('100%').objectFit(ImageFit.Contain)
+          .width('100%').height('100%').objectFit(ImageFit.Cover)
           .position({ x: 0, y: 0 })
           .hitTestBehavior(HitTestMode.None)
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
