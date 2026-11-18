@@ -145,15 +145,17 @@ export struct Carriage26 {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // ---- 滚筒（深钢柱面，居中于纸）----
+      // 批 39：滚筒改柱面——顶部柔和高光带、底部阴影带、中间黑亮过渡（主光左上）
       Column()
         .width(ROLLER_W * this.sx).height(ROLLER_H * this.sy)
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [['#5a5a5f', 0.0], ['#3a3a3e', 0.12], ['#141416', 0.55],
-            ['#0e0e10', 0.72], ['#33333a', 0.9], ['#1c1c20', 1.0]],
+          colors: [['#6b6b72', 0.0], ['#4a4a51', 0.06], ['#2b2b31', 0.16],
+            ['#e2e2e8', 0.26], ['#3d3d44', 0.38], ['#15151a', 0.60],
+            ['#0a0a0d', 0.78], ['#26262c', 0.90], ['#101014', 1.0]],
         })
         .borderRadius(6 * this.sx)
-        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
+        .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
         .position({ x: this.cx() - ROLLER_W / 2 * this.sx, y: ROLLER_Y * this.sy })
 
       // ---- 活纸（连续纸条，行文随字车上移）----
@@ -178,7 +180,7 @@ export struct Carriage26 {
       })
         .id('p35_paper')
         .position({ x: PAPER_LEFT * this.sx, y: 104 * this.sy })
-        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
+        .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
 
       // ---- 纸顶卷曲（v2 整条：等比显示，纸部分与活纸同宽同左缘）----
       Stack({ alignContent: Alignment.TopStart }) {
@@ -249,11 +251,11 @@ export struct Carriage26 {
         .position({ x: (PAPER_LEFT + PAPER_W - 3.5) * this.sx, y: 341.5 * this.sy })
 
       // ---- 拨杆（carriage-lever.png 12×72，底座＝滚筒左端支架，杆身向上；整根在纸左侧）----
-      Image($rawfile('ui-parts/carriage-lever.png'))
-        .width(12 * this.sx).height(72 * this.sy)
-        .objectFit(ImageFit.Fill)
+      Image($rawfile('ui-parts/lever.png'))
+        .width(10.5 * this.sx).height(72 * this.sy)
+        .objectFit(ImageFit.Contain)
         .rotate({ angle: this.leverAngle })
-        .position({ x: this.cx() - 138.6 * this.sx - 6 * this.sx, y: 40 * this.sy })
+        .position({ x: this.cx() - 138.6 * this.sx - 5.25 * this.sx, y: 40 * this.sy })
         .onClick(() => { this.onLeverTap(); })
         .gesture(PanGesture({ direction: PanDirection.Vertical })
           .onActionStart(() => { this.onLeverStart(); })
@@ -261,17 +263,18 @@ export struct Carriage26 {
           .onActionEnd(() => { this.onLeverEnd(); }))
 
       // ---- 双旋钮（贴滚筒端面，V=0 左完整可见、右在屏外由屏缘裁切）----
-      Image($rawfile('ui-parts/knob-metal.png'))
-        .width(this.knobDVp * this.xk2()).height(this.knobDVp * this.xk2())
-        .objectFit(ImageFit.Fill)
+      Image($rawfile('ui-parts/knob-side-v1.png'))
+        .width(this.knobDVp * this.xk2()).height(this.knobDVp / 1.228 * this.xk2())
+        .objectFit(ImageFit.Contain)
         .rotate({ angle: this.knobAngle })
-        .position({ x: this.cx() - 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 * this.xk2() })
+        .position({ x: this.cx() - 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 / 1.228 * this.xk2() })
         .onClick(() => { this.onKnob(); })
-      Image($rawfile('ui-parts/knob-metal.png'))
-        .width(this.knobDVp * this.xk2()).height(this.knobDVp * this.xk2())
-        .objectFit(ImageFit.Fill)
+      Image($rawfile('ui-parts/knob-side-v1.png'))
+        .width(this.knobDVp * this.xk2()).height(this.knobDVp / 1.228 * this.xk2())
+        .objectFit(ImageFit.Contain)
         .rotate({ angle: this.knobAngle })
-        .position({ x: this.cx() + 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 * this.xk2() })
+        .scale({ x: -1, y: 1 })
+        .position({ x: this.cx() + 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 / 1.228 * this.xk2() })
         .onClick(() => { this.onKnob(); })
     }
     .width(this.widthVp).height(this.heightVp)

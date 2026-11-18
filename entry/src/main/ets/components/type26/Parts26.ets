@@ -53,13 +53,13 @@ export function lidTileImage(machine: MachineKind) {
 @Builder
 export function basketFanImage(machine: MachineKind) {
   if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else {
-    Image($rawfile('ui-parts/basket-fan-3d-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill)
+    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   }
 }
 
@@ -199,22 +199,19 @@ export struct TopZone26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 黄铜铭牌（x 150–212，y 8–48；写文档名；点按显示文档名）
-      Column() {
+      // 黄铜铭牌（x 150–212，y 8–48；批 39：改 plate-brass-blank-v1.png 渲染底＋Text 叠加）
+      Stack({ alignContent: Alignment.Center }) {
+        Image($rawfile('ui-parts/plate-brass-blank-v1.png'))
+          .width(62 * this.sx).height(40 * this.sy)
+          .objectFit(ImageFit.Contain)
         Text(this.docTitle.length > 0 ? this.docTitle : '未命名')
           .fontSize(9).fontColor('#2a1f10')
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .textAlign(TextAlign.Center).width('100%').padding({ left: 3, right: 3 })
       }
-      .justifyContent(FlexAlign.Center)
       .width(62 * this.sx).height(40 * this.sy)
-      .linearGradient({
-        direction: GradientDirection.Bottom,
-        colors: [[BRASS_HI, 0.0], [BRASS, 0.55], ['#8a6a33', 1.0]],
-      })
-      .borderRadius(3)
-      .border({ width: 1, color: this.achGlow ? '#ffe9a8' : '#6d5326' })
       .shadow({ radius: this.achGlow ? 10 : 3, color: this.achGlow ? '#ffd777' : '#00000088' })
+      .border({ width: this.achGlow ? 1 : 0, color: '#ffe9a8' })
       .position({ x: 150 * this.sx, y: 8 * this.sy })
       .onClick(() => { this.onPlate(); })
 
@@ -235,25 +232,12 @@ export struct TopZone26 {
       .position({ x: 8 * this.sx, y: 48 * this.sy })
       .onClick(() => { this.onBack(); })
 
-      // 边铃（机架固定 x 28–56，y 60–88；开＝直立＋红点，关＝倾 15°）
+      // 边铃（机架固定 x 28–56；批 39：改 bell-brass-v1.png 渲染图，盒子按原图 1.244 等比）
       Stack({ alignContent: Alignment.TopStart }) {
-        Column()
-          .width(18 * this.sx).height(14 * this.sy)
-          .linearGradient({
-            direction: GradientDirection.Right,
-            colors: [['#e6c886', 0.0], [BRASS_HI, 0.35], [BRASS, 0.7], ['#7a5c28', 1.0]],
-          })
-          .borderRadius({ topLeft: 9 * this.sx, topRight: 9 * this.sx, bottomLeft: 2, bottomRight: 2 })
-          .position({ x: 5 * this.sx, y: 7 * this.sy })
-        Column().width(26 * this.sx).height(4 * this.sy)
-          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], ['#6d5327', 1.0]] })
-          .borderRadius(2)
-          .position({ x: 1 * this.sx, y: 20 * this.sy })
-        Column().width(28 * this.sx).height(3 * this.sy).backgroundColor('#4a3a1c')
-          .position({ x: 0, y: 25 * this.sy })
-        Column().width(4 * this.sx).height(4 * this.sx).backgroundColor(BRASS_HI)
-          .borderRadius(2 * this.sx)
-          .position({ x: 12 * this.sx, y: 3 * this.sy })
+        Image($rawfile('ui-parts/bell-brass-v1.png'))
+          .width(28 * this.sx).height(22.5 * this.sy)
+          .objectFit(ImageFit.Contain)
+          .position({ x: 0, y: 2.75 * this.sy })
         if (this.soundOn) {
           Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
             .borderRadius(3 * this.sx)
@@ -321,9 +305,9 @@ export struct Lid26 {
         .radialGradient({
           center: [77 * this.sx, 237 * this.sy],
           radius: 300 * this.sx,
-          colors: [[shiftColor(lidColor(this.machine), 5), 0.0],
-            [shiftColor(lidColor(this.machine), -7), 0.5],
-            [shiftColor(lidColor(this.machine), -19), 1.0]],
+          colors: [[shiftColor(lidColor(this.machine), 10), 0.0],
+            [shiftColor(lidColor(this.machine), -13), 0.5],
+            [shiftColor(lidColor(this.machine), -37), 1.0]],
         })
         .hitTestBehavior(HitTestMode.None)
       // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）
@@ -367,8 +351,8 @@ export struct Basket26 {
         Stack({ alignContent: Alignment.Bottom }) {
           basketFanImage(this.machine)
         }
-        .width(213 * this.sx).height(134 * this.sy)
-        .shadow({ radius: 9, color: '#0000002e', offsetX: 0, offsetY: 3 })
+        .width(213 * this.sx).height(126.3 * this.sy)
+        .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
         .hitTestBehavior(HitTestMode.None)
       }
       .width(this.widthVp).height(this.heightVp)
