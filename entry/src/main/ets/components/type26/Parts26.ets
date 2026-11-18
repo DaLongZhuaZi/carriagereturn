@@ -134,7 +134,7 @@ export struct TopDeck26 {
       // 批 38 §3：顶栏去黑——与盖面同色薄荷绿（四机各用本机 token）
       Column()
         .width('100%').height('100%')
-        .backgroundColor(lidColor(this.machine))
+        .backgroundColor('#00000000')
       Column().width('100%').height(1.2 * this.sy)
         .backgroundColor(shiftColor(lidColor(this.machine), -12))
         .position({ x: 0, y: this.heightVp - 1.2 * this.sy })
@@ -253,6 +253,10 @@ export struct Lid26 {
   @Builder
   screw(cx: number, cy: number) {
     Stack({ alignContent: Alignment.Center }) {
+      // 批 39（任务 9）：沉孔——螺丝嵌进盖面（实色低透明圆，不用模糊）
+      Column().width(10 * this.sx).height(10 * this.sx)
+        .backgroundColor('#1b2a24').opacity(0.35).borderRadius(5 * this.sx)
+        .position({ x: -2 * this.sx, y: -1.5 * this.sy })
       Column().width(6 * this.sx).height(6 * this.sx)
         .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], [STEEL, 0.55], ['#4d4d50', 1.0]] })
         .borderRadius(3 * this.sx)
@@ -277,6 +281,18 @@ export struct Lid26 {
             [shiftColor(lidColor(this.machine), -37), 1.0]],
         })
         .hitTestBehavior(HitTestMode.None)
+      // 批 39（任务 4）：镜面高光——宽而柔的一片反光（实色＋低不透明度，不用渐变/模糊）
+      Column().width(300 * this.sx).height(76 * this.sy)
+        .backgroundColor('#ffffff').opacity(0.10)
+        .borderRadius(60 * this.sx)
+        .position({ x: 36 * this.sx, y: 4 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+      Column().width(180 * this.sx).height(48 * this.sy)
+        .backgroundColor('#ffffff').opacity(0.07)
+        .borderRadius(40 * this.sx)
+        .position({ x: 90 * this.sx, y: 14 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
+
       // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）
       Column().width('100%').height('100%')
         .border({ width: 1.5 * this.sx, color: shiftColor(lidColor(this.machine), 26) })
@@ -327,6 +343,12 @@ export struct Basket26 {
       .clip(true)
       // 批 38 §2：井口曲线＝一条细阴影线（1.2vp、黑 50%），不再是一圈实黑
       .border({ width: 1.2 * this.sx, color: '#00000080' })
+
+      // 批 39（任务 4）：扇井口沿在盖面上留一道软影（实色低透明，右下偏移）
+      Column().width(this.widthVp * 0.9).height(10 * this.sy)
+        .backgroundColor('#0b1a14').opacity(0.10).borderRadius(5 * this.sy)
+        .position({ x: this.widthVp * 0.05, y: this.heightVp - 4 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
 
       // 枢轴（井底中央 y 514、x 181）
       Row()
@@ -613,7 +635,6 @@ export struct PaperPanel26 {
         Column().width(3 * this.sx).height(96 * this.sy)
           .backgroundColor('#00000026')
           .borderRadius(2 * this.sx)
-          .blur(7)
           .rotate({ angle: 12 })
           .opacity(0.55 * Math.sin(Math.PI * this.strikePhase))
           .position({ x: 181 * 0 + this.widthVp * 0.5 - 1.5 * this.sx,

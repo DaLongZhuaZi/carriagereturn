@@ -28,6 +28,18 @@ export struct KeyWell {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor(this.wellColor())
+      // 批 39（任务 9）：井底不是洞——键缝漏下的光（实色低透明椭圆）
+      Column().width(this.widthVp * 0.55).height(this.heightVp * 0.42)
+        .backgroundColor('#2a2a2e').opacity(0.55).borderRadius(this.widthVp * 0.3)
+        .position({ x: this.widthVp * 0.22, y: this.heightVp * 0.28 })
+        .hitTestBehavior(HitTestMode.None)
+      // 井内侧壁：上沿亮线、下沿暗线
+      Column().width('100%').height(1.5).backgroundColor('#ffffff').opacity(0.12)
+        .position({ x: 0, y: 0 })
+        .hitTestBehavior(HitTestMode.None)
+      Column().width('100%').height(2).backgroundColor('#000000').opacity(0.35)
+        .position({ x: 0, y: this.heightVp - 2 })
+        .hitTestBehavior(HitTestMode.None)
       // 四角螺丝（绝对坐标 (16,630)/(346,630)/(16,787)/(346,787)，本地 = 减挂载原点 (8,622.3)）
       this.screw(8 - 2.5, 7.7 - 2.5)
       this.screw(338 - 2.5, 7.7 - 2.5)
