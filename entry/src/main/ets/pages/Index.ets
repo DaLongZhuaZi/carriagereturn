@@ -1548,14 +1548,14 @@ struct Index {
   private paperScroll26(): number {
     const n: number = this.docModel.getCursor().line;
     const lh: number = this.lineHeightVp;
-    const topMargin: number = 56 * this.yk() + this.paperTitleExtraVp();
+    const topMargin: number = 66 * this.yk() + this.paperTitleExtraVp();
     const visible: number = this.hPaperZoneVp() - topMargin - 6 * this.yk();
     const over: number = topMargin + n * lh + lh - visible;
     return over > 0 ? over : 0;
   }
   /** 落字点 y（相对纸顶）。 */
   private paperCursorY26(): number {
-    return 56 * this.yk() + this.paperTitleExtraVp() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
+    return 66 * this.yk() + this.paperTitleExtraVp() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
   }
 
   /** 旋钮直径：46.5vp live（§6.2，沿用现行值）。 */
@@ -4864,7 +4864,7 @@ struct Index {
           lineHeightVp: this.lineHeightVp,
           marginLVp: 25 * this.xk(),
           marginRVp: 30 * this.xk(),
-          marginTVp: 56 * this.yk(),
+          marginTVp: 66 * this.yk(),
           fontFamily: this.fontFamily,
           textColor: this.inkColor,
           cursorXVp: this.currentLineWidthVp(),
