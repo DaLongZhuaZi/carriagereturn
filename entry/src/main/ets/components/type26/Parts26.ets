@@ -188,6 +188,36 @@ export struct TopZone26 {
       .position({ x: 8 * this.sx, y: 48 * this.sy })
       .onClick(() => { this.onBack(); })
 
+      // 边铃（机架固定 x 28–56，y 60–88；开＝直立＋红点，关＝倾 15°）
+      Stack({ alignContent: Alignment.TopStart }) {
+        Column()
+          .width(18 * this.sx).height(14 * this.sy)
+          .linearGradient({
+            direction: GradientDirection.Right,
+            colors: [['#e6c886', 0.0], [BRASS_HI, 0.35], [BRASS, 0.7], ['#7a5c28', 1.0]],
+          })
+          .borderRadius({ topLeft: 9 * this.sx, topRight: 9 * this.sx, bottomLeft: 2, bottomRight: 2 })
+          .position({ x: 5 * this.sx, y: 7 * this.sy })
+        Column().width(26 * this.sx).height(4 * this.sy)
+          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], ['#6d5327', 1.0]] })
+          .borderRadius(2)
+          .position({ x: 1 * this.sx, y: 20 * this.sy })
+        Column().width(28 * this.sx).height(3 * this.sy).backgroundColor('#4a3a1c')
+          .position({ x: 0, y: 25 * this.sy })
+        Column().width(4 * this.sx).height(4 * this.sx).backgroundColor(BRASS_HI)
+          .borderRadius(2 * this.sx)
+          .position({ x: 12 * this.sx, y: 3 * this.sy })
+        if (this.soundOn) {
+          Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
+            .borderRadius(3 * this.sx)
+            .position({ x: 20 * this.sx, y: 8 * this.sy })
+        }
+      }
+      .width(28 * this.sx).height(28 * this.sy)
+      .rotate({ angle: this.soundOn ? 0 : 15 })
+      .position({ x: 28 * this.sx, y: 60 * this.sy })
+      .onClick(() => { this.onBell(); })
+
       // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
       Stack({ alignContent: Alignment.TopStart }) {
         Column().width(50 * this.sx).height(10 * this.sy)

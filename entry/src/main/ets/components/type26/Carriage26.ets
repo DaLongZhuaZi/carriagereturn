@@ -213,13 +213,17 @@ export struct Carriage26 {
           .stroke('#3d3d40').strokeWidth(0.8).fillOpacity(0)
           .width(700 * this.sx).height(12 * this.sy)
           .position({ x: 0, y: 0 })
-        // 两个红三角（纸左右边距）
-        Path({ commands: this.triPath() }).fill('#c8322d')
+        // 两个边距红三角（纸左缘 156／纸右缘 376；与中央指针 181 分明）
+        Polygon()
+          .points([[0, 0], [7 * this.sx, 0], [3.5 * this.sx, 6 * this.sy]])
+          .fill('#c8322d')
           .width(7 * this.sx).height(6 * this.sy)
-          .position({ x: (PAPER_LEFT + 25 - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 5 * this.sy })
-        Path({ commands: this.triPath() }).fill('#c8322d')
+          .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
+        Polygon()
+          .points([[0, 0], [7 * this.sx, 0], [3.5 * this.sx, 6 * this.sy]])
+          .fill('#c8322d')
           .width(7 * this.sx).height(6 * this.sy)
-          .position({ x: (PAPER_LEFT + 25 + 165 - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 5 * this.sy })
+          .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
         // 锯齿下沿
         // 锯齿下沿（可见三角齿：齿宽 2vp、齿高 3vp、间距 2vp；175 齿覆盖 700vp）
         Row({ space: 2 * this.sx }) {
@@ -234,17 +238,6 @@ export struct Carriage26 {
       .clip(true)
       .position({ x: this.cx() - 350 * this.sx, y: RULER_Y * this.sy })
       .hitTestBehavior(HitTestMode.None)
-
-      // ---- 色带（红带常显，纵向渐变读出厚度；击打抬起 12vp）----
-      Column()
-        .width(700 * this.sx).height(4 * this.sy)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#a8352f', 0.0], ['#e04a42', 0.35], ['#d23a33', 0.62], ['#8f1f1c', 1.0]],
-        })
-        .position({ x: this.cx() - 350 * this.sx, y: RIBBON_Y * this.sy })
-        .translate({ y: -12 * this.sy * this.strikePhase })
-        .hitTestBehavior(HitTestMode.None)
 
       // ---- 压纸杆（2vp 细钢杆跨纸宽＋两端小黑轮）----
       Column()
@@ -284,36 +277,6 @@ export struct Carriage26 {
         .rotate({ angle: this.knobAngle })
         .position({ x: this.cx() + 138.6 * this.sx - this.knobDVp / 2 * this.xk2(), y: 104 * this.sy - this.knobDVp / 2 * this.xk2() })
         .onClick(() => { this.onKnob(); })
-      // ---- 边铃（x 28–56，y 60–88，随字车移动；开＝直立＋小红点，关＝倾斜 15°）----
-      Stack({ alignContent: Alignment.TopStart }) {
-        Column()
-          .width(18 * this.sx).height(14 * this.sy)
-          .linearGradient({
-            direction: GradientDirection.Right,
-            colors: [['#e6c886', 0.0], [BRASS_HI, 0.35], [BRASS, 0.7], ['#7a5c28', 1.0]],
-          })
-          .borderRadius({ topLeft: 9 * this.sx, topRight: 9 * this.sx, bottomLeft: 2, bottomRight: 2 })
-          .position({ x: 5 * this.sx, y: 7 * this.sy })
-        Column().width(26 * this.sx).height(4 * this.sy)
-          .linearGradient({ direction: GradientDirection.Bottom, colors: [[BRASS_HI, 0.0], ['#6d5327', 1.0]] })
-          .borderRadius(2)
-          .position({ x: 1 * this.sx, y: 20 * this.sy })
-        Column().width(28 * this.sx).height(3 * this.sy).backgroundColor('#4a3a1c')
-          .position({ x: 0, y: 25 * this.sy })
-        Column().width(4 * this.sx).height(4 * this.sx).backgroundColor(BRASS_HI)
-          .borderRadius(2 * this.sx)
-          .position({ x: 12 * this.sx, y: 3 * this.sy })
-        if (this.soundOn) {
-          Column().width(6 * this.sx).height(6 * this.sx).backgroundColor('#e0483c')
-            .borderRadius(3 * this.sx)
-            .position({ x: 20 * this.sx, y: 8 * this.sy })
-        }
-      }
-      .width(28 * this.sx).height(28 * this.sy)
-      .rotate({ angle: this.soundOn ? 0 : 15 })
-      .position({ x: 28 * this.sx, y: 60 * this.sy })
-      .hitTestBehavior(HitTestMode.None)
-
     }
     .width(this.widthVp).height(this.heightVp)
     .translate({ x: this.offsetXVp })

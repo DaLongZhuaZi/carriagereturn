@@ -2999,8 +2999,9 @@ struct Index {
     if (this.candAll.length > 0) {
       this.pinyinPick(0);
     } else {
-      // 无候选：按原样上屏拉丁字母（不丢已敲字母）
-      this.enqueueChinese(this.pinyinSession.getBuffer());
+      // 批 36 修正 A3：无候选不落原始拼音；直接丢弃缓冲
+      hilog.info(DOMAIN, TAG, 'cn commitTop: no candidates, drop buffer=%{public}s',
+        this.pinyinSession.getBuffer());
       this.pinyinSession.cancel();
       this.cnPinyin = '';
       this.cnPreview = '';
@@ -3058,14 +3059,19 @@ struct Index {
     }
     if (label === 'Return') {
       if (composing) {
-        // 先把拼音串按原样上屏（拉丁字母），下一次换行才是真换行
-        this.enqueueChinese(s.getBuffer());
+        // 批 36 修正 A3：拼音串绝不上纸——有候选先选首选，无候选直接丢弃，然后放行换行
+        if (this.candAll.length > 0) {
+          this.pinyinPick(0);
+        }
+        if (this.pinyinSession !== null) {
+          this.pinyinSession.cancel();
+        }
         s.cancel();
         this.cnPinyin = '';
         this.cnPreview = '';
         this.candAll = [];
         this.candCurrent = [];
-        return true;
+        hilog.info(DOMAIN, TAG, 'cn return: pinyin buffer dropped (no raw letters on paper)');
       }
       return false;
     }
@@ -3157,8 +3163,14 @@ struct Index {
     }
     let outPath: string = dir + '/carriage-' + Date.now().toString();
     let ok: boolean = false;
-    if (fmt === 'pdf' || fmt === 'image') {
-      // image 直出需要导出模板渲染（ExportPage 内），本轮按 pdf 落盘并在自检登记不符点
+    if (fmt === 'image') {
+      // 批 36 修正 A4：不悄悄回落——图片直出需要导出模板渲染（在 ExportPage 内），
+      // 先明确报缺并保持不动，设计口径待用户定夺
+      hilog.error(DOMAIN, TAG,
+        'direct export image unsupported: needs ExportTemplate render in ExportPage (no fallback)');
+      return;
+    }
+    if (fmt === 'pdf') {
       outPath += '.pdf';
       const meta = this.docModel.toDocData().meta;
       const r: ExportResult = ExportService.buildPdf(this.docId, this.machineLabelText(),
@@ -3196,6 +3208,8 @@ struct Index {
   private playSlotFly(): void {
     this.slotFlyVisible = true;
     this.slotFly = 0;
+    const t0: number = Date.now();
+    hilog.info(DOMAIN, TAG, 'slot fly start ms=%{public}s dur=300', t0.toString());
     setTimeout(() => {
       this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
         this.slotFly = 1;
@@ -3204,7 +3218,9 @@ struct Index {
     setTimeout(() => {
       this.slotFlyVisible = false;
       this.slotFly = 0;
-    }, 1500);
+      hilog.info(DOMAIN, TAG, 'slot fly end ms=%{public}s elapsed=%{public}s',
+        Date.now().toString(), (Date.now() - t0).toString());
+    }, 380);
   }
 
   private onCapDown(cap: CapDef): void {
@@ -4795,6 +4811,16 @@ struct Index {
           onLeverEnd: (): void => { this.leverPanEnd(); },
         })
           .id('p35_carriage')
+        // 色带（批 36 修正：绕机架两侧线轴的固定带，不随字车；击打时上抬 12vp）
+        Column()
+          .width(346.7 * this.xk()).height(4 * this.yk())
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [['#a8352f', 0.0], ['#e04a42', 0.35], ['#d23a33', 0.62], ['#8f1f1c', 1.0]],
+          })
+          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(370) })
+          .translate({ y: -12 * this.yk() * this.strikePhase })
+          .hitTestBehavior(HitTestMode.None)
           .position({ x: 0 + this.machineOffsetX26(), y: 0 })
 
         // 落字指针（钉在机中心 181vp，不随字车移动）
@@ -4802,7 +4828,8 @@ struct Index {
           .backgroundColor('#8f8f92')
           .position({ x: 181 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
           .hitTestBehavior(HitTestMode.None)
-        Path({ commands: 'M0 0 L' + (7 * this.xk()).toFixed(1) + ' 0 L' + (3.5 * this.xk()).toFixed(1) + ' ' + (6 * this.yk()).toFixed(1) + ' Z' })
+        Polygon()
+          .points([[0, 0], [7 * this.xk(), 0], [3.5 * this.xk(), 6 * this.yk()]])
           .fill('#c8322d')
           .width(7 * this.xk()).height(6 * this.yk())
           .position({ x: 181 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
@@ -4835,11 +4862,6 @@ struct Index {
             .onActionUpdate((e: GestureEvent): void => { this.leverPanUpdate(e.offsetY); })
             .onActionEnd((): void => { this.leverPanEnd(); }))
 
-        // 边铃交互代理：边铃已在字车容器里（被顶区盖住触摸），顶层透明热区同几何
-        Column()
-          .width(28 * this.xk()).height(28 * this.yk())
-          .position({ x: 28 * this.xk() + this.carriageOffsetVp + this.machineOffsetX26(), y: 60 * this.yk() })
-          .onClick((): void => { this.toggleSound(); })
 
         // 出纸槽滑出副本（300ms，纸片从槽口向上 40vp 后淡出）
         if (this.slotFlyVisible) {

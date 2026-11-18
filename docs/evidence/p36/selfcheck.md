@@ -63,3 +63,43 @@
 - 截图：1761 1920s V=0｜1762 1930s｜1763 1950s｜1764 1960s｜1765 行中（10 字，纸 84.4）｜1766 行末（23 字，纸 −7.8）｜1767 字篮｜1768 键盘｜1769 横尺｜1770 顶栏｜1771 Aa 字母｜1772 Aa 符号｜1773 字体轮换｜1774 出纸滑出帧（放慢）｜1775 盖面木纹/柔光特写｜1776 边铃开｜1777 边铃关｜1778 候选（nijao）｜1779 拼音（ni）
 - hilog：`font cycle -> AnonymousPro (idx 3/17)`、`-> SpaceMono (idx 4/17)`；`export slot tap -> direct export format=text`、`direct export ok format=text path=…/exports/carriage-1794989656221.txt`
 - dump：23 字行、`aaaaaanijao你`（候选上屏）、`nijao 你 尼 妳 拟 泥`（5 项封顶）
+
+
+---
+
+# 批 36 修正（合并版）自检追加（2026-11-18 18:35）
+
+> 依据 `docs/evidence/p36/audit.md` 与本批合并提示词（f5933be）。**只动清单列出的项**；B3（平板／折叠）、B4（柔光／盖子均值）未动，等用户定夺。
+> **设备状态：17:25 起手机进入锁屏（指纹／PIN），本会话无凭据，无法解锁——本批所有真机截图（1780 起）未取到。** 证据 `docs/evidence/tmp-unlock9.png`（锁屏界面，底部指纹图标）。
+
+## 代码改动（已编译通过、已推仓）
+
+| 项 | 改动 | 文件 |
+|---|---|---|
+| 1 边铃回机架 | 从 `Carriage26` 删除边铃块；在 `TopZone26` 恢复固定位 x28–56／y60–88（`.onClick(onBell)`），不再随 V；Index 的边铃代理删除（顶区在顶层可直接点） | `Parts26.ets`、`Carriage26.ets`、`Index.ets` |
+| 2 色带固定 | 从 `Carriage26` 删除色带；Index 新增固定带：x 8–354.7vp、y 370–374vp、渐变不变、`translate y −12×strikePhase`，不随 V；横尺仍在字车（未动） | `Carriage26.ets`、`Index.ets` |
+| 3 三角红＋分明 | 两枚边距三角改到**纸左缘 156 / 纸右缘 376**；`Path.fill` 在真机不出色，改 `Polygon().points()`；中央指针三角同样改 Polygon（x181 不动）。三枚三角 x 分别为 156／376／181，不再重合 | `Carriage26.ets`、`Index.ets` |
+| 4 拼音残留 | `Return` 组词中：有候选先选首选，然后 `cancel()` 清缓冲并**放行换行**（原先 `enqueueChinese(s.getBuffer())` 把原始拼音当字母落纸）；`pinyinCommitTop()` 无候选时改为 `cancel()`＋hilog，**不再落原始拼音** | `Index.ets` |
+| 5 图片直出 | 删除 image→pdf 的静默回落：image 格式点出纸槽现在 `hilog.error('direct export image unsupported: needs ExportTemplate render in ExportPage (no fallback)')` 并直接返回。**图片直出需把导出模板渲染搬到共享服务，属设计口径变更，等用户定夺**（本批不擅自加文件） | `Index.ets` |
+| 6 滑出动画 | 300ms 原速保留；`playSlotFly()` 加 hilog `slot fly start ms=… dur=300` / `slot fly end ms=… elapsed=…`；并把残留的 1500ms 复位改回 380ms | `Index.ets` |
+| 7 铭牌亮起 | 未动代码（`plateGlow` 逻辑已在）；需设备解锁后触发 | — |
+| 8 页码复位 | 代码核对：新建文档 `sheetNo: 1`（Index 新建路径），换纸 +1；需设备截图确认 | — |
+
+## 验收状态（设备锁定，逐项如实报）
+
+| 提示词任务 | 代码 | 真机验收 |
+|---|---|---|
+| 1 边铃固定（1780–1782） | 完成 | **未取到**（锁屏） |
+| 2 色带固定（1780–1782） | 完成 | **未取到** |
+| 3 三角红／分明（1783–1785） | 完成（Polygon＋纸左右缘） | **未取到**；上一轮 Path 版实测横尺区红像素为 0（audit A2），本次换 Polygon 的观感待锁屏解除后量测 |
+| 4 拼音残留（1786–1788） | 完成 | **未取到** |
+| 5 图片直出 | 改为“明确不支持＋报缺”，不再静默回落 | 待定夺 |
+| 6 滑出原速 | hilog 打点已加 | **未取到**（需解锁后 tap＋读 hilog／录屏） |
+| 7 铭牌亮起（1792 起） | 已有逻辑 | **未取到** |
+| 8 页码复位（1793 起） | 代码为 1 起 | **未取到** |
+
+## 阻塞说明
+
+- 手机在 17:25 自动锁屏（指纹／PIN）。已尝试：`uitest uiInput swipe`（多组起止点/速度）、`dircFling`、`keyEvent 3`、`power-shell wakeup`、`aa start` 重新拉起，均停在锁屏（截图 `tmp-unlock9.png`）。
+- 无凭据无法越过锁屏，故本批 1780 起的截图一张也未取。**解锁后**（指纹或 PIN 由用户完成一次）即可继续：装包→按清单逐项取证→补 1780 起的编号截图与本自检的“真机验收”列。
+
