@@ -4811,6 +4811,7 @@ struct Index {
           onLeverEnd: (): void => { this.leverPanEnd(); },
         })
           .id('p35_carriage')
+.position({ x: 0 + this.machineOffsetX26(), y: 0 })
         // 色带（批 36 修正：绕机架两侧线轴的固定带，不随字车；击打时上抬 12vp）
         Column()
           .width(346.7 * this.xk()).height(4 * this.yk())
@@ -4821,8 +4822,7 @@ struct Index {
           .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(370) })
           .translate({ y: -12 * this.yk() * this.strikePhase })
           .hitTestBehavior(HitTestMode.None)
-          .position({ x: 0 + this.machineOffsetX26(), y: 0 })
-
+          
         // 落字指针（钉在机中心 181vp，不随字车移动）
         Column().width(2 * this.xk()).height(10 * this.yk())
           .backgroundColor('#8f8f92')
