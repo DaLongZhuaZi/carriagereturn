@@ -358,8 +358,8 @@ struct Index {
   @State carriageHeight: number = DESIGN_W / CARRIAGE_STRIP_ASPECT;
   @State fontBarHeight: number = FONT_BAR_HEIGHT_VP;
   @State keybedHeight: number = DESIGN_W / KEYBAND_ASPECT;
-  /** 批 43：装纸/出纸的纸位移（0＝到位；−362vp＝整张在屏幕上方）。 */
-  @State paperSlideVp: number = 0;
+  /** 批 45：装纸高度（0＝缩在滚筒里，306＝到位）。 */
+  @State paperGrowVp: number = 306;
   /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
   @State paperContentOpacity: number = 1;
   @State functionRowHeight: number = FUNCTION_ROW_HEIGHT_VP;
@@ -1183,16 +1183,16 @@ struct Index {
 
   /** 批 43：装纸——纸从屏幕上方 600ms 滑入（ease-out），到位后 150ms 标题/光标淡入。 */
   private playPaperLoad(): void {
-    this.paperSlideVp = -362;
+    this.paperGrowVp = 0;
     this.paperContentOpacity = 0;
     this.getUIContext().animateTo({ duration: 600, curve: Curve.FastOutSlowIn }, () => {
-      this.paperSlideVp = 0;
+      this.paperGrowVp = 306;
     });
     setTimeout(() => {
       this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
         this.paperContentOpacity = 1;
       });
-      hilog.info(DOMAIN, TAG, 'paper load done slide=%{public}s', this.paperSlideVp.toFixed(1));
+      hilog.info(DOMAIN, TAG, 'paper load done grow=%{public}s', this.paperGrowVp.toFixed(1));
     }, 600);
     hilog.info(DOMAIN, TAG, 'paper load start from -362');
   }
@@ -1204,10 +1204,10 @@ struct Index {
     });
     setTimeout(() => {
       this.getUIContext().animateTo({ duration: 600, curve: Curve.EaseIn }, () => {
-        this.paperSlideVp = -362;
+        this.paperGrowVp = 0;
       });
       setTimeout(() => {
-        this.paperSlideVp = 0;
+        this.paperGrowVp = 306;
         this.paperContentOpacity = 1;
         hilog.info(DOMAIN, TAG, 'paper unload done');
         then();
@@ -1515,11 +1515,11 @@ struct Index {
   /** §6.1：行宽 165vp（纸宽 220 − 左 25 − 右 30）。 */
   private lineWidth26(): number { return this.paperPanelWidthVp() - 55 * this.xk(); }
   /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
-  private typeFontSize(): number { return 11.9 * (this.paperPanelWidthVp() / 220); }
+  private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
   /** §6.1：纸 V=0 左缘（156vp）。 */
-  private paperPanelBaseXVp(): number { return 156 * this.xk(); }
+  private paperPanelBaseXVp(): number { return 36 * this.xk(); }
   /** 批 35 修正口径：字车中心＝滚筒中心＝纸中心；V=0 在 266vp。 */
-  private carriageCenterXVp(): number { return 266 * this.xk() + this.carriageOffsetVp; }
+  private carriageCenterXVp(): number { return 181 * this.xk() + this.carriageOffsetVp; }
   private paperPanelLeftVp(): number { return this.carriageCenterXVp() - 110 * this.xk(); }
   private paperPanelTopVp(): number { return this.t26y(56); }
   private paperZoneTopVp(): number { return this.t26y(104); }
@@ -4872,7 +4872,7 @@ struct Index {
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
           docTitle: this.docTitle,
-          paperSlideVp: this.paperSlideVp,
+          paperGrowVp: this.paperGrowVp,
           contentOpacity: this.paperContentOpacity,
           pageNo: this.paperPageNo(),
           onKnob: (): void => { this.onKnobAdvance(); },
@@ -4894,13 +4894,13 @@ struct Index {
           .translate({ y: -12 * this.yk() * this.strikePhase })
           .hitTestBehavior(HitTestMode.None)
           
-        // 落字指针（钉在机中心 181vp，不随字车移动）
+        // 落字指针（钉在纸左缘+25vp＝61vp，不随字车移动；批 45）
         Column().width(2 * this.xk()).height(10 * this.yk())
           .backgroundColor('#8f8f92')
-          .position({ x: 181 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
+          .position({ x: 61 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
           .hitTestBehavior(HitTestMode.None)
         TriMark26({ w: 7, h: 6, sx: this.xk(), sy: this.yk() })
-          .position({ x: 181 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
+          .position({ x: 61 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
           .hitTestBehavior(HitTestMode.None)
 
         TopZone26({

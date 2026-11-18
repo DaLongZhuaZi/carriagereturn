@@ -19,8 +19,8 @@ const CX0: number = 266;
 /** 滚筒宽（vp）。 */
 const ROLLER_W: number = 277.2;
 /** 纸宽（vp）与纸左缘（V=0）。 */
-const PAPER_W: number = 220;
-const PAPER_LEFT: number = 156;
+const PAPER_W: number = 290;   // 批 45：80% 舞台宽（362.7×0.8）
+const PAPER_LEFT: number = 36;  // 批 45：居中（36 + 290 + 36.7 ≈ 362.7）
 /** 滚筒：中心 y 104、可见高 88（y 60–148）。 */
 const ROLLER_Y: number = 60;
 const ROLLER_H: number = 88;
@@ -66,6 +66,8 @@ export struct Carriage26 {
   @Prop docTitle: string = '';
   /** 批 43：装纸/出纸的纸位移（0＝到位；−362＝整张在屏幕上方）。 */
   @Prop paperSlideVp: number = 0;
+  /** 批 45：装纸高度（0＝缩在滚筒里，306＝到位）；纸从滚筒向上长出来。 */
+  @Prop paperGrowVp: number = 306;
   /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
   @Prop contentOpacity: number = 1;
   @Prop pageNo: string = '';
@@ -149,6 +151,8 @@ export struct Carriage26 {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // ---- 活纸（连续纸条，行文随字车上移）----
+      // 批 45：装纸视口——纸从滚筒（y=362）向上长出来；视口下缘 362 裁掉多余部分
+      Column() {
       PaperPanel26({
         widthVp: PAPER_W * this.sx,
         heightVp: 306.4 * this.sy,
@@ -172,7 +176,7 @@ export struct Carriage26 {
       })
         .id('p35_paper')
           .hitTestBehavior(HitTestMode.None)
-        .position({ x: PAPER_LEFT * this.sx, y: 56 * this.sy + this.paperSlideVp })
+        .position({ x: PAPER_LEFT * this.sx, y: 362 * this.sy - this.paperGrowVp })
         // 批 39 修订：滚筒删除后纸顶＝干净直边；只加一条极淡的上缘阴影（1.5vp、黑 8%）
         Column().width(PAPER_W * this.sx).height(1.5 * this.sy)
           .linearGradient({
@@ -180,6 +184,11 @@ export struct Carriage26 {
             colors: [['#00000014', 0.0], ['#00000000', 1.0]],
           })
           .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
+      }
+      .width('100%').height(362 * this.sy)
+      .clip(true)
+      .position({ x: 0, y: 0 })
+      .hitTestBehavior(HitTestMode.None)
 
       // ---- 横尺（700vp 宽，随机宽覆盖；随字车移动）----
       Stack({ alignContent: Alignment.TopStart }) {

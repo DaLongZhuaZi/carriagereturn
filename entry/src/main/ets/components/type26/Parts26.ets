@@ -569,7 +569,7 @@ export struct PaperPanel26 {
   texture() {
     // 批 39（任务 7）：统一换成 paper-cream-v1 中性纸纹理——opacity 1.0、Cover（等比缩放＋居中裁切，不 Fill 硬拉）
     // 批 44：纸 v2——顶缘卷曲＋厚度＋卷底淡影已烤进贴图（1484×2066，与纸盒 0.7183 一致）
-    Image($rawfile('ui-parts/paper-cream-v2.png'))
+    Image($rawfile('ui-parts/paper-cream-v3.png'))
       .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(1.0)
   }
 
@@ -667,7 +667,7 @@ export struct PaperPanel26 {
 
       // 批 44：卷在前——把 v2 贴图的顶部卷曲段重绘在文字之上（滚动文字从卷下穿过，不压在卷上）
       Column() {
-        Image($rawfile('ui-parts/paper-cream-v2.png'))
+        Image($rawfile('ui-parts/paper-cream-v3.png'))
           .width('100%').height(this.heightVp).objectFit(ImageFit.Contain)
           .position({ x: 0, y: 0 })
           .hitTestBehavior(HitTestMode.None)
