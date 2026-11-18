@@ -1185,8 +1185,9 @@ struct Index {
   private playPaperLoad(): void {
     this.paperGrowVp = 0;
     this.paperContentOpacity = 0;
+    const growTarget: number = this.paperVisibleTargetVp();
     this.getUIContext().animateTo({ duration: 600, curve: Curve.FastOutSlowIn }, () => {
-      this.paperGrowVp = 306;
+      this.paperGrowVp = growTarget;
     });
     setTimeout(() => {
       this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
@@ -1207,7 +1208,7 @@ struct Index {
         this.paperGrowVp = 0;
       });
       setTimeout(() => {
-        this.paperGrowVp = 306;
+        this.paperGrowVp = this.paperVisibleTargetVp();
         this.paperContentOpacity = 1;
         hilog.info(DOMAIN, TAG, 'paper unload done');
         then();
@@ -1516,6 +1517,13 @@ struct Index {
   private lineWidth26(): number { return this.paperPanelWidthVp() - 55 * this.xk(); }
   /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
   private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
+  /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
+  private paperVisibleTargetVp(): number {
+    const lines: number = this.docModel.getLines().length;
+    const v: number = 90 + 25 * (lines > 0 ? lines - 1 : 0);
+    return v < 306 ? (v > 90 ? v : 90) : 306;
+  }
+
   /** §6.1：纸 V=0 左缘（156vp）。 */
   private paperPanelBaseXVp(): number { return 36 * this.xk(); }
   /** 批 35 修正口径：字车中心＝滚筒中心＝纸中心；V=0 在 266vp。 */
@@ -4117,6 +4125,15 @@ struct Index {
         this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
+      // 批 46：换行使纸长高一行（上限 306vp）；到顶后改为内容滚动
+      const growTarget: number = this.paperVisibleTargetVp();
+      if (growTarget > this.paperGrowVp + 0.5) {
+        this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
+          this.paperGrowVp = growTarget;
+        });
+      } else if (growTarget >= 306) {
+        this.paperGrowVp = 306;
+      }
       // §18.6 第 2 件：代际守卫（newlineTick 变了说明已被新一轮接管，本轮不许清旗／释放）
       if (this.newlineTick() !== myNlTick) {
         hilog.info(DOMAIN, TAG, 'newline release stale tick=%{public}s cur=%{public}s',
