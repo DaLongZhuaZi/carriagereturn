@@ -271,26 +271,9 @@ export struct Lid26 {
       // 批 38 §1a：光滑珐琅——纯色底＋边缘倒角线（1.5vp、比 token 亮 L+0.08）
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         .hitTestBehavior(HitTestMode.None)
-      // 批 38 §1a：径向光泽（取代线性）——中心 (181,180) 亮 +12、四角暗 −10（ΔL≈0.086）
-      Column().width('100%').height('100%')
-        .radialGradient({
-          center: [77 * this.sx, 237 * this.sy],
-          radius: 300 * this.sx,
-          colors: [[shiftColor(lidColor(this.machine), 10), 0.0],
-            [shiftColor(lidColor(this.machine), -13), 0.5],
-            [shiftColor(lidColor(this.machine), -37), 1.0]],
-        })
-        .hitTestBehavior(HitTestMode.None)
-      // 批 39（任务 4）：镜面高光——宽而柔的一片反光（实色＋低不透明度，不用渐变/模糊）
-      Column().width(300 * this.sx).height(76 * this.sy)
-        .backgroundColor('#ffffff').opacity(0.10)
-        .borderRadius(60 * this.sx)
-        .position({ x: 36 * this.sx, y: 4 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-      Column().width(180 * this.sx).height(48 * this.sy)
-        .backgroundColor('#ffffff').opacity(0.07)
-        .borderRadius(40 * this.sx)
-        .position({ x: 90 * this.sx, y: 14 * this.sy })
+      // 批 40（任务 1）：机盖柔光改预渲染贴图（真机 radial/blur 会出黄块，一律走 PNG 1:1 叠加）
+      Image($rawfile('ui-parts/lid-sheen-v1.png'))
+        .width('100%').height('100%').objectFit(ImageFit.Contain)
         .hitTestBehavior(HitTestMode.None)
 
       // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）
@@ -330,22 +313,11 @@ export struct Basket26 {
       Stack({ alignContent: Alignment.Bottom }) {
         // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
-        // 批 39（任务 9）：井背纵向渐变——只用深色 alpha（真机上白色 radial/blur 会渲染成黄块）
-        Column().width('100%').height('100%')
-          .linearGradient({ direction: GradientDirection.Bottom,
-            colors: [['#00000000', 0.0], ['#00000012', 0.45], ['#0000002e', 0.8], ['#0000004d', 1.0]] })
+        // 批 40（任务 3）：井背改预渲染贴图（纵向渐变＋7 道杆影，上亮下暗）
+        Image($rawfile('ui-parts/fanwell-back-v1.png'))
+          .width('100%').height('100%').objectFit(ImageFit.Contain)
+          .position({ x: 0, y: 0 })
           .hitTestBehavior(HitTestMode.None)
-        // 批 39（任务 9）：字杆投在井背上的软影（实色低透明细条，与杆平行）
-        Row() {
-          ForEach([0, 1, 2, 3, 4, 5, 6], (i: number) => {
-            Column().width(1.5 * this.sx).height(64 * this.sy)
-              .backgroundColor('#000000').opacity(0.06)
-              .margin({ left: 11 * this.sx, right: 11 * this.sx })
-          }, (i: number) => 'bar' + i)
-        }
-        .width('100%').position({ x: 0, y: this.heightVp - 70 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
         Stack({ alignContent: Alignment.Bottom }) {
           basketFanImage(this.machine)

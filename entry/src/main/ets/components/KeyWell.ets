@@ -28,22 +28,10 @@ export struct KeyWell {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor(this.wellColor())
-      // 批 39（任务 9）：井底不是洞——键缝漏下的光（实色低透明椭圆）
-      Column().width(this.widthVp * 0.55).height(this.heightVp * 0.42)
-        .backgroundColor('#2a2a2e').opacity(0.55).borderRadius(this.widthVp * 0.3)
-        .position({ x: this.widthVp * 0.22, y: this.heightVp * 0.28 })
+      // 批 40（任务 2）：井底改预渲染贴图（中央亮、边缘暗的径向渐变，1:1 铺满井）
+      Image($rawfile('ui-parts/keywell-floor-v1.png'))
+        .width('100%').height('100%').objectFit(ImageFit.Contain)
         .hitTestBehavior(HitTestMode.None)
-      // 批 39（任务 9）：键杆淡淡倒影（实色低透明，不用 blur）
-      Row() {
-        ForEach([0, 1, 2, 3, 4], (i: number) => {
-          Column().width(2).height(this.heightVp * 0.40)
-            .backgroundColor('#000000').opacity(0.10)
-            .margin({ left: 26, right: 26 })
-        }, (i: number) => 'kref' + i)
-      }
-      .width('100%').position({ x: 0, y: this.heightVp * 0.24 })
-      .hitTestBehavior(HitTestMode.None)
-
       // 井内侧壁：上沿亮线、下沿暗线
       Column().width('100%').height(1.5).backgroundColor('#ffffff').opacity(0.12)
         .position({ x: 0, y: 0 })
