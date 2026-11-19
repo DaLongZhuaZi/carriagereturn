@@ -1500,3 +1500,11 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
   `.accessibilityDescription(sub)`——每个键一个原生节点、朗读键名与键帽一致、不增加任何视觉元素、不改变触摸路径 ✓。
 - **未验证**：TalkBack 逐键朗读（本机无法自动化跑 TalkBack 扫描）；功能行六键／TopBar 三图标／候选栏 chip 的
   a11y 文本**本轮未加**（只加了 4 机键帽）。
+
+
+### 无障碍覆盖进度（批 62 收尾）
+- **已加**：四机键帽（KeyGrid 的每个原生 Button：accessibilityText＋level＋description）✓；
+  **功能行六键**（`FunctionCaps26.cap` 的根 Stack：accessibilityText(label，BL 读作"退行")＋level）✓。
+- **未加**：TopBar 的返回/导出两个图标、候选栏 chip、字体条——四个 `onClick` 点已定位
+  （Parts26 相对行 +33／+47／+253／+298），补法与功能行相同（各加两行 a11y 属性），
+  但本轮未做（缺各自的朗读文案口径：返回／导出／候选词本身／字体）。

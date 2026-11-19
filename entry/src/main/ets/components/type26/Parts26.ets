@@ -432,6 +432,9 @@ export struct FunctionCaps26 {
     }
     .width(36 * this.sx).height(30 * this.sy)
     .position({ x: (idx * 36) * this.sx, y: 3 * this.sy })
+    // 批 62 收尾：功能行六键的无障碍文本（读屏朗读名与按钮显示一致）
+    .accessibilityText(label === 'BL' ? '退行' : label)
+    .accessibilityLevel('yes')
     .onClick(() => { cb(); })
   }
 
