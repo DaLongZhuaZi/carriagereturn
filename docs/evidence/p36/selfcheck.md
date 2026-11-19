@@ -1523,3 +1523,16 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
   朗读文本就是候选词本身，与格内显示一致。构建通过。
 - **全量覆盖完成**：四机键帽＋空格 / 功能行六键 / TopBar 返回 / 出纸槽 / 字体条 / 候选 chip。
 - **仍未验证**：TalkBack 逐键朗读（需真机开无障碍扫一遍；本机无法自动化跑）。
+
+
+### 2179 替代证据（四纸卷曲一致性，数值）
+对每张新纹理取顶部 420px、x=700 处的亮度序列（步长 10），与 paper-cream-v5 同位置比较：
+| 纹理 | 与 cream 卷曲的平均绝对差 |
+|---|---|
+| paper-letter-curl | 6.1 |
+| paper-manuscript-curl | 6.3 |
+| paper-memo-curl | 13.9 |
+| paper-postcard-curl | 25.0 |
+
+差值来自各纸种**自身底色不同**（明暗轮廓一致：起点均比 cream 更暗、随 y 上升同趋势）。
+真机逐张切换截图仍待用户（设备导航走不完，见阻塞说明）。
