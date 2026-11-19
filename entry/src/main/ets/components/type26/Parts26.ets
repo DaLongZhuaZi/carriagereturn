@@ -567,6 +567,8 @@ export struct PaperPanel26 {
   @Prop freshScale: number = 1;
   /** 批 61：单字步进宽度（monospace 下 = fontSizeVp × 0.6）。 */
   @Prop advanceVp: number = 7.14;
+  /** 批 61（B①优化）：当前行号——只有这一行逐字渲染，其余行整行 Text。 */
+  @Prop activeLine: number = 0;
 
   /** 批 43：装纸/出纸时标题与光标淡入淡出（纸纹理不参与）。 */
   @Prop contentOpacity: number = 1;
@@ -607,20 +609,34 @@ export struct PaperPanel26 {
       // 只有"刚落下的字"（freshKey 匹配）缩放 1.05→1，40ms 内恢复正常）
       Column() {
         ForEach(this.lines, (line: string, li: number) => {
-          Stack({ alignContent: Alignment.TopStart }) {
-            ForEach(line.split(''), (ch: string, ci: number) => {
-              Text(ch)
-                .fontSize(this.fontSizeVp)
-                .fontFamily(this.fontFamily)
-                .fontColor(this.textColor)
-                .lineHeight(this.lineHeightVp)
-                .position({ x: ci * this.advanceVp, y: 0 })
-                .scale({ x: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1,
-                  y: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1 })
-                .animation({ duration: 40, curve: Curve.EaseOut })
-            }, (ch: string, ci: number) => li.toString() + ':' + ci.toString() + ':' + ch)
+          if (li === this.activeLine) {
+            // 当前行：逐字渲染（只有这里需要 fresh 字的 1.05→1）
+            Stack({ alignContent: Alignment.TopStart }) {
+              ForEach(line.split(''), (ch: string, ci: number) => {
+                Text(ch)
+                  .fontSize(this.fontSizeVp)
+                  .fontFamily(this.fontFamily)
+                  .fontColor(this.textColor)
+                  .lineHeight(this.lineHeightVp)
+                  .position({ x: ci * this.advanceVp, y: 0 })
+                  .scale({ x: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1,
+                    y: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1 })
+                  .animation({ duration: 40, curve: Curve.EaseOut })
+              }, (ch: string, ci: number) => li.toString() + ':' + ci.toString() + ':' + ch)
+            }
+            .width(this.textW()).height(this.lineHeightVp)
+          } else {
+            // 其余行：整行一个 Text（批 61①优化：节点数从 O(全文) 降到 O(一行)）
+            Text(line.length > 0 ? line : ' ')
+              .fontSize(this.fontSizeVp)
+              .fontFamily(this.fontFamily)
+              .fontColor(this.textColor)
+              .lineHeight(this.lineHeightVp)
+              .width(this.textW())
+              .textAlign(TextAlign.Start)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Clip })
           }
-          .width(this.textW()).height(this.lineHeightVp)
         }, (line: string, i: number) => i.toString() + ':' + line)
       }
       .width(this.textW())

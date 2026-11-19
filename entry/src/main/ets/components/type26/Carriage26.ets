@@ -74,6 +74,7 @@ export struct Carriage26 {
   @Prop freshKey: string = '';
   @Prop freshScale: number = 1;
   @Prop advanceVp: number = 7.14;
+  @Prop activeLine: number = 0;
   @Prop pageNo: string = '';
 
   // ---- 交互 ----
@@ -179,6 +180,7 @@ export struct Carriage26 {
         freshKey: this.freshKey,
         freshScale: this.freshScale,
         advanceVp: this.advanceVp,
+        activeLine: this.activeLine,
         pageNo: this.pageNo,
       })
         .id('p35_paper')

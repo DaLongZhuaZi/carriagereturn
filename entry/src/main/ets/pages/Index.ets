@@ -4962,6 +4962,7 @@ struct Index {
           freshKey: this.freshKey,
           freshScale: this.freshScale,
           advanceVp: this.fontSizeVp * 0.6,
+          activeLine: this.docModel.getCursor().line,
           pageNo: this.paperPageNo(),
           onKnob: (): void => { this.onKnobAdvance(); },
           onLeverTap: (): void => { this.onNewline(); },
