@@ -63,6 +63,9 @@ export struct Carriage26 {
   @Prop cursorYVp: number = 12;
   @Prop scrollYVp: number = 0;
   @Prop textureRawfile: string = 'paper-letter.png';
+  @Prop customPaperColor: string = '';
+  @Prop customTextureRawfile: string = '';
+  @Prop ruledOn: boolean = false;
   @Prop docTitle: string = '';
   /** 批 43：装纸/出纸的纸位移（0＝到位；−362＝整张在屏幕上方）。 */
   @Prop paperSlideVp: number = 0;
@@ -170,6 +173,9 @@ export struct Carriage26 {
         strikePhase: this.strikePhase,
         scrollYVp: this.scrollYVp,
         textureRawfile: this.textureRawfile,
+        customPaperColor: this.customPaperColor,
+        customTextureRawfile: this.customTextureRawfile,
+        ruledOn: this.ruledOn,
         docTitle: this.docTitle,
         contentOpacity: this.contentOpacity,
         pageNo: this.pageNo,

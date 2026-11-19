@@ -559,6 +559,10 @@ export struct PaperPanel26 {
   /** 整卷上移量（光标行超出可见区时）。 */
   @Prop scrollYVp: number = 0;
   @Prop textureRawfile: string = 'paper-letter.png';
+  /** 批 62（任务 3）：纸张自定义——底色／纹理／横线（空/未开则落回纸种默认）。 */
+  @Prop customPaperColor: string = '';
+  @Prop customTextureRawfile: string = '';
+  @Prop ruledOn: boolean = false;
   /** 批 36 §4.3：纸面标题（文档名）与页码（右上）。 */
   @Prop docTitle: string = '';
   @Prop pageNo: string = '';
@@ -575,8 +579,17 @@ export struct PaperPanel26 {
   texture() {
     // 批 39（任务 7）：统一换成 paper-cream-v1 中性纸纹理——opacity 1.0、Cover（等比缩放＋居中裁切，不 Fill 硬拉）
     // 批 44：纸 v2——顶缘卷曲＋厚度＋卷底淡影已烤进贴图（1484×2066，与纸盒 0.7183 一致）
-    // 批 62（任务 2）：纸纹理改用传入的纸种文件（paperPanelTexture 给 paper-letter/manuscript/memo/postcard）
-    Image($rawfile(this.textureRawfile.length > 0 ? this.textureRawfile : 'ui-parts/paper-cream-v5.png'))
+    // 批 62（任务 3）：自定义底色（在最底层；空则透明，不干扰纸种）
+    if (this.customPaperColor.length > 0) {
+      Column().width('100%').height('100%')
+        .backgroundColor(this.customPaperColor)
+        .position({ x: 0, y: 0 })
+        .hitTestBehavior(HitTestMode.None)
+    }
+    // 批 62（任务 2／3）：纸纹理——自定义纹理优先，其次纸种文件，最后回落 cream
+    Image($rawfile(this.customTextureRawfile.length > 0
+      ? this.customTextureRawfile
+      : (this.textureRawfile.length > 0 ? this.textureRawfile : 'ui-parts/paper-cream-v5.png')))
       .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(1.0)
   }
 
@@ -584,6 +597,16 @@ export struct PaperPanel26 {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor('#faf8f2')
       this.texture()
+      // 批 62（任务 3）：横线（与纸自定义预览同口径：每 lineHeightVp 一条，从上内边距起）
+      if (this.ruledOn) {
+        ForEach(new Array(Math.max(1, Math.floor((this.heightVp - this.marginTVp) / this.lineHeightVp))),
+          (x: undefined, k: number) => {
+            Column().width(this.widthVp - this.marginLVp * 2).height(0.6)
+              .backgroundColor('#00000014')
+              .position({ x: this.marginLVp, y: this.marginTVp + k * this.lineHeightVp })
+              .hitTestBehavior(HitTestMode.None)
+          }, (x: undefined, k: number) => 'rule' + k.toString())
+      }
       // 批 39 任务 7：左右纸边极淡阴影（1.5vp、黑 9%），读得出纸有厚度
       Column().width(1.5 * this.sx).height('100%')
         .linearGradient({ direction: GradientDirection.Right, colors: [['#00000017', 0.0], ['#00000000', 1.0]] })

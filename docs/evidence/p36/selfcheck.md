@@ -1460,3 +1460,18 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 4. 自定义边距：未接。**且发现口径歧义**：`PaperKindSpec` 只有一个 `marginH`，而纸面渲染写的是左 25／右 30 两个不同值；
    直接改用 `marginH()` 会让右边距从 30 变成 25（未自定义时外观就变了，违反"不改自定义时外观不变"）。
    要么给 spec 补 `marginRight`，要么按"左=marginH、右=30"分别接——需要用户定口径。
+
+
+### 任务 3／4：纸张自定义（颜色／纹理／横线／边距）——已接线，默认外观不变 ✓
+- **任务 3**：`PaperPanel26` 新增 `customPaperColor`／`customTextureRawfile`／`ruledOn` 三个 prop；
+  底色层在最底（空则透明）、纹理优先用自定义（再纸种、最后 cream）、横线按 `lineHeightVp` 在 `marginTVp` 起逐行画（0.6vp、黑 8%）。
+  `Index` 的 `refreshPaperCustom()` 补上 `customPaperRuled = p.ruled`（原来漏读 ruled）；
+  三条经 `Carriage26` 传到 `PaperPanel26` ✓。
+- **任务 4**：纸面 mount 的三条边距由写死改为
+  `(customMarginH > 0 ? customMarginH : 25) * xk` / `(… : 30) * xk` / `(customMarginT > 0 ? … : 31) * yk`——
+  **未自定义时与现行 25/30/31 完全一致**（外观不变的硬要求满足），自定义时左／右同取 `customMarginH`、上取 `customMarginT`。
+- 实测（2173）：默认状态下纸面外观与修前一致（无底色、无横线、边距 25/30/31），构建通过、真机运行正常 ✓。
+- **未验证**：在纸张自定义页真正改颜色/纹理/开横线/改边距后打字页是否跟着变——需要走 UI 逐项设置，本轮未逐项截图（如实记）。
+
+### 任务 5 现状
+- 开关显示已响应（`@Prop a11yEnabled`）✓；**覆盖层本体仍未实现**（覆盖层内容/位置未设计，等用户定）。

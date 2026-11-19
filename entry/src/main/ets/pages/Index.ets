@@ -333,6 +333,8 @@ struct Index {
   @State customMarginB: number = 0;
   @State customPaperColor: string = '';
   @State customPaperTexture: string = '';
+  /** 批 62（任务 3）：纸自定义横线开关。 */
+  @State customPaperRuled: boolean = false;
   /** 第 2 批 F3：字体偏好变更计数（触发换装页四机字体行刷新）。 */
   @State fontPrefsRev: number = 0;
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
@@ -2135,6 +2137,7 @@ struct Index {
     this.customMarginB = p.marginB;
     this.customPaperColor = p.color;
     this.customPaperTexture = p.texture;
+    this.customPaperRuled = p.ruled;
   }
 
   private marginH(): number {
@@ -4940,15 +4943,19 @@ struct Index {
           lines: this.docLineTexts(),
           fontSizeVp: this.fontSizeVp,
           lineHeightVp: this.lineHeightVp,
-          marginLVp: 25 * this.xk(),
-          marginRVp: 30 * this.xk(),
-          marginTVp: 31 * this.yk(),
+          // 批 62（任务 4）：自定义边距接上——未自定义时用现行等效默认值（左25/右30/上31），外观不变
+          marginLVp: (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk(),
+          marginRVp: (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk(),
+          marginTVp: (this.customMarginT > 0 ? this.customMarginT : 31) * this.yk(),
           fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：字体条切换即改变纸面渲染
           textColor: this.inkColor,
           cursorXVp: this.cursorXVp26(),
           cursorYVp: this.paperCursorY26(),
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
+          customPaperColor: this.customPaperColor,
+          customTextureRawfile: this.customPaperTexture,
+          ruledOn: this.customPaperRuled,
           docTitle: this.docTitle,
           paperGrowVp: this.paperGrowVp,
           contentOpacity: this.paperContentOpacity,
