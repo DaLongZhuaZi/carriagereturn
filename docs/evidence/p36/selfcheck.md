@@ -972,3 +972,41 @@ hilog：`advance eng=7.14 cjk=11.90 **i=2.67 m=8.30** fs=11.90 **mono=false**`
   (b) 接受系统比例字体，把换行阈值也改成按实测宽（`lineWidthMeasuredVp`）判定，并给 `i/m` 这类字宽差异做按字校准；
   (c) 用自绘文本（Canvas）绕开 ArkUI 字体族解析。
 - 2050 截图是当前渲染状态（比例字体）留档。
+
+
+---
+
+# 批 52 追加：(a) 注册时机改到 onWindowStageCreate——**验证失败，已回退**（2026-11-19 21:40）
+
+> 依据 `docs/designs/26-增补-17-批52.md`。按用户"先试 (a)"执行。
+
+## 做法
+`EntryAbility.onWindowStageCreate` 里、`windowStage.loadContent('pages/Index', …)` **之前**：
+```ts
+const uiCtx = windowStage.getMainWindowSync().getUIContext();
+const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
+```
+（UIContext 取法：`windowStage.getMainWindowSync().getUIContext()`）
+
+## 实测结果：**失败**
+- hilog：`EntryAbility: fonts registered before loadContent **FAILED {"code":1300002}**`
+  —— 1300002＝窗口尚未就绪：`loadContent` 之前主窗口的 UIContext 取不到，注册调用直接抛错；
+- 同一进程随后 aboutToAppear 的兜底注册照常执行，渲染结果不变：
+  `MainScreen: advance eng=7.14 cjk=11.90 i=2.67 m=8.30 fs=11.90 **mono=false**`；
+- 即：**(a) 在本机/本 API 版本上不成立**——不是"注册了但没生效"，而是"这个时点根本拿不到可注册的 UIContext"。
+
+## 处置
+- **已回退** EntryAbility 的改动（不留每次启动的 error 日志）；`git diff` 为空，构建通过；
+- 按提示词"若 (a) 不生效：如实记偏差、停手、报回，不擅自做 (b) 或 (c)"——本轮到此为止。
+
+## 结论与两条剩余路线（等你定）
+批 51＋批 52 合起来的完整结论：
+1. 17 款字体 `registerFont` 全部**报成功**（`total=17 failed=0`），但 Text 渲染始终是**比例字体**（i 2.67／m 8.12，3 倍差，`mono=false`）；
+2. 族名三种写法（逗号列表／注册名／TTF 内部名）、两条注册通道（`$rawfile`／沙箱 `file://`）、四个时点（aboutToAppear／loadContent 前／onCreate 无 UIContext／沙箱二次注册）**全部无效或不可用**；
+3. 说明这是平台／API 层的行为，不是我们写法的问题（字体文件本身沙箱验证是标准 0.600em 等宽）。
+
+剩余可选（都要动到换行口径或渲染层，等你点头）：
+- **(b) 接受系统比例字体，口径全部改实测**：换行阈值改用 `lineWidthMeasuredVp`、按字校准宽度。代价：换行逻辑要动，但能顺带解决"29 字 vs 33 字"。
+- **(c) 自绘文本（Canvas）**：绕开 ArkUI 字体族解析，最重、最可控。
+
+> 用户可见问题（打字越多光标越偏）**已在批 50 解决**——光标 X 用实测渲染宽，不依赖字体是否注册成功。
