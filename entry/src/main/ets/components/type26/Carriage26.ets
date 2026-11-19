@@ -192,16 +192,39 @@ export struct Carriage26 {
 
       // ---- 横尺（700vp 宽，随机宽覆盖；随字车移动）----
       Stack({ alignContent: Alignment.TopStart }) {
-        // 批 57：杆身＋主次刻度＋锯齿合成一张预渲染贴图（2800×48 = 700×12vp @4x，1:1 叠加）
-        Image(('ui-parts/ruler-steel-v1a.png'))
-          .width(700 * this.sx).height(12 * this.sy)
-          .objectFit(ImageFit.Contain)
+        // 批 58：横尺恢复代码绘制（批 57 的贴图路线作废）
+        // 杆身渐变（口径与批 57 之前一致）
+        Column().width(700 * this.sx).height(12 * this.sy)
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [['#e6e6e8', 0.0], ['#b4b4b4', 0.45], ['#7d7d80', 1.0]],
+          })
           .position({ x: 0, y: 0 })
+        // 刻度：175 根，节距 4vp；次刻度 4vp 高/0.8vp 宽 #3d3d40，主刻度每 5 根 7vp 高/1.2vp 宽 #2b2b2f
+        Stack({ alignContent: Alignment.TopStart }) {
+          ForEach(this.teeth(), (t: number, i: number) => {
+            Column()
+              .width((i % 5 === 0 ? 1.2 : 0.8) * this.sx)
+              .height((i % 5 === 0 ? 7 : 4) * this.sy)
+              .backgroundColor(i % 5 === 0 ? '#2b2b2f' : '#3d3d40')
+              .position({ x: (i * 4) * this.sx, y: 0 })
+          }, (t: number) => 'tick' + t.toString())
+        }
+        .width(700 * this.sx).height(12 * this.sy)
+        .position({ x: 0, y: 0 })
         // 两个边距红三角（纸左缘 156／纸右缘 376；与中央指针 181 分明）
         TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
           .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
         TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
           .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
+        // 锯齿下沿（175 齿：齿宽 2vp、齿高 3vp、间距 2vp）
+        Row({ space: 2 * this.sx }) {
+          ForEach(this.teeth(), (t: number) => {
+            Column().width(2 * this.sx).height(3 * this.sy).backgroundColor('#2b2b2f')
+          }, (t: number) => 'saw' + t.toString())
+        }
+        .width(700 * this.sx).height(3 * this.sy)
+        .position({ x: 0, y: 9 * this.sy })
       }
       .width(700 * this.sx).height(12 * this.sy)
       .clip(true)
