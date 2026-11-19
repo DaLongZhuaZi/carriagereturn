@@ -1874,8 +1874,9 @@ struct Index {
       if (computedFs > 26) {
         computedFs = 26;
       }
-      // 26 号稿 §6.1：纸宽 220vp 口径下正文 11.9vp（配置重算，不算改逻辑）
-      this.fontSizeVp = this.paperPanelWidthVp() / 220 * 11.9;
+      // 批 62（任务 1）：字号读回——存过的用存的值（clamp [12,26]）；没存过才用 220vp 口径的现算值
+      const storedFs: number = CustomizeStore.fontSize(this.machineKind as string);
+      this.fontSizeVp = storedFs > 0 ? storedFs : (this.paperPanelWidthVp() / 220 * 11.9);
       this.measureAdvance();
       // §18.9：行高与语言无关，唯一公式 fontSize×30/17
       this.lineHeightVp = lineHeightOf(this.fontSizeVp);

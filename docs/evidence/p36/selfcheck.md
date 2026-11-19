@@ -1418,3 +1418,30 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 - 实测（2167b）：纸面文字明显变大（对比 2166 的字号），行数与纸高随之变化 ✓
 - 影响：一行字数 = 235 / (0.6×20) ≈ **19.6 字**（fs 11.9 时是 33 字）——字号变大、每行字数变少是必然的取舍，
   用户可用字号滑杆（12–26）自行微调。
+
+
+---
+
+## 批 62 自检：设置不生效修复（本轮落地 2/5 项）
+
+> 依据 `docs/designs/26-增补-27-批62.md`。截图 **2170**。
+
+### 任务 1：字号滑杆被重置——**已修复** ✓
+- 根因确认：`measureStage` 里 `this.fontSizeVp = this.paperPanelWidthVp() / 220 * 11.9;` **无条件覆盖**，存的字号永远被冲掉。
+- 修法：改为读回 `CustomizeStore.fontSize(machine)`——**存过就用存的（已 clamp [12,26]），没存过（返回 0）才用 220vp 口径的现算值**。
+- 实测（2170／hilog）：`parts ... **fs=15.00 lh=26.5**`——设备存的是 15，**现在真的按 15 渲染**了（修前恒为 11.9）✓。
+- 注意：数值回显（滑块旁显示"15"）本轮未做（属 UI 补充，见未完成）。
+
+### 任务 2：纸张纹理不生效——**已修复** ✓
+- 根因确认：`PaperPanel26` 的纸纹理写死 `paper-cream-v5.png`，`textureRawfile` prop 是死的。
+- 修法：改用 `$rawfile(this.textureRawfile)`（空串才回落 cream）。
+- 实测（2170）：纸面从带卷曲的奶油纸变成 **paper-letter.png 的素白纸**——纹理确实跟着纸种变了 ✓。
+
+### 未完成（如实报，本轮时间用尽）
+3. **纸张自定义颜色/纹理/横线**：未接（`refreshPaperCustom` 读到的 customPaperColor/customPaperTexture/ruled 仍未传给 PaperPanel26）。
+4. **自定义边距**：未接（Index 4937-4939 仍写死 25/30/31）。
+5. **无障碍覆盖层**：未做（开关仍是双死：state 没人读、SettingsPage 字段非响应式）。
+
+### 新发现的副作用（如实记）
+- 换成 paper-letter/manuscript/memo/postcard 后，**批 44 的顶缘卷曲没有了**（卷曲是烤在 paper-cream-v5 里的，其他纸种图片没有卷）——纸顶变成直边。
+  需要用户定：是给四种纸各补一张带卷曲的纹理，还是接受"非奶油纸直边"。
