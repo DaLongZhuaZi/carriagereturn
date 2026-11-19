@@ -1298,3 +1298,17 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 
 ## 结论
 - 四个动画中**只落地 1 个**（按键行程），其余 3 个如实报未做（其中落字印受本机 blur 限制与整行 Text 结构限制，需要用户先定方向）。
+
+
+## 批 61 第 3 轮补记：Shift 抬扇已落地（本轮新增）
+
+**做法**：`Parts26.Basket26` 新增 `@Prop shiftLiftVp`，扇图外层的 `Stack`（213×126.3vp，含 shadow）加
+`.translate({ y: this.shiftLiftVp * this.sy })` ＋ `.animation({ duration: 260, curve: curves.springMotion(0.3, 0.55) })`（弹簧、轻微过冲）。
+`Index` 加 `@State shiftLiftVp`，在 Shift 按下（`shiftActive = true`）置 **−10vp**、松开置 **0**，并经 `Basket26({...})` 传入。
+显示盒（宽高比、位置）未动，只加 translate ✓。
+
+**未按设计**：只抬扇、井背（`fanwell-back-v2`）不动——井背是背景，一起抬会在井口露出机身底色；这是与设计"整图＋井底一起抬"的偏差，如实记。
+
+**证据**：2165（扇在基位的真机截图）。**Shift 按住态帧未取到**——`uitest uiInput click` 是按下即松开、`snapshot_display` 单帧 300–400ms，抓不到按住瞬间；替代证据＝代码路径＋弹簧参数。（若需要按住态截图，可用用户手动按住＋截图。）
+
+**构建**：BUILD SUCCESSFUL，已装真机。

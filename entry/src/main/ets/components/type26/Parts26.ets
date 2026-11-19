@@ -1,3 +1,4 @@
+import { curves } from '@kit.ArkUI';
 /**
  * 26 号稿（打字页面推倒重来）· 零件层：整机一体的盖子／字车／字篮／融盖控件／纸。
  *
@@ -306,6 +307,8 @@ export struct Lid26 {
 // ---------------------------------------------------------------------------
 @Component
 export struct Basket26 {
+  /** 批 61：Shift 抬扇（0／−10vp，组件侧弹簧驱动；只抬扇、井背不动）。 */
+  @Prop shiftLiftVp: number = 0;
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop widthVp: number = 240;
   @Prop heightVp: number = 138;
@@ -328,6 +331,9 @@ export struct Basket26 {
           basketFanImage(this.machine)
         }
         .width(213 * this.sx).height(126.3 * this.sy)
+        // 批 61：Shift 抬扇——整扇上抬 10vp，弹簧（轻微过冲）；显示盒不变，只加 translate
+        .translate({ y: this.shiftLiftVp * this.sy })
+        .animation({ duration: 260, curve: curves.springMotion(0.3, 0.55) })
         .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
         .hitTestBehavior(HitTestMode.None)
       }

@@ -1319,6 +1319,8 @@ struct Index {
   private docsCacheRev: number = -1;
   /** Shift 锁定式（打字机字档锁）：按一次开、再按关。 */
   @State shiftActive: boolean = false;
+  /** 批 61：Shift 抬扇目标（0／−10vp，组件侧弹簧驱动）。 */
+  @State shiftLiftVp: number = 0;
   /** 第 13 批：大写锁定（Caps Lock 键切换；与 Shift 的按住态互相独立）。 */
   @State capsLock: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
@@ -3208,6 +3210,7 @@ struct Index {
         // 中文里插英文的逃生口：先提交首选，再按原样打大写
         this.pinyinCommitTop();
         this.shiftActive = false;
+        this.shiftLiftVp = 0;
         this.queueChar(label);
         return true;
       }
@@ -3368,6 +3371,7 @@ struct Index {
       // 按下模式：按住才大写，松开即 false（onCapUp 里清）。符号模式下无动作。
       if (!this.symbolMode) {
         this.shiftActive = true;
+        this.shiftLiftVp = -10;
       }
       return;
     }
@@ -5015,6 +5019,7 @@ struct Index {
         }
 
         Basket26({
+          shiftLiftVp: this.shiftLiftVp,
           machine: this.machineKind,
           widthVp: 240 * this.xk(),
           heightVp: this.t26y(138),
