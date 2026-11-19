@@ -4964,7 +4964,7 @@ struct Index {
             colors: [['#a8352f', 0.0], ['#e04a42', 0.35], ['#d23a33', 0.62], ['#8f1f1c', 1.0]],
           })
           .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(370) })
-          .translate({ y: -12 * this.yk() * this.strikePhase })
+          // 批 59：色带不再随打击上提 12vp（那会让红线每敲一键抖动；改为静态）
           .hitTestBehavior(HitTestMode.None)
           
         // 落字指针（批 56：跟随光标——屏上 x ＝ 61 ＋ 光标纸内 x ＋ 字车 O，平滑动画）
