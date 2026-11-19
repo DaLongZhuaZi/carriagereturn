@@ -1049,3 +1049,45 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 3. CJK 本轮未实测（需切中文输入），只确认 `cjk=11.90` 假设值与系统 书宋-简 回落存在。
 
 > 回归：四机 2073–2076；暗像素 0.108／0.109／0.079／0.109（<0.18 ✓）；整机无黄块；纸/卷/压纸杆/盖面高光/状态栏/扇/键帽键盘区/横尺色带功能行字体条候选栏/井底井背/螺丝/接触影均未动。
+
+
+---
+
+# 批 54 自检追加：字体可切换（通用族映射）＋换行阈值改实际纸宽（2026-11-19 23:15）
+
+> 依据 `docs/designs/26-增补-19-批54.md`。截图 **2090–2095**：2090 打满一行（33 字口径）｜2092–2095 四机。
+
+## 任务 1：字体可切换（通用族映射，已实现）
+
+**映射表（17 款 → 3 个系统通用族）**，由 `genericFamilyFor(family)` 实现：
+
+| 通用族 | 字体（17 款中的） |
+|---|---|
+| `monospace` | CourierPrime、AnonymousPro、SpaceMono、XanhMono、SpecialElite（5） |
+| `serif` | IMFellEnglish、NotoSerifSC、LXGWWenKai、LongCang、ZhuqueFangsong（5） |
+| `cursive` | Caveat、Kalam、PatrickHand、ShadowsIntoLight、HomemadeApple、MaShanZheng、ZhiMangXing（7） |
+
+统一施加在四处（批 53 的教训：量宽族必须与渲染族同源）：纸面 Text 挂载、`measureAdvance()` 探针、`commitChar` 的量宽 `measureText`、overlay 文本（`overlayFontFamily`）。
+
+**切换生效的证据**（同一个 32 字 'm' 行，只换字体族）：
+- 本批当前字体 **Patrick Hand**（→ `cursive`）：`charTrace measW=325.33`（10.17vp/字）；
+- 批 53 的 **Courier Prime**（→ `monospace`）：`charTrace measW=71.41`（10 字，7.14vp/字）；
+- **同一串字的实测宽从 7.14 变成 10.17 → 渲染确实随字体切换改变了**（这是"可切换"的直接证据）。
+
+**诊断（如实记）**：
+- `getSystemFontList()` = 1 项（书宋-简）——系统只暴露一个具名字体；通用族 `monospace` 可用（mono=true，批 53 已证）；
+- **单字体注册试（诊断 c）本轮未做**（时间窗不够）；`serif`／`cursive` 是否被系统解析到独立字体，目前只能由"实测宽随族变化"间接证明；
+- **同族内切换渲染相同**（如 CourierPrime ↔ SpaceMono 都渲染成系统 monospace）——这是 `registerFont` 已死的代价，不是实现 bug，如实记。
+
+## 任务 2：换行阈值改用实际纸宽（已达成，结案）
+
+- `lineWidth26()`：`paperPanelWidthVp() − 55`（＝165，旧 220vp 口径）→ **`235 * xk()`**（290vp 实际纸宽 − 边距 55vp）✓
+- 实测：`autoWrap by position ... nextRaw=235.60 **limit=234.98**` —— 阈值就是 235 ✓；
+- 打 33 个字符时，**第 32 字触发换行**（235／7.14＝32.9，与设计"约 33 字"一致）✓；
+- **2090**：一行 'm' 打满纸宽（行尾贴近纸右缘、右侧不再有 ~70vp 死区）✓——"29 字 vs 33 字"结案。
+
+## 已知问题（下一批）
+- **比例族（serif／cursive）的行宽口径不一致**：换行仍按 0.6em 累加（7.14/字）判定，但 cursive 实际渲染 10.17/字 → 这类字体下**一行会溢出纸右缘**（2090 是 cursive 字体，能看到右缘略溢出）。要修得让换行阈值也用实测宽（即批 19 §2 之外的口径改动）。
+
+## 回归
+- 四机 2092–2095；暗像素 **0.11／0.109／0.080／0.109**（<0.18 ✓）；整机无黄块；纸 290／左 36／落字点 61／卷 25／压纸杆 y=358／盖面高光 v2／状态栏深色图标／扇 v4／五件已删／键帽键盘区／横尺色带功能行字体条候选栏／井底井背／螺丝／接触影均未动。

@@ -1523,10 +1523,19 @@ struct Index {
     return this.isTablet ? this.stageWidth * 0.606 : 220 * this.xk();
   }
   /** §6.1：行宽 165vp（纸宽 220 − 左 25 − 右 30）。 */
-  private lineWidth26(): number { return this.paperPanelWidthVp() - 55 * this.xk(); }
+  private lineWidth26(): number { return 235 * this.xk(); }   // 批 54：实际纸宽 290 − 边距 55 ＝ 235vp（≈33 字/行）
   /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
   private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
   /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
+  /** 批 54：把 17 款注册字体映射到系统实际可用的通用族（registerFont 平台层无效，见批 51–53）。 */
+  private genericFamilyFor(family: string): string {
+    const mono: string[] = ['CourierPrime', 'AnonymousPro', 'SpaceMono', 'XanhMono', 'SpecialElite'];
+    const serif: string[] = ['IMFellEnglish', 'NotoSerifSC', 'LXGWWenKai', 'LongCang', 'ZhuqueFangsong'];
+    if (mono.indexOf(family) >= 0) { return 'monospace'; }
+    if (serif.indexOf(family) >= 0) { return 'serif'; }
+    return 'cursive';
+  }
+
   private paperVisibleTargetVp(): number {
     // 批 49：纸高＝上内边距 31 ＋ 真实行高 21.0 × 行数；1 行 52，钳 [52, 306]
     const lines: number = this.docModel.getLines().length > 0 ? this.docModel.getLines().length : 1;
@@ -2585,14 +2594,14 @@ struct Index {
   private measureAdvance(): void {
     try {
       const mu = this.getUIContext().getMeasureUtils();
-      const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
-      const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
+      const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: this.genericFamilyFor(this.fontFamily) });
+      const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: this.genericFamilyFor(this.fontFamily) });
       // Courier Prime 的 hmtx 实测 1228/2048 = 0.600 em（fontTools 直读 ttf）。
       // MeasureUtils 看不到 registerFont 注册的族名（会回落系统比例字体），故只记录、不回写。
       this.advEngVp = this.fontSizeVp * 0.6;
       this.advCjkVp = this.fontSizeVp;
-      const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
-      const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
+      const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: this.genericFamilyFor(this.fontFamily) });
+      const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: this.genericFamilyFor(this.fontFamily) });
       hilog.info(DOMAIN, TAG,
         'advance eng=%{public}s cjk=%{public}s i=%{public}s m=%{public}s fs=%{public}s mono=%{public}s',
         this.advEngVp.toFixed(2), this.advCjkVp.toFixed(2),
@@ -3655,7 +3664,7 @@ struct Index {
       const px: number = this.getUIContext().getMeasureUtils().measureText({
         textContent: this.currentLineText(),
         fontSize: this.fontSizeVp,
-        fontFamily: 'monospace',   // 批 53：与纸面渲染同族，实测宽才与渲染一致
+        fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：量宽族与渲染族同源
       });
       this.lineWidthMeasuredVp = this.getUIContext().px2vp(px);
     } catch (e) {
@@ -4904,7 +4913,7 @@ struct Index {
           marginLVp: 25 * this.xk(),
           marginRVp: 30 * this.xk(),
           marginTVp: 31 * this.yk(),
-          fontFamily: 'monospace',   // 批 53 测试：系统通用等宽族
+          fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：字体条切换即改变纸面渲染
           textColor: this.inkColor,
           cursorXVp: this.cursorXVp26(),
           cursorYVp: this.paperCursorY26(),
@@ -5076,7 +5085,7 @@ struct Index {
           widthVp: this.canvasWidthVp(),
           heightVp: this.keybedHeight,
           layout: this.displayLayout(),
-          overlayFontFamily: this.fontFamily,
+          overlayFontFamily: this.genericFamilyFor(this.fontFamily),
           overlayFontSize: 15,
           capShape: this.capShape(),
           labelColor: this.displayLayout().overlayColor,
