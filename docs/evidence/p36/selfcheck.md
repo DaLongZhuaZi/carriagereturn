@@ -1328,3 +1328,23 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 
 **本轮交付**：无产品代码变更（只此记录）。批 61 最终交付＝四个动画中的**两个**（按键行程、Shift 抬扇），
 另两个如实报未做并附原因。
+
+
+## 批 61 B 方案：正文改逐字渲染（落字印）——代码已落，真机验证待解锁
+
+**用户决定（2026-11-20 01:32）**：回车过冲不做；落字印走 B 方案（逐字渲染）试效果。
+
+**改了什么**：
+- `PaperPanel26` 的正文由"整行一个 Text"改为**逐字一个 Text**：每字按 `x = ci × advanceVp` 定位，行内 `y = 0`；
+  `advanceVp = fontSizeVp × 0.6`（monospace 实测 0.6em ✓，批 53 已证）。
+- 新增 `freshKey`／`freshScale` 两个 prop：只有 `line:index` 等于 `freshKey` 的那一个字吃 `freshScale`，
+  其余恒为 1；组件侧 `.animation({duration:40, curve: EaseOut})`。
+- `Index.landHead()` 里置 `freshKey = 当前行:当前列`、`freshScale = 1.05`，然后 40ms `animateTo` 缩回 1 —— 即"字是盖上去的"。
+- 未用 `.blur()`（本机出黄块，增补-6）；墨晕效果本方案暂时只做缩放、不做模糊，如实记。
+
+**构建**：BUILD SUCCESSFUL（44s）。
+**真机验证受阻**：装包后设备**再次锁屏**（`power-shell wakeup` 多次、`uitest swipe` 均无效，截图全黑）——
+这是本轮第 2 次遇到同一锁屏阻塞。**因此逐字渲染是否真的正常显示（字距、行距、性能、fresh 缩放）尚未在真机确认**。
+若解锁后发现正文错位／漏字／卡顿，本方案可整体回退（改动集中在 PaperPanel26 的 lines 块＋两个 prop＋landHead 的一段）。
+
+**待用户**：解锁设备 → 我装包验证 2163（逐字渲染的打字截图）与落字瞬间。

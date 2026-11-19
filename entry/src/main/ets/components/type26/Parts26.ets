@@ -562,6 +562,12 @@ export struct PaperPanel26 {
   /** 批 36 §4.3：纸面标题（文档名）与页码（右上）。 */
   @Prop docTitle: string = '';
   @Prop pageNo: string = '';
+  /** 批 61（B 方案）：逐字渲染下"刚落下的那个字"的键（line:index）与其缩放（1.05→1）。 */
+  @Prop freshKey: string = '';
+  @Prop freshScale: number = 1;
+  /** 批 61：单字步进宽度（monospace 下 = fontSizeVp × 0.6）。 */
+  @Prop advanceVp: number = 7.14;
+
   /** 批 43：装纸/出纸时标题与光标淡入淡出（纸纹理不参与）。 */
   @Prop contentOpacity: number = 1;
   /** 批 39 任务 8：打击相位 0..1（字杆影／色带影同步）。 */
@@ -597,25 +603,31 @@ export struct PaperPanel26 {
         .linearGradient({ direction: GradientDirection.Top, colors: [['#0000001a', 0.0], ['#00000000', 1.0]] })
         .position({ x: 0, y: this.heightVp - 2 * this.sy })
         .hitTestBehavior(HitTestMode.None)
-      // 纸面文字（行高 lineHeight，左内缩 marginL，上内缩 marginT；整卷随 typing 上移）
+      // 纸面文字（批 61 B 方案：逐字渲染——每字一个 Text，按 index × advance 定位；
+      // 只有"刚落下的字"（freshKey 匹配）缩放 1.05→1，40ms 内恢复正常）
       Column() {
-        ForEach(this.lines, (line: string, i: number) => {
-          Text(line.length > 0 ? line : ' ')
-            .fontSize(this.fontSizeVp)
-            .fontFamily(this.fontFamily)
-            .fontColor(this.textColor)
-            .lineHeight(this.lineHeightVp)
-            .width(this.textW())
-            .textAlign(TextAlign.Start)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Clip })
+        ForEach(this.lines, (line: string, li: number) => {
+          Stack({ alignContent: Alignment.TopStart }) {
+            ForEach(line.split(''), (ch: string, ci: number) => {
+              Text(ch)
+                .fontSize(this.fontSizeVp)
+                .fontFamily(this.fontFamily)
+                .fontColor(this.textColor)
+                .lineHeight(this.lineHeightVp)
+                .position({ x: ci * this.advanceVp, y: 0 })
+                .scale({ x: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1,
+                  y: (li.toString() + ':' + ci.toString()) === this.freshKey ? this.freshScale : 1 })
+                .animation({ duration: 40, curve: Curve.EaseOut })
+            }, (ch: string, ci: number) => li.toString() + ':' + ci.toString() + ':' + ch)
+          }
+          .width(this.textW()).height(this.lineHeightVp)
         }, (line: string, i: number) => i.toString() + ':' + line)
       }
       .width(this.textW())
       .alignItems(HorizontalAlign.Start)
       .position({
         x: this.marginLVp,
-        y: this.marginTVp,   // 批 47：纸上无标题，正文从内边距处开始
+        y: this.marginTVp,
       })
       .translate({ y: -this.scrollYVp })
       .hitTestBehavior(HitTestMode.None)
