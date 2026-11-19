@@ -2847,6 +2847,17 @@ struct Index {
     return line.text.length > 0 ? line.text : ' ';
   }
 
+  /** 批 50：光标 X——行尾时直接用隐藏 Text 的实测渲染宽，未测到才退回累加。 */
+  private cursorXVp26(): number {
+    const c = this.docModel.getCursor();
+    const lines = this.docModel.getLines();
+    const line = c.line < lines.length ? lines[c.line] : undefined;
+    if (line !== undefined && c.offset >= line.text.length && this.lineWidthMeasuredVp >= 0) {
+      return this.lineWidthMeasuredVp;
+    }
+    return this.currentLineWidthVp();
+  }
+
   /** 优先用整行渲染实测宽；未测到才退回逐字累加。 */
   private currentLineWidthVp(): number {
     // 只用 ttf 度量（0.600em）累加；隐藏 Text 的实测只记录，不参与布局——
@@ -4886,7 +4897,7 @@ struct Index {
           marginTVp: 31 * this.yk(),
           fontFamily: this.fontFamily,
           textColor: this.inkColor,
-          cursorXVp: this.currentLineWidthVp(),
+          cursorXVp: this.cursorXVp26(),
           cursorYVp: this.paperCursorY26(),
           scrollYVp: this.paperScroll26(),
           textureRawfile: this.paperPanelTexture(),
