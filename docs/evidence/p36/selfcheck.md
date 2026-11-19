@@ -1475,3 +1475,28 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 
 ### 任务 5 现状
 - 开关显示已响应（`@Prop a11yEnabled`）✓；**覆盖层本体仍未实现**（覆盖层内容/位置未设计，等用户定）。
+
+
+---
+
+## 批 62 收尾（增补-28）自检
+
+### 任务 2：四种纸补带卷纹理——已生成并接线 ✓
+- 用 PIL 以 `paper-cream-v5` 顶部 420px 的**明暗差**（相对平纸基准色，有符号）叠加到四种纸各自的顶部，
+  生成 **paper-letter-curl / paper-manuscript-curl / paper-memo-curl / paper-postcard-curl**（均 1956×2066），
+  底色/底纹保持各纸种原样、卷曲与 cream 同形同位。
+- **同时修掉一个真 bug**：`paperPanelTexture()` 原来返回**裸文件名**（'paper-letter.png'），
+  而四张纸实际在 `rawfile/ui-parts/` 下——`$rawfile` 会去根目录找、找不到，纸面其实是空的（不是纸种纹理）。
+  现已改为返回 `ui-parts/paper-<kind>-curl.png` ✓。
+
+### 任务 3：字号滑杆数值回显——已加 ✓
+- `CustomizePage` 的字号 `SettingsRow` 补 `sliderValueText: this.sliderFontSize().toString()`，
+  与读回值同源（不会出现"显示 17、实际 11.9"）。
+
+### 任务 1：无障碍——**实现方式与设计稿不同，需用户确认**
+- 设计稿要求"铺一层透明原生按钮覆盖层"。但**键帽本身就是原生 `Button`**（`KeyGrid` 里每个帽子都是 `Button`），
+  再铺一层只会产生**重复节点与焦点打架**（读屏会读到两套）。
+- 我的做法：直接在现有键帽 `Button` 上加 `.accessibilityText(图例)` ＋ `.accessibilityLevel('yes')` ＋
+  `.accessibilityDescription(sub)`——每个键一个原生节点、朗读键名与键帽一致、不增加任何视觉元素、不改变触摸路径 ✓。
+- **未验证**：TalkBack 逐键朗读（本机无法自动化跑 TalkBack 扫描）；功能行六键／TopBar 三图标／候选栏 chip 的
+  a11y 文本**本轮未加**（只加了 4 机键帽）。

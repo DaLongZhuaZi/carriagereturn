@@ -345,6 +345,8 @@ export struct CustomizePage {
                 sliderMin: FONT_SIZE_MIN,
                 sliderMax: FONT_SIZE_MAX,
                 sliderStep: 1,
+                // 批 62 收尾（任务 3）：滑杆补数值回显（与读回值同源，不会出现"显示 17、实际 11.9"）
+                sliderValueText: this.sliderFontSize().toString(),
                 reveal: this.revealN > 3,
                 onSlide: (v: number): void => { this.onFontSize(v); },
               })

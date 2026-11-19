@@ -385,6 +385,12 @@ export struct KeyGrid {
         .position({ x: p.x, y: p.y })
         .backgroundColor(Color.Transparent)
         .borderRadius(0)
+        // 批 62 收尾（任务 1）：每个键帽本身就是原生 Button，补无障碍文本即为读屏节点——
+        // 不另铺透明覆盖层（原生按钮已是可聚焦节点，再加一层只会产生重复节点/焦点打架）。
+        // 读屏文本＝键帽图例（与键帽显示一致）；无图例的键用 label。
+        .accessibilityText(p.legend.length > 0 ? p.legend : p.label)
+        .accessibilityLevel('yes')
+        .accessibilityDescription(p.sub.length > 0 ? p.sub : p.label)
         // 批 61：按键行程——按下下沉 2vp（空格 3vp）＋纵向压到 94%，松开弹簧回弹（约 90ms）
         .translate({ y: this.pressedId === p.id ? (p.kind === 'space' ? 3 : 2) * this.sy : 0 })
         .scale({ y: this.pressedId === p.id ? 0.94 : 1 })

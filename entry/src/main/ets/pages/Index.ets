@@ -1645,10 +1645,12 @@ struct Index {
 
   /** 纸纹贴片名（§7.4：纸只有 texture 维，无 machine 维）。 */
   private paperPanelTexture(): string {
-    if (this.paperKind === PaperKind.MANUSCRIPT) { return 'paper-manuscript.png'; }
-    if (this.paperKind === PaperKind.POSTCARD) { return 'paper-postcard.png'; }
-    if (this.paperKind === PaperKind.MEMO) { return 'paper-memo.png'; }
-    return 'paper-letter.png';
+    // 批 62 收尾（任务 2）：四种纸各用一张带卷曲的纹理（卷与 paper-cream-v5 同形同位），并补上 ui-parts/ 前缀
+    // （批 62 原写法返回裸文件名，$rawfile 会去 rawfile 根目录找、找不到 → 纸面其实是空的）
+    if (this.paperKind === PaperKind.MANUSCRIPT) { return 'ui-parts/paper-manuscript-curl.png'; }
+    if (this.paperKind === PaperKind.POSTCARD) { return 'ui-parts/paper-postcard-curl.png'; }
+    if (this.paperKind === PaperKind.MEMO) { return 'ui-parts/paper-memo-curl.png'; }
+    return 'ui-parts/paper-letter-curl.png';
   }
 
   /** 第 25 批（批 2）：浅机身（1950s 奶油／1960s 浅灰）→ App 铬与系统栏用深色文字。 */
