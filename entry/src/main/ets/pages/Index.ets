@@ -280,9 +280,6 @@ struct Index {
   @State paperOffsetVp: number = 0;
   @State leverAngleVp: number = 0;
   @State strikePhase: number = 0;
-  /** 批 61（B）：刚落下的字键与其缩放（1.05→1，40ms）。 */
-  @State freshKey: string = '';
-  @State freshScale: number = 1;
   /** 第 27 批：变体变更计数（换装页改一件 → 重建该件，其余不动）。 */
   @State partsRev: number = 0;
   /** 帧时钟本体（Animator，duration 1,000,000ms 线性、iterations −1）。 */
@@ -3583,11 +3580,6 @@ struct Index {
   /** 落队首字：空格播 playSpace，其余播主键音（快速连打走 transient）。 */
   private landHead(): void {
     hilog.info(DOMAIN, TAG, 'landHead entry at=%{public}s', Date.now().toString());
-    // 批 61（B）：落字印——刚提交的字先 1.05 再 40ms 缩回 1
-    const cur = this.docModel.getCursor();
-    this.freshKey = cur.line.toString() + ':' + cur.offset.toString();
-    this.freshScale = 1.05;
-    this.getUIContext().animateTo({ duration: 40, curve: Curve.EaseOut }, () => { this.freshScale = 1; });
     const head: string | undefined = this.pendingChars[0];
     if (head === undefined) {
       return;
@@ -4959,10 +4951,6 @@ struct Index {
           docTitle: this.docTitle,
           paperGrowVp: this.paperGrowVp,
           contentOpacity: this.paperContentOpacity,
-          freshKey: this.freshKey,
-          freshScale: this.freshScale,
-          advanceVp: this.fontSizeVp * 0.6,
-          activeLine: this.docModel.getCursor().line,
           pageNo: this.paperPageNo(),
           onKnob: (): void => { this.onKnobAdvance(); },
           onLeverTap: (): void => { this.onNewline(); },

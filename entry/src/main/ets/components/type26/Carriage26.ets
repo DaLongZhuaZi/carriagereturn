@@ -70,11 +70,6 @@ export struct Carriage26 {
   @Prop paperGrowVp: number = 306;
   /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
   @Prop contentOpacity: number = 1;
-  /** 批 61：逐字渲染的 fresh 字键与缩放。 */
-  @Prop freshKey: string = '';
-  @Prop freshScale: number = 1;
-  @Prop advanceVp: number = 7.14;
-  @Prop activeLine: number = 0;
   @Prop pageNo: string = '';
 
   // ---- 交互 ----
@@ -177,10 +172,6 @@ export struct Carriage26 {
         textureRawfile: this.textureRawfile,
         docTitle: this.docTitle,
         contentOpacity: this.contentOpacity,
-        freshKey: this.freshKey,
-        freshScale: this.freshScale,
-        advanceVp: this.advanceVp,
-        activeLine: this.activeLine,
         pageNo: this.pageNo,
       })
         .id('p35_paper')
