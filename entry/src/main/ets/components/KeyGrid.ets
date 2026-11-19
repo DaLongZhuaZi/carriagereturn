@@ -12,6 +12,7 @@
  *  - 按压：pressedId 下沉 2vp（SHIFT／SHIFT LOCK 不改帽色）。
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { curves } from '@kit.ArkUI';
 import { MachineKind } from '../model/DocModel';
 import { CapDef, KeymapLayout } from '../model/KeymapModel';
 
@@ -384,7 +385,10 @@ export struct KeyGrid {
         .position({ x: p.x, y: p.y })
         .backgroundColor(Color.Transparent)
         .borderRadius(0)
-        .translate({ y: this.pressedId === p.id ? 2 * this.sy : 0 })
+        // 批 61：按键行程——按下下沉 2vp（空格 3vp）＋纵向压到 94%，松开弹簧回弹（约 90ms）
+        .translate({ y: this.pressedId === p.id ? (p.kind === 'space' ? 3 : 2) * this.sy : 0 })
+        .scale({ y: this.pressedId === p.id ? 0.94 : 1 })
+        .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) })
         .onTouch((e: TouchEvent) => {
           if (e.type === TouchType.Down) {
             this.pressedId = p.id;
