@@ -2866,6 +2866,11 @@ struct Index {
     return line.text.length > 0 ? line.text : ' ';
   }
 
+  /** 批 56：落字指针屏上 x ＝ 纸左缘 36 ＋ 内边距 25 ＋ 光标纸内 x ＋ 字车偏移 O。 */
+  private pointerXVp(): number {
+    return 61 + this.cursorXVp26() + this.carriageOffsetVp;
+  }
+
   /** 批 55：字车行程上限——纸左缘出屏 ≤10%（36 − 65 ＝ −29vp）。 */
   private readonly CARRIAGE_TRAVEL_LIMIT_VP: number = 65;
 
@@ -2874,6 +2879,9 @@ struct Index {
     const c = this.docModel.getCursor();
     const lines = this.docModel.getLines();
     const line = c.line < lines.length ? lines[c.line] : undefined;
+    if (line !== undefined && line.text.length === 0) {
+      return 0;   // 批 56：空行必须归零，否则会读到上一行的陈旧实测宽（指针复位卡在 111vp 即此因）
+    }
     if (line !== undefined && c.offset >= line.text.length && this.lineWidthMeasuredVp >= 0) {
       return this.lineWidthMeasuredVp;
     }
@@ -4959,13 +4967,17 @@ struct Index {
           .translate({ y: -12 * this.yk() * this.strikePhase })
           .hitTestBehavior(HitTestMode.None)
           
-        // 落字指针（钉在纸左缘+25vp＝61vp，不随字车移动；批 45）
+        // 落字指针（批 56：跟随光标——屏上 x ＝ 61 ＋ 光标纸内 x ＋ 字车 O，平滑动画）
         Column().width(2 * this.xk()).height(10 * this.yk())
           .backgroundColor('#8f8f92')
-          .position({ x: 61 * this.xk() - 1 * this.xk() + this.machineOffsetX26(), y: this.t26y(347) })
+          .position({ x: this.pointerXVp() * this.xk() - 1 * this.xk() + this.machineOffsetX26(),
+            y: this.t26y(347) })
+          .animation({ duration: 250, curve: Curve.EaseOut })
           .hitTestBehavior(HitTestMode.None)
         TriMark26({ w: 7, h: 6, sx: this.xk(), sy: this.yk() })
-          .position({ x: 61 * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(), y: this.t26y(356) })
+          .position({ x: this.pointerXVp() * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(),
+            y: this.t26y(356) })
+          .animation({ duration: 250, curve: Curve.EaseOut })
           .hitTestBehavior(HitTestMode.None)
 
         TopZone26({
