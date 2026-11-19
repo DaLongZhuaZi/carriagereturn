@@ -536,6 +536,9 @@ export struct CandStrip26 {
             .fontSize(16)
             .fontColor(this.machine === MachineKind.STREAMLINED_1950S ? '#241f19' : '#f0e8d8')
             .maxLines(1)
+            // 批 62 收尾：候选格的无障碍文本＝候选词本身（读屏朗读与格内显示一致）
+            .accessibilityText(c)
+            .accessibilityLevel('yes')
             .onClick(() => { this.onPick(i); })
         }, (c: string, i: number) => i.toString() + c)
       }

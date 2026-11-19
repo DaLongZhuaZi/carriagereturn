@@ -1516,3 +1516,10 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 - 至此已覆盖：四机键帽＋空格 ✓、功能行六键 ✓、返回 ✓、出纸槽 ✓、字体条 ✓。
 - **仍未覆盖**：候选栏 chip（CandStrip26 的候选格）——它的 onClick 是 `cb()` 形参，朗读文案应取候选词本身，
   需在 CandStrip 内部按 `this.candidates[i]` 拼 accessibilityText，本轮未做（缺候选数据结构的下标口径确认）。
+
+
+### 无障碍覆盖（补记第三轮，本轮完成全量）
+- 最后一处：**候选栏 chip**（`CandStrip26` 的 `Text(c)`）补 `.accessibilityText(c)` ＋ `.accessibilityLevel('yes')`——
+  朗读文本就是候选词本身，与格内显示一致。构建通过。
+- **全量覆盖完成**：四机键帽＋空格 / 功能行六键 / TopBar 返回 / 出纸槽 / 字体条 / 候选 chip。
+- **仍未验证**：TalkBack 逐键朗读（需真机开无障碍扫一遍；本机无法自动化跑）。
