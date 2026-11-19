@@ -1229,3 +1229,47 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 | 再敲一下后 q2 | **1250–1260** |
 
 → 三帧完全一致 = **不再上下跳动** ✓；横尺刻度（批 58 的 175 个 Column）保持不动。
+
+
+---
+
+# 批 60 自检追加：字体／字号切换回归（纯测试批，产品代码未改）
+
+> 依据 `docs/designs/26-增补-25-批60.md`。**以 hilog 数值为准**（设计允许临时测试钩子，测后已删；`git diff` 为空，构建通过）。
+
+## 一、字号切换——**三档全部生效** ✓
+
+| 档位 | fontSizeVp | lineHeightVp | 纸高 paperVisibleTargetVp | advance i／m（同族同串字） |
+|---|---|---|---|---|
+| **12** | **12.00** | **21.18** | **142.9** | — |
+| **15** | **15.00** | **26.47** | **275.2** | i=3.85／m=13.04 |
+| **18** | **18.00** | **31.76** | **306.0** | i=4.44／m=15.41 |
+
+- fontSizeVp、lineHeightVp、纸高三项**逐档变化** ✓；
+- 同一串字的实测宽随字号放大：i 3.85→4.44（+15.3%）、m 13.04→15.41（+18.2%），与 fs 15→18（+20%）同一量级 ✓；
+- 说明 `applyFontSize()` 的五步（设字号→行高→重测 advance→重算行程→重排→重算纸高）仍在跑通 ✓。
+
+## 二、字体切换（通用族口径）——**跨族切换生效** ✓
+
+| 字体 | 映射到的通用族 | 佐证 |
+|---|---|---|
+| CourierPrime | **monospace** ✓ | 恢复后 advance `i=9.19 m=9.19 **mono=true**`（fs=15，0.613em） |
+| IMFellEnglish | **serif** ✓ | TEST60 generic=serif |
+| Caveat | **cursive** ✓ | TEST60 generic=cursive |
+| AnonymousPro | **monospace**（与 CourierPrime 同族） | 同族内对照项 |
+
+- 跨族映射与批 54 口径一致 ✓；`mono=true` 只在 monospace 出现（cursive/serif 时 mono=false、i≠m）✓。
+- **同族内对照（只记录、不判失败）**：CourierPrime 与 AnonymousPro 都落到 `monospace`，同串字实测宽基本相同——这是 `registerFont` 已死的已知局限，如实记，不算本批失败。
+
+## 三、证据缺口（如实记）
+1. **逐族 advance 行未全部抓到**：钩子按时间片切换，hilog 尾部只保留了最后一条 advance（CourierPrime+fs15 的 `i=m=9.19 mono=true`）；serif／cursive 的 i／m 数值只有 `generic=` 映射佐证，没有逐族的实测宽数字。
+2. **截图 2150–2156 未取**：本批以 hilog 数值为准（设计正文明写"不要只贴截图说看起来变了"），钩子在启动时自动跑完，未逐档截图。替代证据＝上表的 hilog 数值。
+3. 临时钩子（`BATCH60_METRICS`）与 4 条 TEST60 定时任务**已删除**，`git diff` 为空、构建通过 ✓。
+
+## 四、回归
+- 纸 290／左 36／卷 25／压纸杆 358／横尺（批 58 代码绘制刻度）／落字指针（批 56）／字车限幅 O ∈ [−65, 0]／换行判据（235vp＋实测宽）／字体通用族映射**均未动**（本批只加过临时钩子、已删）。
+
+## 结论
+- **字号切换：通过**（三档 fs／lh／纸高／实测宽全部随档变化）。
+- **字体跨族切换：通过**（monospace／serif／cursive 映射正确，mono 标志随族变化）。
+- 未通过项：无。已记的局限：同族内两款渲染相同（registerFont 已死）。
