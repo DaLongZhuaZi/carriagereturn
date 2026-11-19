@@ -1445,3 +1445,18 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 ### 新发现的副作用（如实记）
 - 换成 paper-letter/manuscript/memo/postcard 后，**批 44 的顶缘卷曲没有了**（卷曲是烤在 paper-cream-v5 里的，其他纸种图片没有卷）——纸顶变成直边。
   需要用户定：是给四种纸各补一张带卷曲的纹理，还是接受"非奶油纸直边"。
+
+
+### 任务 5（部分）：无障碍开关的显示同步——已修
+- 根因确认（双重死开关的第二半）：`SettingsPage.a11yEnabled` 是**普通字段**（非 @Prop），所以 `Index` 的 `a11yOverlayEnabled`
+  怎么变，设置页的开关显示都不会跟着变。
+- 修法：`SettingsPage.a11yEnabled` 改为 **`@Prop`**（构建通过）。
+- 现状：**开关本身现在会跟着 Index 的状态变**（拨了就是拨了）✓；但**覆盖层**仍未实现——
+  Index 里没有任何按 `a11yOverlayEnabled` 渲染的覆盖层，覆盖层的内容/位置也没有设计。
+  按提示词"先接通到可见占位"的要求，这一半还差一份覆盖层设计（覆盖层要长什么样、盖在哪些页、是否拦截点击），需要用户定。
+
+### 仍未做（本批剩下两项）
+3. 纸张自定义颜色/纹理/横线：未接（PaperPanel26 还没有 customPaperColor/customTexture/ruled 三个 prop）。
+4. 自定义边距：未接。**且发现口径歧义**：`PaperKindSpec` 只有一个 `marginH`，而纸面渲染写的是左 25／右 30 两个不同值；
+   直接改用 `marginH()` 会让右边距从 30 变成 25（未自定义时外观就变了，违反"不改自定义时外观不变"）。
+   要么给 spec 补 `marginRight`，要么按"左=marginH、右=30"分别接——需要用户定口径。

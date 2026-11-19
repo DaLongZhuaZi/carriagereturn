@@ -51,7 +51,8 @@ export struct SettingsPage {
   onToggleSound: () => void = (): void => {};
   onToggleVibrate: () => void = (): void => {};
 
-  a11yEnabled: boolean = false;
+  /** 批 62（任务 5）：改成 @Prop，开关显示才会跟着 Index 的 a11yOverlayEnabled 变化。 */
+  @Prop a11yEnabled: boolean = false;
 
   onToggleA11y: () => void = (): void => {};
   onVolume: (v0to100: number) => void = (v0to100: number): void => {};
