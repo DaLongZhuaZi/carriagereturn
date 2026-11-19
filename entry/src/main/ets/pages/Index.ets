@@ -399,7 +399,7 @@ struct Index {
   @State lineHeightVp: number = 28;
   @State fontSizeVp: number = 17;
   @State fontPlateLabel: string = 'Courier Prime';
-  @State fontFamily: string = 'CourierPrime';
+  @State fontFamily: string = 'Courier Prime';
 
   @State guideXVp: number = 28;
   /** 字车条累计左移量（vp）：负值左移，行首为 0。不是"换行时 12→0 的 bump"。 */
@@ -1405,6 +1405,7 @@ struct Index {
     // 其余 16 款在换装页会静默回落到系统字体 → 17 行试写分不出差别）
     // 第 0 批：注册循环搬进 FontService（同一函数），Index 只调一次。
     const fontResult: FontRegisterResult = FontService.registerBundled(this.getUIContext(), FONTS);
+
     this.fontLoadFailed = fontResult.failed;
     // 第 2 批 F3（评审 B-2）：导入字体冷启动重注册（失败标 failed，不污染随包字体）
     this.registerImportedFonts();
@@ -2073,7 +2074,7 @@ struct Index {
       }
       if (chosen === null) {
         // 导入字体（imp-*）：直接采用族名，不回落到随包默认
-        this.fontFamily = family + ', Noto Serif SC';
+        this.fontFamily = family;
         hilog.info(DOMAIN, TAG, 'apply imported font family=%{public}s', family);
         return;
       }
@@ -2081,7 +2082,7 @@ struct Index {
     if (chosen === null) {
       chosen = findFont(DEFAULT_FONT);
     }
-    this.fontFamily = chosen.familyName + ', Noto Serif SC';
+    this.fontFamily = chosen.familyName;
     this.docModel.setFont(chosen.font);
     this.fontPlateLabel = fontDisplayName(chosen.font);
   }
@@ -4762,7 +4763,7 @@ struct Index {
                 // 第 9 批 F5：换字体事件（A11）——换装页选字体与字体管理页「应用到当前机」两处都记
                 statsService.recordEvent(StatsEvents.FONT_CHANGED);
                 this.docModel.setFont(FONTS[i].font);
-                this.fontFamily = FONTS[i].familyName + ', Noto Serif SC';
+                this.fontFamily = FONTS[i].familyName;
                 this.flushSave();
                 hilog.info(DOMAIN, TAG, 'customize font -> %{public}s family=%{public}s',
                   f, FONTS[i].familyName);
