@@ -1508,3 +1508,11 @@ const r = FontService.registerBundled(uiCtx, FONTS);   // 17 款随包字体
 - **未加**：TopBar 的返回/导出两个图标、候选栏 chip、字体条——四个 `onClick` 点已定位
   （Parts26 相对行 +33／+47／+253／+298），补法与功能行相同（各加两行 a11y 属性），
   但本轮未做（缺各自的朗读文案口径：返回／导出／候选词本身／字体）。
+
+
+### 无障碍覆盖（补记第二轮）
+- 再补三处：**TopBar 返回**（accessibilityText「返回」）、**出纸槽**（「出纸槽」）、**字体条**（「字体」）——
+  各加 `.accessibilityText` ＋ `.accessibilityLevel('yes')`，构建通过。
+- 至此已覆盖：四机键帽＋空格 ✓、功能行六键 ✓、返回 ✓、出纸槽 ✓、字体条 ✓。
+- **仍未覆盖**：候选栏 chip（CandStrip26 的候选格）——它的 onClick 是 `cb()` 形参，朗读文案应取候选词本身，
+  需在 CandStrip 内部按 `this.candidates[i]` 拼 accessibilityText，本轮未做（缺候选数据结构的下标口径确认）。

@@ -215,7 +215,10 @@ export struct TopZone26 {
       }
       .width(16 * this.sx).height(32 * this.sy)
       .position({ x: 8 * this.sx, y: 48 * this.sy })
-      .onClick(() => { this.onBack(); })
+      // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
+    .accessibilityText('返回')
+    .accessibilityLevel('yes')
+    .onClick(() => { this.onBack(); })
 
       // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
       Stack({ alignContent: Alignment.TopStart }) {
@@ -229,7 +232,10 @@ export struct TopZone26 {
       }
       .width(50 * this.sx).height(12 * this.sy)
       .position({ x: 300 * this.sx, y: 14 * this.sy })
-      .onClick(() => { this.onExportSlot(); })
+      // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
+    .accessibilityText('出纸槽')
+    .accessibilityLevel('yes')
+    .onClick(() => { this.onExportSlot(); })
 
     }
     .width(this.widthVp).height(this.heightVp)
@@ -480,6 +486,9 @@ export struct FontPlate26 {
         .translate({ y: -1 * this.sy })
     }
     .width(this.widthVp).height(this.heightVp)
+    // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
+    .accessibilityText('字体')
+    .accessibilityLevel('yes')
     .onClick(() => { this.onFont(); })
   }
 }
