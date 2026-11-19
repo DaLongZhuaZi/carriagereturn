@@ -1968,7 +1968,8 @@ struct Index {
     // D3：O −= advance（当前字符宽），不再用 travelPerChar 当行程
     const dO: number = this.currentAdvance();
     let target: number = this.carriageOffsetVp - dO;
-    const limit: number = -this.maxTravelVp;
+    // 批 55：行程限幅——O 一律钳在 [−65, 0]（纸左缘最多出屏 10%）
+    const limit: number = -Math.min(this.maxTravelVp, this.CARRIAGE_TRAVEL_LIMIT_VP);
     if (target < limit) {
       target = limit;
     }
@@ -2865,6 +2866,9 @@ struct Index {
     return line.text.length > 0 ? line.text : ' ';
   }
 
+  /** 批 55：字车行程上限——纸左缘出屏 ≤10%（36 − 65 ＝ −29vp）。 */
+  private readonly CARRIAGE_TRAVEL_LIMIT_VP: number = 65;
+
   /** 批 50：光标 X——行尾时直接用隐藏 Text 的实测渲染宽，未测到才退回累加。 */
   private cursorXVp26(): number {
     const c = this.docModel.getCursor();
@@ -3649,7 +3653,19 @@ struct Index {
     // 批 36 §4.1（门八唯一例外）：换行阈值＝26 号稿行宽 165vp——23 字正好放下、第 24 字才换行
     const nextRaw: number = this.currentLineWidthVp() + this.charWidthVp(ch);
     const limit: number = this.lineWidth26();
-    if (nextRaw > limit && this.docModel.getCursor().offset > 0) {
+    // 批 55：累加或**实测**任一超限即换行（比例字体下实测更宽，防止字溢出纸右缘）
+    let nextMeas: number = -1;
+    try {
+      const curLine: string = this.currentLineText() + ch;
+      const px: number = this.getUIContext().getMeasureUtils().measureText({
+        textContent: curLine, fontSize: this.fontSizeVp,
+        fontFamily: this.genericFamilyFor(this.fontFamily),
+      });
+      nextMeas = this.getUIContext().px2vp(px);
+    } catch (e) {
+      nextMeas = -1;
+    }
+    if ((nextRaw > limit || (nextMeas >= 0 && nextMeas > limit)) && this.docModel.getCursor().offset > 0) {
       hilog.info(DOMAIN, TAG,
         'autoWrap by position offset=%{public}s strikeX=%{public}s nextRaw=%{public}s limit=%{public}s',
         this.carriageOffsetVp.toFixed(2), (this.stageWidth * 0.5).toFixed(2),
@@ -3711,7 +3727,8 @@ struct Index {
     // 载入 O 与打字同口径：O = −travelPerChar × 光标列，钳制到 [−maxTravelVp, 0]
     // （旧写法用 −(stageWidth−56)=−306.7vp 当限，与打字的 −maxTravelVp=−64vp 差 4.8 倍）
     let o: number = -this.travelPerChar * cursor.offset;
-    if (o < -this.maxTravelVp) {
+    // 批 55：与打字同一限幅口径
+    if (o < -Math.min(this.maxTravelVp, this.CARRIAGE_TRAVEL_LIMIT_VP)) {
       o = -this.maxTravelVp;
     }
     if (o > 0) {
