@@ -569,7 +569,7 @@ export struct PaperPanel26 {
   texture() {
     // 批 39（任务 7）：统一换成 paper-cream-v1 中性纸纹理——opacity 1.0、Cover（等比缩放＋居中裁切，不 Fill 硬拉）
     // 批 44：纸 v2——顶缘卷曲＋厚度＋卷底淡影已烤进贴图（1484×2066，与纸盒 0.7183 一致）
-    Image($rawfile('ui-parts/paper-cream-v4.png'))
+    Image($rawfile('ui-parts/paper-cream-v5.png'))
       .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(1.0)
   }
 
@@ -619,7 +619,9 @@ export struct PaperPanel26 {
         Column().width(1.6).height(this.fontSizeVp + 2)
           .backgroundColor('#3a342c')
           .opacity(this.contentOpacity)
-          .position({ x: this.marginLVp + this.cursorXVp, y: this.cursorYVp })
+          // 批 48：光标垂直居中到字上（行高 31.5、光标 13.9 → 下移 ≈8.8vp）
+          .position({ x: this.marginLVp + this.cursorXVp,
+            y: this.cursorYVp + (this.lineHeightVp - (this.fontSizeVp + 2)) / 2 })
           .hitTestBehavior(HitTestMode.None)
       }
     }

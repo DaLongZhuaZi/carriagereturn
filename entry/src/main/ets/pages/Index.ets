@@ -1519,9 +1519,10 @@ struct Index {
   private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
   /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
   private paperVisibleTargetVp(): number {
-    const lines: number = this.docModel.getLines().length;
-    const v: number = 94 + this.lineHeightVp * (lines > 0 ? lines - 1 : 0);
-    return v < 306 ? (v > 94 ? v : 94) : 306;
+    // 批 48：纸高＝上内边距 31 ＋ 真实行高 31.5 × 行数；1 行 62.5，钳 [62.5, 306]
+    const lines: number = this.docModel.getLines().length > 0 ? this.docModel.getLines().length : 1;
+    const v: number = 31 + this.lineHeightVp * lines;
+    return v < 306 ? (v > 62.5 ? v : 62.5) : 306;
   }
 
   /** §6.1：纸 V=0 左缘（156vp）。 */
@@ -1557,14 +1558,14 @@ struct Index {
     // 批 47：滚动只按"当前纸高"算——纸没满高时 scroll=0，满高后每行滚一个行高
     const n: number = this.docModel.getCursor().line;
     const lh: number = this.lineHeightVp;
-    const topMargin: number = 66 * this.yk() + this.paperTitleExtraVp();
+    const topMargin: number = 31 * this.yk() + this.paperTitleExtraVp();
     const paperH: number = this.paperVisibleTargetVp();
     const over: number = topMargin + n * lh + lh - paperH;
     return over > 0 ? over : 0;
   }
   /** 落字点 y（相对纸顶）。 */
   private paperCursorY26(): number {
-    return 66 * this.yk() + this.paperTitleExtraVp() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
+    return 31 * this.yk() + this.paperTitleExtraVp() + this.docModel.getCursor().line * this.lineHeightVp - this.paperScroll26();
   }
 
   /** 旋钮直径：46.5vp live（§6.2，沿用现行值）。 */
@@ -4882,7 +4883,7 @@ struct Index {
           lineHeightVp: this.lineHeightVp,
           marginLVp: 25 * this.xk(),
           marginRVp: 30 * this.xk(),
-          marginTVp: 66 * this.yk(),
+          marginTVp: 31 * this.yk(),
           fontFamily: this.fontFamily,
           textColor: this.inkColor,
           cursorXVp: this.currentLineWidthVp(),
