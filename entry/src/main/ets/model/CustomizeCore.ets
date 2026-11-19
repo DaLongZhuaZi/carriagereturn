@@ -14,7 +14,7 @@
 export const FONT_SIZE_MIN: number = 12;
 export const FONT_SIZE_MAX: number = 26;
 /** 非法输入（NaN/≤0）的回落字号：手机现算默认 17；仅用于坏输入，不当下限。 */
-export const FONT_SIZE_FALLBACK: number = 17;
+export const FONT_SIZE_FALLBACK: number = 20;   // 批 61：默认字号 17 → 20（用户定：默认太大不小）
 /** §18.9：行高 / 字号 比例（30 / 17）。 */
 export const LINE_HEIGHT_RATIO: number = 30 / 17;
 

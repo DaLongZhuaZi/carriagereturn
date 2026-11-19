@@ -397,7 +397,7 @@ struct Index {
   @State paperCenterXVp: number = 195;
   @State creepOffsetVp: number = 0;
   @State lineHeightVp: number = 28;
-  @State fontSizeVp: number = 17;
+  @State fontSizeVp: number = 20;   // 批 61：与 FONT_SIZE_FALLBACK 一致
   @State fontPlateLabel: string = 'Courier Prime';
   @State fontFamily: string = 'Courier Prime';
 
