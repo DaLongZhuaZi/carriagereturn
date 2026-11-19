@@ -569,7 +569,7 @@ export struct PaperPanel26 {
   texture() {
     // 批 39（任务 7）：统一换成 paper-cream-v1 中性纸纹理——opacity 1.0、Cover（等比缩放＋居中裁切，不 Fill 硬拉）
     // 批 44：纸 v2——顶缘卷曲＋厚度＋卷底淡影已烤进贴图（1484×2066，与纸盒 0.7183 一致）
-    Image($rawfile('ui-parts/paper-cream-v3.png'))
+    Image($rawfile('ui-parts/paper-cream-v4.png'))
       .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(1.0)
   }
 
@@ -609,77 +609,14 @@ export struct PaperPanel26 {
       .alignItems(HorizontalAlign.Start)
       .position({
         x: this.marginLVp,
-        y: this.marginTVp + (this.docTitle.length > 0 ? this.lineHeightVp : 0),
+        y: this.marginTVp,   // 批 47：纸上无标题，正文从内边距处开始
       })
       .translate({ y: -this.scrollYVp })
       .hitTestBehavior(HitTestMode.None)
 
-      // 标题（文档名；无标题文档不占行）
-      if (this.docTitle.length > 0) {
-        Text(this.docTitle)
-          .fontSize(this.fontSizeVp + 1)
-          .fontFamily(this.fontFamily)
-          .fontColor(this.textColor)
-          .opacity(this.contentOpacity)
-          .lineHeight(this.lineHeightVp)
-          .width(this.textW())
-          .textAlign(TextAlign.Start)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .position({ x: this.marginLVp, y: this.marginTVp })
-          .translate({ y: -this.scrollYVp })
-          .hitTestBehavior(HitTestMode.None)
-      }
-      // 页码（右上）
-      if (this.pageNo.length > 0) {
-        Text(this.pageNo)
-          .fontSize(this.fontSizeVp - 1)
-          .fontFamily(this.fontFamily)
-          .fontColor(this.textColor)
-          .opacity(this.contentOpacity)
-          .textAlign(TextAlign.End)
-          .width(30 * this.sx)
-          .position({ x: this.widthVp - this.marginRVp - 30 * this.sx, y: this.marginTVp })
-          .translate({ y: -this.scrollYVp })
-          .hitTestBehavior(HitTestMode.None)
-      }
-
-      // 批 39 任务 8：字杆打击影——随 strikePhase 从下方扫向落字点（细长、羽化、半透明）
-      if (this.strikePhase > 0.001) {
-        Column().width(3 * this.sx).height(96 * this.sy)
-          .backgroundColor('#00000026')
-          .borderRadius(2 * this.sx)
-          .rotate({ angle: 12 })
-          .opacity(0.55 * Math.sin(Math.PI * this.strikePhase))
-          .position({ x: 181 * 0 + this.widthVp * 0.5 - 1.5 * this.sx,
-            y: 300 * this.sy - 90 * this.sy * this.strikePhase })
-          .hitTestBehavior(HitTestMode.None)
-      }
-      // 批 39 任务 8：色带影——色带抬起时在纸上投一道更淡的横影（与字杆影同步）
-      if (this.strikePhase > 0.001) {
-        Column().width('100%').height(10 * this.sy)
-          .linearGradient({ direction: GradientDirection.Bottom,
-            colors: [['#00000012', 0.0], ['#00000000', 1.0]] })
-          .opacity(Math.sin(Math.PI * this.strikePhase))
-          .position({ x: 0, y: this.heightVp - 30 * this.sy })
-          .hitTestBehavior(HitTestMode.None)
-      }
-
-      // 批 44：卷在前——把 v2 贴图的顶部卷曲段重绘在文字之上（滚动文字从卷下穿过，不压在卷上）
-      Column() {
-        Image($rawfile('ui-parts/paper-cream-v3.png'))
-          .width('100%').height(this.heightVp).objectFit(ImageFit.Contain)
-          .position({ x: 0, y: 0 })
-          .hitTestBehavior(HitTestMode.None)
-      }
-      .width('100%').height(62 * this.sy)
-      .clip(true)
-      .position({ x: 0, y: 0 })
-      .hitTestBehavior(HitTestMode.None)
-
       // 落字点（细竖标）
       if (this.cursorYVp >= 0 && this.cursorYVp < this.heightVp) {
-        Column().width(1.6).height(this.fontSizeVp + 5)
+        Column().width(1.6).height(this.fontSizeVp + 2)
           .backgroundColor('#3a342c')
           .opacity(this.contentOpacity)
           .position({ x: this.marginLVp + this.cursorXVp, y: this.cursorYVp })

@@ -1520,8 +1520,8 @@ struct Index {
   /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
   private paperVisibleTargetVp(): number {
     const lines: number = this.docModel.getLines().length;
-    const v: number = 90 + 25 * (lines > 0 ? lines - 1 : 0);
-    return v < 306 ? (v > 90 ? v : 90) : 306;
+    const v: number = 94 + this.lineHeightVp * (lines > 0 ? lines - 1 : 0);
+    return v < 306 ? (v > 94 ? v : 94) : 306;
   }
 
   /** §6.1：纸 V=0 左缘（156vp）。 */
@@ -1542,7 +1542,7 @@ struct Index {
 
   /** 批 36 §4.3：标题占一行时的额外顶部偏移。 */
   private paperTitleExtraVp(): number {
-    return this.docTitle.length > 0 ? this.lineHeightVp : 0;
+    return 0;   // 批 47：纸上不再放标题（只在顶栏显示），不占行
   }
 
   /** 纸面页码（右上）：当前纸序号。 */
@@ -1554,11 +1554,12 @@ struct Index {
 
   /** 纸卷上移量（光标行超出可见区时整卷上移）。 */
   private paperScroll26(): number {
+    // 批 47：滚动只按"当前纸高"算——纸没满高时 scroll=0，满高后每行滚一个行高
     const n: number = this.docModel.getCursor().line;
     const lh: number = this.lineHeightVp;
     const topMargin: number = 66 * this.yk() + this.paperTitleExtraVp();
-    const visible: number = this.hPaperZoneVp() - topMargin - 6 * this.yk();
-    const over: number = topMargin + n * lh + lh - visible;
+    const paperH: number = this.paperVisibleTargetVp();
+    const over: number = topMargin + n * lh + lh - paperH;
     return over > 0 ? over : 0;
   }
   /** 落字点 y（相对纸顶）。 */
