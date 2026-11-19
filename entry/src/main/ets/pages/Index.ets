@@ -1405,6 +1405,14 @@ struct Index {
     // 其余 16 款在换装页会静默回落到系统字体 → 17 行试写分不出差别）
     // 第 0 批：注册循环搬进 FontService（同一函数），Index 只调一次。
     const fontResult: FontRegisterResult = FontService.registerBundled(this.getUIContext(), FONTS);
+    // 批 53：把系统字体清单打进 hilog（看有没有内置等宽字体）
+    try {
+      const sysFonts: string[] = this.getUIContext().getFont().getSystemFontList();
+      hilog.info(DOMAIN, TAG, 'system fonts count=%{public}s list=%{public}s',
+        sysFonts.length.toString(), sysFonts.join('|'));
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'getSystemFontList failed');
+    }
 
     this.fontLoadFailed = fontResult.failed;
     // 第 2 批 F3（评审 B-2）：导入字体冷启动重注册（失败标 failed，不污染随包字体）
@@ -2577,14 +2585,14 @@ struct Index {
   private measureAdvance(): void {
     try {
       const mu = this.getUIContext().getMeasureUtils();
-      const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
-      const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      const ePx: number = mu.measureText({ textContent: 'V', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
+      const cPx: number = mu.measureText({ textContent: '永', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
       // Courier Prime 的 hmtx 实测 1228/2048 = 0.600 em（fontTools 直读 ttf）。
       // MeasureUtils 看不到 registerFont 注册的族名（会回落系统比例字体），故只记录、不回写。
       this.advEngVp = this.fontSizeVp * 0.6;
       this.advCjkVp = this.fontSizeVp;
-      const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
-      const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: this.fontFamily });
+      const iPx: number = mu.measureText({ textContent: 'i', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
+      const mPx: number = mu.measureText({ textContent: 'm', fontSize: this.fontSizeVp, fontFamily: 'monospace' });
       hilog.info(DOMAIN, TAG,
         'advance eng=%{public}s cjk=%{public}s i=%{public}s m=%{public}s fs=%{public}s mono=%{public}s',
         this.advEngVp.toFixed(2), this.advCjkVp.toFixed(2),
@@ -3647,7 +3655,7 @@ struct Index {
       const px: number = this.getUIContext().getMeasureUtils().measureText({
         textContent: this.currentLineText(),
         fontSize: this.fontSizeVp,
-        fontFamily: this.fontFamily,
+        fontFamily: 'monospace',   // 批 53：与纸面渲染同族，实测宽才与渲染一致
       });
       this.lineWidthMeasuredVp = this.getUIContext().px2vp(px);
     } catch (e) {
@@ -4896,7 +4904,7 @@ struct Index {
           marginLVp: 25 * this.xk(),
           marginRVp: 30 * this.xk(),
           marginTVp: 31 * this.yk(),
-          fontFamily: this.fontFamily,
+          fontFamily: 'monospace',   // 批 53 测试：系统通用等宽族
           textColor: this.inkColor,
           cursorXVp: this.cursorXVp26(),
           cursorYVp: this.paperCursorY26(),
