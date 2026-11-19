@@ -204,9 +204,9 @@ export struct Carriage26 {
           .position({ x: 0, y: 0 })
         // 两个边距红三角（纸左缘 156／纸右缘 376；与中央指针 181 分明）
         TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
-          .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
+          .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
         TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
-          .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 4 * this.sy })
+          .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
         // 锯齿下沿
         // 锯齿下沿（可见三角齿：齿宽 2vp、齿高 3vp、间距 2vp；175 齿覆盖 700vp）
         Row({ space: 2 * this.sx }) {
@@ -222,18 +222,12 @@ export struct Carriage26 {
       .position({ x: this.cx() - 350 * this.sx, y: RULER_Y * this.sy })
       .hitTestBehavior(HitTestMode.None)
 
-      // ---- 压纸杆（2vp 细钢杆跨纸宽＋两端小黑轮）----
-      Column()
-        .width(PAPER_W * this.sx).height(2 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [['#cfcfd2', 0.0], ['#5c5c5f', 1.0]] })
-        .position({ x: PAPER_LEFT * this.sx, y: 344 * this.sy })
+      // ---- 压纸杆（批 49：3D 钢杆贴图，贴纸下缘 y=358；运行时渐变与黑轮已删）----
+      Image($rawfile('ui-parts/pressbar-steel-v1.png'))
+        .width(PAPER_W * this.sx).height(4 * this.sy)
+        .objectFit(ImageFit.Contain)
+        .position({ x: PAPER_LEFT * this.sx, y: 358 * this.sy })
         .hitTestBehavior(HitTestMode.None)
-      Column().width(7 * this.sx).height(7 * this.sx).backgroundColor('#111111')
-        .borderRadius(3.5 * this.sx)
-        .position({ x: (PAPER_LEFT - 3.5) * this.sx, y: 341.5 * this.sy })
-      Column().width(7 * this.sx).height(7 * this.sx).backgroundColor('#111111')
-        .borderRadius(3.5 * this.sx)
-        .position({ x: (PAPER_LEFT + PAPER_W - 3.5) * this.sx, y: 341.5 * this.sy })
 
 
     }

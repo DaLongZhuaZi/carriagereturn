@@ -1519,10 +1519,10 @@ struct Index {
   private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
   /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
   private paperVisibleTargetVp(): number {
-    // 批 48：纸高＝上内边距 31 ＋ 真实行高 31.5 × 行数；1 行 62.5，钳 [62.5, 306]
+    // 批 49：纸高＝上内边距 31 ＋ 真实行高 21.0 × 行数；1 行 52，钳 [52, 306]
     const lines: number = this.docModel.getLines().length > 0 ? this.docModel.getLines().length : 1;
-    const v: number = 31 + this.lineHeightVp * lines;
-    return v < 306 ? (v > 62.5 ? v : 62.5) : 306;
+    const v: number = 31 + this.lineHeightVp * lines + 6;   // 批 49：+6 让末行下沿不被纸底/压纸杆切
+    return v < 306 ? (v > 58 ? v : 58) : 306;
   }
 
   /** §6.1：纸 V=0 左缘（156vp）。 */
