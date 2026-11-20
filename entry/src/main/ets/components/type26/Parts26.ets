@@ -225,17 +225,26 @@ export struct TopZone26 {
       // 故屏上应为 235.6＋393vp＝1170px、y≈149px；**真机（MLR-AL10 竖屏）该处无可见件**
       // （y110–260 暗色扫描无深色条，2262 顶部特写亦无槽），点按像素差 0.007 →
       // 结论：不是坐标算错，是该件在平板竖屏下没画出来（原因待查，记 N6 开放缺陷）。
+      // 批 63 修复（N6）：出纸槽原来两处口径打架——① 局部 y=14·sy 会被画到状态栏底下
+      // （诊断实测节点落在 y≈76px，屏上不可见）；② 热区只有 65×16vp，点按不触发。
+      // 现在：包一层 ≥44vp 的透明热区（onClick 挂外层），视觉件对齐到与返回拨杆同一行（48·sy）。
       Stack({ alignContent: Alignment.TopStart }) {
-        Column().width(50 * this.sx).height(10 * this.sy)
-          .backgroundColor('#0b0a09')
-          .border({ width: 1, color: '#6d6d70' })
-          .borderRadius(2)
-        Column().width(44 * this.sx).height(3 * this.sy)
-          .linearGradient({ direction: GradientDirection.Right, colors: [['#f2ead8', 0.0], ['#cfc4ad', 1.0]] })
-          .position({ x: 3 * this.sx, y: 1 * this.sy })
+        Stack({ alignContent: Alignment.TopStart }) {
+          Column().width(50 * this.sx).height(10 * this.sy)
+            .backgroundColor('#0b0a09')
+            .border({ width: 1, color: '#6d6d70' })
+            .borderRadius(2)
+          Column().width(44 * this.sx).height(3 * this.sy)
+            .linearGradient({ direction: GradientDirection.Right, colors: [['#f2ead8', 0.0], ['#cfc4ad', 1.0]] })
+            .position({ x: 3 * this.sx, y: 1 * this.sy })
+        }
+        .width(50 * this.sx).height(12 * this.sy)
+        .position({ x: 3 * this.sx, y: 16 * this.sy })
+        .hitTestBehavior(HitTestMode.None)
       }
-      .width(50 * this.sx).height(12 * this.sy)
-      .position({ x: 300 * this.sx, y: 14 * this.sy })
+      .width(56 * this.sx).height(44 * this.sy)
+      .position({ x: 297 * this.sx, y: 34 * this.sy })
+      .id('p26_export_slot')
       // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
     .accessibilityText('出纸槽')
     .accessibilityLevel('yes')
