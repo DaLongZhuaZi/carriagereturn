@@ -1790,3 +1790,9 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 
 - **F-20 成就弹窗：未触发（缺口）**。打字页连打 40 字（stats 原 939 字，应越过 1000 的「初试锋芒」门槛），hilog 无 chiev/unlock 行、屏上无弹窗（2253）。
 - 说明：成就门槛与统计计数（stats.total.chars）本轮未读回成功（prefs 读取命令无输出），故「是否越过门槛」待下轮核。
+
+### 批 38 补记（第九轮）：F-20 更正（prefs 实证解锁）
+
+- 读回设备 prefs（cat …/carriagereturn_prefs）：stats.total.chars=1012、chieve.words_1000=true、chieve.ribbon_1=true、chieve.font_1=true、chieve.docs_10=true。
+- 结论：**F-20 的列表/进度与解锁条件成立**（打字、色带、字体三类行为都真的把成就标记写进去了）；
+  但**达成弹窗没出现在截图上**（2253 连打 40 字后无弹窗、hilog 无 achieve 行）→ 弹窗展示记缺口（可能弹窗实现缺失或已自动消失）。
