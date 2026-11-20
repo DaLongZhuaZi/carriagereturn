@@ -1177,6 +1177,23 @@ struct Index {
     this.hintText = '已重置，下次进入页面生效';
   }
 
+  /** 批 38（平板竖屏首验）：关键件屏幕矩形打点（px），用来给「纸被推到左边／过窄」定坐标证据。 */
+  private logRects(): void {
+    try {
+      const cu = this.getUIContext().getComponentUtils();
+      const ids: string[] = ['p26_lid', 'p26_top_deck', 'p35_carriage', 'p35_paper', 'p26_basket', 'p33_key_well', 'p25_key_grid'];
+      for (let i = 0; i < ids.length; i++) {
+        const r = cu.getRectangleById(ids[i]);
+        hilog.info(DOMAIN, TAG, 'rect %{public}s x=%{public}s y=%{public}s w=%{public}s h=%{public}s',
+          ids[i], r.screenOffset.x.toFixed(1), r.screenOffset.y.toFixed(1),
+          r.size.width.toFixed(1), r.size.height.toFixed(1));
+      }
+    } catch (e) {
+      const err: BusinessError = e as BusinessError;
+      hilog.error(DOMAIN, TAG, 'logRects failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
   private replayOnboarding(): void {
     GuideService.resetOnboarding();
     this.onboardingPage = 0;
@@ -1196,6 +1213,7 @@ struct Index {
         this.paperContentOpacity = 1;
       });
       hilog.info(DOMAIN, TAG, 'paper load done grow=%{public}s', this.paperGrowVp.toFixed(1));
+      this.logRects();
     }, 600);
     hilog.info(DOMAIN, TAG, 'paper load start from -362');
   }
@@ -1926,6 +1944,12 @@ struct Index {
         stageW.toFixed(1), this.regionHeightVp.toFixed(1), this.fontSizeVp.toFixed(2),
         this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
         this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
+      // 批 38（平板竖屏首验）：几何打点——k／居中偏移／画布／纸面板宽，与 Carriage26 的 geom 行对账
+      hilog.info(DOMAIN, TAG, 'geom26 k=%{public}s offsetX=%{public}s canvas=%{public}sx%{public}s Pw=%{public}s paper290k=%{public}s win=%{public}sx%{public}s',
+        this.xk().toFixed(3), this.machineOffsetX26().toFixed(1),
+        this.canvasWidthVp().toFixed(1), this.canvasHeightVp().toFixed(1),
+        this.paperPanelWidthVp().toFixed(1), (290 * this.xk()).toFixed(1),
+        this.winWidthVp.toFixed(1), this.winHeightVp.toFixed(1));
       // R2：布局定稿后放开拨杆挂载（同一帧完成，不引入额外可见帧）
       if (!this.stageReady) {
         this.stageReady = true;

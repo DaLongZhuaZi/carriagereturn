@@ -13,6 +13,10 @@
  */
 import { MachineKind } from '../../model/DocModel';
 import { PaperPanel26, TriMark26, BRASS, BRASS_HI } from './Parts26';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const DOMAIN: number = 0xA00100;
+const TAG: string = 'Carriage26';
 
 /** 字车中心（V=0，vp）＝滚筒中心＝纸中心。 */
 const CX0: number = 266;
@@ -39,10 +43,23 @@ export struct Carriage26 {
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
   @Prop widthVp: number = 362.7;
   @Prop heightVp: number = 822.5;
-  @Prop sx: number = 1;
-  @Prop sy: number = 1;
+  @Prop @Watch('onGeomChange') sx: number = 1;
+  @Prop @Watch('onGeomChange') sy: number = 1;
   /** 字车行程 V（vp，0 → −165）。 */
   @Prop offsetXVp: number = 0;
+
+  /** 批 38（平板竖屏首验）：几何打点——用来对账「纸实际画在哪、多宽」。 */
+  aboutToAppear(): void {
+    hilog.info(DOMAIN, TAG, 'geom init sx=%{public}s sy=%{public}s w=%{public}s h=%{public}s paperW=%{public}s paperLeft=%{public}s offX=%{public}s',
+      this.sx.toFixed(3), this.sy.toFixed(3), this.widthVp.toFixed(1), this.heightVp.toFixed(1),
+      (PAPER_W * this.sx).toFixed(1), (PAPER_LEFT * this.sx).toFixed(1), this.offsetXVp.toFixed(1));
+  }
+
+  onGeomChange(): void {
+    hilog.info(DOMAIN, TAG, 'geom change sx=%{public}s sy=%{public}s w=%{public}s h=%{public}s paperW=%{public}s paperLeft=%{public}s offX=%{public}s',
+      this.sx.toFixed(3), this.sy.toFixed(3), this.widthVp.toFixed(1), this.heightVp.toFixed(1),
+      (PAPER_W * this.sx).toFixed(1), (PAPER_LEFT * this.sx).toFixed(1), this.offsetXVp.toFixed(1));
+  }
   @Prop leverAngle: number = 0;
   @Prop knobAngle: number = 0;
   @Prop strikePhase: number = 0;
