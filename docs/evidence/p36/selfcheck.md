@@ -2020,3 +2020,20 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
   还没接，接线时把 `reloadKeymap()` 里 `parse(...)` 换成 `parseOrder(...)` 并把 `CapOrder[]` 交给新 KeyGrid。
 - 构建：`BUILD SUCCESSFUL`（0 ERROR）。
 - 未做：本接口尚未被任何调用点使用（真机无行为变化），因此没有截图证据；T5 后半（KeyGrid flex）属下一轮。
+
+### 批 64 阶段 1 第六步：任务 8 起手（清过期注释＋槽位置截图对账）
+
+- **清过期注释**：`Parts26.ets` 删掉 5 行与现状不符的 N6 注释
+  （“点击问题仍在…”“该处无可见件…记 N6 开放缺陷”“原因待查”三处表述），
+  重写为一条准确注释：槽在 TopZone 行内右侧（局部 `x=300·sx、y=48·sy`、50·sx×12·sy），
+  位置依据是“`y=14·sy` 会画到状态栏底下（实测 y≈76px）”这一实测，点按行为写明“导出 txt ＋ 300ms 滑出”。
+- **槽位置以截图对账（2288）**：平板竖屏空纸状态下
+  - dump rect `(1170,149)-(1326,187)`
+  - 截图 PIL 暗像素 bbox `(1172,151)-(1323,177)`、暗像素 **2862**
+  → **截图与 dump 一致（差 ≤2px）**。批 63 自检里“dump 1170 vs 截图 558–709，差 612px”用的是**修复前**的 2279 截图，
+  修复后不再有该偏差；此条按目标书要求以截图为准，结论一致。
+- **点按回归**：`hilog` 三连 —— `direct export ok path=…/exports/carriage-1795190074675.txt`、
+  `slot fly start dur=300`、`slot fly end elapsed=381`。可见且可点，注释与代码一致。
+- 构建 `BUILD SUCCESSFUL`；装平板 `install bundle successfully`。
+- **仍未做**：`TopZone26` 还没改成 flex 行（槽仍是绝对定位的子件）；五区入 Stage26（T2）、纸 flex（T3）、
+  键盘/功能行/字体条/候选栏 flex（T4）、KeyGrid 接 `parseOrder`（T5 后半）、动画位置来源（T6）、R5 接线（T7）均未开始。

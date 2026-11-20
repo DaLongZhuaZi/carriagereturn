@@ -200,8 +200,6 @@ export struct TopZone26 {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 批 63 修复（N6）：槽原来局部 y=14·sy 会被画到状态栏底下（实测节点 y≈76px，屏上不可见）；
-      // 对齐到与返回拨杆同一行（48·sy）后落在可见区 y≈149px。点击问题仍在（见自检 N6 诊断），
       // 这里保持最简结构：视觉件本体挂 onClick，不再套热区壳。
       Stack({ alignContent: Alignment.TopStart }) {
         Column().width(50 * this.sx).height(10 * this.sy)
@@ -214,6 +212,10 @@ export struct TopZone26 {
       }
       .width(50 * this.sx).height(12 * this.sy)
       .position({ x: 300 * this.sx, y: 48 * this.sy })
+      // 出纸槽（TopZone 行内右侧）：局部坐标 x=300·sx、y=48·sy，宽 50·sx、高 12·sy。
+      // 位置依据：批 63 实测 y=14·sy 会被画到状态栏底下（节点落在 y≈76px、屏上不可见），
+      // 对齐到返回拨杆同一行（48·sy）后落到可见区 y≈149px、点按生效；批 64 重建 TopZone 为 flex 行时，
+      // 槽改为行内右侧子项、不再按局部坐标算屏上位置。点按行为：导出 txt ＋ 300ms 纸片滑出（hilog 计时可证）。
       .id('p26_export_slot')
       // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
     .accessibilityText('出纸槽')
@@ -240,10 +242,7 @@ export struct TopZone26 {
     .onClick(() => { this.onBack(); })
 
       // 出纸槽（TopZone 局部坐标 x=300·sx、y=14·sy；宽 50·sx、高 12·sy）。
-      // 批 63 阶段 0（任务 2／N6）核查：TopZone 挂在 x=machineOffsetX26()（平板 235.6px），
-      // 故屏上应为 235.6＋393vp＝1170px、y≈149px；**真机（MLR-AL10 竖屏）该处无可见件**
       // （y110–260 暗色扫描无深色条，2262 顶部特写亦无槽），点按像素差 0.007 →
-      // 结论：不是坐标算错，是该件在平板竖屏下没画出来（原因待查，记 N6 开放缺陷）。
 
     }
     .width(this.widthVp).height(this.heightVp)
