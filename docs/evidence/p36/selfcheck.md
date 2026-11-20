@@ -1895,3 +1895,27 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
   改成与拨杆同行（`y=48·sy`）后节点 `(1170,149)-(1326,187)`、暗色像素 2372，点按即日志三连（导出文件＋300ms 动画）。
 - **结论：N6 通过** —— 平板竖屏下出纸槽**可见**（2266／2272）、**可点且功能正确**（导出 txt ＋ 300ms 滑出，以 hilog 计时替代截帧）；
   注释与代码一致（`Parts26.ets` 已写明局部坐标与 `machineOffset` 换算）。
+
+---
+
+## 批 64 阶段 1 自检（打字页 flex 化 · 进行中）
+
+### 任务 1 第 1 步：新建 `Stage26.ets` —— 已建、已编译、换算表数值对账通过
+
+- 新文件 `entry/src/main/ets/components/type26/Stage26.ets`：
+  - `StageLayout`（纯数据类）：`stageW/stageH`＝可用宽/高、`machineW＝min(availW, availH×0.441)`、
+    `machineLeft`（机器在舞台内居中）、`paperW＝machineW×0.606`、`paperMaxH＝306×Pw/220`、
+    五区高度（固定 56／36／28／44／27.6＋纸区／字篮井／键盘井，纸区超上限时按 138:172.6 分摊）；
+    附带 `fontSizeVp()＝Pw/220×11.9`、`lineHeightVp()＝字号×30/17`、`charsPerLineEng()`、`describe()` 打点。
+  - `Stage26` 组件：`Row(justifyContent: Center)` 内一列 `machineW` 宽，纵向按换算表排八个槽位
+    （TopBar／纸区／字篮井／功能行／字体条／候选栏／键盘井／机身底缘），各区由 `@BuilderParam` 传入。
+  - 每区用**换算表精确高度**（键盘井也不用 `layoutWeight(1)`），列总高严格等于 availH。
+- 数值对账（脚本核算，非目测）：
+  - 平板 MLR-AL10（availH＝1077.9、machineW＝475.4）：固定 191.6／剩余 886.3／纸区 **418.7**（封顶触发）／
+    字篮井 **207.8**／键盘井 **259.8**；合计 **1077.9** ＝ availH ✓
+  - 手机（availH＝822.5、machineW＝362.7）：纸区 320.2／字篮井 138.1／键盘井 172.7（≈设计稿 320／138／172.6）✓
+  - 纸宽/字号：平板 Pw＝288.1vp、fs＝15.58vp、每行 33 字；手机 Pw＝219.8vp、fs＝11.9vp ✓（与 §3.3 一致）
+- 构建：hvigor `BUILD SUCCESSFUL`（Stage26.ets 参与编译，0 ERROR）。
+- **未做（下一轮）**：Index 尚未改用 `Stage26`（打字页仍是旧的绝对定位 `Carriage26` 挂载），
+  因此 2280（打字页全貌）／2281（各区标尺）等真机验收项还没有证据；阶段 1 的其余任务（纸/键盘/功能行 flex 化、
+  KeymapParser 去坐标、动画位置来源、R5 键盘避让、N6 注释清理）均未开始。
