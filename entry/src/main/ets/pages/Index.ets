@@ -1531,6 +1531,15 @@ struct Index {
     return k > 0 ? k : 1;
   }
   /** 等比缩放后机身水平居中偏移。 */
+  /** 批 63 阶段 0（任务 3／R4）：覆盖页根宽＝机器宽 min(可用宽, 可用高×362.7/822.5)。
+   *  手机＝窗口宽不变；平板 1600×2560 → 475.4vp。根 Stack 是 Alignment.Center，改宽即居中。 */
+  private overlayWidthVp(): number {
+    const w: number = this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth;
+    const h: number = this.winHeightVp > 0 ? this.winHeightVp : 720;
+    const byHeight: number = h * 362.7 / 822.5;
+    return w < byHeight ? w : byHeight;
+  }
+
   private machineOffsetX26(): number {
     const w: number = 362.7 * this.machineK26();
     return (this.stageWidth - w) / 2;
@@ -1562,7 +1571,13 @@ struct Index {
     // 批 49：纸高＝上内边距 31 ＋ 真实行高 21.0 × 行数；1 行 52，钳 [52, 306]
     const lines: number = this.docModel.getLines().length > 0 ? this.docModel.getLines().length : 1;
     const v: number = 31 + this.lineHeightVp * lines + 6;   // 批 49：+6 让末行下沿不被纸底/压纸杆切
-    return v < 306 ? (v > 58 ? v : 58) : 306;
+    // 批 63 阶段 0（任务 5／§3.3）：封顶只此一处，且按「设计纸宽」缩放——306 × Pw／220，
+    // 其中 Pw＝机器宽×0.606（设计口径；现行 paperWidthVp 仍是舞台口径，阶段 1 才改）。
+    // 手机：机器 362.7 → Pw 219.8 → 封顶 305.7（≈历史 306，不变）；平板：机器 475.6 → Pw 288.1 → 400.7。
+    const machineW: number = 362.7 * this.xk();
+    const designPw: number = machineW * 0.606;
+    const cap: number = 306 * (designPw / 220);
+    return v < cap ? (v > 58 ? v : 58) : cap;
   }
 
   /** §6.1：纸 V=0 左缘（156vp）。 */
@@ -2470,7 +2485,7 @@ struct Index {
    *   carriageTop = 56% × 屏高（三态同高，不动）
    *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
    */
-  private recalcPaperHeight(kind: string = 'recalc'): void {
+  private recalcPaperHeight(kind: string = 'recalc', syncVisible: boolean = false): void {
     // H 冻结：只用首次稳定测到的 availableHeightVp，不每轮重读 live inset
     // 第 5 批回批 F7（D0b-2）：冻结只适用于非折叠态；desk 用上半区高，frozenHVp 不清零
     // （切回 EXPAND 继续用冻结值，避免反复冻结/解冻）。
@@ -2511,6 +2526,16 @@ struct Index {
     // 纸片容器高 = 纸顶到滚筒
     // 纸底伸到 carriageTop 下 2vp：纸叠进滚筒 40vp（滚筒顶 = carriageTop − Hc/2），同一张纸
     this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp + 2;
+    // 批 63 阶段 0（任务 5）：纸片容器高与纸顶只认一个封顶——paperVisibleTargetVp()（306×Pw/220）。
+    // 封顶后纸顶不再上移（同一帧一起落位），内容改为在纸内滚动。
+    const capPaperH: number = this.paperVisibleTargetVp();
+    if (this.paperContainerTargetVp > capPaperH) {
+      this.paperContainerTargetVp = capPaperH;
+      this.paperTopTargetVp = this.carriageTopVp - capPaperH + 2;
+      if (this.paperTopTargetVp < 0) {
+        this.paperTopTargetVp = 0;
+      }
+    }
     // 第 5 批回批 F7（D4 裁剪机制）：半开时纸容器在 creaseTop 处裁剪（容器即裁剪区，不加 .clip()）；
     // 安全网：D1 公式下容器本已在折痕之上，cap 仅防折痕值误读
     if (isDesk && this.creaseTopVp > 0) {
@@ -2547,6 +2572,10 @@ struct Index {
         this.paperTick(this.paperTopVp, this.paperContainerVp, 0, 0, 0, 0, kind);
       }
       this.paperSuppressTickOnce = false;
+    }
+    if (syncVisible) {
+      // 批 63 阶段 0（任务 5）：可见纸高与纸顶同一帧落位——封顶只在 paperVisibleTargetVp() 一处
+      this.paperGrowVp = this.paperVisibleTargetVp();
     }
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
@@ -2599,7 +2628,7 @@ struct Index {
   /** 换行与行数变化一律走 recalcPaperHeight（纸高不再增长，只动纸顶）。 */
   private animatePaperHeight(kind: string = 'newline'): void {
     this.paperAnimateNext = true;
-    this.recalcPaperHeight(kind);
+    this.recalcPaperHeight(kind, true);
   }
 
   /**
@@ -3770,8 +3799,10 @@ struct Index {
     // （旧写法用 −(stageWidth−56)=−306.7vp 当限，与打字的 −maxTravelVp=−64vp 差 4.8 倍）
     let o: number = -this.travelPerChar * cursor.offset;
     // 批 55：与打字同一限幅口径
+    // 批 63 阶段 0（任务 1／N1）：超限后赋的是 limit 本身（−65vp），与 stepCarriageLeft 同款；
+    // 旧写法赋 −maxTravelVp（平板上 −308vp）会把纸推出画面左缘。
     if (o < -Math.min(this.maxTravelVp, this.CARRIAGE_TRAVEL_LIMIT_VP)) {
-      o = -this.maxTravelVp;
+      o = -Math.min(this.maxTravelVp, this.CARRIAGE_TRAVEL_LIMIT_VP);
     }
     if (o > 0) {
       o = 0;
@@ -4215,15 +4246,10 @@ struct Index {
         this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
-      // 批 46：换行使纸长高一行（上限 306vp）；到顶后改为内容滚动
-      const growTarget: number = this.paperVisibleTargetVp();
-      if (growTarget > this.paperGrowVp + 0.5) {
-        this.getUIContext().animateTo({ duration: 250, curve: Curve.FastOutSlowIn }, () => {
-          this.paperGrowVp = growTarget;
-        });
-      } else if (growTarget >= 306) {
-        this.paperGrowVp = 306;
-      }
+      // 批 63 阶段 0（任务 5）：纸高已由 animatePaperHeight → recalcPaperHeight(kind, true) 在换行同一帧
+      // 落位；这里不再二次改 height（旧写法 250ms 后才长高，造成纸面滞后、纸顶出屏）。
+      hilog.info(DOMAIN, TAG, 'newline paperGrow=%{public}s target=%{public}s',
+        this.paperGrowVp.toFixed(1), this.paperVisibleTargetVp().toFixed(1));
       // §18.6 第 2 件：代际守卫（newlineTick 变了说明已被新一轮接管，本轮不许清旗／释放）
       if (this.newlineTick() !== myNlTick) {
         hilog.info(DOMAIN, TAG, 'newline release stale tick=%{public}s cur=%{public}s',
@@ -4729,7 +4755,7 @@ struct Index {
       if (this.navStack.indexOf('home') >= 0
         && this.navStack[this.navStack.length - 1] !== 'typewriter') {
         HomePage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           // 第 13 批 ⑤：主页 hero 跟随当前启用机型
           machineKind: this.machineKind,
@@ -4780,7 +4806,7 @@ struct Index {
 
       if (this.dossierOpen) {
         DossierPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
           onBack: (): void => { this.leaveTyping(); },
@@ -4797,7 +4823,7 @@ struct Index {
       // 换装页（§4）：换装即时生效（改状态后主屏下一帧即换装，不重建编辑器）
       if (this.customizeOpen) {
         CustomizePage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineKind: this.machineKind as string,
           paperKind: this.paperKind as string,
@@ -4854,7 +4880,7 @@ struct Index {
       // 第 2 批 F3：换装子页（字体管理／纸张自定义）
       if (this.fontManagerOpen) {
         FontManagerPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
           onApplyFamily: (family: string): void => {
@@ -4873,7 +4899,7 @@ struct Index {
       }
       if (this.paperCustomOpen) {
         PaperCustomPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           paperKind: this.paperKind as string,
           onBack: (): void => {
@@ -4888,7 +4914,7 @@ struct Index {
       // 收藏页（§3）：先渲染，详情页在其后渲染才能盖在它上面
       if (this.collectionOpen) {
         CollectionPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           currentMachine: this.machineKind as string,
           achieveRev: this.achieveRev,
@@ -4903,7 +4929,7 @@ struct Index {
       // 收藏详情页（§3）：只对已解锁机器开放；必须排在收藏页之后（后者先绘制）
       if (this.collectionOpen && this.collectionDetailKind.length > 0) {
         CollectionDetailPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineKind: this.collectionDetailKind,
           totalWords: statsService.totalWords(),
@@ -5190,7 +5216,7 @@ struct Index {
 
       if (this.settingsOpen) {
         SettingsPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           machineLabel: this.machineLabelText(),
           paperLabel: this.paperLabelText(),
@@ -5242,7 +5268,7 @@ struct Index {
       // 第 6 批 F10：回收站（排在设置页之后，保证盖在设置页上）
       if (this.trashOpen) {
         TrashPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: this.trashDocs,
           onBack: (): void => { this.leaveTyping(); },
@@ -5255,7 +5281,7 @@ struct Index {
 
       if (this.dossierOpen && this.detailOpen) {
         DossierDetailPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           dossierId: this.openDossierId,
           docs: this.listDocs(),
@@ -5289,7 +5315,7 @@ struct Index {
       // 文档视图（§5.3）：必须排在卷宗内页之后，才能盖在内页之上
       if (this.dossierOpen && this.openDocId.length > 0) {
         DocumentViewPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.openDocId,
           deleteMode: this.deleteMode,
@@ -5325,7 +5351,7 @@ struct Index {
       // §6.2 导出页（第 3 批：双按钮/进度/结果态；构建与分享在 ExportPage 内部）
       if (this.exportOpen) {
         ExportPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docId: this.exportDocId.length > 0 ? this.exportDocId : this.docId,
           dossierId: this.exportDossierId,
@@ -5356,7 +5382,7 @@ struct Index {
 
       if (this.pinyinSettingsOpen) {
         PinyinSettingsPage({
-          widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+          widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           fuzzyOn: this.fuzzyOn,
           userWords: this.userWordsFlat,
@@ -5443,7 +5469,7 @@ struct Index {
       // 第 9 批 F5：成就达成弹窗（挂在最上层；一次只弹一条，关掉再弹下一条）
       AppDialog({
         visible: this.achNoticeKind.length > 0,
-        widthVp: this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth,
+        widthVp: this.overlayWidthVp(),
         heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
         onClose: (): void => {
           AchievementService.dismiss();

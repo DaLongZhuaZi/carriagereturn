@@ -220,7 +220,11 @@ export struct TopZone26 {
     .accessibilityLevel('yes')
     .onClick(() => { this.onBack(); })
 
-      // 出纸槽（x 300–350，y 60–72）：深槽＋钢唇＋纸舌
+      // 出纸槽（TopZone 局部坐标 x=300·sx、y=14·sy；宽 50·sx、高 12·sy）。
+      // 批 63 阶段 0（任务 2／N6）核查：TopZone 挂在 x=machineOffsetX26()（平板 235.6px），
+      // 故屏上应为 235.6＋393vp＝1170px、y≈149px；**真机（MLR-AL10 竖屏）该处无可见件**
+      // （y110–260 暗色扫描无深色条，2262 顶部特写亦无槽），点按像素差 0.007 →
+      // 结论：不是坐标算错，是该件在平板竖屏下没画出来（原因待查，记 N6 开放缺陷）。
       Stack({ alignContent: Alignment.TopStart }) {
         Column().width(50 * this.sx).height(10 * this.sy)
           .backgroundColor('#0b0a09')
