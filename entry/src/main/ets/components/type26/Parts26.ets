@@ -608,11 +608,12 @@ export struct PaperPanel26 {
         .position({ x: 0, y: 0 })
         .hitTestBehavior(HitTestMode.None)
     }
-    // 批 62（任务 2／3）：纸纹理——自定义纹理优先，其次纸种文件，最后回落 cream
+    // 批 64（T3）：纸盒改 flex 后，纸的宽高比＝Pw/纸高＝0.7183（与贴图 1484×2066 一致），
+    // 所以贴图改回 Fill——Contain 在「窄高盒」里会留白（真机 2280 前身实测：纸顶/纸底各一条白带）。
     Image($rawfile(this.customTextureRawfile.length > 0
       ? this.customTextureRawfile
       : (this.textureRawfile.length > 0 ? this.textureRawfile : 'ui-parts/paper-cream-v5.png')))
-      .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(1.0)
+      .width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
   }
 
   build() {

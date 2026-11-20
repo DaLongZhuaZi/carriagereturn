@@ -1,71 +1,48 @@
 /**
- * 批 35（26 号稿「修正口径」）· 字车总成容器。
+ * 批 64（阶段 1 / T3）· 纸区内容容器 Carriage26（flex 化后）
  *
- * 核心口径（用户 2026-11-18 binding）：
- *  - 字车是一个容器，纸／滚筒／卷曲／横尺／色带／压纸杆／拨杆／旋钮同属一个容器、同一次位移；
- *  - 容器内以「字车中心＝滚筒中心＝纸中心」为 0：V=0 时容器中心 266vp，纸左缘 156vp，纸宽 220vp，
- *    滚筒宽 277.2vp（−138.6～＋138.6），滚筒中心 y 104vp；
- *  - 打字时容器整体左移（每字约 7vp），行末中心 101vp（纸左缘 −9vp）；
- *  - 滚筒中心＝纸中心（批 34 的「滚筒按机中心 181、纸按落字点 156」错位 85vp 作废）。
- *
- * 所有零件用「V=0 时的屏幕坐标」写在容器里，整容器用 translate({x: offsetXVp}) 一次位移——
- * 不存在第二套独立定位。
+ * 口径（设计稿 §3.3＋§3.4）：
+ *  - 本组件是 **纸区（paperZone）** 的内容，不再自带绝对坐标：
+ *    纸底由 `justifyContent(FlexAlign.End)` 贴住纸区底部，纸高＝内容高（story：Index 的 paperGrowVp
+ *    就是「可见纸高」，31＋lh×行数＋6，封顶 306×Pw/220），纸向上生长。
+ *  - 纸宽＝机器宽×0.606（`paperWVp`，Index 传 paperPanelWidthVp() 同源），水平居中于纸区。
+ *  - 纸区底部 18vp 是「横尺 12 ＋ 间隙 2 ＋ 色带 4」，纵向 flex 子项排布，不再钉 y=356/370；
+ *    纸最大高＋18 ＝ 纸区高，所以纸到顶时纸顶正好落在纸区顶。
+ *  - 字车组（纸／压纸杆／指针／横尺）整体 `translate({x: offsetXVp})` 一次位移；
+ *    色带是机架固定件（批 36 口径：不随字车），排在字车组之后、不参与 translate。
+ *  - 横尺 700·sx 的绘制保留，但外层 `width('100%')`＋`clip(true)` 裁到机器宽（N2：右缘不再越界）。
  */
 import { MachineKind } from '../../model/DocModel';
-import { PaperPanel26, TriMark26, BRASS, BRASS_HI } from './Parts26';
+import { PaperPanel26, TriMark26 } from './Parts26';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const DOMAIN: number = 0xA00100;
 const TAG: string = 'Carriage26';
 
-/** 字车中心（V=0，vp）＝滚筒中心＝纸中心。 */
+/** 字车中心（V=0，vp）＝旧横尺对位口径。 */
 const CX0: number = 266;
-/** 滚筒宽（vp）。 */
-const ROLLER_W: number = 277.2;
-/** 纸宽（vp）与纸左缘（V=0）。 */
-const PAPER_W: number = 290;   // 批 45：80% 舞台宽（362.7×0.8）
-const PAPER_LEFT: number = 36;  // 批 45：居中（36 + 290 + 36.7 ≈ 362.7）
-/** 滚筒：中心 y 104、可见高 88（y 60–148）。 */
-const ROLLER_Y: number = 60;
-const ROLLER_H: number = 88;
-/** 横尺／色带／压纸杆。 */
-const RULER_Y: number = 356;
-const RIBBON_Y: number = 370;
-
-/** paper-curl-v2.png（1400×277）实测：纸部分 x 308–1089（宽 781px，居中）。 */
-const CURL_IMG_W: number = 1400;
-const CURL_IMG_H: number = 277;
-const CURL_PAPER_X0: number = 308;
-const CURL_PAPER_X1: number = 1089;
+/** 纸区底部固定件（vp，手机／平板一致）。 */
+const RULER_H: number = 12;
+const RIB_GAP: number = 2;
+const RIBBON_H: number = 4;
+/** 纸区底部三段合计（设计稿 §3.2：纸最大高＋18 ＝ 纸区高）。 */
+const BOTTOM_FURNITURE: number = RULER_H + RIB_GAP + RIBBON_H;   // 18
 
 @Component
 export struct Carriage26 {
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
-  @Prop widthVp: number = 362.7;
-  @Prop heightVp: number = 822.5;
+  /** 纸区宽（＝机器宽）。 */
+  @Prop machineWVp: number = 475.3;
+  /** 纸区高（StageLayout.paperH）。 */
+  @Prop zoneHVp: number = 418.6;
+  /** 纸宽（＝机器宽×0.606）。 */
+  @Prop paperWVp: number = 288.1;
+  /** 可见纸高（内容高／装纸生长量，0＝还没出纸）。 */
+  @Prop paperHVp: number = 306.4;
   @Prop @Watch('onGeomChange') sx: number = 1;
   @Prop @Watch('onGeomChange') sy: number = 1;
-  /** 字车行程 V（vp，0 → −165）。 */
+  /** 字车行程 V（vp，0 → −65）。 */
   @Prop offsetXVp: number = 0;
-
-  /** 批 38（平板竖屏首验）：几何打点——用来对账「纸实际画在哪、多宽」。 */
-  aboutToAppear(): void {
-    hilog.info(DOMAIN, TAG, 'geom init sx=%{public}s sy=%{public}s w=%{public}s h=%{public}s paperW=%{public}s paperLeft=%{public}s offX=%{public}s',
-      this.sx.toFixed(3), this.sy.toFixed(3), this.widthVp.toFixed(1), this.heightVp.toFixed(1),
-      (PAPER_W * this.sx).toFixed(1), (PAPER_LEFT * this.sx).toFixed(1), this.offsetXVp.toFixed(1));
-  }
-
-  onGeomChange(): void {
-    hilog.info(DOMAIN, TAG, 'geom change sx=%{public}s sy=%{public}s w=%{public}s h=%{public}s paperW=%{public}s paperLeft=%{public}s offX=%{public}s',
-      this.sx.toFixed(3), this.sy.toFixed(3), this.widthVp.toFixed(1), this.heightVp.toFixed(1),
-      (PAPER_W * this.sx).toFixed(1), (PAPER_LEFT * this.sx).toFixed(1), this.offsetXVp.toFixed(1));
-  }
-  @Prop leverAngle: number = 0;
-  @Prop knobAngle: number = 0;
-  @Prop strikePhase: number = 0;
-  @Prop knobDVp: number = 46.5;
-  /** 边铃状态（开＝直立＋红点）。 */
-  @Prop soundOn: boolean = true;
 
   // ---- 活纸 ----
   @Prop lines: string[] = [];
@@ -84,48 +61,47 @@ export struct Carriage26 {
   @Prop customTextureRawfile: string = '';
   @Prop ruledOn: boolean = false;
   @Prop docTitle: string = '';
-  /** 批 43：装纸/出纸的纸位移（0＝到位；−362＝整张在屏幕上方）。 */
-  @Prop paperSlideVp: number = 0;
-  /** 批 45：装纸高度（0＝缩在滚筒里，306＝到位）；纸从滚筒向上长出来。 */
-  @Prop paperGrowVp: number = 306;
-  /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
   @Prop contentOpacity: number = 1;
   @Prop pageNo: string = '';
+  @Prop strikePhase: number = 0;
 
-  // ---- 交互 ----
-  onKnob: () => void = (): void => {};
-  onLeverTap: () => void = (): void => {};
-  onLeverStart: () => void = (): void => {};
-  onLeverUpdate: (dy: number) => void = (_dy: number): void => {};
-  onLeverEnd: () => void = (): void => {};
+  /** 批 38（平板竖屏首验）：几何打点——用来对账「纸实际画在哪、多宽」。 */
+  aboutToAppear(): void {
+    hilog.info(DOMAIN, TAG, 'geom init zone=%{public}sx%{public}s paperW=%{public}s paperH=%{public}s offX=%{public}s',
+      this.machineWVp.toFixed(1), this.zoneHVp.toFixed(1),
+      this.paperWVp.toFixed(1), this.paperHVp.toFixed(1), this.offsetXVp.toFixed(1));
+  }
 
-  /** 字车中心（V=0 局部坐标）。 */
+  onGeomChange(): void {
+    hilog.info(DOMAIN, TAG, 'geom change zone=%{public}sx%{public}s paperW=%{public}s paperH=%{public}s offX=%{public}s',
+      this.machineWVp.toFixed(1), this.zoneHVp.toFixed(1),
+      this.paperWVp.toFixed(1), this.paperHVp.toFixed(1), this.offsetXVp.toFixed(1));
+  }
+
+  /** 字车中心（局部，横尺对位用）。 */
   private cx(): number {
     return CX0 * this.sx;
   }
 
-  /** 卷曲：按「纸部分＝220vp」换算整图尺寸（等比，不裁弧）。 */
-  private curlScale(): number {
-    const paperPx: number = CURL_PAPER_X1 - CURL_PAPER_X0;
-    return (PAPER_W * this.sx) / paperPx;
+  /** 纸左缘（纸区局部坐标）。 */
+  private paperLeft(): number {
+    return (this.machineWVp - this.paperWVp) / 2;
   }
 
-  private curlW(): number {
-    return CURL_IMG_W * this.curlScale();
+  /** 纸区上部（纸可视区）高＝纸区高 − 底部三段。 */
+  private paperAreaH(): number {
+    const h: number = this.zoneHVp - BOTTOM_FURNITURE;
+    return h > 0 ? h : 0;
   }
 
-  private curlH(): number {
-    return CURL_IMG_H * this.curlScale();
+  /** 可见纸高（clamp ≥0；装纸时从 0 长出来）。 */
+  private paperH(): number {
+    return this.paperHVp > 0 ? this.paperHVp : 0;
   }
 
-  /** 卷曲左缘：让图片里的纸部分左缘落在纸左缘。 */
-  private curlLeft(): number {
-    return PAPER_LEFT * this.sx - CURL_PAPER_X0 * this.curlScale();
-  }
-
-  /** 卷曲顶：图片下沿＝滚筒下沿（paper-curl-v2 是裁到滚筒底缘的成品条）。 */
-  private curlTop(): number {
-    return (ROLLER_Y + ROLLER_H) * this.sy - this.curlH();
+  /** 落字指针 x（字车组局部坐标；不再乘 k、不再加 61 魔法数）。 */
+  private strikeX(): number {
+    return this.paperLeft() + this.marginLVp + this.cursorXVp;
   }
 
   /** 横尺刻度（每 4vp 一根，覆盖 700vp 宽）。 */
@@ -134,7 +110,7 @@ export struct Carriage26 {
     const w: number = 700 * this.sx;
     let x: number = 6 * this.sx;
     while (x < w) {
-      d += 'M' + x.toFixed(1) + ' 0 V' + (5 * this.sy).toFixed(1) + ' ';
+      d += 'M' + x.toFixed(1) + ' 0 V5 ';
       x += 4 * this.sx;
     }
     return d;
@@ -149,128 +125,129 @@ export struct Carriage26 {
     return out;
   }
 
-  /** 锯齿边（齿高 3vp、齿宽 4vp，覆盖 700vp 宽）。 */
-  private sawPath(): string {
-    const maxX: number = 700 * this.sx;
-    const w: number = 4 * this.sx;
-    const h: number = 3 * this.sy;
-    let d: string = 'M0 0';
-    let x: number = 0;
-    while (x < maxX) {
-      d += ' L' + (x + w / 2).toFixed(1) + ' ' + h.toFixed(1) + ' L' + (x + w).toFixed(1) + ' 0';
-      x += w;
-    }
-    return d;
-  }
-
-  /** 横尺上的红三角（左右边距标记，随纸走）。 */
-  private triPath(): string {
-    return 'M0 0 L' + (7 * this.sx).toFixed(1) + ' 0 L' + (3.5 * this.sx).toFixed(1) + ' ' + (6 * this.sy).toFixed(1) + ' Z';
-  }
-
   build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      // ---- 活纸（连续纸条，行文随字车上移）----
-      // 批 45：装纸视口——纸从滚筒（y=362）向上长出来；视口下缘 362 裁掉多余部分
+    Column() {
+      // ---- 字车组（纸／压纸杆／指针／横尺）：整体随字车一次位移 ----
       Column() {
-      PaperPanel26({
-        widthVp: PAPER_W * this.sx,
-        heightVp: 306.4 * this.sy,
-        sx: this.sx, sy: this.sy,
-        lines: this.lines,
-        fontSizeVp: this.fontSizeVp,
-        lineHeightVp: this.lineHeightVp,
-        marginLVp: this.marginLVp,
-        marginRVp: this.marginRVp,
-        marginTVp: this.marginTVp,
-        fontFamily: this.fontFamily,
-        textColor: this.textColor,
-        cursorXVp: this.cursorXVp,
-        cursorYVp: this.cursorYVp,
-        strikePhase: this.strikePhase,
-        scrollYVp: this.scrollYVp,
-        textureRawfile: this.textureRawfile,
-        customPaperColor: this.customPaperColor,
-        customTextureRawfile: this.customTextureRawfile,
-        ruledOn: this.ruledOn,
-        docTitle: this.docTitle,
-        contentOpacity: this.contentOpacity,
-        pageNo: this.pageNo,
-      })
-        .id('p35_paper')
-          .hitTestBehavior(HitTestMode.None)
-        .position({ x: PAPER_LEFT * this.sx, y: 362 * this.sy - this.paperGrowVp })
-        // 批 39 修订：滚筒删除后纸顶＝干净直边；只加一条极淡的上缘阴影（1.5vp、黑 8%）
-        Column().width(PAPER_W * this.sx).height(1.5 * this.sy)
-          .linearGradient({
-            direction: GradientDirection.Bottom,
-            colors: [['#00000014', 0.0], ['#00000000', 1.0]],
-          })
-          .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
-      }
-      .width('100%').height(362 * this.sy)
-      .clip(true)
-      .position({ x: 0, y: 0 })
-      .hitTestBehavior(HitTestMode.None)
-
-      // ---- 横尺（700vp 宽，随机宽覆盖；随字车移动）----
-      Stack({ alignContent: Alignment.TopStart }) {
-        // 批 58：横尺恢复代码绘制（批 57 的贴图路线作废）
-        // 杆身渐变（口径与批 57 之前一致）
-        Column().width(700 * this.sx).height(12 * this.sy)
-          .linearGradient({
-            direction: GradientDirection.Bottom,
-            colors: [['#e6e6e8', 0.0], ['#b4b4b4', 0.45], ['#7d7d80', 1.0]],
-          })
-          .position({ x: 0, y: 0 })
-        // 刻度：175 根，节距 4vp；次刻度 4vp 高/0.8vp 宽 #3d3d40，主刻度每 5 根 7vp 高/1.2vp 宽 #2b2b2f
+        // 纸视口：纸底贴住这里的底部（justifyContent End），纸向上生长
         Stack({ alignContent: Alignment.TopStart }) {
-          ForEach(this.teeth(), (t: number, i: number) => {
-            Column()
-              .width((i % 5 === 0 ? 1.2 : 0.8) * this.sx)
-              .height((i % 5 === 0 ? 7 : 4) * this.sy)
-              .backgroundColor(i % 5 === 0 ? '#2b2b2f' : '#3d3d40')
-              .position({ x: (i * 4) * this.sx, y: 0 })
-          }, (t: number) => 'tick' + t.toString())
-        }
-        .width(700 * this.sx).height(12 * this.sy)
-        .position({ x: 0, y: 0 })
-        // 两个边距红三角（纸左缘 156／纸右缘 376；与中央指针 181 分明）
-        TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
-          .position({ x: (PAPER_LEFT - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
-        TriMark26({ w: 7, h: 6, sx: this.sx, sy: this.sy })
-          .position({ x: (PAPER_LEFT + PAPER_W - (CX0 - 350)) * this.sx - 3.5 * this.sx, y: 6 * this.sy })
-        // 锯齿下沿（175 齿：齿宽 2vp、齿高 3vp、间距 2vp）
-        Row({ space: 2 * this.sx }) {
-          ForEach(this.teeth(), (t: number) => {
-            Column().width(2 * this.sx).height(3 * this.sy).backgroundColor('#2b2b2f')
-          }, (t: number) => 'saw' + t.toString())
-        }
-        .width(700 * this.sx).height(3 * this.sy)
-        .position({ x: 0, y: 9 * this.sy })
-      }
-      .width(700 * this.sx).height(12 * this.sy)
-      .clip(true)
-      .position({ x: this.cx() - 350 * this.sx, y: RULER_Y * this.sy })
-      .hitTestBehavior(HitTestMode.None)
+          Column() {
+            // 纸上缘极淡阴影（批 39：滚筒删除后纸顶是干净直边）
+            Column().width(this.paperWVp).height(1.5)
+              .linearGradient({
+                direction: GradientDirection.Bottom,
+                colors: [['#00000014', 0.0], ['#00000000', 1.0]],
+              })
+              .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
+              .hitTestBehavior(HitTestMode.None)
+            // 活纸：纸高＝内容高，底端由 justifyContent(End) 固定
+            if (this.paperH() > 0) {
+              PaperPanel26({
+                widthVp: this.paperWVp,
+                heightVp: this.paperH(),
+                sx: this.sx, sy: this.sy,
+                lines: this.lines,
+                fontSizeVp: this.fontSizeVp,
+                lineHeightVp: this.lineHeightVp,
+                marginLVp: this.marginLVp,
+                marginRVp: this.marginRVp,
+                marginTVp: this.marginTVp,
+                fontFamily: this.fontFamily,
+                textColor: this.textColor,
+                cursorXVp: this.cursorXVp,
+                cursorYVp: this.cursorYVp,
+                strikePhase: this.strikePhase,
+                scrollYVp: this.scrollYVp,
+                textureRawfile: this.textureRawfile,
+                customPaperColor: this.customPaperColor,
+                customTextureRawfile: this.customTextureRawfile,
+                ruledOn: this.ruledOn,
+                docTitle: this.docTitle,
+                contentOpacity: this.contentOpacity,
+                pageNo: this.pageNo,
+              })
+                .id('p35_paper')
+                .hitTestBehavior(HitTestMode.None)
+            }
+            // 压纸杆（3D 钢杆贴图，压住纸下缘）：作为 flex 子项排在纸下方，负 margin 叠住纸底 4vp
+            Image($rawfile('ui-parts/pressbar-steel-v1.png'))
+              .width(this.paperWVp).height(4)
+              .objectFit(ImageFit.Contain)
+              .margin({ top: -4 })
+              .hitTestBehavior(HitTestMode.None)
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.End)
+          .alignItems(HorizontalAlign.Center)
 
-      // ---- 压纸杆（批 49：3D 钢杆贴图，贴纸下缘 y=358；运行时渐变与黑轮已删）----
-      Image($rawfile('ui-parts/pressbar-steel-v1.png'))
-        .width(PAPER_W * this.sx).height(4 * this.sy)
-        .objectFit(ImageFit.Contain)
-        .position({ x: PAPER_LEFT * this.sx, y: 358 * this.sy })
+          // 落字指针（跟随光标：纸左缘 ＋ 左边距 ＋ 光标纸内 x ＋ 字车 O；由字车组统一位移）
+          Column().width(2).height(10)
+            .backgroundColor('#8f8f92')
+            .position({ x: this.strikeX(), y: this.paperAreaH() - 15 })
+            .animation({ duration: 250, curve: Curve.EaseOut })
+            .hitTestBehavior(HitTestMode.None)
+          TriMark26({ w: 7, h: 6, sx: 1, sy: 1 })
+            .position({ x: this.strikeX() - 3.5, y: this.paperAreaH() - 6 })
+            .animation({ duration: 250, curve: Curve.EaseOut })
+            .hitTestBehavior(HitTestMode.None)
+        }
+        .width('100%')
+        .height(this.paperAreaH())
+
+        // ---- 横尺（绘制宽 700·sx 保留；外层裁到机器宽，修 N2 越界）----
+        Row() {
+          Stack({ alignContent: Alignment.TopStart }) {
+            // 杆身渐变
+            Column().width(700 * this.sx).height(RULER_H)
+              .linearGradient({
+                direction: GradientDirection.Bottom,
+                colors: [['#e6e6e8', 0.0], ['#b4b4b4', 0.45], ['#7d7d80', 1.0]],
+              })
+              .position({ x: 0, y: 0 })
+            // 刻度：175 根，节距 4vp；次刻度 4vp 高／0.8vp 宽，主刻度每 5 根 7vp 高／1.2vp 宽
+            Stack({ alignContent: Alignment.TopStart }) {
+              ForEach(this.teeth(), (t: number, i: number) => {
+                Column()
+                  .width((i % 5 === 0 ? 1.2 : 0.8) * this.sx)
+                  .height(i % 5 === 0 ? 7 : 4)
+                  .backgroundColor(i % 5 === 0 ? '#2b2b2f' : '#3d3d40')
+                  .position({ x: (i * 4) * this.sx, y: 0 })
+              }, (t: number) => 'tick' + t.toString())
+            }
+            .width(700 * this.sx).height(RULER_H)
+            .position({ x: 0, y: 0 })
+            // 两个边距红三角（纸左缘／纸右缘，随纸宽走）
+            TriMark26({ w: 7, h: 6, sx: 1, sy: 1 })
+              .position({ x: this.paperLeft() - (this.cx() - 350 * this.sx) - 3.5, y: 6 })
+            TriMark26({ w: 7, h: 6, sx: 1, sy: 1 })
+              .position({ x: this.paperLeft() + this.paperWVp - (this.cx() - 350 * this.sx) - 3.5, y: 6 })
+          }
+          .width(700 * this.sx).height(RULER_H)
+          .translate({ x: this.cx() - 350 * this.sx })
+        }
+        .width('100%').height(RULER_H)
+        .clip(true)
         .hitTestBehavior(HitTestMode.None)
+      }
+      .width('100%')
+      .translate({ x: this.offsetXVp })
 
-
+      // ---- 色带（机架固定件，不随字车；批 59：静态不上抬）----
+      Column().height(RIB_GAP)
+      Column()
+        .width(346.7 * this.sx).height(RIBBON_H)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#a8352f', 0.0], ['#e04a42', 0.35], ['#d23a33', 0.62], ['#8f1f1c', 1.0]],
+        })
+        .hitTestBehavior(HitTestMode.None)
     }
-    .width(this.widthVp).height(this.heightVp)
-    .translate({ x: this.offsetXVp })
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.End)
+    .alignItems(HorizontalAlign.Center)
     // 空白处不挡下层的顶区按钮（子件各自可点）
     .hitTestBehavior(HitTestMode.Transparent)
-  }
-
-  /** 旋钮直径的横向量纲（与 sx 同源；单列出来避免长表达式）。 */
-  private xk2(): number {
-    return this.sx;
   }
 }

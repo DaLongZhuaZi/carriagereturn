@@ -1546,6 +1546,11 @@ struct Index {
     return 362.7 * this.xk();
   }
 
+  /** 批 64（T3）：舞台换算表（与 Stage26 同式同参），供纸区等槽位取区高。 */
+  private stageLayout26(): StageLayout {
+    return new StageLayout(this.stageWidth, this.winHeightVp > 0 ? this.winHeightVp : this.canvasHeightVp());
+  }
+
   private machineOffsetX26(): number {
     const w: number = 362.7 * this.machineK26();
     return (this.stageWidth - w) / 2;
@@ -1555,12 +1560,17 @@ struct Index {
   private t26x(base: number): number { return base * this.xk(); }
   private t26y(base: number): number { return base * this.yk(); }
 
-  /** §6.1：纸宽 220vp（平板 0.606×stageW）。 */
+  /** 批 64（T3）：纸宽＝机器宽×0.606（设计稿 §3.3；手机 219.8vp／平板 288.1vp）。 */
   private paperPanelWidthVp(): number {
-    return this.isTablet ? this.stageWidth * 0.606 : 220 * this.xk();
+    return this.machineWidth26() * 0.606;
   }
-  /** §6.1：行宽 165vp（纸宽 220 − 左 25 − 右 30）。 */
-  private lineWidth26(): number { return 235 * this.xk(); }   // 批 54：实际纸宽 290 − 边距 55 ＝ 235vp（≈33 字/行）
+  /** 批 64（T3）：行宽＝纸宽 − 左右边距。旧口径 235·k（平板 307.9）比纸还宽，纸面会溢出，作废。 */
+  private lineWidth26(): number {
+    const ml: number = (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk();
+    const mr: number = (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk();
+    const w: number = this.paperPanelWidthVp() - ml - mr;
+    return w > 40 ? w : 40;
+  }
   /** §6.1：正文 11.9vp（≈7vp/字 → 行宽 165vp ≈ 23 字）。 */
   private typeFontSize(): number { return 11.9; }   // 批 45：字距 7.14 不动，字号不随纸宽缩放
   /** 批 46：纸可见高随行数生长——起始 90vp（卷＋标题／首行），每行 +25vp，上限 306vp。 */
@@ -4723,6 +4733,43 @@ struct Index {
       .id('p26_top_zone')
   }
 
+  /** 批 64（T3）：纸区（纸／压纸杆／落字指针／横尺／色带）——纸区槽位内容。 */
+  @Builder
+  stagePaper() {
+    Carriage26({
+      machine: this.machineKind,
+      machineWVp: this.machineWidth26(),
+      zoneHVp: this.stageLayout26().paperH,
+      paperWVp: this.paperPanelWidthVp(),
+      // 装纸/出纸动画：paperGrowVp 就是「可见纸高」（0 → 内容高），flex 下直接当纸高用，
+      // 不再手算 y=362·sy−paperGrowVp 的位移（T3：PAPER_W／paperGrow 位移退役）
+      paperHVp: this.paperGrowVp,
+      sx: this.xk(), sy: this.yk(),
+      offsetXVp: this.carriageOffsetVp,
+      strikePhase: this.strikePhase,
+      lines: this.docLineTexts(),
+      fontSizeVp: this.fontSizeVp,
+      lineHeightVp: this.lineHeightVp,
+      // 批 62（任务 4）：自定义边距接上——未自定义时用现行等效默认值（左25/右30/上31），外观不变
+      marginLVp: (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk(),
+      marginRVp: (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk(),
+      marginTVp: (this.customMarginT > 0 ? this.customMarginT : 31) * this.yk(),
+      fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：字体条切换即改变纸面渲染
+      textColor: this.inkColor,
+      cursorXVp: this.cursorXVp26(),
+      cursorYVp: this.paperCursorY26(),
+      scrollYVp: this.paperScroll26(),
+      textureRawfile: this.paperPanelTexture(),
+      customPaperColor: this.customPaperColor,
+      customTextureRawfile: this.customPaperTexture,
+      ruledOn: this.customPaperRuled,
+      docTitle: this.docTitle,
+      contentOpacity: this.paperContentOpacity,
+      pageNo: this.paperPageNo(),
+    })
+      .id('p35_carriage')
+  }
+
   build() {
     Stack({ alignContent: Alignment.Center }) {
       // 中文输入锚点：隐藏 TextInput（只做 IME 绑定锚点，不显示、不参与排版）
@@ -5012,70 +5059,9 @@ struct Index {
           .position({ x: 0, y: 0 })
 
 
-        // 字车总成（容器：滚筒＋纸＋卷曲＋横尺＋色带＋压纸杆＋拨杆＋旋钮；整体随 V 一次位移）
-        Carriage26({
-          machine: this.machineKind,
-          // 批 64（N2）：容器宽＝机器宽（475.3vp），右缘落在机器右缘内（不再按整画布 673.7vp 越界）
-          widthVp: this.machineWidth26(),
-          heightVp: this.canvasHeightVp(),
-          sx: this.xk(), sy: this.yk(),
-          offsetXVp: this.carriageOffsetVp,
-          leverAngle: 0,
-          knobAngle: this.knobAngle,
-          strikePhase: this.strikePhase,
-          knobDVp: this.knobDVp26(),
-          soundOn: this.soundEnabled,
-          lines: this.docLineTexts(),
-          fontSizeVp: this.fontSizeVp,
-          lineHeightVp: this.lineHeightVp,
-          // 批 62（任务 4）：自定义边距接上——未自定义时用现行等效默认值（左25/右30/上31），外观不变
-          marginLVp: (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk(),
-          marginRVp: (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk(),
-          marginTVp: (this.customMarginT > 0 ? this.customMarginT : 31) * this.yk(),
-          fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：字体条切换即改变纸面渲染
-          textColor: this.inkColor,
-          cursorXVp: this.cursorXVp26(),
-          cursorYVp: this.paperCursorY26(),
-          scrollYVp: this.paperScroll26(),
-          textureRawfile: this.paperPanelTexture(),
-          customPaperColor: this.customPaperColor,
-          customTextureRawfile: this.customPaperTexture,
-          ruledOn: this.customPaperRuled,
-          docTitle: this.docTitle,
-          paperGrowVp: this.paperGrowVp,
-          contentOpacity: this.paperContentOpacity,
-          pageNo: this.paperPageNo(),
-          onKnob: (): void => { this.onKnobAdvance(); },
-          onLeverTap: (): void => { this.onNewline(); },
-          onLeverStart: (): void => { this.leverPanStart(true, 'ui'); },
-          onLeverUpdate: (dy: number): void => { this.leverPanUpdate(dy); },
-          onLeverEnd: (): void => { this.leverPanEnd(); },
-        })
-          .id('p35_carriage')
-.position({ x: 0 + this.machineOffsetX26(), y: 0 })
-        // 色带（批 36 修正：绕机架两侧线轴的固定带，不随字车；击打时上抬 12vp）
-        Column()
-          .width(346.7 * this.xk()).height(4 * this.yk())
-          .linearGradient({
-            direction: GradientDirection.Bottom,
-            colors: [['#a8352f', 0.0], ['#e04a42', 0.35], ['#d23a33', 0.62], ['#8f1f1c', 1.0]],
-          })
-          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(370) })
-          // 批 59：色带不再随打击上提 12vp（那会让红线每敲一键抖动；改为静态）
-          .hitTestBehavior(HitTestMode.None)
-          
-        // 落字指针（批 56：跟随光标——屏上 x ＝ 61 ＋ 光标纸内 x ＋ 字车 O，平滑动画）
-        Column().width(2 * this.xk()).height(10 * this.yk())
-          .backgroundColor('#8f8f92')
-          .position({ x: this.pointerXVp() * this.xk() - 1 * this.xk() + this.machineOffsetX26(),
-            y: this.t26y(347) })
-          .animation({ duration: 250, curve: Curve.EaseOut })
-          .hitTestBehavior(HitTestMode.None)
-        TriMark26({ w: 7, h: 6, sx: this.xk(), sy: this.yk() })
-          .position({ x: this.pointerXVp() * this.xk() - 3.5 * this.xk() + this.machineOffsetX26(),
-            y: this.t26y(356) })
-          .animation({ duration: 250, curve: Curve.EaseOut })
-          .hitTestBehavior(HitTestMode.None)
+        // 批 64（T3）：纸区（纸／压纸杆／落字指针／横尺／色带）已整体搬进 Stage26 的 paperZone 槽位
+        // （见 @Builder stagePaper）。本层不再挂绝对定位的 Carriage／色带／指针。
+
 
         // 批 64（T2 第一步）：舞台容器 Stage26 就位。顶栏进 topBarZone 槽位（Stage26 内作为覆盖层绘制，
         // 保持「顶栏压纸面/出纸槽」的现行 z 序）；其余七槽先留空——纸区/字篮井/功能行/字体条/候选栏/键盘井/底缘
@@ -5088,6 +5074,7 @@ struct Index {
           // 注意（本仓既有约定，见 AppDialog 的 content）：@BuilderParam 必须用箭头包一层调用父组件 @Builder，
           // 直接把 `this.stageTopBar` 交出去会让 builder 内的 this 指向子组件（Stage26），父组件方法全部取不到。
           topBarZone: (): void => { this.stageTopBar() },
+          paperZone: (): void => { this.stagePaper() },
         })
           .id('p26_stage')
 
