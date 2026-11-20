@@ -199,56 +199,64 @@ export struct TopZone26 {
   onPlate: () => void = (): void => {};
 
   build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      // 这里保持最简结构：视觉件本体挂 onClick，不再套热区壳。
-      Stack({ alignContent: Alignment.TopStart }) {
-        Column().width(50 * this.sx).height(10 * this.sy)
-          .backgroundColor('#0b0a09')
-          .border({ width: 1, color: '#6d6d70' })
-          .borderRadius(2)
-        Column().width(44 * this.sx).height(3 * this.sy)
-          .linearGradient({ direction: GradientDirection.Right, colors: [['#f2ead8', 0.0], ['#cfc4ad', 1.0]] })
-          .position({ x: 3 * this.sx, y: 1 * this.sy })
-      }
-      .width(50 * this.sx).height(12 * this.sy)
-      .position({ x: 300 * this.sx, y: 48 * this.sy })
-      // 出纸槽（TopZone 行内右侧）：局部坐标 x=300·sx、y=48·sy，宽 50·sx、高 12·sy。
-      // 位置依据：批 63 实测 y=14·sy 会被画到状态栏底下（节点落在 y≈76px、屏上不可见），
-      // 对齐到返回拨杆同一行（48·sy）后落到可见区 y≈149px、点按生效；批 64 重建 TopZone 为 flex 行时，
-      // 槽改为行内右侧子项、不再按局部坐标算屏上位置。点按行为：导出 txt ＋ 300ms 纸片滑出（hilog 计时可证）。
-      .id('p26_export_slot')
-      // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
-    .accessibilityText('出纸槽')
-    .accessibilityLevel('yes')
-    .onClick(() => { this.onExportSlot(); })
-      // 返回拨杆（x 8–24，y 48–80）：竖钢拨杆＋球头，与边铃横向错开
-      Stack({ alignContent: Alignment.TopStart }) {
-        Column().width(4 * this.sx).height(24 * this.sy)
-          .linearGradient({ direction: GradientDirection.Right, colors: [[STEEL_HI, 0.0], [STEEL, 0.5], ['#4a4a4d', 1.0]] })
-          .borderRadius(2)
-          .rotate({ angle: 16 })
-          .position({ x: 8 * this.sx, y: 5 * this.sy })
-        Column().width(9 * this.sx).height(9 * this.sx)
-          .backgroundColor(BRASS_HI)
-          .border({ width: 1, color: '#5a4520' })
-          .borderRadius(5 * this.sx)
-          .position({ x: 4 * this.sx, y: 0 })
-      }
-      .width(16 * this.sx).height(32 * this.sy)
-      .position({ x: 8 * this.sx, y: 48 * this.sy })
-      // 批 62 收尾：无障碍文本（读屏朗读名与元素一致）
-    .accessibilityText('返回')
-    .accessibilityLevel('yes')
-    .onClick(() => { this.onBack(); })
+    // 批 64（T8）：顶栏改 flex 行——返回拨杆在左、出纸槽在右（Blank 撑开），两者顶边都落在 48·sy
+    // （批 63 实测：y=14·sy 会被画到状态栏底下，节点 y≈76px、屏上不可见）。
+    // 右内距 = 机器宽 − 350·sx，使槽口左缘仍落在 300·sx（N6 的 (1170,149) 不变）。
+    Column() {
+      Row() {
+        // 这里保持最简结构：视觉件本体挂 onClick，不再套热区壳。
+        // 返回拨杆（竖钢拨杆＋球头，与边铃横向错开）
+        Stack({ alignContent: Alignment.TopStart }) {
+          Column().width(4 * this.sx).height(24 * this.sy)
+            .linearGradient({ direction: GradientDirection.Right, colors: [[STEEL_HI, 0.0], [STEEL, 0.5], ['#4a4a4d', 1.0]] })
+            .borderRadius(2)
+            .rotate({ angle: 16 })
+            .position({ x: 8 * this.sx, y: 5 * this.sy })
+          Column().width(9 * this.sx).height(9 * this.sx)
+            .backgroundColor(BRASS_HI)
+            .border({ width: 1, color: '#5a4520' })
+            .borderRadius(5 * this.sx)
+            .position({ x: 4 * this.sx, y: 0 })
+        }
+        .width(16 * this.sx).height(32 * this.sy)
+        .accessibilityText('返回')
+        .accessibilityLevel('yes')
+        .onClick(() => { this.onBack(); })
 
-      // 出纸槽（TopZone 局部坐标 x=300·sx、y=14·sy；宽 50·sx、高 12·sy）。
-      // （y110–260 暗色扫描无深色条，2262 顶部特写亦无槽），点按像素差 0.007 →
+        Blank()
 
+        // 出纸槽（行内右侧子项；点按行为＝导出 txt ＋ 300ms 纸片滑出，hilog 三连可证）
+        Stack({ alignContent: Alignment.TopStart }) {
+          Column().width(50 * this.sx).height(10 * this.sy)
+            .backgroundColor('#0b0a09')
+            .border({ width: 1, color: '#6d6d70' })
+            .borderRadius(2)
+          Column().width(44 * this.sx).height(3 * this.sy)
+            .linearGradient({ direction: GradientDirection.Right, colors: [['#f2ead8', 0.0], ['#cfc4ad', 1.0]] })
+            .position({ x: 3 * this.sx, y: 1 * this.sy })
+        }
+        .width(50 * this.sx).height(12 * this.sy)
+        .id('p26_export_slot')
+        .accessibilityText('出纸槽')
+        .accessibilityLevel('yes')
+        .onClick(() => { this.onExportSlot(); })
+      }
+      .width('100%')
+      .padding({ left: 8 * this.sx, right: this.padRightSlot() })
+      .alignItems(VerticalAlign.Top)
     }
     .width(this.widthVp).height(this.heightVp)
+    .padding({ top: 48 * this.sy })
+    .alignItems(HorizontalAlign.Start)
     .clip(true)
     // 空白处不挡下面字车拨杆的拖拽（子件仍各自可点）
     .hitTestBehavior(HitTestMode.Transparent)
+  }
+
+  /** 出纸槽右内距：让槽口左缘落在 300·sx（机器宽不足时保底 4vp）。 */
+  private padRightSlot(): number {
+    const p: number = this.widthVp - 350 * this.sx;
+    return p > 4 ? p : 4;
   }
 }
 
