@@ -353,7 +353,8 @@ export struct Basket26 {
         }
         .width(213 * this.sx).height(126.3 * this.sy)
         // 批 61：Shift 抬扇——整扇上抬 10vp，弹簧（轻微过冲）；显示盒不变，只加 translate
-        .translate({ y: this.shiftLiftVp * this.sy })
+        // 批 64（T6）：Shift 抬扇改绝对值 10vp（不再乘 sy；Index 侧 shiftLiftVp 就是 −10）
+        .translate({ y: this.shiftLiftVp })
         .animation({ duration: 260, curve: curves.springMotion(0.3, 0.55) })
         .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
         .hitTestBehavior(HitTestMode.None)

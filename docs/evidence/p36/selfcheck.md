@@ -2287,3 +2287,12 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
   ⇒「纸区高度不变、键盘井不压缩」✓。第 13 次回车 → `newlineAtLastRow -> paperChange`（自动换纸，文档回 1 行）。
   **「13 行到顶」在当前产品里不可达**，2283 按「12 行满纸＋自动换纸」记，截图已更新为该状态。
 - 另：上一段的「点按节奏」结论仍成立（≥1.0s 才不丢事件）；本段所有操作均用 1.0s 间隔，命中率 100%。
+
+### 批 64 阶段 1 第十四步：T6 余项 —— Shift 抬扇改绝对值
+
+- `Parts26.Basket26`：扇形 `.translate({ y: this.shiftLiftVp * this.sy })` → **`.translate({ y: this.shiftLiftVp })`**；
+  Index 侧本来就是 `shiftLiftVp = -10`（绝对值），此前被 `* sy`（1.311）放大成 −13.1vp。现按设计稿 §3.4 口径＝**绝对 10vp**。
+- 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`。
+- **视觉复核未完成（如实记）**：本轮的自动化点按用 `by_text('SHIFT')` 命中的是「SHIFT LOCK」那颗（同前缀），
+  扇面区域前后截图差为 0 → 不能据此宣称抬扇已验；下一轮请用键位 rect（SHIFT 在 Z 行最左，id 前缀 `L:124.2:0`）点按后
+  再截两帧比对。代码口径改动本身已构建通过。
