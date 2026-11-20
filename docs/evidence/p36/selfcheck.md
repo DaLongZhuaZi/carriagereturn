@@ -2057,3 +2057,31 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
   视觉上横尺仍旧伸出机器 —— 这属于 T3（横尺进纸区 flex），本步只解决“容器右缘”这一验收口径。
 - 构建 `BUILD SUCCESSFUL`；装包成功；截图 **2285**。
 - 同时按新约定本轮先查了常亮：平板亮度 165.1、手机 92.7，均亮屏。
+
+### 批 64 阶段 1 第八步：T2 起手 —— Stage26 就位（顶栏入槽），整页逐像素不变
+
+- **改动**：
+  - `Index.ets`：打字页顶栏改由 `Stage26`（新增挂载 `p26_stage`）承载 —— `Stage26` 内纵向八槽位，
+    本步只填 `topBarZone`（`TopZone26` 原样作为该槽内容），其余七槽留空（纸区／字篮井／功能行／字体条／候选栏／键盘井／底缘
+    仍按旧绝对定位挂在 Stack 上，后续逐个搬迁）。顶栏槽位按**覆盖层**绘制（Column 之首只留 56vp 占位，
+    真正的顶栏在 Column 之后画），以保持「顶栏压在纸面／出纸槽之上」的现行 z 序。
+  - `Stage26.ets`：新增 `@Watch('onAvailChange')`（可用宽高变化重算区高并打点 `zone …`）；构建序改为
+    `Stack{ Column(八槽) + 顶栏覆盖层 }`。
+- **踩坑并修复（重要，下一轮照抄）**：
+  1. **`@BuilderParam` 直接传 `this.stageTopBar` 会让 builder 内部 `this` 指向子组件**（Stage26），
+     真机报 `@Component 'Stage26'[102] has error in update func: machineWidth26 is not callable`，整页停在首页无法进入打字页。
+     修法＝本仓既有约定（见 `AppDialog` 的 `content`）：用箭头包一层 `topBarZone: (): void => { this.stageTopBar() }`。
+     以后每个槽位都必须这么传。
+  2. 为取 dump 形状误跑了 `tools/_p64_probe.py`（它是打点补丁脚本，且旧版**非幂等**），把 `stage26` 打点与 import
+     各叠了一份，导致 `Duplicate identifier 'StageLayout'`／`Cannot redeclare 'stageL'` 构建失败。
+     已手动去重，并把该脚本改成幂等（以 `stage26 %{public}s` 存在为守卫）；**后续不要把补丁脚本当探针跑**。
+- **真机证据（平板 MLR-AL10 1600×2560，空纸＋既有 49 字文档）**：
+  - 日志：`stage26 stage=673.7x1077.9 machineW=475.3 left=99.2 paperH=418.6 basketH=207.8 keyH=259.9 fixed=191.6 Pw=288.0 fs=15.58 cpl=32 capped=1`（与 §3.2 验收表同口径）。
+  - Stage26 自身的 `zone` 打点本轮**未出现**（`aboutToAppear` 打点被下方 `stage26` 打点同 tag 覆盖排查混淆，
+    下一轮改为 `zone26` 前缀后在 T3 一并核对）。
+  - dump（`uitest dumpLayout -i` 多窗口版）：`p26_stage (0,0)-(1600,2560)`、`p26_top_zone (236,0)-(1365,133)`、
+    `p26_export_slot (1170,149)-(1326,187)`（N6 坐标与 2288 完全一致）。
+  - **截图比对**：新截图 vs `docs/shots/2285_p64_N2_containers.png`（跳过顶部 5% 状态栏时钟）＝**0.000%**
+    （全页逐像素相同 ⇒ 移入舞台容器没有改任何可见位置）。亮度 164.9（亮屏）。
+  - 顺带暴露：`p25_key_grid` dump rect `(236,1937)-(1836,2485)` 右缘 1836 仍越机器右缘 1365 —— N2 的 1/3 仍等 T4/T5。
+- 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`。

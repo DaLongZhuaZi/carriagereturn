@@ -31,7 +31,7 @@ import {
 } from '../model/MachineCatalog';
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
 import { PaperRow } from '../ui/PaperSheet';
-import { StageLayout } from '../components/type26/Stage26';
+import { Stage26, StageLayout } from '../components/type26/Stage26';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
 import { dossierStore } from '../services/DossierStore';
@@ -4700,6 +4700,29 @@ struct Index {
     return '';
   }
 
+  // ===== 批 64（T2）：Stage26 的槽位注入 =====
+  // 槽位 builder 必须单个根节点；组件内仍用各自既有的 sx/sy 换算，逐步改为 flex。
+  /** topBarZone：顶栏（返回拨杆／边铃／出纸槽／铭牌／机身顶带）。 */
+  @Builder
+  stageTopBar() {
+    TopZone26({
+      machine: this.machineKind,
+      // 批 64（N2）：顶区宽＝机器宽（右缘落在机器右缘内）
+      widthVp: this.machineWidth26(),
+      heightVp: this.t26y(104),
+      sx: this.xk(), sy: this.yk(),
+      docTitle: this.docTitle,
+      soundOn: this.soundEnabled,
+      guideEnabled: this.guideEnabled,
+      achGlow: this.plateGlow,
+      onBack: (): void => { this.leaveTyping(); },
+      onBell: (): void => { this.toggleSound(); },
+      onExportSlot: (): void => { this.onExportSlot(); },
+      onPlate: (): void => { this.onPlateTap(); },
+    })
+      .id('p26_top_zone')
+  }
+
   build() {
     Stack({ alignContent: Alignment.Center }) {
       // 中文输入锚点：隐藏 TextInput（只做 IME 绑定锚点，不显示、不参与排版）
@@ -5054,23 +5077,19 @@ struct Index {
           .animation({ duration: 250, curve: Curve.EaseOut })
           .hitTestBehavior(HitTestMode.None)
 
-        TopZone26({
-          machine: this.machineKind,
-          // 批 64（N2）：同上，顶区宽＝机器宽
-          widthVp: this.machineWidth26(),
-          heightVp: this.t26y(104),
-          sx: this.xk(), sy: this.yk(),
-          docTitle: this.docTitle,
-          soundOn: this.soundEnabled,
-          guideEnabled: this.guideEnabled,
-          achGlow: this.plateGlow,
-          onBack: (): void => { this.leaveTyping(); },
-          onBell: (): void => { this.toggleSound(); },
-          onExportSlot: (): void => { this.onExportSlot(); },
-          onPlate: (): void => { this.onPlateTap(); },
+        // 批 64（T2 第一步）：舞台容器 Stage26 就位。顶栏进 topBarZone 槽位（Stage26 内作为覆盖层绘制，
+        // 保持「顶栏压纸面/出纸槽」的现行 z 序）；其余七槽先留空——纸区/字篮井/功能行/字体条/候选栏/键盘井/底缘
+        // 仍按旧绝对定位挂在 Stack 上，随后逐个搬进槽位。
+        // availH 取 winHeightVp：与设计稿 §3.2 验收数字（418.7/207.8/259.8）同口径（§5.1 正文写的 availH=1006.3
+        // 会算成 392.1/187.7/234.9），差异已在自检记账，未擅改。
+        Stage26({
+          availW: this.stageWidth,
+          availH: this.winHeightVp > 0 ? this.winHeightVp : this.canvasHeightVp(),
+          // 注意（本仓既有约定，见 AppDialog 的 content）：@BuilderParam 必须用箭头包一层调用父组件 @Builder，
+          // 直接把 `this.stageTopBar` 交出去会让 builder 内的 this 指向子组件（Stage26），父组件方法全部取不到。
+          topBarZone: (): void => { this.stageTopBar() },
         })
-          .id('p26_top_zone')
-          .position({ x: 0 + this.machineOffsetX26(), y: 0 })
+          .id('p26_stage')
 
 
 

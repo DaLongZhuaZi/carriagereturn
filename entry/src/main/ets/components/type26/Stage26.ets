@@ -113,11 +113,16 @@ const TAG: string = 'Stage26';
 /**
  * 舞台容器（flex 化后的唯一坐标系）。
  * 各届由 Index 用 @BuilderParam 传入；高度按 StageLayout 的换算表写死，机器宽列在舞台内居中。
+ *
+ * 绘制序（批 64 T2 第一步实测口径）：顶栏槽位**单独作为覆盖层排在 Column 之后**。
+ * 原因：现行 z 序里顶栏（返回拨杆／边铃／出纸槽／铭牌）压在纸面与纸顶之上——纸顶允许出屏、
+ * 出纸槽压在纸右缘；若把顶栏当普通 Column 子项排在最前，纸面会盖住顶栏与槽。故 Column 首槽只占位，
+ * 真正的顶栏在 Column 之上再画一层。其余七槽仍按设计稿顺序在 Column 内。
  */
 @Component
 export struct Stage26 {
-  @Prop availW: number = 362.7;
-  @Prop availH: number = 822.5;
+  @Prop @Watch('onAvailChange') availW: number = 362.7;
+  @Prop @Watch('onAvailChange') availH: number = 822.5;
   @State layout: StageLayout = new StageLayout(362.7, 822.5);
   @BuilderParam topBarZone: () => void = this.emptyZone;
   @BuilderParam paperZone: () => void = this.emptyZone;
@@ -138,23 +143,42 @@ export struct Stage26 {
     hilog.info(DOMAIN, TAG, 'zone %{public}s', this.layout.describe());
   }
 
+  /** 可用宽高变化（换机／旋屏／折叠）就重算区高；不重算会让槽位停在旧尺寸上。 */
+  onAvailChange(): void {
+    this.layout = new StageLayout(this.availW, this.availH);
+    hilog.info(DOMAIN, TAG, 'zone %{public}s', this.layout.describe());
+  }
+
   build() {
-    Row() {
-      Column() {
-        Column() { this.topBarZone() }.width('100%').height(this.layout.topBarH)
-        Column() { this.paperZone() }.width('100%').height(this.layout.paperH)
-        Column() { this.basketZone() }.width('100%').height(this.layout.basketH)
-        Column() { this.funcRowZone() }.width('100%').height(this.layout.funcRowH)
-        Column() { this.fontBarZone() }.width('100%').height(this.layout.fontBarH)
-        Column() { this.candBarZone() }.width('100%').height(this.layout.candBarH)
-        Column() { this.keyZone() }.width('100%').height(this.layout.keyH)
-        Column() { this.bottomZone() }.width('100%').height(this.layout.bottomEdgeH)
+    Stack({ alignContent: Alignment.TopStart }) {
+      // ---- 纵向槽列（首槽只留占位高度，顶栏作为覆盖层在下面单独绘制）----
+      Row() {
+        Column() {
+          Column().width('100%').height(this.layout.topBarH)
+          Column() { this.paperZone() }.width('100%').height(this.layout.paperH)
+          Column() { this.basketZone() }.width('100%').height(this.layout.basketH)
+          Column() { this.funcRowZone() }.width('100%').height(this.layout.funcRowH)
+          Column() { this.fontBarZone() }.width('100%').height(this.layout.fontBarH)
+          Column() { this.candBarZone() }.width('100%').height(this.layout.candBarH)
+          Column() { this.keyZone() }.width('100%').height(this.layout.keyH)
+          Column() { this.bottomZone() }.width('100%').height(this.layout.bottomEdgeH)
+        }
+        .width(this.layout.machineW)
+        .height('100%')
       }
-      .width(this.layout.machineW)
+      .width('100%')
       .height('100%')
+      .justifyContent(FlexAlign.Center)
+
+      // ---- 顶栏覆盖层（压在纸面／出纸槽之上，保持现行 z 序）----
+      Row() {
+        Column() { this.topBarZone() }.width(this.layout.machineW).height(this.layout.topBarH)
+      }
+      .width('100%')
+      .height(this.layout.topBarH)
+      .justifyContent(FlexAlign.Center)
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
   }
 }
