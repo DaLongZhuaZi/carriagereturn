@@ -1822,9 +1822,16 @@ struct Index {
       this.kbShift = 0;
       return;
     }
+    // 批 64（T7／R5）：口径改为「把候选栏顶到系统键盘之上」。
+    // 旧口径只保打击行（strikeLine+40 < 键盘顶时恒为 0——真机实测 shift=0.0，候选栏被键盘压住）。
     const kbVp: number = this.getUIContext().px2vp(hPx);
-    const top: number = this.stageHeight - kbVp;
-    this.kbShift = Math.max(0, this.strikeLineVp + 40 - top);
+    const kbTop: number = this.canvasHeightVp() - kbVp;
+    const lay: StageLayout = this.stageLayout26();
+    const candBottom: number = lay.topBarH + lay.paperH + lay.basketH + lay.funcRowH + lay.fontBarH + lay.candBarH;
+    const need: number = candBottom + 6 - kbTop;
+    this.kbShift = need > 0 ? need : 0;
+    hilog.info(DOMAIN, TAG, 'kb height=%{public}s top=%{public}s candBottom=%{public}s shift=%{public}s',
+      hPx.toString(), kbTop.toFixed(1), candBottom.toFixed(1), this.kbShift.toFixed(1));
   }
 
   private measureStage(): void {
@@ -5221,6 +5228,10 @@ struct Index {
           keyZone: (): void => { this.stageKeys() },
         })
           .id('p26_stage')
+          // 批 64（T7／R5）：系统键盘弹起时整台机器上移，让候选栏停在键盘之上。
+          // translate 不动布局（纸区高度不变）；纸顶／顶栏允许出屏，与 §3.3「纸顶可出屏」同口径。
+          .translate({ y: -this.kbShift })
+          .animation({ duration: 220, curve: Curve.EaseOut })
 
 
 

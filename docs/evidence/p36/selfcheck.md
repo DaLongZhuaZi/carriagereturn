@@ -2181,3 +2181,27 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`；亮度 154.8。
 - **记账**：`clip(true)` 从外层 Stack 移到外层 Column（同尺寸、同裁剪范围）；拨杆/槽的内部相对坐标（球头/槽面）
   保持原样（它们本就是件内相对坐标）。
+
+### 批 64 阶段 1 第十三步：T7 —— R5 接线（键盘弹起把候选栏顶到键盘之上）
+
+- **真机根因（先查后改）**：
+  1) `setKeyboardAvoidMode(UcKeyboardAvoidMode.OFFSET)` **早已接线**（Index:1407，带 try/catch），且 `keyboardHeightChange`
+     监听正常（日志 `kb height=952`）——但整页**一像素没动**：OFFSET 只在「被键盘遮住的焦点输入」上生效，
+     而我们的焦点锚点是 `position(0,0)` 的隐藏 TextInput，系统判定「没被遮住」→ 不避让。
+  2) 应用自己算的 `kbShift` **从未接进布局**（全仓搜不到 `.translate({y:-kbShift})`）；
+     而且它的口径只保打击行（`strikeLine+40 − 键盘顶`），平板真机算出来 **恒为 0**，候选栏照样被压。
+  - 实测（系统输入法通道）：键盘高 952px＝400.8vp、键盘顶 677vp，候选栏底 790.4vp → **被压 113vp**（tmp-r5b 截图可直接看到）。
+- **改法**：
+  - `recalcKbShift()` 口径改为「把候选栏顶到键盘之上」：`shift = max(0, (56+纸区+字篮井+36+28+44) + 6 − 键盘顶)`；
+  - `kbShift` 接进布局：打字页的 `Stage26` 挂 `.translate({ y: -this.kbShift })` ＋ 220ms EaseOut
+    （translate 不动布局 ⇒ 纸区高度不变、键盘井不压缩；纸顶／顶栏允许出屏，与 §3.3「纸顶可出屏」同口径）。
+- **真机证据**：
+  - 日志：`kb height=952 top=677.1 candBottom=790.4 shift=119.4`（旧口径同场景 `shift=0.0`）；
+  - 截图 tmp-r5c：整台机器上移，候选栏黑条停在键盘上沿之上（不再被压），打击行/横尺/字篮/功能行/字体条全部可见；
+  - 收起键盘（键盘工具条 ⌄）：`kb height=0 shift=0.0`，页面回到原位（`p26_top_zone (236,0)-(1365,133)`、`p26_cand_strip (261,1773)-(1340,1878)`）——tmp-r5d。
+- **API 核实结论（写进自检）**：本项目所用 ArkUI（compileSdk 26.0.0）里 `OFFSET`/`RESIZE`/`NONE` 三档存在，
+  但对「0 尺寸隐藏焦点」的避让不可依赖；`RESIZE` 也不合适——它会改整页高度，而机器宽＝`min(可用宽, 可用高×0.441)`，
+  整页变矮会把整台机器缩小（不是设计要的「只上移候选栏那段」）。**采用 OFFSET＋应用侧 translate**。
+- **记账的代价**：键盘弹起期间顶栏（返回拨杆）出屏（上移 119vp）——需要在键盘态用系统返回/悬浮 A 键离页；
+  与旧 D4「只保打击行、不管顶栏」的取舍一致，但比旧实现多保住了候选栏。
+- 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`。
