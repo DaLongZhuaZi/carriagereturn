@@ -9,7 +9,7 @@ ROOT = r'D:\HarmonyAPP\carriagereturn'
 
 def run(*args, timeout=30):
     cmd = [HDC, '-t', T] + list(args)
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    p = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
     return p.stdout.strip(), p.stderr.strip()
 
 
