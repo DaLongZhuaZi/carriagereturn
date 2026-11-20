@@ -2142,3 +2142,28 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - **仍未做**：`KeyGrid` 内部仍是逐键 `.position`（键宽 21.6·k≈28.3vp、间距 3.9vp），
   `Row+SpaceBetween`／键帽固定尺寸属 T4 后半；`TopZone26` 仍是绝对定位行（T8）；R5 未接线（T7）。
 - 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`；亮度 161.4（亮屏）。
+
+### 批 64 阶段 1 第十一步：T4 键盘/功能行 flex 化（逐键 .position 退役）
+
+- **改动**：
+  - `KeyGrid.ets`：`build()` 由「Stack＋逐键 `.position`」改为「Column 内 5 个 `Row(justifyContent: SpaceBetween)`」；
+    键帽改为固定尺寸（`w: k.w`，不乘 sx；高 `KB_CAP_H`＝27.6），行高 34.5、行间距 6.9（均不缩放），
+    多出来的宽度由 SpaceBetween 全部吃进行内间距；整列高 200.1vp 在键盘井内 `justifyContent(Center)` 居中。
+    键帽按压行程改绝对值（2／空格 3vp、scaleY 0.94）。新增 `@Builder capCell(p)` 与 `placedRow(r)`。
+  - `Index.ets`：`stageKeys` 的 Stack 改 `Alignment.Top`（黑井 346.7·k 宽居中、键网格机器宽）；
+    黑井高与键网格高都改 `stageLayout26().keyH`（259.9vp，不再是 keybedHeight 230.6）；
+    `FunctionCaps26` 传 `widthVp: 216 / heightVp: 36`（固定尺寸）。
+  - `Parts26.FunctionCaps26`：六键改固定 36×30vp、行内起点 `idx*36`、黑缝 38×2、图例上移 1.5（**不再乘 sx/sy**）。
+- **真机实测（dump）**：
+  | 件 | rect | 判定 |
+  |---|---|---|
+  | `p26_function_caps` | (544,1621)-(1057,1707) | 宽 513px＝**216vp**、高 86px＝36vp、水平居中（机器中心 800.5）✓ |
+  | `p33_key_well` | (261,1877)-(1340,2494) | 454vp 宽居中、高 617px＝**259.8vp**（键盘井槽高）✓ |
+  | `p25_key_grid` | (236,1877)-(1365,2494) | 机器宽、键盘井槽高；右缘 1365＝机器右缘 ✓ |
+  - 键宽实测：Q 键图例宽 53px≈22vp（改前 70px≈29.5vp）；行内间距≈9.4vp（451−338.7)/12，上限 1.5×键宽＝32.4vp **不触发**。
+  - 打字回归：点 Q → `committed ch=[q]`；截图 tmp-t4e／tmp-t4f（键帽固定、行距拉开、功能行六键居中）。
+- **如实记账的差异**：
+  - 键杆（`stems()` 的竖缝暗色小柱）**未随 flex 重排**：它是按「旧绝对坐标」算 x 的，flex 后位置对不上，
+    本轮先不画（键盘井里少一层 2vp 深色小柱，视觉影响小）；T4 收尾若要恢复，应按「行内累计宽＋均分间距」重算 x。
+  - 键帽图例字号改为不缩放（11/8/6.5vp），与键帽固定尺寸同口径。
+- 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`；亮度 154.8（亮屏）。

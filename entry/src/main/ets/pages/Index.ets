@@ -4787,8 +4787,9 @@ struct Index {
   @Builder
   stageFuncRow() {
     FunctionCaps26({
-      widthVp: 216 * this.xk(),
-      heightVp: this.t26y(36),
+      // 批 64（T4）：功能行固定 216×36vp（六键 36×30），不再乘 k
+      widthVp: 216,
+      heightVp: 36,
       sx: this.xk(), sy: this.yk(),
       langLabel: this.langZh
         ? this.resolveString($r('app.string.keyboard_lang_zh'))
@@ -4865,11 +4866,12 @@ struct Index {
   /** keyZone 槽位：黑井＋键网格（井为底、键陷在井里；逐键 flex 属 T4 后半）。 */
   @Builder
   stageKeys() {
-    Stack({ alignContent: Alignment.TopStart }) {
+    Stack({ alignContent: Alignment.Top }) {
       KeyWell({
         machine: this.machineKind,
         widthVp: 346.7 * this.xk(),
-        heightVp: this.keybedHeight,
+        // 批 64（T4）：黑井高＝键盘井槽高（259.9vp），不再是写了 30 批的 keybedHeight（230.6）
+        heightVp: this.stageLayout26().keyH,
       })
         .id('p33_key_well')
 
@@ -4881,7 +4883,7 @@ struct Index {
         capsActive: this.capsLock,
         foldBand: this.layoutMode === 'desk',
         widthVp: this.machineWidth26(),
-        heightVp: this.keybedHeight,
+        heightVp: this.stageLayout26().keyH,
         layout: this.displayLayout(),
         overlayFontFamily: this.genericFamilyFor(this.fontFamily),
         overlayFontSize: 15,

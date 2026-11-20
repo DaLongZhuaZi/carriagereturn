@@ -197,7 +197,7 @@ export struct KeyGrid {
         }
         out.push({
           label: k.label, legend: k.legend, sub: k.sub, x: px * this.sx,
-          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w * this.sx, kind: k.kind,
+          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w, kind: k.kind,
           id: (this.symbolMode ? 'S' : 'L') + ':' + rows[r].y.toString() + ':' + i.toString(),
           up: k.up, alt: k.alt,
         });
@@ -317,97 +317,110 @@ export struct KeyGrid {
       this.slug());
   }
 
-  build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      // 键杆（竖缝，暗色；井底 #050506 上可见）
-      ForEach(this.stems(), (s: K33Placed) => {
-        Column()
-          .width(s.w).height(KB_STEM_H)
-          .backgroundColor('#4a4136')
-          .position({ x: s.x, y: s.y })
+  /** 键帽（一个原生 Button；尺寸固定，不随 sx/sy 缩放——设计稿 §3.4）。 */
+  @Builder
+  capCell(p: K33Placed) {
+    Button({ type: ButtonType.Normal, stateEffect: false }) {
+      Stack() {
+        this.capImage(p)
+        // 批 42：帽底接触影＋顶面内凹
+        Column().width('88%').height(1)
+          .backgroundColor('#000000').opacity(0.08)
+          .position({ x: '6%', y: '97%' })
           .hitTestBehavior(HitTestMode.None)
-      }, (s: K33Placed) => s.id)
-
-      // 逐帽：Button{ Image(帽身) + 图例 }；按压下沉 2vp
-      ForEach(this.placed(), (p: K33Placed) => {
-        Button({ type: ButtonType.Normal, stateEffect: false }) {
-          Stack() {
-            // 帽身（空格九宫格中心拉伸；红 RETURN 用 cap3d-return.png）
-            this.capImage(p)
-            // 批 42：帽底接触影（1vp、黑 8%）＋顶面内凹（中央略暗、低透明圆角）
-            Column().width('88%').height(1 * this.sy)
-              .backgroundColor('#000000').opacity(0.08)
-              .position({ x: '6%', y: '97%' })
-              .hitTestBehavior(HitTestMode.None)
-            Column().width('62%').height('52%')
-              .backgroundColor('#000000').opacity(0.05)
-              .borderRadius(6 * this.sy)
-              .hitTestBehavior(HitTestMode.None)
-            if (p.sub.length > 0 && p.kind === 'k') {
-              // 数字行双图例：符号上、数字下（整组上移到顶面中心）
-              Column() {
-                Text(p.legend).fontSize(11 * this.sy).fontColor('#1a1a1a')
-                  .fontFamily(this.overlayFontFamily).maxLines(1)
-                Text(p.sub).fontSize(8 * this.sy).fontColor('#3a3630')
-                  .fontFamily(this.overlayFontFamily).maxLines(1)
-              }
-              .justifyContent(FlexAlign.Center)
-              .width('100%').height('100%')
-              .translate({ y: -KB_LEGEND_UP })
-              .hitTestBehavior(HitTestMode.None)
-            } else if (p.kind === 'caps') {
-              // 26 号稿：SHIFT LOCK 两行小字（31vp 键宽放不下单行 10 字）
-              Column() {
-                Text('SHIFT').fontSize(6.5 * this.sy).fontColor('#1a1a1a')
-                  .fontFamily(this.overlayFontFamily).maxLines(1)
-                Text('LOCK').fontSize(6.5 * this.sy).fontColor('#1a1a1a')
-                  .fontFamily(this.overlayFontFamily).maxLines(1)
-              }
-              .justifyContent(FlexAlign.Center)
-              .width('100%').height('100%')
-              .translate({ y: -KB_LEGEND_UP })
-              .hitTestBehavior(HitTestMode.None)
-            } else {
-              Text(p.legend)
-                .fontSize(this.labelSize(p) * this.sy)
-                .fontColor(p.kind === 'return' ? '#ffffff' : '#1a1a1a')
-                .fontFamily(this.overlayFontFamily)
-                .width('100%').textAlign(TextAlign.Center).maxLines(1)
-                .translate({ y: -KB_LEGEND_UP })
-                .hitTestBehavior(HitTestMode.None)
-            }
+        Column().width('62%').height('52%')
+          .backgroundColor('#000000').opacity(0.05)
+          .borderRadius(6)
+          .hitTestBehavior(HitTestMode.None)
+        if (p.sub.length > 0 && p.kind === 'k') {
+          Column() {
+            Text(p.legend).fontSize(11).fontColor('#1a1a1a')
+              .fontFamily(this.overlayFontFamily).maxLines(1)
+            Text(p.sub).fontSize(8).fontColor('#3a3630')
+              .fontFamily(this.overlayFontFamily).maxLines(1)
           }
+          .justifyContent(FlexAlign.Center)
           .width('100%').height('100%')
-        }
-        .padding(0)
-        .width(p.w)
-        .height(KB_CAP_H * this.sy)
-        .position({ x: p.x, y: p.y })
-        .backgroundColor(Color.Transparent)
-        .borderRadius(0)
-        // 批 62 收尾（任务 1）：每个键帽本身就是原生 Button，补无障碍文本即为读屏节点——
-        // 不另铺透明覆盖层（原生按钮已是可聚焦节点，再加一层只会产生重复节点/焦点打架）。
-        // 读屏文本＝键帽图例（与键帽显示一致）；无图例的键用 label。
-        .accessibilityText(p.legend.length > 0 ? p.legend : p.label)
-        .accessibilityLevel('yes')
-        .accessibilityDescription(p.sub.length > 0 ? p.sub : p.label)
-        // 批 61：按键行程——按下下沉 2vp（空格 3vp）＋纵向压到 94%，松开弹簧回弹（约 90ms）
-        .translate({ y: this.pressedId === p.id ? (p.kind === 'space' ? 3 : 2) * this.sy : 0 })
-        .scale({ y: this.pressedId === p.id ? 0.94 : 1 })
-        .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) })
-        .onTouch((e: TouchEvent) => {
-          if (e.type === TouchType.Down) {
-            this.pressedId = p.id;
-            this.onCapDown(this.capFor(p));
-          } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
-            this.pressedId = '';
-            this.onCapUp(this.capFor(p));
+          .translate({ y: -KB_LEGEND_UP })
+          .hitTestBehavior(HitTestMode.None)
+        } else if (p.kind === 'caps') {
+          Column() {
+            Text('SHIFT').fontSize(6.5).fontColor('#1a1a1a')
+              .fontFamily(this.overlayFontFamily).maxLines(1)
+            Text('LOCK').fontSize(6.5).fontColor('#1a1a1a')
+              .fontFamily(this.overlayFontFamily).maxLines(1)
           }
-        })
-      }, (p: K33Placed) => p.id)
+          .justifyContent(FlexAlign.Center)
+          .width('100%').height('100%')
+          .translate({ y: -KB_LEGEND_UP })
+          .hitTestBehavior(HitTestMode.None)
+        } else {
+          Text(p.legend)
+            .fontSize(this.labelSize(p))
+            .fontColor(p.kind === 'return' ? '#ffffff' : '#1a1a1a')
+            .fontFamily(this.overlayFontFamily)
+            .width('100%').textAlign(TextAlign.Center).maxLines(1)
+            .translate({ y: -KB_LEGEND_UP })
+            .hitTestBehavior(HitTestMode.None)
+        }
+      }
+      .width('100%').height('100%')
     }
-    .width(this.widthVp)
-    .height(this.heightVp)
-    .clip(true)
+    .padding(0)
+    .width(p.w)
+    .height(KB_CAP_H)
+    .backgroundColor(Color.Transparent)
+    .borderRadius(0)
+    .accessibilityText(p.legend.length > 0 ? p.legend : p.label)
+    .accessibilityLevel('yes')
+    .accessibilityDescription(p.sub.length > 0 ? p.sub : p.label)
+    // 批 61 口径保留，幅度改绝对值（设计稿 §3.4：行程 2／空格 3vp，scaleY 0.94）
+    .translate({ y: this.pressedId === p.id ? (p.kind === 'space' ? 3 : 2) : 0 })
+    .scale({ y: this.pressedId === p.id ? 0.94 : 1 })
+    .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) })
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.pressedId = p.id;
+        this.onCapDown(this.capFor(p));
+      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+        this.pressedId = '';
+        this.onCapUp(this.capFor(p));
+      }
+    })
+  }
+
+  /** 某一行的键（沿用 placed() 的 id／图例，供 CapDef 与无障碍用）。 */
+  private placedRow(r: number): K33Placed[] {
+    const rows: K33Row[] = this.rows();
+    if (r < 0 || r >= rows.length) {
+      return [];
+    }
+    const prefix: string = (this.symbolMode ? 'S' : 'L') + ':' + rows[r].y.toString() + ':';
+    return this.placed().filter((p: K33Placed) => p.id.indexOf(prefix) === 0);
+  }
+
+  build() {
+    // 批 64（T4）：键盘井内容改纵向 flex——每行 `Row(justifyContent: SpaceBetween)`；
+    // 键帽固定尺寸（不随 sx/sy 缩放，手机／平板一致），多余宽度全部由行内间距吸收；
+    // layoutWeight 不挂键帽（固定宽子项挂 layoutWeight 会被拉伸），只用于「间距」这一层。
+    // 间距上限 1.5×键宽：平板实测间距≈9.4vp、键宽 21.6vp，不触发（触发时改 Center＋固定间距）。
+    Column() {
+      ForEach(this.rows(), (row: K33Row, r: number) => {
+        Row() {
+          ForEach(this.placedRow(r), (p: K33Placed) => {
+            this.capCell(p)
+          }, (p: K33Placed) => p.id)
+        }
+        .width('100%')
+        .height(KB_ROW_H)
+        .justifyContent(FlexAlign.SpaceBetween)
+        .alignItems(VerticalAlign.Center)
+        .margin({ bottom: r < this.rows().length - 1 ? KB_VGAP : 0 })
+      }, (row: K33Row, r: number) => 'row' + r.toString())
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: KB_X0, right: KB_X0 })
+    .justifyContent(FlexAlign.Center)
   }
 }

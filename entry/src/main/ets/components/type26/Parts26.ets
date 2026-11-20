@@ -438,13 +438,14 @@ export struct FunctionCaps26 {
           .textAlign(TextAlign.Center)
           .width('100%')
           .padding({ left: 2, right: 2 })
-          .translate({ y: -1.5 * this.sy })
+          .translate({ y: -1.5 })
       }
-      Column().width(38 * this.sx).height(2 * this.sy).backgroundColor('#2a221b')
-        .position({ x: -1 * this.sx, y: 31 * this.sy })
+      Column().width(38).height(2).backgroundColor('#2a221b')
+        .position({ x: -1, y: 31 })
     }
-    .width(36 * this.sx).height(30 * this.sy)
-    .position({ x: (idx * 36) * this.sx, y: 3 * this.sy })
+    // 批 64（T4）：功能行六键固定 36×30vp（手机／平板一致），行宽 6×36＝216vp 居中——不再乘 sx/sy
+    .width(36).height(30)
+    .position({ x: (idx * 36), y: 3 })
     // 批 62 收尾：功能行六键的无障碍文本（读屏朗读名与按钮显示一致）
     .accessibilityText(label === 'BL' ? '退行' : label)
     .accessibilityLevel('yes')
