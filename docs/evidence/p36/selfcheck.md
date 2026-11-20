@@ -1947,3 +1947,24 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - **仍未做**：Index 尚未把打字页五区换成 `Stage26` 的槽位（旧绝对定位 `Carriage26` 仍在用），
   故 2280（打字页全貌）、2281（各区标尺）、2282/2283（纸 33 字/13 行）、2285（N2 右缘）、2287（键盘间距）等真机截图证据仍缺；
   任务 3–8 未开始。
+
+### 批 64 阶段 1 第三步：任务 7「先核实 API」——R5 的避让机制已查清（SDK 原文）
+
+- 环境：`G:\DevEco Studio 26\DevEco Studio\sdk\default\openharmony\ets\api\@ohos.arkui.UIContext.d.ts`（compileSdk 26.0.0）。
+- **`setKeyboardAvoidMode(value: KeyboardAvoidMode): void;`**（该文件 :4834）——存在，挂在 `UIContext` 上。
+- **枚举值与语义**（同文件 :5654／:5663／:5690）：
+  - `OFFSET = 0`：**页面整体上移**（键盘弹起时把页面顶起来）；文档写明这是**默认值**。
+  - `RESIZE = 1`：**页面被压矮**（宽高按百分比设置的字件会跟着缩）。
+  - `NONE = 4`：**关闭避让**（页面被键盘盖住）。
+- 另核实到 `expandSafeArea([SafeAreaType.KEYBOARD], [SafeAreaEdge.BOTTOM])` 存在；文档明确一条约束：
+  **在 RESIZE 模式下，`expandSafeArea([SafeAreaType.KEYBOARD],[SafeAreaEdge.BOTTOM])` 不生效**（两者不能叠加使用）。
+- **结论：R5 不需要“avoid”这种不存在的名字**。可用的两种机制与取舍：
+  1. `KeyboardAvoidMode.RESIZE`＋舞台容器是 **Column 高度**：键盘弹起 → 页面变矮 → 舞台容器变矮 → 五区按权重重新分配，
+     候选栏（固定 44vp）自然上移、不被盖住。**缺点**：整机等比缩小（键帽与纸都变小），这违反“键帽固定尺寸”的口径。
+  2. `KeyboardAvoidMode.OFFSET`（默认）：页面整体上移 → 候选栏上移、不被盖住，但**顶部会被顶出屏**（TopBar 出屏）。
+     在 Flex 舞台容器里，可以把“上移量”交给容器自己吸收：容器高＝availH，键盘弹起时把候选栏以下的区域用 `padding/bottom` 预留，
+     只让候选栏上移、舞台整体不缩——这是**局部上移**方案，符合“纸区高度不变、键盘井不压缩”。
+- **本批采用（待实施）**：`OFFSET` 模式＋在舞台容器底部按键盘高度预留空白（`onAreaChange` 读键盘 inset 或
+  `expandSafeArea` 反之），只把候选栏/键盘井那一段上移；若真机行为与文档不符，按目标书要求“不要硬套”，改回 RESIZE 并如实记差。
+- **状态**：API 核实完成（任务 7 的前置条件）；**避让本体尚未实施**（等五区真的进 Stage26 后再接线），
+  因此 2289（键盘弹起不压候选栏）暂无真机证据。
