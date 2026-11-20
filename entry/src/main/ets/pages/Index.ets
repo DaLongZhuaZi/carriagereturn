@@ -4770,6 +4770,143 @@ struct Index {
       .id('p35_carriage')
   }
 
+  /** basketZone 槽位：Basket26。 */
+  @Builder
+  stageBasket() {
+    Basket26({
+      shiftLiftVp: this.shiftLiftVp,
+      machine: this.machineKind,
+      widthVp: 240 * this.xk(),
+      heightVp: this.t26y(138),
+      sx: this.xk(), sy: this.yk(),
+    })
+      .id('p26_basket')
+  }
+
+  /** funcRowZone 槽位：FunctionCaps26。 */
+  @Builder
+  stageFuncRow() {
+    FunctionCaps26({
+      widthVp: 216 * this.xk(),
+      heightVp: this.t26y(36),
+      sx: this.xk(), sy: this.yk(),
+      langLabel: this.langZh
+        ? this.resolveString($r('app.string.keyboard_lang_zh'))
+        : this.resolveString($r('app.string.keyboard_lang_en')),
+      langActive: this.langZh,
+      symbolActive: this.symbolMode,
+      onLang: (): void => {
+        this.langZh = !this.langZh;
+        this.applyChineseMode(this.langZh);
+        this.recalcTravel();
+        this.paperAnimateNext = true;
+        this.recalcPaperHeight();
+      },
+      onDelete: (): void => {
+        if (this.isBuiltinCn() && this.pinyinSession !== null
+          && this.pinyinSession.getBuffer().length > 0) {
+          this.pinyinSession.backspace();
+          this.audioService.playBackspace();
+          this.audioService.vibrate();
+          this.pinyinRefresh();
+          return;
+        }
+        this.onDelete();
+      },
+      onNewline: (): void => {
+        if (this.isBuiltinCn() && this.pinyinSession !== null
+          && this.pinyinSession.getBuffer().length > 0) {
+          const buf: string = this.pinyinSession.getBuffer();
+          this.enqueueChinese(buf);
+          this.pinyinSession.cancel();
+          this.cnPinyin = '';
+          this.cnPreview = '';
+          this.candAll = [];
+          this.candCurrent = [];
+          return;
+        }
+        this.onNewline();
+      },
+      onPaper: (): void => { this.onPaperChange(); },
+      onBackLine: (): void => { this.onBackLine(); },
+      onSymbols: (): void => { this.symbolMode = !this.symbolMode; },
+    })
+      .id('p26_function_caps')
+  }
+
+  /** fontBarZone 槽位：FontPlate26。 */
+  @Builder
+  stageFontBar() {
+    FontPlate26({
+      widthVp: 346.7 * this.xk(),
+      heightVp: this.t26y(28),
+      sx: this.xk(), sy: this.yk(),
+      label: this.fontPlateLabel,
+      onFont: (): void => { this.cycleFont(); },
+    })
+      .id('p26_font_plate')
+  }
+
+  /** candBarZone 槽位：CandStrip26。 */
+  @Builder
+  stageCandBar() {
+    CandStrip26({
+      machine: this.machineKind,
+      widthVp: 346.7 * this.xk(),
+      heightVp: this.t26y(44),
+      sx: this.xk(), sy: this.yk(),
+      candidates: this.langZh && this.pinyinReady ? this.candCurrent : [],
+      pinyin: this.langZh && this.pinyinReady ? this.cnPinyin : '',
+      onPick: (i: number): void => { this.pinyinPick(i); },
+    })
+      .id('p26_cand_strip')
+  }
+
+  /** keyZone 槽位：黑井＋键网格（井为底、键陷在井里；逐键 flex 属 T4 后半）。 */
+  @Builder
+  stageKeys() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      KeyWell({
+        machine: this.machineKind,
+        widthVp: 346.7 * this.xk(),
+        heightVp: this.keybedHeight,
+      })
+        .id('p33_key_well')
+
+      KeyGrid({
+        machineKind: this.machineKind,
+        shiftActive: this.shiftActive,
+        symbolMode: this.symbolMode,
+        sx: this.xk(), sy: this.yk(),
+        capsActive: this.capsLock,
+        foldBand: this.layoutMode === 'desk',
+        widthVp: this.machineWidth26(),
+        heightVp: this.keybedHeight,
+        layout: this.displayLayout(),
+        overlayFontFamily: this.genericFamilyFor(this.fontFamily),
+        overlayFontSize: 15,
+        capShape: this.capShape(),
+        labelColor: this.displayLayout().overlayColor,
+        originXVp: 0,
+        originYVp: 0,
+        commitSeq: this.commitSeq,
+        onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
+        onCapSlide: (cap: CapDef): void => {
+          if (!cap.isExtra && cap.label !== ' ') {
+            this.audioService.playKey();
+          }
+        },
+        onCapUp: (cap: CapDef): void => {
+          if (cap.label === 'Shift') { this.shiftActive = false; }
+        },
+      })
+        .id('p25_key_grid')
+
+    }
+    .width('100%')
+    .height('100%')
+  }
+
   build() {
     Stack({ alignContent: Alignment.Center }) {
       // 中文输入锚点：隐藏 TextInput（只做 IME 绑定锚点，不显示、不参与排版）
@@ -5075,6 +5212,11 @@ struct Index {
           // 直接把 `this.stageTopBar` 交出去会让 builder 内的 this 指向子组件（Stage26），父组件方法全部取不到。
           topBarZone: (): void => { this.stageTopBar() },
           paperZone: (): void => { this.stagePaper() },
+          basketZone: (): void => { this.stageBasket() },
+          funcRowZone: (): void => { this.stageFuncRow() },
+          fontBarZone: (): void => { this.stageFontBar() },
+          candBarZone: (): void => { this.stageCandBar() },
+          keyZone: (): void => { this.stageKeys() },
         })
           .id('p26_stage')
 
@@ -5095,126 +5237,16 @@ struct Index {
             .hitTestBehavior(HitTestMode.None)
         }
 
-        Basket26({
-          shiftLiftVp: this.shiftLiftVp,
-          machine: this.machineKind,
-          widthVp: 240 * this.xk(),
-          heightVp: this.t26y(138),
-          sx: this.xk(), sy: this.yk(),
-        })
-          .id('p26_basket')
-          .position({ x: 61 * this.xk() + this.machineOffsetX26(), y: this.t26y(376) })
+        // 批 64（T2）：字篮井已搬进 Stage26 的 basketZone 槽位（见 @Builder stageBasket）
 
-        FunctionCaps26({
-          widthVp: 216 * this.xk(),
-          heightVp: this.t26y(36),
-          sx: this.xk(), sy: this.yk(),
-          langLabel: this.langZh
-            ? this.resolveString($r('app.string.keyboard_lang_zh'))
-            : this.resolveString($r('app.string.keyboard_lang_en')),
-          langActive: this.langZh,
-          symbolActive: this.symbolMode,
-          onLang: (): void => {
-            this.langZh = !this.langZh;
-            this.applyChineseMode(this.langZh);
-            this.recalcTravel();
-            this.paperAnimateNext = true;
-            this.recalcPaperHeight();
-          },
-          onDelete: (): void => {
-            if (this.isBuiltinCn() && this.pinyinSession !== null
-              && this.pinyinSession.getBuffer().length > 0) {
-              this.pinyinSession.backspace();
-              this.audioService.playBackspace();
-              this.audioService.vibrate();
-              this.pinyinRefresh();
-              return;
-            }
-            this.onDelete();
-          },
-          onNewline: (): void => {
-            if (this.isBuiltinCn() && this.pinyinSession !== null
-              && this.pinyinSession.getBuffer().length > 0) {
-              const buf: string = this.pinyinSession.getBuffer();
-              this.enqueueChinese(buf);
-              this.pinyinSession.cancel();
-              this.cnPinyin = '';
-              this.cnPreview = '';
-              this.candAll = [];
-              this.candCurrent = [];
-              return;
-            }
-            this.onNewline();
-          },
-          onPaper: (): void => { this.onPaperChange(); },
-          onBackLine: (): void => { this.onBackLine(); },
-          onSymbols: (): void => { this.symbolMode = !this.symbolMode; },
-        })
-          .id('p26_function_caps')
-          .position({ x: 73.35 * this.xk() + this.machineOffsetX26(), y: this.t26y(514) })
+        // 批 64（T2）：功能行六键已搬进 Stage26 的 funcRowZone 槽位（见 @Builder stageFuncRow）
 
-        FontPlate26({
-          widthVp: 346.7 * this.xk(),
-          heightVp: this.t26y(28),
-          sx: this.xk(), sy: this.yk(),
-          label: this.fontPlateLabel,
-          onFont: (): void => { this.cycleFont(); },
-        })
-          .id('p26_font_plate')
-          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(550) })
+        // 批 64（T2）：字体条已搬进 Stage26 的 fontBarZone 槽位（见 @Builder stageFontBar）
 
-        CandStrip26({
-          machine: this.machineKind,
-          widthVp: 346.7 * this.xk(),
-          heightVp: this.t26y(44),
-          sx: this.xk(), sy: this.yk(),
-          candidates: this.langZh && this.pinyinReady ? this.candCurrent : [],
-          pinyin: this.langZh && this.pinyinReady ? this.cnPinyin : '',
-          onPick: (i: number): void => { this.pinyinPick(i); },
-        })
-          .id('p26_cand_strip')
-          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.t26y(578) })
+        // 批 64（T2）：候选栏已搬进 Stage26 的 candBarZone 槽位（见 @Builder stageCandBar）
 
         // 黑井（z 4.0，盖钢板；四角开孔露钢板螺丝）
-        KeyWell({
-          machine: this.machineKind,
-          widthVp: 346.7 * this.xk(),
-          heightVp: this.keybedHeight,
-        })
-          .id('p33_key_well')
-          .position({ x: 8 * this.xk() + this.machineOffsetX26(), y: this.keyGridTopVp() })
-          .shadow({ radius: 8, color: '#00000022', offsetX: 0, offsetY: 3 })
-
-        // 键盘（z 4.1，陷进黑井）
-        KeyGrid({
-          machineKind: this.machineKind,
-          shiftActive: this.shiftActive,
-          symbolMode: this.symbolMode,
-          sx: this.xk(), sy: this.yk(),
-          capsActive: this.capsLock,
-          foldBand: this.layoutMode === 'desk',
-          widthVp: this.canvasWidthVp(),
-          heightVp: this.keybedHeight,
-          layout: this.displayLayout(),
-          overlayFontFamily: this.genericFamilyFor(this.fontFamily),
-          overlayFontSize: 15,
-          capShape: this.capShape(),
-          labelColor: this.displayLayout().overlayColor,
-          originXVp: 0,
-          originYVp: this.keyGridTopVp(),
-          commitSeq: this.commitSeq,
-          onCapDown: (cap: CapDef): void => { this.onCapDown(cap); },
-          onCapSlide: (cap: CapDef): void => {
-            if (!cap.isExtra && cap.label !== ' ') {
-              this.audioService.playKey();
-            }
-          },
-          onCapUp: (cap: CapDef): void => {
-            if (cap.label === 'Shift') { this.shiftActive = false; }
-          },
-        })
-          .id('p25_key_grid')
-          .position({ x: 0 + this.machineOffsetX26(), y: this.keyGridTopVp() })
+        // 批 64（T2/T4）：黑井＋键网格已搬进 Stage26 的 keyZone 槽位（见 @Builder stageKeys）
 
 
         // 黄铜铭牌点按提示（文档名，1.6s 自动收起）

@@ -2118,3 +2118,27 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
     该数字与 33/32 的口径冲突，按目标书「未定前按实测记」处理，**保留待用户定夺**。
   - `paperContainerVp` 未删：它还驱动旧「换纸 300ms」动画与 `paperTick` 追踪（T6 一并收口），本轮只让它不再参与渲染。
 - 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`。
+
+### 批 64 阶段 1 第十步：T2 收口 —— 字篮井/功能行/字体条/候选栏/键盘井全部进 Stage26 槽位（N2 三容器 3/3）
+
+- **改动**（`Index.ets`）：新增 `@Builder stageBasket/stageFuncRow/stageFontBar/stageCandBar/stageKeys`，
+  把原绝对定位的 `Basket26`／`FunctionCaps26`／`FontPlate26`／`CandStrip26`／`KeyWell`／`KeyGrid`
+  原样搬进对应槽位（原位置只留注释行）；`keyZone` 用 `Stack` 把黑井与键网格叠在一起（井在下、键在上），
+  `KeyGrid` 的 `originYVp` 由「屏坐标 keyGridTopVp()」改为槽内 `0`、`widthVp` 由 `canvasWidthVp()`（673.7）
+  改为 `machineWidth26()`（475.3）。
+- **真机实测（dump，平板竖屏）**：
+  | 件 | rect | 判定 |
+  |---|---|---|
+  | `p26_basket` | (427,1127)-(1174,1557) | 顶 1127px ＝ 纸区底（474.6vp）✓ 扇井 181vp（138·k） |
+  | `p26_function_caps` | (464,1621)-(1137,1707) | 顶 682.5vp ＝ 纸区+字篮井 ✓ 高 36vp（固定高） |
+  | `p26_font_plate` | (261,1706)-(1340,1773) | 顶 718.3vp ✓ 高 28vp |
+  | `p26_cand_strip` | (261,1773)-(1340,1878) | 顶 746.5vp ✓ 高 44vp（R5 的“按 0 计入”缺口已补上高度） |
+  | `p33_key_well` | (236,1877)-(1315,2425) | 顶 790.3vp ＝ 键盘井顶 ✓ |
+  | `p25_key_grid` | (236,1877)-(1365,2425) | **右缘 1365 ＝ 机器右缘** ✓ N2 第 3/3 收口 |
+  - 日志：`KeyGrid mount x=0.0 y=0.0 w=475.3 h=230.6`（改前 w=673.7／y=815.5）。
+  - 截图（tmp-t4b）：候选栏与黑井之间原来的 60px 空隙消失；扇／功能行／字体条／候选栏依次贴合，无重叠。
+- **踩坑记账**：`_p64_t4a.py` 先把 mount 块剪出来再重排缩进，导致随后按「原缩进」写的 `widthVp`／`originYVp`
+  替换**全部落空**（真机日志仍 w=673.7）；已用直接 edit 修正。教训：**补丁脚本里的字符串替换要用不依赖缩进的锚**。
+- **仍未做**：`KeyGrid` 内部仍是逐键 `.position`（键宽 21.6·k≈28.3vp、间距 3.9vp），
+  `Row+SpaceBetween`／键帽固定尺寸属 T4 后半；`TopZone26` 仍是绝对定位行（T8）；R5 未接线（T7）。
+- 构建 `BUILD SUCCESSFUL`；平板 `install bundle successfully`；亮度 161.4（亮屏）。
