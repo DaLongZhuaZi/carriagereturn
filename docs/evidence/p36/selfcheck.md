@@ -1968,3 +1968,44 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
   `expandSafeArea` 反之），只把候选栏/键盘井那一段上移；若真机行为与文档不符，按目标书要求“不要硬套”，改回 RESIZE 并如实记差。
 - **状态**：API 核实完成（任务 7 的前置条件）；**避让本体尚未实施**（等五区真的进 Stage26 后再接线），
   因此 2289（键盘弹起不压候选栏）暂无真机证据。
+
+### 批 64 阶段 1 交接（第四轮：进度固化，下一步可直接接手）
+
+**已完成（仓内、可构建）**
+
+1. `entry/src/main/ets/components/type26/Stage26.ets`（新增）：
+   - `StageLayout` 纯数据类：`machineW=min(availW, availH×0.441)`、`paperW=machineW×0.606`、
+     `paperMaxH=306×Pw/220`、五区高度（固定 191.6 ＋ 纸区/字篮井/键盘井，纸区超上限按 138:172.6 分摊）、
+     `fontSizeVp/lineHeightVp/charsPerLineEng/describe`。
+   - `Stage26` 组件：`Row(justifyContent: Center)`＋`machineW` 宽的一列，纵向八槽位（`@BuilderParam` 注入），
+     每区用换算表精确高度。
+2. `Index.measureStage()` 末尾已接打点 `hilog … 'stage26 …'`（真机可读，见第三步自检表）。
+3. R5 避让 API 已核实（`setKeyboardAvoidMode`／`KeyboardAvoidMode` OFFSET=0／RESIZE=1／NONE=4；
+   RESIZE 下 `expandSafeArea(KEYBOARD)` 不生效），方案定为「OFFSET＋舞台底部预留」，**尚未接线**。
+
+**每次改完都验过**：hvigor `BUILD SUCCESSFUL`；平板 `install bundle successfully`；旧打字页功能未受影响。
+
+**剩余任务与锚点（下一轮从这里直接开工）**
+
+- **T2 五区入 Stage26**（最大一块）：`Index.ets` 打字页分支在 `if (this.navStack[…] === 'typewriter')` 内
+  （约 :4890–:5475），现挂 `Lid26/TopDeck26/Carriage26/TopZone26/Basket26/FunctionCaps26/FontPlate26/CandStrip26/KeyGrid`，
+  全部绝对定位。做法：把 `Stage26` 的八个 `@BuilderParam` 填成这些既有组件，逐个替换其 `.position(...)` 与绝对高度；
+  `machineOffsetX26()` 随之删除（舞台容器自身居中）。
+- **T3 纸 flex**：`Carriage26.ets` 的纸视口 Column（`.width('100%').height(362*sy).clip(true)`）→ 纸区 Column 内
+  `justifyContent(FlexAlign.End)`；纸宽 `width('60.6%')`；纸高＝内容高（31＋lh×行数＋6，封顶 `306×Pw/220`）；
+  `PAPER_W=290` 与 `paperGrowVp` 的手算位移都退役。
+- **T4 键盘/功能行/字体条/候选栏 flex**：`KeyGrid.ets`（逐键 `.position`）→ `Column`＋`Row(SpaceBetween)`；
+  键帽固定尺寸，`layoutWeight` 只挂 `Blank()`；间距上限 `1.5×键宽` 的判定加在布局里（平板实测键宽≈22vp、间距≈8vp，不触发）。
+  `FunctionCaps26` 六键 Row 216vp 居中；`CandStrip26` 改横向 `Scroll`。
+- **T5 KeymapParser 去坐标**：`Index.ets reloadKeymap()`（约 :2388–:2405）→ 解析器只回「行/列/键帽标识/overlay 颜色/overlay 字号」，
+  `KeyGrid` 按 flex 排布；解析器本身保留。
+- **T6 动画位置来源**：`pointerXVp()` 改 `onAreaChange` 实测；`shiftLiftVp` 与按键行程改绝对值（10／2／3vp、scaleY 0.94）；
+  删 `paperContainerVp`；横尺/色带移入纸区 flex 子项。
+- **T7 R5 接线**：`setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET)` ＋ 舞台底部按键盘高度预留；真机行为与文档不符则改 RESIZE 并记差。
+- **T8 N6 收尾**：`Parts26.ets` 顶部出纸槽两段过期注释删除并按 flex 位置重写；槽位置**以截图实测为准**
+  （批 63 自检的 dump rect (1170,149)-(1326,187) 与 2279 截图 PIL 实测 (558–709,158–184) 差 612px 尚未对账，须在新布局下重测）。
+- **真机证据待拍**：2280–2290 全部（含 N1 回归 2284、N3/F-14 2286、键盘 2287、R5 2289、打字主链 2290）。
+
+**已知需要拍板的差异（等定夺，不擅改）**：纸面每行字数设计 33、实测 32（差 1，因 33 字需行宽 ≥308.55vp，而 235×机器宽/362.7＝307.9vp）。
+
+**本会话限制**：该会话上下文已用尽，继续做 T2 那种 600 行级重构有改坏仓库的风险；上面锚点足够下一会话直接开工。
