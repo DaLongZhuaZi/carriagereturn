@@ -2009,3 +2009,14 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 **已知需要拍板的差异（等定夺，不擅改）**：纸面每行字数设计 33、实测 32（差 1，因 33 字需行宽 ≥308.55vp，而 235×机器宽/362.7＝307.9vp）。
 
 **本会话限制**：该会话上下文已用尽，继续做 T2 那种 600 行级重构有改坏仓库的风险；上面锚点足够下一会话直接开工。
+
+### 批 64 阶段 1 第五步：T5 前半 —— `KeymapParser.parseOrder()`（去坐标接口）已加
+
+- `entry/src/main/ets/model/KeymapModel.ets`：
+  - 新增 `export interface CapOrder { row; col; label; shape; overlayColor; overlayFontSize }`（**无 x／y**）。
+  - 新增 `static parseOrder(jsonText, machine, fold, overlayColor, overlayFontSize): CapOrder[]` —— 只遍历
+    `raw.rows[].caps[]` 输出逻辑序（形状沿用 `circle` 回落规则），不读坐标带 `band.x0/x`。
+- **老 `parse()` 原样保留**（旧布局与回退都还用它），所以这是**加法改动、可回退**；`KeyGrid` 的 flex 排布（T5 后半）
+  还没接，接线时把 `reloadKeymap()` 里 `parse(...)` 换成 `parseOrder(...)` 并把 `CapOrder[]` 交给新 KeyGrid。
+- 构建：`BUILD SUCCESSFUL`（0 ERROR）。
+- 未做：本接口尚未被任何调用点使用（真机无行为变化），因此没有截图证据；T5 后半（KeyGrid flex）属下一轮。

@@ -41,6 +41,16 @@ export interface CapDef {
 }
 
 /** 一台机器的键位表（已换算到显示 vp）。 */
+/** 批 64（阶段 1／T5）：去坐标后的键逻辑序（KeyGrid 按 flex 排布用）。 */
+export interface CapOrder {
+  row: number;
+  col: number;
+  label: string;
+  shape: string;
+  overlayColor: string;
+  overlayFontSize: number;
+}
+
 export interface KeymapLayout {
   machine: string;
   caps: CapDef[];
@@ -127,6 +137,31 @@ export class KeymapParser {
    * = 宽 × 带高/带宽 时才成立；宽高比对不上时 cy 被系统性放大，行 y 越大偏越多
    * （§2.5 已判为错，本实现作废该式）。
    */
+
+  /**
+   * 批 64（阶段 1／T5）：只输出键的**逻辑顺序与尺寸**，不输出 x／y 坐标。
+   * KeyGrid 拿到后按 `Row`＋`justifyContent: SpaceBetween` 排布；老 `parse()` 保留给旧布局/回退用。
+   * overlay 颜色与字号按本次调用统一给（批次内同一键位表共用一套 overlay）。
+   */
+  static parseOrder(jsonText: string, machine: string, fold: boolean,
+    overlayColor: string, overlayFontSize: number): CapOrder[] {
+    const raw: RawKeymap = JSON.parse(jsonText) as RawKeymap;
+    const out: CapOrder[] = [];
+    for (let r = 0; r < raw.rows.length; r++) {
+      const row: RawRow = raw.rows[r];
+      for (let c = 0; c < row.caps.length; c++) {
+        const cap: RawCap = row.caps[c];
+        const shape: string = (cap.shape === undefined || cap.shape.length === 0)
+          ? 'circle' : cap.shape;
+        out.push({
+          row: r, col: c, label: cap.label, shape: shape,
+          overlayColor: overlayColor, overlayFontSize: overlayFontSize,
+        });
+      }
+    }
+    return out;
+  }
+
   static parse(jsonText: string, machine: string, fold: boolean, widthVp: number, heightVp: number,
     overlayColor: string, overlayFontSize: number): KeymapLayout {
     const raw: RawKeymap = JSON.parse(jsonText) as RawKeymap;
