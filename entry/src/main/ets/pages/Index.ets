@@ -31,6 +31,7 @@ import {
 } from '../model/MachineCatalog';
 import { CapDef, KeymapLayout, KeymapParser, readRawTextSync } from '../model/KeymapModel';
 import { PaperRow } from '../ui/PaperSheet';
+import { StageLayout } from '../components/type26/Stage26';
 import { DocModel } from '../model/DocModelCore';
 import { docStore } from '../services/DocStore';
 import { dossierStore } from '../services/DossierStore';
@@ -1959,6 +1960,9 @@ struct Index {
         stageW.toFixed(1), this.regionHeightVp.toFixed(1), this.fontSizeVp.toFixed(2),
         this.paperHeightVp.toFixed(1), this.keymapLayout.widthVp.toFixed(1),
         this.keymapLayout.heightVp.toFixed(1), this.photoWidthCap.toFixed(1));
+      // 批 64 阶段 1：舞台容器换算表打点（真机对账五区高度，与设计稿 §3.2 表比对）
+      const stageL: StageLayout = new StageLayout(stageW, this.winHeightVp > 0 ? this.winHeightVp : winH);
+      hilog.info(DOMAIN, TAG, 'stage26 %{public}s', stageL.describe());
       // 批 38（平板竖屏首验）：几何打点——k／居中偏移／画布／纸面板宽，与 Carriage26 的 geom 行对账
       hilog.info(DOMAIN, TAG, 'geom26 k=%{public}s offsetX=%{public}s canvas=%{public}sx%{public}s Pw=%{public}s paper290k=%{public}s win=%{public}sx%{public}s',
         this.xk().toFixed(3), this.machineOffsetX26().toFixed(1),

@@ -1,3 +1,5 @@
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
 /**
  * 批 64（阶段 1）· 舞台容器 Stage26
  *
@@ -104,7 +106,6 @@ export class StageLayout {
   }
 }
 
-import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const DOMAIN: number = 0xA00100;
 const TAG: string = 'Stage26';
