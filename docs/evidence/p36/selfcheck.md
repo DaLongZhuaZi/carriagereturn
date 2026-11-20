@@ -2037,3 +2037,23 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - 构建 `BUILD SUCCESSFUL`；装平板 `install bundle successfully`。
 - **仍未做**：`TopZone26` 还没改成 flex 行（槽仍是绝对定位的子件）；五区入 Stage26（T2）、纸 flex（T3）、
   键盘/功能行/字体条/候选栏 flex（T4）、KeyGrid 接 `parseOrder`（T5 后半）、动画位置来源（T6）、R5 接线（T7）均未开始。
+
+### 批 64 阶段 1 第七步：N2 三容器右缘（2/3 已收）
+
+- 改动：新增 `machineWidth26() = 362.7·k`；`Carriage26` 与 `TopZone26` 的 `widthVp` 由 `canvasWidthVp()`（673.7vp）
+  改为 `machineWidth26()`（475.3vp）。两容器仍挂在 `x=machineOffsetX26()`（236px），故右缘＝236＋1129＝**1365px**。
+- **真机实测（2285，dump rect）**：
+
+| 容器 | 修前右缘 | 修后右缘 | 判定 |
+|---|---|---|---|
+| `p35_carriage` | 1600（贴屏边，实际越界） | **1365** | 通过（＝机器右缘） |
+| `p26_top_zone` | 1600 | **1365** | 通过 |
+| `p25_key_grid` | 1600 | **1600**（未改） | **未通过** |
+
+- **KeyGrid 为什么没动**：它不接收 `widthVp`（mount 只有 `machineKind/shiftActive/symbolMode/sx/sy/...`），
+  宽度由自身按 `stageWidth` 算并逐键 `.position` 落位——**N2 的这 1/3 必须等 T4/T5（键盘改 flex＋parseOrder）才真正解决**，
+  单纯传参改不动。按目标书要求如实记：**三容器右缘 2/3 收口，KeyGrid 记未达**。
+- 顺带说明：容器收到机器宽后，内部仍用绝对定位的子件（横尺按 `700·sx` 画）会超出容器边界；
+  视觉上横尺仍旧伸出机器 —— 这属于 T3（横尺进纸区 flex），本步只解决“容器右缘”这一验收口径。
+- 构建 `BUILD SUCCESSFUL`；装包成功；截图 **2285**。
+- 同时按新约定本轮先查了常亮：平板亮度 165.1、手机 92.7，均亮屏。

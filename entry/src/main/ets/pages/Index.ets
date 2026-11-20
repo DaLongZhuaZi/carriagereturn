@@ -1541,6 +1541,11 @@ struct Index {
     return w < byHeight ? w : byHeight;
   }
 
+  /** 批 64（N2）：机器宽＝362.7·k（打字页三容器的基准，不再用整画布宽）。 */
+  private machineWidth26(): number {
+    return 362.7 * this.xk();
+  }
+
   private machineOffsetX26(): number {
     const w: number = 362.7 * this.machineK26();
     return (this.stageWidth - w) / 2;
@@ -4987,7 +4992,8 @@ struct Index {
         // 字车总成（容器：滚筒＋纸＋卷曲＋横尺＋色带＋压纸杆＋拨杆＋旋钮；整体随 V 一次位移）
         Carriage26({
           machine: this.machineKind,
-          widthVp: this.canvasWidthVp(),
+          // 批 64（N2）：容器宽＝机器宽（475.3vp），右缘落在机器右缘内（不再按整画布 673.7vp 越界）
+          widthVp: this.machineWidth26(),
           heightVp: this.canvasHeightVp(),
           sx: this.xk(), sy: this.yk(),
           offsetXVp: this.carriageOffsetVp,
@@ -5050,7 +5056,8 @@ struct Index {
 
         TopZone26({
           machine: this.machineKind,
-          widthVp: this.canvasWidthVp(),
+          // 批 64（N2）：同上，顶区宽＝机器宽
+          widthVp: this.machineWidth26(),
           heightVp: this.t26y(104),
           sx: this.xk(), sy: this.yk(),
           docTitle: this.docTitle,
