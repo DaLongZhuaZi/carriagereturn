@@ -1690,3 +1690,17 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - **F-14 / N3 加强证据**：9 行时 `paperTop=-26.5vp`（≈−63px，**已出屏上方**）；1 行 285.2 → 每行 −39vp 线性下降，
   **没有 306 封顶**（8 行时 paperBox 已 392.8vp、9 行 −26.5）→ F-14「纸高到顶 306 后不再长」**不成立**，N3 保留。
 - 上屏日志顺带确认：候选点击走 `cn pick` → 整词拆字逐字 `committed`，与设计稿「整词拆单字逐字落」一致。
+
+### 批 38 补记（第五轮，截图 2251；工具限制两条）
+
+- **A-5 装纸／出纸：部分**。装纸已验（2188：`paper load` 600ms＋150ms，`paperChange done at 600ms`、`trace end dt=641`）。
+  出纸侧：按 TopZone 里出纸槽的代码位置（x=300·sx=934px、y=14·sy≈149px）点按 → 屏幕像素差 **0.007**（＝没动），
+  y 110–210 也没有深色槽像素 → **出纸槽在平板上没有出现在代码声明的坐标上**（或该处置透明/被盖）。
+  故「出纸 600ms 逆过程」本轮未采到 —— 记缺口，并把「出纸槽位置与代码声明不符」记为 **N6**。
+- **A-10 旋钮／拨杆：部分**。旋钮：换纸日志 `paperChange knob=784.3`（360° 走完、`stage=end dt=641`）✓；
+  拨杆 30° 摆动与杆长（按 stageW）本轮未采（需录屏或按住态，注入不驱动）。
+- **F-23 无障碍读屏：未验（工具不支持，替代证据到此为止）**。
+  实测原文：`uitest dumpLayout -e accessibilityText` → `Invalid attribute name, currently supported names are 'uniqueId'`；
+  不加 `-e` 时 dump 全树**没有任何 accessibilityText 字段**（dump6/7/dP 均如此）。
+  现有替代证据只有源码里的 `.accessibilityText/.accessibilityLevel`（批 62 三个提交：键帽/功能行/返回/出纸槽/字体条/候选 chip），
+  TalkBack 逐键朗读仍需用户在真机上开读屏听——按用户定的「需要用户实际参与」清单处理，不代判。
