@@ -2601,3 +2601,21 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - `by_text('BACK SPACE')` 中心 `(1285,1976)` 是正确位置（键盘 `Column` 垂直居中，行起点 1939 非 1877）。
 - 点按间隔 ≥1.05s；`hdc install -r` 后 App 会重启并回主页，进打字页要重新 `goto_typing`。
 - 重启会把持久化文档读回（换纸不落盘）——这是预期，不是崩溃。
+
+### 批 64 阶段 1 第二十五步：验证「paperGrowVp 恒同步」未打断装纸／出纸动画
+
+- **风险面**（本轮自查）：第十六步把 `recalcPaperHeight` 改成**恒写** `paperGrowVp`（原先只有换行传 `syncVisible` 才写）。
+  而 `playPaperLoad()`（600ms 从 0 长出）与 `playPaperUnload()`（150+600ms 缩回）本身就在动画里驱动 `paperGrowVp`——
+  若这两个窗口里有 `measureStage → recalcPaperHeight`，就会把 `paperGrowVp` 直接写成目标值，
+  视觉表现为「纸瞬间出现」或「缩一半又回弹」。
+- **实测**（两次完整进出打字页，间隔 2s，hilog 时间线）：
+  - 装纸：`paper load start from -362`（1efdbd9 会话 16:46:55.444）→ **604ms** → `paper load done grow=92.0`（16:46:56.048）；
+    窗口内 **零条** `parts` 日志 ⇒ 没有 recalc 介入。
+  - 第二次同样：`17.194 start → 17.798 done grow=92.0`（604ms），窗口内无 `parts`。
+  - 出纸：`paper unload done`（16:47:03.149）前后各 3.8s 内无 `parts`（下一条 `parts` 是 16:47:06.965 的下一轮进入）。
+  - `grow=92.0` 与同态 `parts paperBox=92.0` 一致（2 行态），数值自洽。
+- **结论：无回归。** `paperGrowVp` 恒同步与两段纸动画不冲突——因为这两段动画期间没有任何 `measureStage` 调用
+  （`measureStage` 只在 `aboutToAppear` / 窗口尺寸变化 / 换机 / 换纸 / insets 到达时触发，均不在动画窗口内）。
+
+**方法备注（可复用）**：判断「某状态写入是否打断动画」，比截图连拍（单帧 400–500ms）更可靠的是
+**在动画打点附近看有没有该状态的写入日志**（本例是 `parts`），并核算窗口长度（600ms vs 604ms）。
