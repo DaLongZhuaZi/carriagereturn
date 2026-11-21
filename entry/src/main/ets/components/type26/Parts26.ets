@@ -391,26 +391,104 @@ export struct Basket26 {
     return w < maxW ? w : maxW;
   }
 
+  /** 批 76：杆数（杆影与字杆共用）——由井宽派生，不写死。N = max(5, floor(井宽 / 30vp))。 */
+  private stemCount(): number {
+    const n: number = Math.floor(this.widthVp / 30);
+    return n > 5 ? n : 5;
+  }
+
+  /** 批 76：0..N-1 索引数组（ForEach 用）。 */
+  private stemIndexes(): number[] {
+    const out: number[] = [];
+    const n: number = this.stemCount();
+    for (let i = 0; i < n; i++) {
+      out.push(i);
+    }
+    return out;
+  }
+
+  /** 批 76：第 i 道杆影的 x（N 道均匀，间距 = 井宽/(N+1)）。 */
+  private stemShadowX(i: number): number {
+    const n: number = this.stemCount();
+    return this.widthVp / (n + 1) * (i + 1) - 0.75 * this.sx;
+  }
+
+  /** 批 76：字杆长（井高 × 0.82）。 */
+  private barLength(): number {
+    return this.heightVp * 0.82;
+  }
+
+  /** 批 76：第 i 根字杆的角度（startAngle −38°，总张角 76°，stepAngle = 76/(N−1)）。 */
+  private barAngle(i: number): number {
+    const n: number = this.stemCount();
+    if (n <= 1) {
+      return 0;
+    }
+    return -38 + i * (76 / (n - 1));
+  }
+
+  /** 批 76：第 i 根字杆的字钉字母（A–Z 循环；设计稿只说「沿用扇图从左到右的顺序」，未给字母表）。 */
+  private barLetter(i: number): string {
+    const ALPHA: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return ALPHA.charAt(i % 26);
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // 井：曲线口（顶部半圆拱；井宽 240 → 拱半径 120，矢高 138vp＝466px）
       Stack({ alignContent: Alignment.Bottom }) {
         // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
-        // 批 40（任务 3）：井背改预渲染贴图（纵向渐变＋7 道杆影，上亮下暗）
-        Image($rawfile('ui-parts/fanwell-back-v2.png'))
-          .width('100%').height('100%').objectFit(ImageFit.Contain)
+        // 批 76：井背改**代码画**（替掉批 40 的 fanwell-back-v2.png 定图，文件留仓）
+        // 上＝paperwell 浅、下＝base 深，随 tierToken 自动跟机型色——根治批 75 补记的「定图不跟 base、露浅薄荷绿块」
+        Column().width('100%').height('100%')
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [[tierToken(this.machine, 'paperwell'), 0.0], [tierToken(this.machine, 'base'), 1.0]]
+          })
           .position({ x: 0, y: 0 })
           .hitTestBehavior(HitTestMode.None)
-        // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
-        Stack({ alignContent: Alignment.Bottom }) {
-          basketFanImage(this.machine, this.fanWide)
+        // 批 76：杆影 N 道（N 与字杆同源，间距 = 井宽/(N+1)），只画在井背层、不压扇
+        ForEach(this.stemIndexes(), (i: number) => {
+          Column().width(1.5 * this.sx).height(this.heightVp)
+            .backgroundColor('#000000').opacity(0.10).borderRadius(0.75 * this.sx)
+            .position({ x: this.stemShadowX(i), y: 0 })
+            .hitTestBehavior(HitTestMode.None)
+        }, (i: number) => 'p76sh' + i.toString())
+        // 批 76：字杆扇改**逐根代码画**（替掉 basket-fan-*.png 定图，文件留仓；basketFanImage() 函数不动）
+        // 每根：杆身（钢色渐变，与枢轴同系）＋顶端字钉（steel 座 + 字母）；旋转中心＝杆底＝枢轴点
+        Stack({ alignContent: Alignment.TopStart }) {
+          ForEach(this.stemIndexes(), (i: number) => {
+            Column() {
+              // 字钉（顶端）：steel 座 + 字母
+              Column() {
+                Text(this.barLetter(i)).fontSize(7 * this.sx)
+                  .fontColor('#1a1a1a').maxLines(1)
+              }
+              .width(6 * this.sx).height(6 * this.sx)
+              .backgroundColor(tierToken(this.machine, 'steel'))
+              .borderRadius(1.2 * this.sx)
+              .justifyContent(FlexAlign.Center)
+              .hitTestBehavior(HitTestMode.None)
+              // 杆身：细长 Column，钢色渐变
+              Column()
+                .width(2.5 * this.sx).height(this.barLength() - 6 * this.sx)
+                .linearGradient({
+                  direction: GradientDirection.Bottom,
+                  colors: [[STEEL_HI, 0.0], ['#4c4c4f', 1.0]]
+                })
+                .borderRadius(1.25 * this.sx)
+                .hitTestBehavior(HitTestMode.None)
+            }
+            .width(2.5 * this.sx)
+            .position({ x: this.widthVp / 2 - 1.25 * this.sx, y: this.heightVp - 8 * this.sy - this.barLength() })
+            // 旋转中心＝杆底（centerY 100%）＝枢轴点
+            .rotate({ angle: this.barAngle(i), centerX: '50%', centerY: '100%' })
+            .hitTestBehavior(HitTestMode.None)
+          }, (i: number) => 'p76bar' + i.toString())
         }
-        // 批 66：盒宽×kx、盒高＝盒宽/图宽高比 ⇒ Contain 无留白、扇底天然贴井底（不会上浮）
-        // 批 67：盒高 min(盒宽/图比, 井高−10)，宽＝高×图比（装进井、给 Shift 留 10vp 头）
-        .width(this.fanW26()).height(this.fanH26())
-        // 批 61：Shift 抬扇——整扇上抬 10vp，弹簧（轻微过冲）；显示盒不变，只加 translate
-        // 批 64（T6）：Shift 抬扇改绝对值 10vp（不再乘 sy；Index 侧 shiftLiftVp 就是 −10）
+        .width(this.widthVp).height(this.heightVp)
+        // 批 61：Shift 抬扇——整组字杆同上抬（不是只抬一半），弹簧沿用
         .translate({ y: this.shiftLiftVp })
         .animation({ duration: 260, curve: curves.springMotion(0.3, 0.55) })
         .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })

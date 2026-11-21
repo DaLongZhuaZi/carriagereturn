@@ -27,7 +27,22 @@ const KB_CAP_H: number = 27.6;
 const KB_VGAP: number = 6.9;
 const KB_HGAP: number = 3;
 /** 修正 2：图例上移 = 帽高 × 0.181。 */
-const KB_LEGEND_UP: number = 5.0;
+/**
+ * 批 76：图例上移**比例**（按机型查表）——×帽盒高（KB_CAP_H × kx()）＝实际上移量。
+ * 原来是一个常量 5.0vp 管五种帽形，1920s 高圆帽的图例实际落到顶面下缘、贴到侧壁。
+ * 比例＝0.5 − 该机帽形「顶面中心 y 占图高的比例」（设计稿 §0.2 实测表）：
+ * 1920s 0.215→0.285／1930s 0.254→0.246／1950s 0.352→0.148／1960s 0.313→0.187／2020s 0.371→0.129。
+ * 用比例而非 vp：换分辨率时帽盒高自动缩放，一次适配全分辨率。
+ */
+function legendUpRatio(machine: MachineKind): number {
+  if (machine === MachineKind.PORTABLE_1930S) { return 0.246; }
+  if (machine === MachineKind.STREAMLINED_1950S) { return 0.148; }
+  if (machine === MachineKind.ELECTRIC_1960S) { return 0.187; }
+  if (machine === MachineKind.MODERN_2020S) { return 0.129; }
+  return 0.285;
+}
+
+const KB_LEGEND_UP: number = 5.0;  // 批 76 废弃：改用 legendUpRatio(machine) × KB_CAP_H × kx()
 /** 键杆（帽间竖缝）可见段：高 6.6vp（行间距 6.9 里的可见段），宽 2vp（批 64 恢复时沿用旧口径）。 */
 const KB_STEM_H: number = 6.6;
 const KB_STEM_W: number = 2;
@@ -412,7 +427,7 @@ export struct KeyGrid {
           }
           .justifyContent(FlexAlign.Center)
           .width('100%').height('100%')
-          .translate({ y: -KB_LEGEND_UP })
+          .translate({ y: -legendUpRatio(this.machineKind) * KB_CAP_H * this.kx() })
           .hitTestBehavior(HitTestMode.None)
         } else if (p.kind === 'caps') {
           Column() {
@@ -423,7 +438,7 @@ export struct KeyGrid {
           }
           .justifyContent(FlexAlign.Center)
           .width('100%').height('100%')
-          .translate({ y: -KB_LEGEND_UP })
+          .translate({ y: -legendUpRatio(this.machineKind) * KB_CAP_H * this.kx() })
           .hitTestBehavior(HitTestMode.None)
         } else {
           Text(p.legend)
@@ -431,7 +446,7 @@ export struct KeyGrid {
             .fontColor(p.kind === 'return' ? '#ffffff' : '#1a1a1a')
             .fontFamily(this.overlayFontFamily)
             .width('100%').textAlign(TextAlign.Center).maxLines(1)
-            .translate({ y: -KB_LEGEND_UP })
+            .translate({ y: -legendUpRatio(this.machineKind) * KB_CAP_H * this.kx() })
             .hitTestBehavior(HitTestMode.None)
         }
       }
