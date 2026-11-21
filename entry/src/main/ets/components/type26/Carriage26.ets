@@ -194,6 +194,9 @@ export struct Carriage26 {
         }
         .width('100%')
         .height(this.paperAreaH())
+        // 批 67（任务 3）：纸不许画出视口——纸高超过视口高时从顶部出屏（被 TopBar 遮挡），
+        // 不再向下伸进字篮井被井口拱盖住。
+        .clip(true)
 
         // ---- 横尺（绘制宽 700·sx 保留；外层裁到机器宽，修 N2 越界）----
         Row() {

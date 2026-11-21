@@ -344,6 +344,24 @@ export struct Basket26 {
   /** 批 66：当前扇图的宽高比（平板 2.6、手机 1.69），用于让盒高正好等于图高。 */
   @Prop fanAspect: number = 1.69;
 
+  /**
+   * 批 67（任务 2）：扇盒高＝min(盒宽/图宽高比, 井高−10)，宽＝高×图比且不超过 213×sx。
+   * −10vp 是给批 61「Shift 抬扇 10vp」留头：扇盒若与井同高，抬起时扇顶会被井的 clip 裁掉 10vp。
+   * 平板：min(152.2, 145.7−10=135.7)=135.7vp，宽 135.7×2.6=352.8vp。
+   */
+  private fanH26(): number {
+    const maxW: number = 213 * this.sx;
+    const byW: number = this.fanAspect > 0 ? maxW / this.fanAspect : maxW;
+    const maxH: number = this.heightVp - 10;
+    return byW < maxH ? byW : maxH;
+  }
+
+  private fanW26(): number {
+    const maxW: number = 213 * this.sx;
+    const w: number = this.fanH26() * this.fanAspect;
+    return w < maxW ? w : maxW;
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // 井：曲线口（顶部半圆拱；井宽 240 → 拱半径 120，矢高 138vp＝466px）
@@ -360,7 +378,8 @@ export struct Basket26 {
           basketFanImage(this.machine, this.fanWide)
         }
         // 批 66：盒宽×kx、盒高＝盒宽/图宽高比 ⇒ Contain 无留白、扇底天然贴井底（不会上浮）
-        .width(213 * this.sx).height(213 * this.sx / this.fanAspect)
+        // 批 67：盒高 min(盒宽/图比, 井高−10)，宽＝高×图比（装进井、给 Shift 留 10vp 头）
+        .width(this.fanW26()).height(this.fanH26())
         // 批 61：Shift 抬扇——整扇上抬 10vp，弹簧（轻微过冲）；显示盒不变，只加 translate
         // 批 64（T6）：Shift 抬扇改绝对值 10vp（不再乘 sy；Index 侧 shiftLiftVp 就是 −10）
         .translate({ y: this.shiftLiftVp })

@@ -4720,7 +4720,9 @@ struct Index {
       shiftLiftVp: this.shiftLiftVp,
       machine: this.machineKind,
       widthVp: 240 * this.xk(),
-      heightVp: this.t26y(138),
+      // 批 67（任务 1）：井高＝字篮槽位高（同源）。原 this.t26y(138)=180.9vp 比槽位 145.7vp 高 35.2vp，
+      // 井/扇整体下沉，上撞纸、下撞功能行。
+      heightVp: this.stageLayout26().basketH,
       sx: this.xk(), sy: this.yk(),
       // 批 66：平板用 2.6 宽版扇图，盒高按图比例（手机仍 1.69 原图、盒高≈126）
       fanWide: this.isTablet,
