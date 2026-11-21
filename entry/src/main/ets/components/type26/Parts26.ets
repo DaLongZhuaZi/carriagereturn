@@ -51,18 +51,31 @@ export function lidTileImage(machine: MachineKind) {
 }
 
 /** 字篮扇形（生成件）。
- *  批 66：平板用 2.6 宽版（basket-fan-3d-v5-wide-26.png，403vp ≈ 纸宽 408vp），
- *  手机继续 1.69 原图（井只约 138vp，2.6 图会被压扁，不可用）。 */
+ *  批 74：**四台老机各用自己的扇图**（平板＝本批宽扇 2.6:1；手机＝年代扇原图）。
+ *  现代机（2020s-modern）沿用当前“26”主题的 v5-wide-26（平板）／v4（手机）。
+ *  全部 ImageFit.Contain，盒比由 Index 的 fanAspect26() 按机型取真实图比 ⇒ 不拉伸。 */
 @Builder
 export function basketFanImage(machine: MachineKind, wide: boolean) {
   if (wide) {
-    Image($rawfile('ui-parts/basket-fan-3d-v5-wide-26.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    if (machine === MachineKind.UPRIGHT_1920S) {
+      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1920s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    } else if (machine === MachineKind.PORTABLE_1930S) {
+      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1930s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    } else if (machine === MachineKind.STREAMLINED_1950S) {
+      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1950s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    } else if (machine === MachineKind.ELECTRIC_1960S) {
+      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1960s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    } else {
+      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-26.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    }
   } else if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    Image($rawfile('ui-parts/basket-fan-1920s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    Image($rawfile('ui-parts/basket-fan-1930s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+    Image($rawfile('ui-parts/basket-fan-1950s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+  } else if (machine === MachineKind.ELECTRIC_1960S) {
+    Image($rawfile('ui-parts/basket-fan-1960s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else {
     Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   }

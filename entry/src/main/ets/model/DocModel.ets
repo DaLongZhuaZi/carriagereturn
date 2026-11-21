@@ -26,6 +26,8 @@ export enum MachineKind {
   PORTABLE_1930S = '1930s-portable',
   STREAMLINED_1950S = '1950s-streamlined',
   ELECTRIC_1960S = '1960s-electric',
+  /** 批 74：现代机（当前“26”主题的薄荷绿机身＋象牙白圆帽）。 */
+  MODERN_2020S = '2020s-modern',
 }
 
 /** 纸面字体（17 款，§8.4 全量进换装字体区）。 */

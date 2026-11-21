@@ -122,6 +122,8 @@ const TIER_TOKENS: Record<string, string[]> = {
   '1930s-portable': ['#342f2b', '#8fae9e', '#453e38', '#636363'],
   '1950s-streamlined': ['#c6b7a4', '#d3e0d8', '#cabba7', '#d0c9b9'],
   '1960s-electric': ['#8e8880', '#c2d2c8', '#96908a', '#a59f96'],
+  // 批 74：现代机（与 1920s 同色——现代机即当前“26”主题，几何与色板一致）
+  '2020s-modern': ['#25201b', '#adc4b8', '#3b342b', '#5e5e5e'],
 };
 
 /** 四档 token 的索引：paperwell=0／base=1／keybed=2／steel=3（第 32 批加 steel）。 */
@@ -321,6 +323,39 @@ export const MACHINES: MachineSpec[] = [
     centralWindowX: 0.501,
     centralWindowY: 0.451,
     centralAspect: 1.19,
+  },
+  {
+    kind: MachineKind.MODERN_2020S,
+    frontRawfile: 'machine/2020s-modern-front.jpg',
+    keybandPhoneRawfile: 'machine/2020s-modern-keyboard.jpg',
+    keybandFoldRawfile: 'machine/2020s-modern-keyarea.jpg',
+    keymapRawfile: 'keymap/2020s-modern-keymap.json',
+    // 2020s 无独立 carriage-strip／typebar／lever／carriage-layer 素材：照抄 1920s（设计稿“其余字段照抄”）
+    carriageStripRawfile: 'carriage/1920s-upright-carriage-strip.png',
+    typebarRawfile: 'typebar/1920s-typebar-vertical.png',
+    leverRawfile: 'typebar/1920s-lever-single.png',
+    carriageLayerRawfile: 'typebar/1920s-carriage-layer.png',
+    overlayColor: '#312b24',
+    overlayFontSizeVp: 14,
+    bodyColor: '#adc4b8',
+    fontScale: 17,
+    englishLineHeightVp: 28,
+    chineseLineHeightVp: 30,
+    leverAspect: 0.2125,
+    leverPivotX: 0.5,
+    leverPivotY: 0.952,
+    bracketAspect: 0.8042,
+    bracketPivotX: 0.503,
+    bracketPivotY: 0.293,
+    rollerWidthRatio: 0.9528,
+    baseRailAspect: 7.56,
+    basketAspect: 4.7,
+    bailRollerLX: 0.28,
+    bailRollerRX: 0.724,
+    bailRollerY: 0.747,
+    centralWindowX: 0.5,
+    centralWindowY: 0.55,
+    centralAspect: 0.848,
   },
 ];
 

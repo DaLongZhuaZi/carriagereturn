@@ -1055,6 +1055,14 @@
     {
       "name": "export_opt_filename",
       "value": "文件名"
+    },
+    {
+      "name": "machine_name_modern",
+      "value": "现代薄荷"
+    },
+    {
+      "name": "machine_cond_modern",
+      "value": "保养良好、日常使用，键帽象牙白、机身薄荷绿，功能一切正常。"
     }
   ]
 }

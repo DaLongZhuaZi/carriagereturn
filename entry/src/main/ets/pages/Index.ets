@@ -1645,6 +1645,22 @@ struct Index {
     });
   }
 
+  /**
+   * 批 74：扇盒的宽高比——**按机型取真实图比**（盒子比 = 图比 ⇒ Contain 无留白、不拉伸）。
+   * 平板：本批四台宽扇统一 2496×960＝2.6；现代机沿用 v5-wide-26（也是 2.6）。
+   * 手机：四台年代扇原图比例各不相同（1920s 1864×1091／1930s 1891×1041／
+   * 1950s 1865×1159／1960s 1600×1314），逐台取真实比例；现代机 v4 是 1.69。
+   * 说明：这些数是**素材自身属性**（图片像素比），不是设备常量。
+   */
+  private fanAspect26(): number {
+    if (this.isTablet) { return 2.6; }
+    if (this.machineKind === MachineKind.PORTABLE_1930S) { return 1891 / 1041; }
+    if (this.machineKind === MachineKind.STREAMLINED_1950S) { return 1865 / 1159; }
+    if (this.machineKind === MachineKind.ELECTRIC_1960S) { return 1600 / 1314; }
+    if (this.machineKind === MachineKind.MODERN_2020S) { return 1.69; }
+    return 1864 / 1091;
+  }
+
   private paperVisibleTargetVp(): number {
     // 批 69：**撤掉纸高封顶**——纸高只由内容决定（31 ＋ 行高 × 行数 ＋ 6），只保留 58 下限
     // （1 行纸不塌掉）。纸高可以远超视口高（20 行约 609vp），纸底仍由批 68 的视口锚定
@@ -4820,7 +4836,8 @@ struct Index {
       sx: this.xk(), sy: this.yk(),
       // 批 66：平板用 2.6 宽版扇图，盒高按图比例（手机仍 1.69 原图、盒高≈126）
       fanWide: this.isTablet,
-      fanAspect: this.isTablet ? 2.6 : 1.69,
+      // 批 74：扇盒比按机型取真实图比（手机四台年代扇比例各不相同）
+      fanAspect: this.fanAspect26(),
     })
       .id('p26_basket')
   }

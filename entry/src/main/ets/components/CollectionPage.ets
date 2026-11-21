@@ -21,6 +21,8 @@ const M_NAME: Record<string, Resource> = {
   '1930s-portable': $r('app.string.machine_name_1930s'),
   '1950s-streamlined': $r('app.string.machine_name_1950s'),
   '1960s-electric': $r('app.string.machine_name_1960s'),
+  // 批 74：第 5 台现代机
+  '2020s-modern': $r('app.string.machine_name_modern'),
 };
 
 const ACH_NAME: Record<string, Resource> = {
@@ -62,6 +64,8 @@ const M_COND: Record<string, Resource> = {
   '1930s-portable': $r('app.string.machine_cond_1930s'),
   '1950s-streamlined': $r('app.string.machine_cond_1950s'),
   '1960s-electric': $r('app.string.machine_cond_1960s'),
+  // 批 74：第 5 台现代机
+  '2020s-modern': $r('app.string.machine_cond_modern'),
 };
 
 @Component
@@ -85,7 +89,7 @@ export struct CollectionPage {
   onBack: () => void = (): void => {};
   onPick: (kind: string) => void = (): void => {};
 
-  private readonly kinds: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric'];
+  private readonly kinds: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric', '2020s-modern'];
 
   aboutToAppear(): void {
     // insets 交给 PageShell；D6：60ms 逐格揭示
