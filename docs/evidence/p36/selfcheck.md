@@ -2429,3 +2429,32 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 
 **本轮结束时的设备状态**：停在打字页、**1 行空纸**、机型 `1920s-upright`、`cn_engine=builtin`；
 重启会回到 12 行空纸（换纸不落盘，见第十六步待办——未拍板前不动）。
+
+### 批 64 阶段 1 第十九步：清死参数 ＋ 按当前构建重拍 2283／2286／2290
+
+- `recalcPaperHeight(kind, syncVisible)` 的 `syncVisible` 删除：上一轮改成「恒同步 paperGrowVp」后该开关已无分支，
+  `animatePaperHeight()` 的调用点同步改成单参；`grep syncVisible` 只剩注释里的历史说明。构建 `BUILD SUCCESSFUL`。
+- 证据重拍（同一轮、间隔 1.05s、命中 100%）：纸高一律按 `p35_paper` bbox ÷ 2.375 记录，与 `parts` 对账：
+
+| 状态 | paperHVp | parts（paperTop／paperBox） |
+|---|---|---|
+| 1 行（清空后） | **64.4** | 340.7／64.5 |
+| 8 行 | **256.8** | 148.2／257.0 |
+| 9 行 | **284.6** | 120.7／284.5 |
+| 10 行 | **312.0** | 93.2／312.0 |
+| 12 行（满纸） | **366.7** | 38.3／366.9 |
+| 换纸后（1 行） | **64.4** | 340.7／64.5 |
+
+- **数字与旧自检逐字一致**（257.0／284.5／312.0／366.9），但现在是「看得见地随行数增长」——
+  旧构建里纸高恒 ≈863px（363vp），只是 `parts` 在变（第十六步已记账并修好）。
+- 三区 rect 在 12 行时完全不变：`p35_carriage (236,133)-(1365,1127)`、`p26_basket (427,1127)-(1174,1557)`、
+  `p33_key_well (261,1877)-(1340,2494)` ⇒「纸区高度不变、键盘井不压缩」仍成立。
+- `docs/shots/2286_p64_paper_boxes.png`（10 行）、`docs/shots/2283_p64_paper_cap.png`（12 行）已按当前构建覆盖重拍。
+- 2290 主链：`committed ch=[q] shift=off sym=off`（`2290_p64_chain_typed.png`）；
+  字体条 `font cycle -> SpecialElite (idx 1/17)`（`2290_p64_chain_font.png`）；
+  换纸 `newlineAtLastRow -> paperChange maxRows=12` → `paperChange done at 600ms top=340.7`。
+  （旧自检里的 `font cycle -> CourierPrime (idx 0/17)` 与这里的 `SpecialElite (idx 1/17)` 不矛盾——
+  字体循环按当前字体顺延，两次起点不同；两图并存。）
+
+**口径状态（未变，等拍板）**：六① 每行 17 字、六② 12 行／366.9 仍未定；2282 未重拍（满行口径未定），
+`2283` 当前按「12 行满纸＋自动换纸」记。

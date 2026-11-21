@@ -2498,7 +2498,7 @@ struct Index {
    *   carriageTop = 56% × 屏高（三态同高，不动）
    *   paperHeight = carriageTop − paperTop，Pw = paperHeight / 1.414
    */
-  private recalcPaperHeight(kind: string = 'recalc', syncVisible: boolean = false): void {
+  private recalcPaperHeight(kind: string = 'recalc'): void {
     // H 冻结：只用首次稳定测到的 availableHeightVp，不每轮重读 live inset
     // 第 5 批回批 F7（D0b-2）：冻结只适用于非折叠态；desk 用上半区高，frozenHVp 不清零
     // （切回 EXPAND 继续用冻结值，避免反复冻结/解冻）。
@@ -2556,10 +2556,9 @@ struct Index {
       // 无动画重算：逻辑值瞬时落位（不再发 dur=0 的纸段 tick，不存在跨 prop 抢跑）。
       this.paperTopVp = this.paperTopTargetVp;
     }
-    // 批 64（T6 尾项）：可见纸高恒与行数同步——历史上只有「换行」（syncVisible=true）才更新，
+    // 批 64（T6 尾项）：可见纸高恒与行数同步——历史上只有「换行」才更新（旧 syncVisible 开关），
     // 退格删行／换纸清空都不更新，实测 1 行时可见纸高仍卡在满纸 366.9vp（截图纸高 863px 不变）。
-    // 现在恒同步，且复用上面已算好的 capPaperH（同一口径，不再重复调 paperVisibleTargetVp()）。
-    // 被 animateTo 包裹时由 ArkUI 插值，否则瞬时落位；syncVisible 仅保留以不动既有调用点。
+    // 现在恒同步，复用上面已算好的 capPaperH（同一口径）；被 animateTo 包裹时由 ArkUI 插值。
     this.paperGrowVp = capPaperH;
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
@@ -2613,7 +2612,7 @@ struct Index {
   /** 换行与行数变化一律走 recalcPaperHeight（纸高不再增长，只动纸顶）。 */
   private animatePaperHeight(kind: string = 'newline'): void {
     this.paperAnimateNext = true;
-    this.recalcPaperHeight(kind, true);
+    this.recalcPaperHeight(kind);
   }
 
   // 批 64（T6 余项）：paperTick()（第 17 批 Canvas 纸段触发）已删除——纸段只剩 animateTo，
@@ -4194,7 +4193,7 @@ struct Index {
         this.docModel.getLines().length.toString(), this.paperTopVp.toFixed(1),
         this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
         this.carriageOffsetVp.toFixed(1));
-      // 批 63 阶段 0（任务 5）：纸高已由 animatePaperHeight → recalcPaperHeight(kind, true) 在换行同一帧
+      // 批 63 阶段 0（任务 5）：纸高已由 animatePaperHeight → recalcPaperHeight(kind) 在换行同一帧
       // 落位；这里不再二次改 height（旧写法 250ms 后才长高，造成纸面滞后、纸顶出屏）。
       hilog.info(DOMAIN, TAG, 'newline paperGrow=%{public}s target=%{public}s',
         this.paperGrowVp.toFixed(1), this.paperVisibleTargetVp().toFixed(1));
