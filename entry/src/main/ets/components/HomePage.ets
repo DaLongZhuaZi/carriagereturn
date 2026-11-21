@@ -139,11 +139,12 @@ export struct HomePage {
             .fontSize(15).fontColor('rgba(232,221,201,0.75)')
             .width('100%').textAlign(TextAlign.Center).margin({ top: 10 })
 
-          // ④ 金色按钮
+          // ④ 金色按钮（批 64：页根宽改成铺满后，主按钮限宽居中，避免拉成整屏胶囊）
           Text(this.latestId.length > 0 ? '继续写作' : '开始打字')
             .id('home__start_btn')
             .fontSize(17).fontWeight(FontWeight.Bold).fontColor('#171310')
             .width('100%').height(56).textAlign(TextAlign.Center)
+            .constraintSize({ maxWidth: 420 })
             .borderRadius(28).backgroundColor('#c9a45c')
             .margin({ top: 28 })
             .onClick(() => {
@@ -209,6 +210,7 @@ export struct HomePage {
       }
       .id('home__bottom_nav')
       .width('100%').height(56)
+      .constraintSize({ maxWidth: 560 })
       .padding({ left: 8, right: 8 })
       .margin({ bottom: this.bottomInset })
     }

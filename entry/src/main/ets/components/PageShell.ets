@@ -44,12 +44,6 @@ export struct PageShell {
     this.applyInsets();
   }
 
-  /** 批 63 阶段 0（任务 3／R4）：机器宽 = min(可用宽, 可用高 × 362.7/822.5)；手机=窗口宽不变。 */
-  private machineWidthVp(): number {
-    const byHeight: number = this.heightVp * 362.7 / 822.5;
-    return this.widthVp < byHeight ? this.widthVp : byHeight;
-  }
-
   /** 供子内容读取动态 insets 用（页内需要 topInset 时）。 */
   private async applyInsets(): Promise<void> {
     const ins: Insets = await applyImmersive(this.getUIContext());

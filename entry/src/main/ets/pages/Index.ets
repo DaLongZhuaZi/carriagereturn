@@ -1519,13 +1519,17 @@ struct Index {
     return k > 0 ? k : 1;
   }
   /** 等比缩放后机身水平居中偏移。 */
-  /** 批 63 阶段 0（任务 3／R4）：覆盖页根宽＝机器宽 min(可用宽, 可用高×362.7/822.5)。
-   *  手机＝窗口宽不变；平板 1600×2560 → 475.4vp。根 Stack 是 Alignment.Center，改宽即居中。 */
+  /**
+   * 批 64（用户 2026-11-21 定）：覆盖页根宽＝**可用宽**（真正自适应），不再按机器长宽比封顶。
+   *
+   * 旧口径（批 63 阶段 0 R4）是 `min(可用宽, 可用高 × 362.7/822.5)`：平板算出 475.4vp，
+   * 而屏幕可用宽 673.7vp ⇒ 14 个覆盖页全被锁进中间一条窄带，两侧各空 99vp
+   * （1600px 只用到 1129px）。用户判定「从主页开始所有页面只在中央一小块，根本没体现自适应」。
+   * 新口径：页面铺满可用宽；需要「内容不要太宽」的地方由各自内容区自己加内边距/最大宽，不在根宽上封顶。
+   */
   private overlayWidthVp(): number {
     const w: number = this.winWidthVp > 0 ? this.winWidthVp : this.stageWidth;
-    const h: number = this.winHeightVp > 0 ? this.winHeightVp : 720;
-    const byHeight: number = h * 362.7 / 822.5;
-    return w < byHeight ? w : byHeight;
+    return w > 0 ? w : 360;
   }
 
   /** 批 64（N2）：机器宽＝362.7·k（打字页三容器的基准，不再用整画布宽）。 */
