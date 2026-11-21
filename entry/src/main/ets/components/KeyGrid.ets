@@ -327,6 +327,12 @@ export struct KeyGrid {
           .objectFit(ImageFit.Fill).width('100%').height('100%')
           .resizable({ slice: { left: 64, right: 64, top: 6, bottom: 6 } })
           .hitTestBehavior(HitTestMode.None)
+      } else if (this.machineKind === MachineKind.MODERN_2020S) {
+        // 批 74：第 5 台现代机的空格条（不补这条会落到 else＝1960s 的图）
+        Image($rawfile('ui-parts/cap3d-space-2020s.png'))
+          .objectFit(ImageFit.Fill).width('100%').height('100%')
+          .resizable({ slice: { left: 64, right: 64, top: 6, bottom: 6 } })
+          .hitTestBehavior(HitTestMode.None)
       } else {
         Image($rawfile('ui-parts/cap3d-space-1960s.png'))
           .objectFit(ImageFit.Fill).width('100%').height('100%')
@@ -344,6 +350,11 @@ export struct KeyGrid {
           .hitTestBehavior(HitTestMode.None)
       } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
         Image($rawfile('ui-parts/cap3d-1950s.png'))
+          .objectFit(ImageFit.Fill).width('100%').height('100%')
+          .hitTestBehavior(HitTestMode.None)
+      } else if (this.machineKind === MachineKind.MODERN_2020S) {
+        // 批 74：第 5 台现代机的普通键帽（不补这条会落到 else＝1960s 的图）
+        Image($rawfile('ui-parts/cap3d-2020s.png'))
           .objectFit(ImageFit.Fill).width('100%').height('100%')
           .hitTestBehavior(HitTestMode.None)
       } else {

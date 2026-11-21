@@ -40,6 +40,8 @@ const MACHINE_LABEL: Record<string, string> = {
   '1930s-portable': '1930s',
   '1950s-streamlined': '1950s',
   '1960s-electric': '1960s',
+  // 批 74：第 5 台现代机（不补这行，主题页那颗胶囊是空文本、点不到）
+  '2020s-modern': '2020s',
 };
 
 const PAPER_LABEL: Record<string, string> = {
