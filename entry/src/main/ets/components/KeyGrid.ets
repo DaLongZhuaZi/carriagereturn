@@ -184,22 +184,17 @@ export struct KeyGrid {
   }
 
   /**
-   * 键帽等比缩放系数（批 64 用户 2026-11-21「智能键盘」）。
+   * 键帽等比缩放系数（批 65／增补-30 §2.1：**只按机器宽比**）。
    *
-   * 错误做法（已作废）：横向单独放大 `widthVp/362.7`＝1.857、纵向仍 1.3106
-   * ⇒ 键帽被拉成扁的，键帽素材必然变形。
-   *
-   * 正确做法：**键帽只做等比缩放，系数取「宽比/高比」的较小者**——
-   *  · 高比 = 井高 / 基准五行总高（5×34.5 + 4×6.9 = 207）
-   *  · 宽比 = 井宽 / 基准宽 362.7
-   * 取小者保证：任何分辨率下键帽宽高比不变（素材不被拉伸），
-   * 横向多出来的余量交给 `Row(SpaceBetween)` 当间距吸收。
+   * 作废两版错的：
+   *  · 第 29 步 `widthVp/362.7` 只放大宽、不放大高 ⇒ 键拉扁；
+   *  · 第 30 步 `min(宽比, 高比)` ⇒ 键被压小、余量全变缝 ⇒ 键行稀疏。
+   * 本版：系数只按宽比；**宽、高、行高、纵缝、横缝全部乘同一系数**（等比，不变形）；
+   * 井高由本系数导出（Stage26 `keyH = 200.1 × kx`），所以不再需要 min 兜底。
+   * 平板 kx = 673.7/362.7 = 1.857 ⇒ 键 40.1×51.3vp、行高 64.1vp、纵缝 12.8vp、横缝 5.6vp。
    */
   private kx(): number {
-    const byW: number = this.widthVp > 0 ? this.widthVp / 362.7 : 1;
-    const byH: number = this.heightVp > 0 ? this.heightVp / (KB_ROW_H * 5 + KB_VGAP * 4) : 1;
-    const k: number = byW < byH ? byW : byH;
-    return k > 0 ? k : 1;
+    return this.widthVp > 0 ? this.widthVp / 362.7 : 1;
   }
 
   /** 平铺后每个键的绝对位置（键区内 x 从 12 起，横缝 3）。 */
@@ -217,8 +212,10 @@ export struct KeyGrid {
           px = KB_X0 + (KB_W - k.w) / 2;
         }
         out.push({
-          label: k.label, legend: k.legend, sub: k.sub, x: px * this.sx,
-          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w * kx, kind: k.kind,
+          label: k.label, legend: k.legend, sub: k.sub, x: px * kx,
+          // 批 65：y 也按 kx（行 y = 行号×(行高+纵缝)×kx，键在行内垂直居中）
+          y: (r * (KB_ROW_H + KB_VGAP) + (KB_ROW_H - KB_CAP_H) / 2) * kx,
+          w: k.w * kx, kind: k.kind,
           id: (this.symbolMode ? 'S' : 'L') + ':' + rows[r].y.toString() + ':' + i.toString(),
           up: k.up, alt: k.alt,
         });
@@ -358,7 +355,14 @@ export struct KeyGrid {
       'stems rowW=%{public}s n0=%{public}d n1=%{public}d n2=%{public}d n3=%{public}d stemW=%{public}s stemH=%{public}s',
       (this.widthVp - KB_X0 * 2).toFixed(1),
       this.stemXs(0).length, this.stemXs(1).length, this.stemXs(2).length, this.stemXs(3).length,
-      KB_STEM_W.toFixed(1), KB_STEM_H.toFixed(1));
+      (KB_STEM_W * this.kx()).toFixed(1), (KB_STEM_H * this.kx()).toFixed(1));
+    // 批 65（增补-30 §5 验收）：键帽/行高/缝的权威数值——PIL 只能量到键帽亮面，这里是代码真值。
+    hilog.info(KDOMAIN, KTAG,
+      'geom65 kx=%{public}s capW=%{public}s capH=%{public}s rowH=%{public}s vgap=%{public}s hpad=%{public}s wellH=%{public}s',
+      this.kx().toFixed(3),
+      (21.6 * this.kx()).toFixed(1), (KB_CAP_H * this.kx()).toFixed(1),
+      (KB_ROW_H * this.kx()).toFixed(1), (KB_VGAP * this.kx()).toFixed(1),
+      (KB_X0 * this.kx()).toFixed(1), this.heightVp.toFixed(1));
   }
 
   /** 键帽（一个原生 Button；尺寸固定，不随 sx/sy 缩放——设计稿 §3.4）。 */
@@ -412,7 +416,8 @@ export struct KeyGrid {
     }
     .padding(0)
     .width(p.w)
-    .height(KB_CAP_H)
+    // 批 65：键高也乘 kx（此前写死 27.6 ⇒ 只放大宽、把键拉扁）
+    .height(KB_CAP_H * this.kx())
     .backgroundColor(Color.Transparent)
     .borderRadius(0)
     .accessibilityText(p.legend.length > 0 ? p.legend : p.label)
@@ -456,8 +461,10 @@ export struct KeyGrid {
           }, (p: K33Placed) => p.id)
         }
         .width('100%')
-        .height(KB_ROW_H)
-        .justifyContent(FlexAlign.SpaceBetween)
+        .height(KB_ROW_H * this.kx())
+        // 批 65（增补-30 §2.3）：单键行（空格）改 Center——SpaceBetween 时单个子项落在行首，
+        // 于是空格键左对齐、右侧全空（用户报「空格键完全错位」的根因）。
+        .justifyContent(this.rows()[r].keys.length === 1 ? FlexAlign.Center : FlexAlign.SpaceBetween)
         .alignItems(VerticalAlign.Center)
         // 批 64（本轮）：键杆恢复——杆带占原 `margin bottom` 的 6.9vp 行间距（布局总高不变），
         // x 用 stemXs() 按 flex 实际均分间距算，颜色取比井底 #050506 可辨的 #3b3733。
@@ -465,8 +472,8 @@ export struct KeyGrid {
           Stack({ alignContent: Alignment.TopStart }) {
             ForEach(this.stemXs(r), (sx: number, i: number) => {
               Column()
-                .width(KB_STEM_W)
-                .height(KB_STEM_H)
+                .width(KB_STEM_W * this.kx())
+                .height(KB_STEM_H * this.kx())
                 .backgroundColor('#3b3733')
                 .borderRadius(1)
                 .position({ x: sx - KB_STEM_W / 2, y: 0 })
@@ -474,14 +481,15 @@ export struct KeyGrid {
             }, (sx: number, i: number) => 'stem' + r.toString() + ':' + i.toString())
           }
           .width('100%')
-          .height(KB_VGAP)
+          .height(KB_VGAP * this.kx())
           .hitTestBehavior(HitTestMode.None)
         }
       }, (row: K33Row, r: number) => 'row' + r.toString())
     }
     .width('100%')
     .height('100%')
-    .padding({ left: KB_X0, right: KB_X0 })
+    // 批 65：行内左右留白也按 kx（横缝基准 3×kx＝5.6vp，与纵缝同比）
+    .padding({ left: KB_X0 * this.kx(), right: KB_X0 * this.kx() })
     .justifyContent(FlexAlign.Center)
   }
 }

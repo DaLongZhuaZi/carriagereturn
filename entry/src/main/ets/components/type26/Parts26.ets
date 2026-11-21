@@ -300,7 +300,7 @@ export struct Lid26 {
         .hitTestBehavior(HitTestMode.None)
       // 批 40（任务 1）：机盖柔光改预渲染贴图（真机 radial/blur 会出黄块，一律走 PNG 1:1 叠加）
       Image($rawfile('ui-parts/lid-sheen-v2.png'))
-        .width('100%').height('100%').objectFit(ImageFit.Contain)
+        .width('100%').height('100%').objectFit(ImageFit.Fill)
         .hitTestBehavior(HitTestMode.None)
 
       // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）

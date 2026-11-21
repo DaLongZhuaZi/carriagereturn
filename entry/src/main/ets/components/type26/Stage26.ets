@@ -20,6 +20,12 @@ const FUNC_ROW_H: number = 36;
 const FONT_BAR_H: number = 28;
 const CAND_BAR_H: number = 44;
 const BOTTOM_EDGE_H: number = 27.6;
+/** 基准键盘总高 = 5 行 × 34.5 + 4 纵缝 × 6.9 = 200.1vp（批 65：键盘井高由它 × kx 导出）。 */
+const KEYBOARD_BASE_H: number = 200.1;
+/** 纸区／字篮井在剩余高度里的权重（批 65：不再给键盘井分权重）。 */
+const W_PAPER_ONLY: number = 320;
+const W_BASKET_ONLY: number = 138;
+const W_REST_SUM: number = W_PAPER_ONLY + W_BASKET_ONLY;   // 458
 const FIXED_SUM: number = TOP_BAR_H + FUNC_ROW_H + FONT_BAR_H + CAND_BAR_H + BOTTOM_EDGE_H;   // 191.6
 const W_PAPER: number = 320;
 const W_BASKET: number = 138;
@@ -70,18 +76,24 @@ export class StageLayout {
     this.paperMaxH = this.machineW * PAPER_MAX_RATIO;
 
     const remaining: number = availH - FIXED_SUM;
-    const byWeight: number = remaining * W_PAPER / W_SUM;
+    /**
+     * 批 65（增补-30 任务 2）：键盘井高**由 kx 导出**，不再按权重分。
+     * 井是装键盘的——键盘（键帽＋行距＋纵缝）整体是按 kx 等比缩放的，所以井高 = 200.1×kx。
+     * 纸区与字篮井分「剩余 − 井高」，仍按 28 号稿的 320:138。这是选项 B 的取舍：
+     * 键变大 ⇒ 纸区与字篮让出纵向空间（平板 纸区 ~449.7→359.5vp、字篮 ~194→155.1vp）。
+     */
+    const kx: number = this.machineW / 362.7;
+    this.keyH = KEYBOARD_BASE_H * kx;
+    const rest: number = remaining - this.keyH;
     const cap: number = this.paperMaxH + 18;
+    const byWeight: number = rest * W_PAPER_ONLY / W_REST_SUM;
     if (byWeight > cap) {
       this.paperCapped = true;
       this.paperH = cap;
-      const extra: number = remaining - cap;
-      this.basketH = extra * W_BASKET / (W_BASKET + W_KEYS);
-      this.keyH = extra * W_KEYS / (W_BASKET + W_KEYS);
+      this.basketH = rest - cap;
     } else {
       this.paperH = byWeight;
-      this.basketH = remaining * W_BASKET / W_SUM;
-      this.keyH = remaining * W_KEYS / W_SUM;
+      this.basketH = rest * W_BASKET_ONLY / W_REST_SUM;
     }
   }
 
