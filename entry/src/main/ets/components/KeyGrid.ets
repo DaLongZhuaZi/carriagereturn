@@ -28,8 +28,9 @@ const KB_VGAP: number = 6.9;
 const KB_HGAP: number = 3;
 /** 修正 2：图例上移 = 帽高 × 0.181。 */
 const KB_LEGEND_UP: number = 5.0;
-/** 键杆（帽间竖缝）可见段。 */
+/** 键杆（帽间竖缝）可见段：高 6.6vp（行间距 6.9 里的可见段），宽 2vp（批 64 恢复时沿用旧口径）。 */
 const KB_STEM_H: number = 6.6;
+const KB_STEM_W: number = 2;
 
 interface K33Key { label: string; legend: string; sub: string; w: number; kind: string; up: string; alt: string; }
 interface K33Row { y: number; keys: K33Key[]; }
@@ -222,22 +223,38 @@ export struct KeyGrid {
     return out;
   }
 
-  /** 键杆：竖缝里的暗色竖条（帽底与下一行帽顶之间的可见段）。 */
-  private stems(): K33Placed[] {
-    const out: K33Placed[] = [];
+  /**
+   * 键杆横向中心（相对 Row 内容左缘，vp）。
+   * 批 64：T4 改 flex 后行内间距由 `justifyContent(SpaceBetween)` **均分**，不再是固定 KB_HGAP，
+   * 旧实现在 KB_W 绝对坐标上算 x 必然错位（键杆因此一直没挂）。这里按行实际内容宽反推间距：
+   *   gap = (widthVp − 2×KB_X0 − Σ键宽) / (键数 − 1)
+   * 第 i 个杆的中心 = 前 i 个键宽与间距的累计 + 半个间距。
+   * 行数 = 5、每行键数不同（13/12/14/12/1），所以逐行算、不共用一份。
+   */
+  private stemXs(r: number): number[] {
+    const out: number[] = [];
     const rows: K33Row[] = this.rows();
-    for (let r = 1; r < rows.length; r++) {
-      let x: number = KB_X0;
-      const keys: K33Key[] = rows[r].keys;
-      for (let i = 0; i < keys.length; i++) {
-        out.push({
-          label: '', legend: '', sub: '', x: (x + keys[i].w + KB_HGAP / 2 - 1) * this.sx,
-          y: (rows[r].y - KB_VGAP / 2 - KB_STEM_H / 2 + KB_VGAP) * this.sy, w: 2 * this.sx, kind: 'stem',
-          id: (this.symbolMode ? 'stems:' : 'steml:') + r + ':' + i,
-          up: '', alt: '',
-        });
-        x += keys[i].w + KB_HGAP;
-      }
+    if (r < 0 || r >= rows.length) {
+      return out;
+    }
+    const keys: K33Key[] = rows[r].keys;
+    if (keys.length < 2) {
+      return out;
+    }
+    let sumW: number = 0;
+    for (let i = 0; i < keys.length; i++) {
+      sumW += keys[i].w;
+    }
+    const rowW: number = this.widthVp - KB_X0 * 2;
+    const gap: number = (rowW - sumW) / (keys.length - 1);
+    if (gap <= 0) {
+      return out;
+    }
+    let x: number = 0;
+    for (let i = 0; i < keys.length - 1; i++) {
+      x += keys[i].w;
+      out.push(x + gap / 2);
+      x += gap;
     }
     return out;
   }
@@ -315,6 +332,12 @@ export struct KeyGrid {
       this.placed().length,
       w[0].toFixed(2) + '/' + w[1].toFixed(2) + '/' + w[2].toFixed(2) + '/' + w[3].toFixed(2) + '/' + w[4].toFixed(2),
       this.slug());
+    // 批 64（本轮）：键杆恢复后打点——行内容宽与各行杆数（0/1/2/3 行），用来对账「杆数 = 键数 − 1」。
+    hilog.info(KDOMAIN, KTAG,
+      'stems rowW=%{public}s n0=%{public}d n1=%{public}d n2=%{public}d n3=%{public}d stemW=%{public}s stemH=%{public}s',
+      (this.widthVp - KB_X0 * 2).toFixed(1),
+      this.stemXs(0).length, this.stemXs(1).length, this.stemXs(2).length, this.stemXs(3).length,
+      KB_STEM_W.toFixed(1), KB_STEM_H.toFixed(1));
   }
 
   /** 键帽（一个原生 Button；尺寸固定，不随 sx/sy 缩放——设计稿 §3.4）。 */
@@ -415,7 +438,24 @@ export struct KeyGrid {
         .height(KB_ROW_H)
         .justifyContent(FlexAlign.SpaceBetween)
         .alignItems(VerticalAlign.Center)
-        .margin({ bottom: r < this.rows().length - 1 ? KB_VGAP : 0 })
+        // 批 64（本轮）：键杆恢复——杆带占原 `margin bottom` 的 6.9vp 行间距（布局总高不变），
+        // x 用 stemXs() 按 flex 实际均分间距算，颜色取比井底 #050506 可辨的 #3b3733。
+        if (r < this.rows().length - 1) {
+          Stack({ alignContent: Alignment.TopStart }) {
+            ForEach(this.stemXs(r), (sx: number, i: number) => {
+              Column()
+                .width(KB_STEM_W)
+                .height(KB_STEM_H)
+                .backgroundColor('#3b3733')
+                .borderRadius(1)
+                .position({ x: sx - KB_STEM_W / 2, y: 0 })
+                .hitTestBehavior(HitTestMode.None)
+            }, (sx: number, i: number) => 'stem' + r.toString() + ':' + i.toString())
+          }
+          .width('100%')
+          .height(KB_VGAP)
+          .hitTestBehavior(HitTestMode.None)
+        }
       }, (row: K33Row, r: number) => 'row' + r.toString())
     }
     .width('100%')
