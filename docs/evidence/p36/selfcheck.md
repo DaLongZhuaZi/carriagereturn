@@ -3196,3 +3196,32 @@ ows() 换了数据，键帽显示的仍是旧字母 ⇒ 看起来「Aa 完全没
 - 正解二选一：①把键帽拆成独立 @Component struct KeyCap（@Prop label/legend/kind），
   ForEach 用稳定 id、由 @Prop 驱动文本更新；②保留重建但加约 100ms 淡入过渡掩盖。
   需小重构，建议单开一批做。
+
+### 批 72：Aa 切换闪屏 —— 改用「重建后淡入」掩盖（用户 2026-11-22 00:38 二次反馈）
+
+**根因（不变）**：ForEach 的键 key 含 symbolMode（S/L 前缀），切换时每个键的 key 都变
+⇒ ArkUI 销毁全部旧键、重建全部新键 ⇒ 视觉上整片键盘硬切一下。
+
+**上一轮方案已被否定**：把 key 改成稳定的 
+:i 会让 ForEach 复用旧节点、**不再执行 capCell**
+⇒ 键帽文字不更新 ⇒ 「Aa 完全没效果」（已实测并回滚，见批 71）。
+
+**本轮方案：保留重建（功能正确优先），把「硬切」换成「柔和浮现」**
+- KeyGrid.ets：新增 @Prop kbOpacity: number = 1；根 Column 加 .opacity(this.kbOpacity)。
+- Index.ets：新增 @State keyboardFade: number = 1；onSymbols 改为
+  `	s
+  this.symbolMode = !this.symbolMode;
+  this.keyboardFade = 0.25;
+  this.animateTo({ duration: 140, curve: Curve.EaseOut }, () => { this.keyboardFade = 1; });
+  `
+- 效果：重建出来的新键盘先以 0.25 不透明度出现，140ms 淡入到 1 —— 视觉上是「新键盘浮现」，
+  不再是一帧硬切；同时 symbolMode 照常翻转，键帽内容正确更新。
+
+**验证**
+- 2338_p71_after_aa：符号面板完整（~ ! @ # $ % ^ & * ( ) + ／ { } [ ] | \ : " < > ? / ／
+  § ± × ÷ ≠ ≤ ≥ ∞ ¥ €）✔ 功能未退化
+- 2337／2339：字母↔符号来回切换均正常 ✔
+- **140ms 过渡帧 screenCap 抓不到**（单帧 400–500ms，AGENTS.md 已记），实际观感需人眼确认。
+
+**如果淡入还不够**：正解是把键帽拆成 @Component struct KeyCap（@Prop 驱动），
+ForEach 用稳定 id + 子组件响应式更新 —— 需小重构，可单开一批。

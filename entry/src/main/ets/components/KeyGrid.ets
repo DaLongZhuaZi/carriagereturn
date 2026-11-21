@@ -53,6 +53,12 @@ export struct KeyGrid {
   @Prop sx: number = 1;
   @Prop sy: number = 1;
   @Prop capsActive: boolean = false;
+  /**
+   * 批 72（修 Aa 切换闪屏）：键盘整体不透明度。
+   * Index 在切换字母/符号后把它从 0.25 动画回 1 —— 重建出来的新键盘是「柔和浮现」，
+   * 而不是一帧硬切（重建本身躲不掉，但视觉上不再闪）。
+   */
+  @Prop kbOpacity: number = 1;
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
   @Prop labelColor: string = '#312b24';
@@ -491,5 +497,7 @@ export struct KeyGrid {
     // 批 65：行内左右留白也按 kx（横缝基准 3×kx＝5.6vp，与纵缝同比）
     .padding({ left: KB_X0 * this.kx(), right: KB_X0 * this.kx() })
     .justifyContent(FlexAlign.Center)
+    // 批 72：切换字母/符号后整体柔和高透明度淡入（重建躲不掉，但视觉上不再硬闪）
+    .opacity(this.kbOpacity)
   }
 }

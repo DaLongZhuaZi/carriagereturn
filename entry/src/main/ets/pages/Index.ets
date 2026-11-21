@@ -1342,6 +1342,11 @@ struct Index {
   @State capsLock: boolean = false;
   /** 底部「字符」键：true = 符号键盘。 */
   @State symbolMode: boolean = false;
+  /**
+   * 批 72（修 Aa 切换闪屏）：键盘整体不透明度。
+   * 切换字母/符号时先设 0.25 再动画回 1 —— 新键盘「柔和浮现」，而不是重建导致的一帧硬切。
+   */
+  @State keyboardFade: number = 1;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
   /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
   @State useLayers: boolean = true;
@@ -4862,7 +4867,14 @@ struct Index {
       },
       onPaper: (): void => { this.onPaperChange(); },
       onBackLine: (): void => { this.onBackLine(); },
-      onSymbols: (): void => { this.symbolMode = !this.symbolMode; },
+      onSymbols: (): void => {
+        this.symbolMode = !this.symbolMode;
+        // 批 72：重建后的新键盘从 0.25 淡入到 1（140ms EaseOut）——「柔和浮现」而非硬闪
+        this.keyboardFade = 0.25;
+        this.getUIContext().animateTo({ duration: 140, curve: Curve.EaseOut }, () => {
+          this.keyboardFade = 1;
+        });
+      },
     })
       .id('p26_function_caps')
   }
@@ -4911,6 +4923,7 @@ struct Index {
         machineKind: this.machineKind,
         shiftActive: this.shiftActive,
         symbolMode: this.symbolMode,
+        kbOpacity: this.keyboardFade,
         sx: this.xk(), sy: this.yk(),
         capsActive: this.capsLock,
         foldBand: this.layoutMode === 'desk',
