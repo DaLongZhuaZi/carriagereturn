@@ -2458,3 +2458,25 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 
 **口径状态（未变，等拍板）**：六① 每行 17 字、六② 12 行／366.9 仍未定；2282 未重拍（满行口径未定），
 `2283` 当前按「12 行满纸＋自动换纸」记。
+
+### 批 64 阶段 1 第二十步：Model B（paperTop／paperContainer／carriageTop）评估结论
+
+**取证方法**：全仓 grep 每个字段的所有读写点，再逐个判断「有没有进入渲染参数」。
+
+| 字段 | 真实消费者 | 结论 |
+|---|---|---|
+| `carriageTopVp` | ① `strikeLineVp = carriageTopVp − marginB − lh/2 − 15`（落字 y、`maxRows` 用 `paperHeightVp`）② `assembly`/`leverH` 打点 ③ `paperChange` 第 2 段起点 | **留**：仍是击打几何的唯一来源（`CanvasGeometry.strikeLineOf` 同式） |
+| `paperTopVp` | 只剩 ① hilog 打点（`parts`/`modelB`/`paperChange`）② 换纸流程的 `outTop = startTop − paperHeightVp` 记账 ③ 无任何 @Prop 接到渲染 | **可收，但需拍板**：`Carriage26` 只吃 `paperGrowVp`（纸高），纸顶由 `justifyContent(FlexAlign.End)` 贴底决定；收掉后「旧纸上卷」这一视觉只剩 `paperOpacity` 淡出，`paperChange top=` 打点会失去物理含义 |
+| `paperContainerVp` | 已于第十六步删除（只做过日志与 `paperTick` 入参） | 已收 |
+| `paperGrowVp` | `Carriage26.paperHVp`（唯一渲染纸高来源） | 留（纸高的唯一真值） |
+
+**为什么本轮不动 `paperTopVp`**：它不是死字段，而是「换纸两段动画的时间轴载体 + §8 打点」。删掉它需要同时决定
+①换纸「旧纸上卷」是否保留 ②`pcTrace`/`paperChange` 打点是否改写——这两条都是可观察行为的取舍，属于要拍板的范畴，
+按交接口径（「评估后一起收」）本轮只把评估结论落库。
+
+**顺带确认的口径**：`paperCursorY26()` 与 `paperScroll26()` 用的是 `paperVisibleTargetVp()`（可见纸高），
+不是 `paperTopVp`；`stagePaper()` 传给 `Carriage26` 的是 `paperHVp: this.paperGrowVp`，没有纸顶参数。
+所以「纸的位置」在 flex 化之后**完全由 flex 决定**，`paperTopVp` 已退化为记账值。
+
+**无法在本机验证的一项（记缺口）**：`isDesk`（折叠半开）路径的折痕 cap 在第十六步随容器删除退役；
+本机平板 MLR-AL10 非折叠设备，`layoutMode='desk'` 真机不可达，本轮未验证 desk 视觉，也未宣称通过。
