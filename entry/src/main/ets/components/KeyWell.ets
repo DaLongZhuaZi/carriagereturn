@@ -19,6 +19,15 @@ export struct KeyWell {
     return '#050506';
   }
 
+  /** 批 75：井底按机型取年代底图（1170×582，Contain 铺满——沿用 v2 的做法，只换图）。 */
+  private floorRawfile(): string {
+    if (this.machine === MachineKind.UPRIGHT_1920S) { return 'ui-parts/keywell-floor-1920s.png'; }
+    if (this.machine === MachineKind.PORTABLE_1930S) { return 'ui-parts/keywell-floor-1930s.png'; }
+    if (this.machine === MachineKind.STREAMLINED_1950S) { return 'ui-parts/keywell-floor-1950s.png'; }
+    if (this.machine === MachineKind.ELECTRIC_1960S) { return 'ui-parts/keywell-floor-1960s.png'; }
+    return 'ui-parts/keywell-floor-2020s.png';
+  }
+
   @Builder
   screw(x: number, y: number) {
     Circle().width(5).height(5).fill(tierToken(this.machine, 'steel'))
@@ -29,7 +38,7 @@ export struct KeyWell {
     Stack({ alignContent: Alignment.TopStart }) {
       Column().width('100%').height('100%').backgroundColor(this.wellColor())
       // 批 40（任务 2）：井底改预渲染贴图（中央亮、边缘暗的径向渐变，1:1 铺满井）
-      Image($rawfile('ui-parts/keywell-floor-v2.png'))
+      Image($rawfile(this.floorRawfile()))
         .width('100%').height('100%').objectFit(ImageFit.Contain)
         .hitTestBehavior(HitTestMode.None)
       // 井内侧壁：上沿亮线、下沿暗线

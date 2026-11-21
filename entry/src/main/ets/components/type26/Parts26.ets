@@ -147,6 +147,22 @@ export struct TopDeck26 {
   @Prop sx: number = 1;
   @Prop sy: number = 1;
 
+  /**
+   * 批 75：按**机盖 base 的明度**分浅/深两支（不再写死 1950s）。
+   * 相对亮度 = 0.299R + 0.587G + 0.114B；>140 视为浅 base。
+   * 实测：1920s #1e1c1a=28.3 深／1930s #3a4038=61.3 深／
+   *       1950s #d8cbb0=203.9 浅／1960s #a8a8a0=167.0 浅／2020s #adc4b8=187.8 浅。
+   */
+  private isLightBase(): boolean {
+    const hex: string = tierToken(this.machine, 'base');
+    const h: string = hex.charAt(0) === '#' ? hex.substring(1) : hex;
+    if (h.length < 6) { return false; }
+    const r: number = parseInt(h.substring(0, 2), 16);
+    const g: number = parseInt(h.substring(2, 4), 16);
+    const b: number = parseInt(h.substring(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 140;
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // 批 38 §3：顶栏去黑——与盖面同色薄荷绿（四机各用本机 token）
@@ -589,25 +605,41 @@ export struct CandStrip26 {
     return out;
   }
 
+  /**
+   * 批 75：按**机盖 base 的明度**分浅/深两支（不再写死 1950s）。
+   * 相对亮度 = 0.299R + 0.587G + 0.114B；>140 视为浅 base。
+   * 实测：1920s #1e1c1a=28.3 深／1930s #3a4038=61.3 深／
+   *       1950s #d8cbb0=203.9 浅／1960s #a8a8a0=167.0 浅／2020s #adc4b8=187.8 浅。
+   */
+  private isLightBase(): boolean {
+    const hex: string = tierToken(this.machine, 'base');
+    const h: string = hex.charAt(0) === '#' ? hex.substring(1) : hex;
+    if (h.length < 6) { return false; }
+    const r: number = parseInt(h.substring(0, 2), 16);
+    const g: number = parseInt(h.substring(2, 4), 16);
+    const b: number = parseInt(h.substring(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 140;
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Row()
         .width(300 * this.sx).height(30 * this.sy)
-        .backgroundColor(this.machine === MachineKind.STREAMLINED_1950S ? '#e8dfcc' : '#241f19')
-        .border({ width: 1.2, color: this.machine === MachineKind.STREAMLINED_1950S ? '#7a6647' : '#0b0908' })
+        .backgroundColor(this.isLightBase() ? '#e8dfcc' : '#241f19')
+        .border({ width: 1.2, color: this.isLightBase() ? '#7a6647' : '#0b0908' })
         .borderRadius(2)
         .shadow({ radius: 3, color: '#00000099', offsetX: 0, offsetY: 1 })
         .position({ x: (this.widthVp - 300 * this.sx) / 2, y: 7 * this.sy })
       Row({ space: 12 * this.sx }) {
         if (this.pinyin.length > 0) {
           Text(this.pinyin + ' ').fontSize(13)
-            .fontColor(this.machine === MachineKind.STREAMLINED_1950S ? '#5a4a33' : '#b8a98f')
+            .fontColor(this.isLightBase() ? '#5a4a33' : '#b8a98f')
             .fontFamily('CourierPrime')
         }
         ForEach(this.shown(), (c: string, i: number) => {
           Text(c)
             .fontSize(16)
-            .fontColor(this.machine === MachineKind.STREAMLINED_1950S ? '#241f19' : '#f0e8d8')
+            .fontColor(this.isLightBase() ? '#241f19' : '#f0e8d8')
             .maxLines(1)
             // 批 62 收尾：候选格的无障碍文本＝候选词本身（读屏朗读与格内显示一致）
             .accessibilityText(c)
