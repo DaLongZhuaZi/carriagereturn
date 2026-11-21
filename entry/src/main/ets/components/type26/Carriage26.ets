@@ -35,6 +35,12 @@ export struct Carriage26 {
   @Prop machineWVp: number = 475.3;
   /** 纸区高（StageLayout.paperH）。 */
   @Prop zoneHVp: number = 418.6;
+  /**
+   * 批 70（任务 1）：顶栏高（StageLayout.topBarH）。纸视口据此**向上长到屏顶**——
+   * 视口高＝paperAreaH()＋topBarHVp、并上移 topBarHVp，使裁切上界从纸区顶（56vp）挪到屏顶（0vp）。
+   * 不写死 56，由 Index 传 stageLayout26().topBarH。
+   */
+  @Prop topBarHVp: number = 56;
   /** 纸宽（＝机器宽×0.606）。 */
   @Prop paperWVp: number = 288.1;
   /** 可见纸高（内容高／装纸生长量，0＝还没出纸）。 */
@@ -140,7 +146,8 @@ export struct Carriage26 {
       // ---- 字车组（纸／压纸杆／指针／横尺）：整体随字车一次位移 ----
       Column() {
         // 纸视口：纸底贴住这里的底部（justifyContent End），纸向上生长
-        Stack({ alignContent: Alignment.TopStart }) {
+        // 批 70（任务 2）：Stack 改贴底——纸底恒在视口底，纸顶随纸高向上走
+        Stack({ alignContent: Alignment.Bottom }) {
           Column() {
             // 纸上缘极淡阴影（批 39：滚筒删除后纸顶是干净直边）
             Column().width(this.paperWVp).height(1.5)
@@ -149,6 +156,7 @@ export struct Carriage26 {
                 colors: [['#00000014', 0.0], ['#00000000', 1.0]],
               })
               .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
+              .flexShrink(0)
               .hitTestBehavior(HitTestMode.None)
             // 活纸：纸高＝内容高，底端由 justifyContent(End) 固定
             if (this.paperH() > 0) {
@@ -177,6 +185,7 @@ export struct Carriage26 {
                 pageNo: this.pageNo,
               })
                 .id('p35_paper')
+                .flexShrink(0)
                 .hitTestBehavior(HitTestMode.None)
             }
             // 压纸杆（3D 钢杆贴图，压住纸下缘）：作为 flex 子项排在纸下方，负 margin 叠住纸底 4vp
@@ -184,13 +193,17 @@ export struct Carriage26 {
               .width(this.paperWVp).height(4)
               .objectFit(ImageFit.Contain)
               .margin({ top: -4 })
+              .flexShrink(0)
               .hitTestBehavior(HitTestMode.None)
           }
           .width('100%')
           // 批 68（任务 1）：必须是**确定的数**——`'100%'` 在 Stack 里落不到确定高度，
           // Column 按内容定高、justifyContent(End) 等于没生效，纸被顶锚定 ⇒ 纸一长就向下伸进字篮井。
           // 用 paperAreaH()（＝zoneHVp−18，由 stageLayout 推导）后纸底才真正钉住视口底。
-          .height(this.paperAreaH())
+          // 批 70（任务 2）：**纸高还给内容**——Column 高＝paperH()（＝paperGrowVp），
+          // 不再定高为视口高（那会把纸钳在 319.9vp、纸顶永远上不去）。
+          .height(this.paperH())
+          .flexShrink(0)
           .justifyContent(FlexAlign.End)
           .alignItems(HorizontalAlign.Center)
           // 批 68：滑动位移（任务 2）＋换纸飞行位移（任务 4）叠加，只动渲染位置，不改纸高/scrollY
@@ -204,18 +217,20 @@ export struct Carriage26 {
           // 落字指针（跟随光标：纸左缘 ＋ 左边距 ＋ 光标纸内 x ＋ 字车 O；由字车组统一位移）
           Column().width(2).height(10)
             .backgroundColor('#8f8f92')
-            .position({ x: this.strikeX(), y: this.paperAreaH() - 15 })
+            .position({ x: this.strikeX(), y: (this.paperAreaH() + this.topBarHVp) - 15 })
             .animation({ duration: 250, curve: Curve.EaseOut })
             .hitTestBehavior(HitTestMode.None)
           TriMark26({ w: 7, h: 6, sx: 1, sy: 1 })
-            .position({ x: this.strikeX() - 3.5, y: this.paperAreaH() - 6 })
+            .position({ x: this.strikeX() - 3.5, y: (this.paperAreaH() + this.topBarHVp) - 6 })
             .animation({ duration: 250, curve: Curve.EaseOut })
             .hitTestBehavior(HitTestMode.None)
         }
         .width('100%')
-        .height(this.paperAreaH())
-        // 批 67（任务 3）：纸不许画出视口——纸高超过视口高时从顶部出屏（被 TopBar 遮挡），
-        // 不再向下伸进字篮井被井口拱盖住。
+        // 批 70（任务 1）：视口高＝纸区高＋顶栏高，并整体上移顶栏高 ⇒ **裁切上界从纸区顶(56vp)挪到屏顶(0vp)**。
+        // 纸顶（屏顶之上）自然出屏、可一直向上走；纸底仍在视口底被裁住（批 68 下滑不画进字篮井）。
+        // 负 margin 抵消多出来的占位，避免把下面的横尺挤下去。
+        .height(this.paperAreaH() + this.topBarHVp)
+        .margin({ top: -this.topBarHVp })
         .clip(true)
 
         // ---- 横尺（绘制宽 700·sx 保留；外层裁到机器宽，修 N2 越界）----

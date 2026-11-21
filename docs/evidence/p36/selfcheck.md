@@ -3075,3 +3075,49 @@ PIL：空格 bbox `(317,2378)-(1311,2456)`，宽 995px＝418.9vp（基准 237×k
 **证据**：`2325_p69_15lines`（长纸占满视口、纸顶出屏）／`2327_p69_full_line`、`2327_p69_chain`（主链）。
 
 **手机**：同一处封顶也在，本批按 2026-11-20 决定暂缓，只验收平板。
+
+### 批 70：纸视口锁死（裁切边界移到屏顶、纸高还给内容）
+
+> 批 68/69 两次只改 `Index.ets` 的**量**（`paperTopVp`／`paperGrowVp`），锁纸的是 `Carriage26` 的**容器**。
+> 本批只改 `Carriage26.ets` 布局层（＋ Index 一个传参），量一个没动。
+
+**任务 1｜裁切边界从纸区顶（56vp）移到屏顶（0vp）**
+- `Carriage26.ets` 新增 `@Prop topBarHVp: number = 56`（由 `stageLayout26().topBarH` 推导，不写死）。
+- 纸视口 Stack：`.height(this.paperAreaH())` → **`.height(this.paperAreaH() + this.topBarHVp)`**，
+  并加 **`.margin({ top: -this.topBarHVp })`**——多出来的高度用负 margin 抵消占位，否则会把下面的横尺挤下去 56vp。
+  `.clip(true)` 保留（现裁在 0vp 屏顶与视口底之间）。
+- `Index.ets` `stagePaper()` 传 `topBarHVp: this.stageLayout26().topBarH`。
+- **实测（dump `p35_paper`）**：`(176, −278, 1146, 897)` ⇒ **纸顶 y = −278px（已在屏幕上方、出屏）** ✔
+  （批 69 时纸顶被 clip 裁在纸区顶 ≈133px，现在 0 也过了。）
+
+**任务 2｜纸高还给内容**
+- 内层 Column：`.height(this.paperAreaH())` → **`.height(this.paperH())`** ＋ `.flexShrink(0)`；
+  纸上缘阴影／`PaperPanel26`／压纸杆各自加 `.flexShrink(0)`（双保险，纸不被 flex 压回视口高）。
+- Stack `alignContent`：`TopStart` → **`Bottom`**（纸底恒在视口底，纸顶随纸高上移）。
+- 落字指针／TriMark 的 y：`paperAreaH() − 15/−6` → **`(paperAreaH() + topBarHVp) − 15/−6`**（相对屏顶，仍落在视口底落字位）。
+- **实测**：可见纸高 ＝ `897 − (−278)` ＝ **1175px ＝ 494.7vp**，**大于视口高 319.9vp** ✔
+  （内容高与渲染高终于一致：`paper69 lines=16 grow=494.7`。）
+
+**任务 3｜滑动与回位仍正常**
+- 拖动：`paperPan dy=104.8 off=104.8 max=174.8`——`max = paperGrow 494.7 − areaH 319.9 = 174.8` **完全吻合** ✔
+- 落字回位：`paperOffset settle from=107.0 -> 0` ＋ `committed ch=[q]` ✔
+
+**2328 全貌判据逐条**
+| 判据 | 实测 | 结果 |
+|---|---|---|
+| 纸顶在屏顶 | 纸方块顶 y=−278px（出屏），画面上纸从 **y=0** 起、盖住顶栏「23:13」与设置图标的一半 | ✔ |
+| 可见纸高 > 视口高 319.9vp | **494.7vp（1175px）** | ✔ |
+| 纸底仍在视口底 | **897px**（批 68 的 B0≈893，差 4px） | ✔ |
+| 纸上有字、当前行可见 | 当前行 `qqqqqq`＋光标完整可见于落字位 | ✔ |
+
+**说明（两点，不当 bug）**
+1. **纸盖住顶栏区**（时间/设置被遮一半）是设计稿明确要的效果：纸要往屏幕边缘外走，就得从顶栏前面过；
+   想看顶栏把纸往下滑即可（批 68 滑动）。
+2. **PIL 判据不稳**：纸面奶油纹理会让「连续纸色」在 y≈30px 处误断（`miss>6` 提前 break），
+   故本批坐标一律以 **dump `p35_paper` rect** 为准（−278／897），PIL 只作「纸从 y=0 开始、有字」的旁证。
+
+**主链（2329／2330）**：落字 `committed ch=[q]` ✔、拖动与回位 ✔；回车/退格/换字体在批 69 2327 已验且本批未触碰其路径。
+
+**证据**：`2328_p70_paper_top`（纸顶出屏、纸上有字）／`2329_p70_drag`（滑动）／`2330_p70_chain`（回位＋落字）。
+
+**手机**：同一处容器也在，本批按 2026-11-20 决定暂缓，只验收平板。

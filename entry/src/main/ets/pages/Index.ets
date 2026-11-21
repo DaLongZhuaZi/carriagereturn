@@ -4735,6 +4735,8 @@ struct Index {
     Carriage26({
       machine: this.machineKind,
       machineWVp: this.machineWidth26(),
+      // 批 70：顶栏高（纸视口据此上移到屏顶）
+      topBarHVp: this.stageLayout26().topBarH,
       zoneHVp: this.stageLayout26().paperH,
       paperWVp: this.paperPanelWidthVp(),
       // 装纸/出纸动画：paperGrowVp 就是「可见纸高」（0 → 内容高），flex 下直接当纸高用，
