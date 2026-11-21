@@ -1636,16 +1636,12 @@ struct Index {
   }
 
   private paperVisibleTargetVp(): number {
-    // 批 49：纸高＝上内边距 31 ＋ 真实行高 21.0 × 行数；1 行 52，钳 [52, 306]
+    // 批 69：**撤掉纸高封顶**——纸高只由内容决定（31 ＋ 行高 × 行数 ＋ 6），只保留 58 下限
+    // （1 行纸不塌掉）。纸高可以远超视口高（20 行约 609vp），纸底仍由批 68 的视口锚定
+    // （Carriage26 内层 Column .height(paperAreaH())）钉住，多出来的部分从视口顶出去、被视口 clip 裁住。
     const lines: number = this.docModel.getLines().length > 0 ? this.docModel.getLines().length : 1;
     const v: number = 31 + this.lineHeightVp * lines + 6;   // 批 49：+6 让末行下沿不被纸底/压纸杆切
-    // 批 63 阶段 0（任务 5／§3.3）：封顶只此一处，且按「设计纸宽」缩放——306 × Pw／220，
-    // 其中 Pw＝机器宽×0.606（设计口径；现行 paperWidthVp 仍是舞台口径，阶段 1 才改）。
-    // 手机：机器 362.7 → Pw 219.8 → 封顶 305.7（≈历史 306，不变）；平板：机器 475.6 → Pw 288.1 → 400.7。
-    const machineW: number = 362.7 * this.xk();
-    const designPw: number = machineW * 0.606;
-    const cap: number = 306 * (designPw / 220);
-    return v < cap ? (v > 58 ? v : 58) : cap;
+    return v > 58 ? v : 58;
   }
 
   /** §6.1：纸 V=0 左缘（156vp）。 */
@@ -2601,13 +2597,9 @@ struct Index {
     // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
       - this.docModel.getCursor().line * this.lineHeightVp;
-    // 批 64（T6 余项）：纸片容器退役——封顶直接落成「纸顶下限」，口径仍只此一处 paperVisibleTargetVp()。
-    // 封顶后纸顶不再上移（同一帧一起落位），内容改为在纸内滚动。
-    const capPaperH: number = this.paperVisibleTargetVp();
-    const capTop: number = this.carriageTopVp - capPaperH + 2;
-    if (this.paperTopTargetVp < capTop) {
-      this.paperTopTargetVp = capTop > 0 ? capTop : 0;
-    }
+    // 批 69：**撤掉纸顶下限 capTop**——纸顶只由「光标行」派生，没有任何下限：
+    // 光标每加一行纸顶就上移一个行高，可一路到负值（屏幕上沿之上），永不回头。
+    // （原来 capTop 钳制会让纸顶撞限后停住、纸高继续长 ⇒ 纸底被迫下移，这就是「占满上半部后向下延伸」。）
     // 第 5 批回批 F7（D4 裁剪）：desk 半开时可见纸高已由 flex 纸区（上半区）限制，
     // 旧的容器 cap（creaseTop − paperTop）随容器删除退役。
     if (this.paperAnimateNext) {
@@ -2623,8 +2615,13 @@ struct Index {
     }
     // 批 64（T6 尾项）：可见纸高恒与行数同步——历史上只有「换行」才更新（旧 syncVisible 开关），
     // 退格删行／换纸清空都不更新，实测 1 行时可见纸高仍卡在满纸 366.9vp（截图纸高 863px 不变）。
-    // 现在恒同步，复用上面已算好的 capPaperH（同一口径）；被 animateTo 包裹时由 ArkUI 插值。
-    this.paperGrowVp = capPaperH;
+    // 批 69：纸高不再封顶，这里直接按内容求一次（原复用上面已算好的 capPaperH，capTop 段已删）。
+    this.paperGrowVp = this.paperVisibleTargetVp();
+    // 批 69 打点：行数／纸高／纸顶／纸底和——用来证明「一路在变、没停在旧封顶」。
+    hilog.info(DOMAIN, TAG,
+      'paper69 kind=%{public}s lines=%{public}d grow=%{public}s top=%{public}s bottom=%{public}s',
+      kind, rows, this.paperGrowVp.toFixed(1), this.paperTopVp.toFixed(1),
+      (this.paperTopVp + this.paperGrowVp).toFixed(1));
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
     // ④Hc 加顶：min(Pw×0.17, 由「中央件顶 ≥ 纸顶」反推的上限)
