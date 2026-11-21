@@ -2302,3 +2302,95 @@ F 项里打字主链路（落字/回车/退格/换纸/功能行）成立；**F-1
 - 用 Z 行最左的 SHIFT（键位 rect `(264,2260)-(376,2283)`）点按，前后两帧在扇面区域（x350–1250／y1050–1620）差异
   bbox 高 409px（＝整个扇面整体位移后的覆盖带），证明**抬扇已生效**；`shiftLiftVp` 现为绝对 −10vp（不再乘 sy）。
 - 备注：该差异 bbox 同时包含 SHIFT 键高亮与扇面整体位移，未做亚像素位移量拟合（10vp 由代码保证，且 `*sy` 已删除）。
+
+### 批 64 阶段 1 第十六步（第二版交接·接手第一轮）：2290 换机项 ＋ T6 余项收口 ＋ 可见纸高同步修复
+
+**开场核对（第二版交接）**
+- 仓 `DaLongZhuaZi/carriagereturn`：`git log -1` ＝ `585c506`，fetch 后 `origin/main` 仍是同一 SHA（无更新）；`.bak` 计数 **0**；未跟踪 848 项（历史证据/补丁脚本，未提交）。
+- 屏幕常亮三连（`power-shell timeout -o 2147483647` ＋ `wakeup` ＋ `setmode 602`）→ 截帧平均亮度 **155.09**（>20，亮屏）。
+- 前台上台：`input keyevent 3` → `aa start -a EntryAbility -b com.dlzz.carriagereturn` → 8s → dump 命中 `home__hero`/`home__start_btn`。
+  重启后落在**主页**（不是打字页）——上一轮「dump 无 `p26_stage`」即此因，不是缺陷。
+- 打字页几何基线逐项与交接一致：`stage26 stage=673.7x1077.9 machineW=475.3 left=99.2 paperH=418.6
+  basketH=207.8 keyH=259.9 fixed=191.6 Pw=288.0 fs=15.58 cpl=32`；`parts fs=15.58 lh=27.5 Pw=288.0`。
+- 八区 rect：carriage (236,133)-(1365,1127)、basket (427,1127)-(1174,1557)、func (544,1621)-(1057,1707)、
+  font (261,1706)-(1340,1773)、cand (261,1773)-(1340,1878)、key well (261,1877)-(1340,2494)、
+  key grid (236,1877)-(1365,2494)、top zone (236,0)-(1365,133)、export slot (1170,149)-(1326,186)。
+
+**2290 换机项（上一轮记「未测」，本轮补测）**
+- 路径：打字页顶栏拨杆热区 `(260,149)-(310,249)`（中心 285,199）→ 主页「换装」(691,2407)-(910,2449)
+  → 换装页 `customize__machine` 四张机型卡（1920s/1930s/1950s/1960s，y 775–889）→ 点 1930s 卡 (660,832)。
+- 日志链路生效：`reloadKeymap … path=keymap/1930s-portable-keymap.json`、`customize machine -> 1930s-portable`；
+  随后已切回 `customize machine -> 1920s-upright`（设备状态复位）。
+- **结果：换机链路生效，但打字页画面零变化**——`.ready_typing.png` vs `.machine_1930s.png` 全图 diff **0.002%**
+  （bbox 仅状态栏 8×8px）；八区 rect 与 `stage26`/`parts` 数值逐项相同。
+- 真因（代码级，**不是换机失效**）：① `Parts26.basketFanImage()` 四个机型分支**返回同一张**
+  `ui-parts/basket-fan-3d-v4.png`（仓里 `basket-fan-1920s/1930s/1950s/1960s.png` 存在但未接线）；
+  ② 机型化的 `Lid26`/`TopDeck26` 是整画布宽、挂在 Stage26 之下被覆盖（交接已记「阶段 2 范围」）。
+- ⇒ 2290 换机项按「**链路生效／打字页机型化外观待阶段 2**」记，**不宣称换机视觉通过**。
+
+**T6 余项收口（`paperContainerVp` 等）**
+- 先取证（不猜）：`private readonly canvasEnabled: boolean = false`（**恒 false**）→ 所有 `if (this.canvasEnabled)`
+  纸段分支都是死代码；`canvasPaperTick/Mode/FromTopVp/FromBoxVp/TopTargetVp/BoxTargetVp/DurMs`、
+  `canvasPaperResetTick`、`paperSuppressTickOnce`、`paperFullSheet`、`paperTick()` **全仓无消费者**（只在 Index 内自写）；
+  `paperContainerVp`/`paperContainerTargetVp` 只剩日志与 `paperTick` 参数。
+- 改动 `tools/_p64_t6.py`（13 处精确替换，每处断言命中 1 次，幂等）：删上述 8 个死字段 ＋ `paperTick()` 方法 ＋
+  两处 Canvas 分支（换行纸段／换纸两段）→ 只留 `animateTo`；纸顶封顶改为直接钳 `paperTopTargetVp`
+  （`capTop = carriageTop − paperVisibleTargetVp() + 2`）；desk 折痕 cap 退役（可见纸高已由 flex 纸区限制）；
+  `parts` 日志的 `paperBox` 改为派生 `carriageTop − paperTop + 2`（与旧容器值数学等价，数字仍对得上历史证据）。
+- 构建 `BUILD SUCCESSFUL`（0 ERROR）；平板 `install bundle successfully`。
+
+**同时发现并修复：可见纸高与行数脱钩（阶段 1 验收的真 bug）**
+- 现象：改前无论打几行，`p35_paper` 渲染高恒 ≈ **863px（363vp）**；而 `parts paperBox` 在变（64.5→366.9）——
+  1 行时截图仍是满纸（`.t6_a_1line.png` 即此态）。
+- 根因：`recalcPaperHeight()` 只有 `syncVisible=true` 才写 `paperGrowVp`，而只有「换行」路径传 true；
+  **退格删行**（`recalcPaperHeight('back')`）与**换纸清空**（`recalcPaperHeight('paper2')`）都不传 → 纸高卡在上次值。
+- 修法：`recalcPaperHeight()` 恒同步 `paperGrowVp = capPaperH`（复用已算好的封顶口径，不重复调用
+  `paperVisibleTargetVp()`；被 `animateTo` 包裹时仍由 ArkUI 插值）。
+- 实测（`p35_paper` bbox ÷ 2.375，与 `parts` 对账）：
+
+| 状态 | 可见纸高 | parts（paperTop／paperBox） |
+|---|---|---|
+| 1 行 | **64.4vp**（153px） | 340.7／64.5 |
+| 6 行 | **202.1vp** | 203.2／202.0 |
+| 11 行 | **339.4vp** | 65.8／339.4 |
+| 12 行（满纸，封顶前） | **366.7vp**（871px） | 38.3／366.9 |
+| 换纸后（自动换纸 → 1 行） | **64.4vp** | 340.7／64.5 |
+
+- 换纸链路日志完整：`newlineAtLastRow -> paperChange maxRows=12` → `paperChange start top=38.3 box=366.9`
+  → `paperChange step2 hide top=403.2 carriageTop=403.2` → `paperChange done at 600ms top=340.7`；
+  `pcTrace('start'/'step1'/'step1-settled'/'step2-work'/'step2-hide'/'end')` 全在（§8 打点未被削弱）。
+- 截图：`.t6b_boot / .t6b_2line / .t6b_7line / .t6b_12line / .t6b_afterpc / .t6c_after_paperchange`
+  （均为 evidence 目录，`.t6b_*` 是逐档纸高，`.t6c_*` 是「12 行 → 第 13 次回车 → 自动换纸 → 1 行」）。
+
+**再发现（本轮未修，记账待办）：换纸后不落盘**
+- 现象：换纸后 1 行，重启 App → `p35_paper` 又回 **366.7vp（12 行空纸）**（`.t6d_after_restart.png`）。
+- 根因：`flushSave()` 首行有 `if (!docStore.isReady() || this.docModel.isEmpty())` 守卫（设计「空纸不存」），
+  换纸清空后的空纸被跳过 → 存储里仍是旧 12 行文档。
+- 本轮试过在 `paperChange` 的 `clear()/syncRows()` 后补 `scheduleSave()`，**实测无效**（同上守卫），已**回退**该补丁，
+  只留注释说明。真正修法＝给 `flushSave` 加「强制保存」入口，但「空纸是否入卷宗」是产品语义，须拍板后再动。
+
+**T5 后半评估（未擅动）**
+- 现状：`reloadKeymap()`（现 ≈:2456）仍调 `KeymapParser.parse()`；`parseOrder()`（KeymapModel:146）已实现但**无人调用**。
+- 结论：视觉键位已 flex（`KeyGrid` 硬编码 5 行 K33 数组），`parse()` 现在只供 `displayLayout()`（Index ≈:3080）
+  给 `CapInput` 提供 id／图例／`cx,cy,hitRadius` 命中数据。要彻底去坐标，必须重写 `displayLayout()`＋命中判定
+  （shift/symbol 派生、`hitRadius`、换机键位表差异全部跟着改），属独立小项，建议单独立项，不在本轮。
+
+**六①② 仍待用户拍板（本轮未自行决定）**
+1. 每行字数：实测 **17**（纸宽 288.05、边距 48×2＝125.8、行宽 162.2、fs 15.58、adv 9.35）。设计 33 在 288 纸上不可能
+   （零边距上限 30.8；25/30 边距上限 23）。可选 a) 边距 48→25/30（cpl 23）b) 加大纸宽 c) 接受 17。
+2. 纸面行数／封顶：`maxRows = floor((paperHeightVp − 44 − 20)/行高) = 12`，12 行 paperBox=366.9，
+   第 13 次回车走 `newlineAtLastRow -> paperChange`（自动换纸）；设计写「13 行到顶／封顶 400.7」。
+   可选 a) 改 maxRows 吃满 400.7 b) 验收数字改成 12 行／366.9。
+（两条只影响 2282／2283／2286 定稿，不影响本轮改动。）
+
+**设备状态（需知会）**
+- 机型已切回 `1920s-upright`（15:04:18 日志）；文档被清到一个空行（退格 13 次）；`cn_engine=builtin` 未动；
+  屏幕常亮三连已做（本轮开场）。
+- 本轮构建 4 次，全部 `BUILD SUCCESSFUL`；最后一次装包后设备上跑的就是最终代码（含回退）。
+
+**本轮之后待办**
+1. 六①② 拍板后重拍 2282／2283／2286（其余 2280/2281/2284/2285/2287/2288/2289 证据仍有效）。
+2. 换纸落盘：给 `flushSave` 加强制入口（需产品拍板空纸语义）。
+3. T5 后半（去坐标输入映射）另立小项。
+4. 键杆恢复：按「行内累计宽＋均分间距」重算 x。
+5. 机型化外观接入 Stage26 槽位（阶段 2 范围，含 `basketFanImage` 分机素材接线）。

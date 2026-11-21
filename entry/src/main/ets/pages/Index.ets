@@ -215,21 +215,9 @@ struct Index {
   @State paperTopVp: number = 0;
   /** 换纸进行中：禁打字。 */
   @State paperChanging: boolean = false;
-  @State canvasPaperResetTick: number = 0;
-  /**
-   * 第 17 批批 1 §2.4：纸段 tick（换行纸上滑／换纸两段／退行纸飞共用一个触发通道）。
-   * 发 tick **之前**先写好目标值与时长，Canvas 收到时只取 t0 = 时钟 now（不猜目标）。
-   */
-  @State canvasPaperTick: number = 0;
-  /** 0=从当前渲染值起；1=纸盒立即取目标（换纸第 1 段）；2=从下面两个显式 from 起（换纸第 2 段） */
-  @State canvasPaperMode: number = 0;
-  @State canvasPaperFromTopVp: number = 206;
-  @State canvasPaperFromBoxVp: number = 96;
-  @State canvasPaperTopTargetVp: number = 206;
-  @State canvasPaperBoxTargetVp: number = 96;
-  @State canvasPaperDurMs: number = 300;
-  /** 换纸第 2 段用：recalcPaperHeight 只算目标、不自己发 dur=0 的瞬时 tick（本段由调用方发 mode 2）。 */
-  private paperSuppressTickOnce: boolean = false;
+  // 批 64（T6 余项）：第 17 批的 Canvas 纸段 tick 通道（canvasPaperTick/Mode/From/Target/Dur、
+  // canvasPaperResetTick、paperSuppressTickOnce）整体删除——canvasEnabled 恒 false 且无组件 @Watch 这些值，
+  // 纸段动画只剩 ArkUI animateTo 一条路径。
   /** 第 9 批 F12：换纸恢复打点起点（换纸入口写 pcT0；锁放开后首个被接受的 commitChar 记 dt 并清零）。 */
   private pcResumeT0: number = 0;
   /** 第 9 批 F12：onDelete 的「先落队再删」循环期间为 true——该循环触发的 commitChar 不算恢复。 */
@@ -259,7 +247,7 @@ struct Index {
   /** 换纸时旧纸淡出用。 */
   @State paperOpacity: number = 1;
   /** 换纸第①步：纸容器切「整张模式」（高=Ph、不裁），整张纸飞出去。 */
-  @State paperFullSheet: boolean = false;
+  // 批 64（T6 余项）：paperFullSheet（整张模式）无消费者，随容器一并删除。
   /** 滚筒纹理纵向滚动量（vp）：随纸上滑同步，换纸两段各滚半圈。 */
   @State texOffsetVp: number = 0;
   /** 换行 700ms 编排（t0=450＋250）进行中：落字先排队，编排完成后再落（不丢字、不错位）。 */
@@ -271,8 +259,8 @@ struct Index {
   /** 「下移」时字车要滑到的 O（小行程口径）。 */
   @State newlineCarriageTargetO: number = 0;
   private queuedChars: string[] = [];
-  /** 纸片容器高 = 纸顶到滚筒（容器 clip，纸底藏在里面）。 */
-  @State paperContainerVp: number = 0;
+  // 批 64（T6 余项）：纸片容器高 paperContainerVp 已删除——纸高/纸顶只由 flex（Carriage26 纸贴底）
+  // 的 paperGrowVp 决定；旧容器值只在 parts 日志里按 paperTop 派生。
   /**
    * 第 26 批（批 3／§4.3）：帧时钟驱动的 ArkUI 字段（Canvas 退役后唯一的动画事实源）。
    * paperOffsetVp＝K×O（纸面板左移）；guideXVp＝落字导件 x；leverAngleVp＝拨杆摆角；
@@ -298,7 +286,6 @@ struct Index {
   /** 帧时钟 300 字会话计数（§10.5）。 */
   private frameCount: number = 0;
   @State paperTopTargetVp: number = 0;
-  @State paperContainerTargetVp: number = 0;
   private paperAnimateNext: boolean = false;
   @State contentTopVp: number = 44;
   @State stackTopGlobalYVp: number = 0;
@@ -2549,60 +2536,31 @@ struct Index {
     // 纸顶只由「光标行」派生（空行也占行），换行/退行不再手动 ±行高
     this.paperTopTargetVp = this.carriageTopVp - paperBandBase
       - this.docModel.getCursor().line * this.lineHeightVp;
-    // 纸片容器高 = 纸顶到滚筒
-    // 纸底伸到 carriageTop 下 2vp：纸叠进滚筒 40vp（滚筒顶 = carriageTop − Hc/2），同一张纸
-    this.paperContainerTargetVp = this.carriageTopVp - this.paperTopTargetVp + 2;
-    // 批 63 阶段 0（任务 5）：纸片容器高与纸顶只认一个封顶——paperVisibleTargetVp()（306×Pw/220）。
+    // 批 64（T6 余项）：纸片容器退役——封顶直接落成「纸顶下限」，口径仍只此一处 paperVisibleTargetVp()。
     // 封顶后纸顶不再上移（同一帧一起落位），内容改为在纸内滚动。
     const capPaperH: number = this.paperVisibleTargetVp();
-    if (this.paperContainerTargetVp > capPaperH) {
-      this.paperContainerTargetVp = capPaperH;
-      this.paperTopTargetVp = this.carriageTopVp - capPaperH + 2;
-      if (this.paperTopTargetVp < 0) {
-        this.paperTopTargetVp = 0;
-      }
+    const capTop: number = this.carriageTopVp - capPaperH + 2;
+    if (this.paperTopTargetVp < capTop) {
+      this.paperTopTargetVp = capTop > 0 ? capTop : 0;
     }
-    // 第 5 批回批 F7（D4 裁剪机制）：半开时纸容器在 creaseTop 处裁剪（容器即裁剪区，不加 .clip()）；
-    // 安全网：D1 公式下容器本已在折痕之上，cap 仅防折痕值误读
-    if (isDesk && this.creaseTopVp > 0) {
-      const cap: number = this.creaseTopVp - this.paperTopTargetVp;
-      if (this.paperContainerTargetVp > cap && cap > 0) {
-        this.paperContainerTargetVp = cap;
-      }
-    }
+    // 第 5 批回批 F7（D4 裁剪）：desk 半开时可见纸高已由 flex 纸区（上半区）限制，
+    // 旧的容器 cap（creaseTop − paperTop）随容器删除退役。
     if (this.paperAnimateNext) {
       // 换行编排第 2 段：纸上滑 300ms EaseInOut（不许直接赋值跳变）
       this.paperAnimateNext = false;
-      if (this.canvasEnabled) {
-        // 第 17 批批 1：Canvas 路径——逻辑值落目标（与 animateTo「同步赋终值」同口径），
-        // 视觉插值交给纸段 tick：目标先写好、再发 tick（§2.4）。
+      // 批 64（T6 余项）：Canvas 纸段路径删除（canvasEnabled 恒 false，tick 无消费者）——只剩 animateTo。
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
         this.paperTopVp = this.paperTopTargetVp;
-        this.paperContainerVp = this.paperContainerTargetVp;
-        this.paperTick(this.paperTopVp, this.paperContainerVp, 300, 0, 0, 0, kind);
-      } else {
-        this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
-          this.paperTopVp = this.paperTopTargetVp;
-          this.paperContainerVp = this.paperContainerTargetVp;
-        });
-      }
+      });
     } else {
-      // 无动画重算：逻辑值瞬时落位；Canvas 侧同样走一条 dur=0 的纸段 tick，
-      // 保证「纸的位置只由纸段 tick 决定」，不靠 prop 同步顺序抢跑（避免一帧闪跳）。
-      const prevTop: number = this.paperTopVp;
-      const prevBox: number = this.paperContainerVp;
+      // 无动画重算：逻辑值瞬时落位（不再发 dur=0 的纸段 tick，不存在跨 prop 抢跑）。
       this.paperTopVp = this.paperTopTargetVp;
-      this.paperContainerVp = this.paperContainerTargetVp;
-      if (this.canvasEnabled
-        && !this.paperSuppressTickOnce
-        && (Math.abs(this.paperTopVp - prevTop) > 0.01 || Math.abs(this.paperContainerVp - prevBox) > 0.01)) {
-        this.paperTick(this.paperTopVp, this.paperContainerVp, 0, 0, 0, 0, kind);
-      }
-      this.paperSuppressTickOnce = false;
     }
-    if (syncVisible) {
-      // 批 63 阶段 0（任务 5）：可见纸高与纸顶同一帧落位——封顶只在 paperVisibleTargetVp() 一处
-      this.paperGrowVp = this.paperVisibleTargetVp();
-    }
+    // 批 64（T6 尾项）：可见纸高恒与行数同步——历史上只有「换行」（syncVisible=true）才更新，
+    // 退格删行／换纸清空都不更新，实测 1 行时可见纸高仍卡在满纸 366.9vp（截图纸高 863px 不变）。
+    // 现在恒同步，且复用上面已算好的 capPaperH（同一口径，不再重复调 paperVisibleTargetVp()）。
+    // 被 animateTo 包裹时由 ArkUI 插值，否则瞬时落位；syncVisible 仅保留以不动既有调用点。
+    this.paperGrowVp = capPaperH;
     this.contentTopVp = 44;
     // Pw 单源固定值（唯一写 Pw 的地方）
     // ④Hc 加顶：min(Pw×0.17, 由「中央件顶 ≥ 纸顶」反推的上限)
@@ -2630,7 +2588,8 @@ struct Index {
       'parts stageW=%{public}s geoW=%{public}s fs=%{public}s lh=%{public}s Pw=%{public}s H=%{public}s carrTop=%{public}s paperTop=%{public}s paperBox=%{public}s Hc=%{public}s Hg=%{public}s knobD=%{public}s leverH=%{public}s typebarH=%{public}s keybedH=%{public}s',
       this.stageWidth.toFixed(1), this.geoWidthVp().toFixed(1),
       this.fontSizeVp.toFixed(2), this.lineHeightVp.toFixed(1), this.paperWidthVp.toFixed(1), H.toFixed(1),
-      this.carriageTopVp.toFixed(1), this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1),
+      this.carriageTopVp.toFixed(1), this.paperTopVp.toFixed(1),
+      (this.carriageTopVp - this.paperTopVp + 2).toFixed(1),
       this.carriageHeight.toFixed(1), (this.carriageHeight * 1.5).toFixed(1),
       (this.carriageHeight * 0.92).toFixed(1), (this.carriageHeight * 2.5).toFixed(1),
       (this.carriageHeight * 2.5).toFixed(1), this.carriageHeight.toFixed(1));
@@ -2657,24 +2616,8 @@ struct Index {
     this.recalcPaperHeight(kind, true);
   }
 
-  /**
-   * §2.4 纸段触发：**先写目标／时长／模式，再递增 tick**；Canvas 的 @Watch 只取 t0 = 时钟 now，不猜目标。
-   * §8 打点：trigger paper t=<wall> —— 与 Canvas 'first frame paper' 的 wall 相减即启动延迟。
-   * mode：0=从当前渲染值起；1=纸盒立即取目标（换纸第 1 段）；2=从显式 from 起（换纸第 2 段）。
-   */
-  private paperTick(top: number, box: number, durMs: number, mode: number,
-    fromTop: number, fromBox: number, kind: string): void {
-    this.canvasPaperMode = mode;
-    this.canvasPaperFromTopVp = fromTop;
-    this.canvasPaperFromBoxVp = fromBox;
-    this.canvasPaperTopTargetVp = top;
-    this.canvasPaperBoxTargetVp = box;
-    this.canvasPaperDurMs = durMs;
-    this.canvasPaperTick = this.canvasPaperTick + 1;
-    hilog.info(DOMAIN, TAG,
-      'trigger paper t=%{public}s kind=%{public}s target=%{public}s box=%{public}s dur=%{public}d mode=%{public}d',
-      Date.now().toString(), kind, top.toFixed(1), box.toFixed(1), durMs, mode);
-  }
+  // 批 64（T6 余项）：paperTick()（第 17 批 Canvas 纸段触发）已删除——纸段只剩 animateTo，
+  // 换纸分段打点由 pcTrace('start'/'step1'/'step1-settled'/'step2-work'/'step2-hide'/'end') 承担。
 
   // ---------------- 击打链 ----------------
 
@@ -4079,29 +4022,19 @@ struct Index {
       'trace=on entry=' + entry + ' lines=' + this.docModel.getLines().length.toString() +
       ' paperH=' + this.paperHeightVp.toFixed(1));
     const startTop: number = this.paperTopVp;
-    hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s', startTop.toFixed(1), this.paperContainerVp.toFixed(1));
-    // ① 整张模式：容器高 = Ph、不裁，整张纸才能整片飞出（不再只露一截）
-    this.paperFullSheet = true;
-    this.paperContainerVp = this.paperHeightVp;
+    // 批 64（T6 余项）：box 改为按纸顶派生（容器字段已删）；整张模式 paperFullSheet 无消费者，一并删除。
+    hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s',
+      startTop.toFixed(1), (this.carriageTopVp - startTop + 2).toFixed(1));
     // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
     const outTop: number = startTop - this.paperHeightVp;
-    if (this.canvasEnabled) {
-      // 第 17 批批 1 §2.6 换纸第 1 段：纸层归帧时钟（纸盒立即取整张高），
-      // opacity/旋钮/纹理是 ArkUI 专属值，直接落目标只为回滚分支读数一致（Canvas 不渲染它们）。
+    // 批 64（T6 余项）：Canvas 分支删除（canvasEnabled 恒 false）。
+    this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
       this.paperTopVp = outTop;
       this.paperOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
+      // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
       this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-      this.paperTick(outTop, this.paperHeightVp, 300, 1, 0, 0, 'paper1');
-    } else {
-      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-        this.paperTopVp = outTop;
-        this.paperOpacity = 0;
-        this.knobAngle = this.knobAngle + 180;
-        // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
-        this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-      });
-    }
+    });
     // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
     hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
       this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
@@ -4123,6 +4056,9 @@ struct Index {
       this.docModel.clear();
       const work1: number = Date.now();
       this.syncRows();
+      // 批 64（T6 尾项）记账：换纸清空**不落盘**——flushSave() 有 `docModel.isEmpty()` 守卫（设计「空纸不存」），
+      // 所以换纸后重启会把旧纸读回来（实测：换纸后 1 行 → 重启回到 12 行空纸）。真正修法是给 flushSave 加
+      // 强制保存入口（需产品决定「空纸是否入卷宗」），本轮不擅改，已记进自检待办。
       const work2: number = Date.now();
       // 第 9 批 F12：step2-work——clear() 与 syncRows() 各自计时（期望合计 ＜50ms）
       this.pcTrace('step2-work', pcT0, 'clear=' + (work1 - work0).toString() + ' sync=' + (work2 - work1).toString() + ' total=' + (work2 - work0).toString());
@@ -4134,32 +4070,19 @@ struct Index {
       // ★改：新纸从滚筒里卷出——动画开始前先把纸顶放到滚筒处藏起来（只露 2vp 纸底缘），
       // 再让 recalcPaperHeight() 把它推到起打位。纸顶从滚筒处往上长出来，不是从天上掉下来。
       this.paperTopVp = this.carriageTopVp;
-      this.paperContainerVp = 2;
-      // ★改：opacity 与整张模式都在动画开始前恢复（否则纸在滚筒处透明/中途 clip 突变闪现）
+      // ★改：opacity 在动画开始前恢复（否则纸在滚筒处透明/中途 clip 突变闪现）。
+      // 批 64（T6 余项）：容器字段与整张模式 paperFullSheet 已删，打点只记纸顶。
       this.paperOpacity = 1;
-      this.paperFullSheet = false;
-      this.pcTrace('step2-hide', pcT0, 'top=' + this.paperTopVp.toFixed(1) +
-        ' box=' + this.paperContainerVp.toFixed(1));
+      this.pcTrace('step2-hide', pcT0, 'top=' + this.paperTopVp.toFixed(1));
       // 打点在 animateTo 之前：此时 paperTop 就是「藏在滚筒处」的值（应 ≈ carriageTop）
-      hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s box=%{public}s carriageTop=%{public}s',
-        this.paperTopVp.toFixed(1), this.paperContainerVp.toFixed(1), this.carriageTopVp.toFixed(1));
-      if (this.canvasEnabled) {
-        // 换纸第 2 段（§2.6 300＋300ms）：先算新纸目标（不带动画），再发纸段 tick。
-        // mode 2 = 从滚筒处的显式 from 起（纸顶藏进滚筒、纸盒只露 2vp），向上长到起打位。
-        this.paperAnimateNext = false;
-        this.paperSuppressTickOnce = true;
+      hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s carriageTop=%{public}s',
+        this.paperTopVp.toFixed(1), this.carriageTopVp.toFixed(1));
+      // 批 64（T6 余项）：Canvas 纸段 mode 2 分支删除（canvasEnabled 恒 false）。
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
         this.recalcPaperHeight('paper2');
         this.knobAngle = this.knobAngle + 180;
         this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-        this.paperTick(this.paperTopTargetVp, this.paperContainerTargetVp, 300, 2,
-          this.carriageTopVp, 2, 'paper2');
-      } else {
-        this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-          this.recalcPaperHeight('paper2');
-          this.knobAngle = this.knobAngle + 180;
-          this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
-        });
-      }
+      });
       hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
         this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
       hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s top=%{public}s',
@@ -4167,7 +4090,6 @@ struct Index {
       this.pcTrace('step2-begin', pcT0, 'knob=' + this.knobAngle.toFixed(1));
       setTimeout(() => {
         this.paperChanging = false;
-        this.canvasPaperResetTick = this.canvasPaperResetTick + 1;
         this.pcTrace('end', pcT0, 'total=' + (Date.now() - pcT0).toString());
       }, 320);
     }, 300);
