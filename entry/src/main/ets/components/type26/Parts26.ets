@@ -50,10 +50,14 @@ export function lidTileImage(machine: MachineKind) {
   }
 }
 
-/** 字篮扇形（生成件）。 */
+/** 字篮扇形（生成件）。
+ *  批 66：平板用 2.6 宽版（basket-fan-3d-v5-wide-26.png，403vp ≈ 纸宽 408vp），
+ *  手机继续 1.69 原图（井只约 138vp，2.6 图会被压扁，不可用）。 */
 @Builder
-export function basketFanImage(machine: MachineKind) {
-  if (machine === MachineKind.UPRIGHT_1920S) {
+export function basketFanImage(machine: MachineKind, wide: boolean) {
+  if (wide) {
+    Image($rawfile('ui-parts/basket-fan-3d-v5-wide-26.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
+  } else if (machine === MachineKind.UPRIGHT_1920S) {
     Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
   } else if (machine === MachineKind.PORTABLE_1930S) {
     Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
@@ -335,6 +339,10 @@ export struct Basket26 {
   @Prop heightVp: number = 138;
   @Prop sx: number = 1;
   @Prop sy: number = 1;
+  /** 批 66：是否用 2.6 宽版扇图（平板 true、手机 false）。 */
+  @Prop fanWide: boolean = false;
+  /** 批 66：当前扇图的宽高比（平板 2.6、手机 1.69），用于让盒高正好等于图高。 */
+  @Prop fanAspect: number = 1.69;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -349,9 +357,10 @@ export struct Basket26 {
           .hitTestBehavior(HitTestMode.None)
         // 3D 扇形：缩进井里——高 134（扇顶 y 380，在色带 370–374 下方），宽 213（等比）
         Stack({ alignContent: Alignment.Bottom }) {
-          basketFanImage(this.machine)
+          basketFanImage(this.machine, this.fanWide)
         }
-        .width(213 * this.sx).height(126.3 * this.sy)
+        // 批 66：盒宽×kx、盒高＝盒宽/图宽高比 ⇒ Contain 无留白、扇底天然贴井底（不会上浮）
+        .width(213 * this.sx).height(213 * this.sx / this.fanAspect)
         // 批 61：Shift 抬扇——整扇上抬 10vp，弹簧（轻微过冲）；显示盒不变，只加 translate
         // 批 64（T6）：Shift 抬扇改绝对值 10vp（不再乘 sy；Index 侧 shiftLiftVp 就是 −10）
         .translate({ y: this.shiftLiftVp })
@@ -436,11 +445,11 @@ export struct FunctionCaps26 {
           Path({ commands: 'M0 0 L5 3.2 L0 6.4 Z' }).fill('#241f1a')
             .width(5).height(6.4).position({ x: 1.5, y: 12.4 })
         }
-        .width(19).height(20)
+        .width(19 * this.sx).height(20 * this.sx)
         .translate({ y: -1.5 * this.sy })
       } else {
         Text(label)
-          .fontSize(label.length > 1 ? 11 : 14)
+          .fontSize((label.length > 1 ? 11 : 14) * this.sx)
           .fontColor('#241f1a')
           .fontFamily('CourierPrime')
           .maxLines(1)
@@ -449,12 +458,12 @@ export struct FunctionCaps26 {
           .padding({ left: 2, right: 2 })
           .translate({ y: -1.5 })
       }
-      Column().width(38).height(2).backgroundColor('#2a221b')
-        .position({ x: -1, y: 31 })
+      Column().width(38 * this.sx).height(2 * this.sx).backgroundColor('#2a221b')
+        .position({ x: -1 * this.sx, y: 31 * this.sx })
     }
-    // 批 64（T4）：功能行六键固定 36×30vp（手机／平板一致），行宽 6×36＝216vp 居中——不再乘 sx/sy
-    .width(36).height(30)
-    .position({ x: (idx * 36), y: 3 })
+    // 批 66：功能行六键按 kx 等比放大（36×30 → 66.9×55.7，宽高同系数，不拉伸）
+    .width(36 * this.sx).height(30 * this.sx)
+    .position({ x: (idx * 36) * this.sx, y: 3 * this.sx })
     // 批 62 收尾：功能行六键的无障碍文本（读屏朗读名与按钮显示一致）
     .accessibilityText(label === 'BL' ? '退行' : label)
     .accessibilityLevel('yes')

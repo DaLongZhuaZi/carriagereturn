@@ -4722,6 +4722,9 @@ struct Index {
       widthVp: 240 * this.xk(),
       heightVp: this.t26y(138),
       sx: this.xk(), sy: this.yk(),
+      // 批 66：平板用 2.6 宽版扇图，盒高按图比例（手机仍 1.69 原图、盒高≈126）
+      fanWide: this.isTablet,
+      fanAspect: this.isTablet ? 2.6 : 1.69,
     })
       .id('p26_basket')
   }
@@ -4730,9 +4733,9 @@ struct Index {
   @Builder
   stageFuncRow() {
     FunctionCaps26({
-      // 批 64（T4）：功能行固定 216×36vp（六键 36×30），不再乘 k
-      widthVp: 216,
-      heightVp: 36,
+      // 批 66：功能行按 kx 等比放大（六键 66.9×55.7、行 401×67），选项 B 的延续
+      widthVp: 401,
+      heightVp: 67,
       sx: this.xk(), sy: this.yk(),
       langLabel: this.langZh
         ? this.resolveString($r('app.string.keyboard_lang_zh'))

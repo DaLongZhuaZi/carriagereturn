@@ -16,7 +16,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 /** 固定高区（vp，手机／平板一致）。 */
 const TOP_BAR_H: number = 56;
-const FUNC_ROW_H: number = 36;
+const FUNC_ROW_H: number = 67;
 const FONT_BAR_H: number = 28;
 const CAND_BAR_H: number = 44;
 const BOTTOM_EDGE_H: number = 27.6;
@@ -26,7 +26,7 @@ const KEYBOARD_BASE_H: number = 200.1;
 const W_PAPER_ONLY: number = 320;
 const W_BASKET_ONLY: number = 138;
 const W_REST_SUM: number = W_PAPER_ONLY + W_BASKET_ONLY;   // 458
-const FIXED_SUM: number = TOP_BAR_H + FUNC_ROW_H + FONT_BAR_H + CAND_BAR_H + BOTTOM_EDGE_H;   // 191.6
+const FIXED_SUM: number = TOP_BAR_H + FUNC_ROW_H + FONT_BAR_H + CAND_BAR_H + BOTTOM_EDGE_H;   // 222.5（批66：功能行 36→67）
 const W_PAPER: number = 320;
 const W_BASKET: number = 138;
 const W_KEYS: number = 172.6;
