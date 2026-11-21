@@ -3167,3 +3167,32 @@ PIL：空格 bbox `(317,2378)-(1311,2456)`，宽 995px＝418.9vp（基准 237×k
 
 **截图**：2332_bs_before（打 6 字后）／2333_bs_after1..3（逐次退格）；
 修后 2333_bs_after3 上光标红三角正好落在文字末尾（x≈570），修前它偏左 68px。
+
+### 批 71：功能行按下效果 ＋ 修「Aa 完全没效果」回归（用户 2026-11-22 00:28 报）
+
+**问题 2｜Aa 完全没效果 —— 是上一轮修闪屏引入的回归**
+- 根因：上一轮把 KeyGrid 键 id 从 S/L:y:i 改成稳定的 
+:i，想消除切换闪屏；
+  但 ArkUI 的 ForEach **按 key 判重复用节点**，key 不变就不重新执行 capCell(p) ⇒
+  symbolMode 变了、
+ows() 换了数据，键帽显示的仍是旧字母 ⇒ 看起来「Aa 完全没反应」。
+- 处置：**回滚** KeyGrid 的 id 与 placedRow() 改动（恢复 S/L 前缀）。
+- 验证：2337_p71_before_aa（字母）／**2338_p71_after_aa（完整符号面板：
+  ~ ! @ # $ % ^ & * ( ) + ／ { } [ ] | \ : " < > ? / ／ § ± × ÷ ≠ ≤ ≥ ∞ ¥ €）**／
+  2339_p71_back_aa（切回字母）✔
+
+**问题 1｜功能行六键的按下效果（与键盘同参）**
+- Parts26.ets FunctionCaps26：新增 @State pressedIdx: number = -1；
+  cap() 尾部加 .translate({ y: pressedIdx===idx ? 2 : 0 })、.scale({ y: … ? 0.94 : 1 })、
+  .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) }) 与 .onTouch（Down 置 idx、Up/Cancel 清）。
+- **参数与 KeyGrid.capCell 完全一致**：下沉 **2vp（绝对值，不随 sx 缩放——键盘在平板也是 2vp）**、
+  scaleY 0.94、90ms springMotion(0.34,0.9)。功能键尺寸仍按 sx 等比（66.9×55.7），只有行程沿用键盘的绝对值口径。
+- **截图抓不到按下态**：screenCap 单帧 400–500ms，远大于 90ms 的动画窗口（AGENTS.md 已记此工具边界）；
+  2340_p71_func_pressed 是松手后的稳定态。按下效果以**代码参数一致**为证。
+
+**遗留：切换闪屏仍未修**
+- 闪的根因仍是「切换时所有键的 ForEach key 全变 → 整片销毁重建」。
+- **「稳定 id」这条路已被本轮实测否定**（会让内容不更新、Aa 失效）。
+- 正解二选一：①把键帽拆成独立 @Component struct KeyCap（@Prop label/legend/kind），
+  ForEach 用稳定 id、由 @Prop 驱动文本更新；②保留重建但加约 100ms 淡入过渡掩盖。
+  需小重构，建议单开一批做。

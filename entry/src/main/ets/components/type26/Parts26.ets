@@ -438,6 +438,8 @@ export struct FunctionCaps26 {
   @Prop langLabel: string = 'EN';
   @Prop langActive: boolean = false;
   @Prop symbolActive: boolean = false;
+  /** 批 71：功能行按下态（-1＝无）。与 KeyGrid.pressedId 同口径，驱动下沉 2vp + scaleY 0.94。 */
+  @State pressedIdx: number = -1;
   onLang: () => void = (): void => {};
   onDelete: () => void = (): void => {};
   onNewline: () => void = (): void => {};
@@ -483,6 +485,19 @@ export struct FunctionCaps26 {
     // 批 66：功能行六键按 kx 等比放大（36×30 → 66.9×55.7，宽高同系数，不拉伸）
     .width(36 * this.sx).height(30 * this.sx)
     .position({ x: (idx * 36) * this.sx, y: 3 * this.sx })
+    // 批 71（用户 2026-11-22 定）：功能键要有**和键盘一样的按下效果**。
+    // 口径与 KeyGrid.capCell 完全一致：下沉 2vp（绝对值，不随 sx 缩放——键盘在平板也是 2vp）、
+    // scaleY 0.94、90ms springMotion(0.34, 0.9)；按下态由本组件的 pressedIdx 驱动。
+    .translate({ y: this.pressedIdx === idx ? 2 : 0 })
+    .scale({ y: this.pressedIdx === idx ? 0.94 : 1 })
+    .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) })
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.pressedIdx = idx;
+      } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+        this.pressedIdx = -1;
+      }
+    })
     // 批 62 收尾：功能行六键的无障碍文本（读屏朗读名与按钮显示一致）
     .accessibilityText(label === 'BL' ? '退行' : label)
     .accessibilityLevel('yes')
