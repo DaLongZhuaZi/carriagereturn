@@ -2965,6 +2965,33 @@ struct Index {
   /** 批 55：字车行程上限——纸左缘出屏 ≤10%（36 − 65 ＝ −29vp）。 */
   private readonly CARRIAGE_TRAVEL_LIMIT_VP: number = 65;
 
+  /**
+   * 主动量化当前行的渲染宽（落字／退格共用）。
+   * 修 bug（BACKSPACE 后光标不跟随）：`cursorXVp26()` 在行尾读的是 `lineWidthMeasuredVp`，
+   * 原来只有落字会主动重算它，退格删字后仍是旧值 ⇒ 光标停在原处。此处统一收口。
+   */
+  /** 修 bug 用：把光标的三个分量一起打出来（curX／measW／accumW／O／pointerX）。 */
+  private logPointerTrace(tag: string): void {
+    hilog.info(DOMAIN, TAG,
+      'pointerTrace %{public}s curX=%{public}s measW=%{public}s accumW=%{public}s O=%{public}s pointerX=%{public}s',
+      tag, this.cursorXVp26().toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
+      this.currentLineWidthVp().toFixed(2), this.carriageOffsetVp.toFixed(2),
+      this.pointerXVp().toFixed(2));
+  }
+
+  private measureLineWidth(): void {
+    try {
+      const px: number = this.getUIContext().getMeasureUtils().measureText({
+        textContent: this.currentLineText(),
+        fontSize: this.fontSizeVp,
+        fontFamily: this.genericFamilyFor(this.fontFamily),
+      });
+      this.lineWidthMeasuredVp = this.getUIContext().px2vp(px);
+    } catch (e) {
+      // 量宽失败保留旧值
+    }
+  }
+
   /** 批 50：光标 X——行尾时直接用隐藏 Text 的实测渲染宽，未测到才退回累加。 */
   private cursorXVp26(): number {
     const c = this.docModel.getCursor();
@@ -3779,24 +3806,14 @@ struct Index {
     this.syncRows();
     this.animateGuide();
     this.stepCarriageLeft();
-    try {
-      const px: number = this.getUIContext().getMeasureUtils().measureText({
-        textContent: this.currentLineText(),
-        fontSize: this.fontSizeVp,
-        fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：量宽族与渲染族同源
-      });
-      this.lineWidthMeasuredVp = this.getUIContext().px2vp(px);
-    } catch (e) {
-      // 量宽失败保留旧值
-    }
+    // 批 54：量宽族与渲染族同源；此处与退格共用 measureLineWidth()
+    this.measureLineWidth();
     hilog.info(DOMAIN, TAG, 'committed ch=[%{public}s] shift=%{public}s sym=%{public}s', ch,
       this.shiftActive ? 'on' : 'off', this.symbolMode ? 'on' : 'off');
     hilog.info(DOMAIN, TAG, 'landTrace line=%{public}s col=%{public}s paperTop=%{public}s O=%{public}s',
       this.docModel.getCursor().line.toString(), this.docModel.getCursor().offset.toString(),
       this.paperTopVp.toFixed(1), this.carriageOffsetVp.toFixed(1));
-    hilog.info(DOMAIN, TAG, 'charTrace O=%{public}s measW=%{public}s accumW=%{public}s strikeX=%{public}s',
-      this.carriageOffsetVp.toFixed(2), this.lineWidthMeasuredVp.toFixed(2),
-      this.currentLineWidthVp().toFixed(2), (this.stageWidth * 0.5).toFixed(2));
+    this.logPointerTrace('afterCommit');
     this.scheduleSave();
     // 第 4 批 F11：落字成功即内存自增（不写盘；离页/导出前批量 flush）
     statsService.recordChar();
@@ -3916,20 +3933,26 @@ struct Index {
       const o2 = this.docModel.overwriteBack();
       if (o2.changed) {
         this.syncRows();
+        // 修 bug：同上，覆盖态退格也要重量行宽
+        this.measureLineWidth();
+        // 修 bug：同上，覆盖态退格也不拨字车
         this.animateGuide();
-        this.stepCarriageRight();
         // 删除后推一次光标矩形，候选窗跟上
         this.pushCnCursor();
       }
       return;
     }
     // 批 68（任务 3）：退格也回位
-      this.settlePaperOffset();
-      const o = this.docModel.backspace();
+    this.settlePaperOffset();
+    const o = this.docModel.backspace();
     if (o.changed) {
       this.syncRows();
+      // 修 bug：删字后必须重新量化行宽，否则行尾光标仍读旧宽而停在原处
+      this.measureLineWidth();
+      // 修 bug：退格**不能**再拨字车右移——物理打字机退格是「纸不动、打印点回到前一格」，
+      // stepCarriageRight 会把 O 往 0 推，正好抵消 curX 的减小 ⇒ 光标停在原处。
       this.animateGuide();
-      this.stepCarriageRight();
+      this.logPointerTrace('afterBackspace');
       // 删除后推一次光标矩形，候选窗跟上
       this.pushCnCursor();
       // §12.2 第 2／3 条：行数变了 → 合并行重排 + 纸顶重算（与 onBackLine 同口径，纸滑不跳变）
