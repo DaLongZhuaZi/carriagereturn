@@ -3225,3 +3225,35 @@ ows() 换了数据，键帽显示的仍是旧字母 ⇒ 看起来「Aa 完全没
 
 **如果淡入还不够**：正解是把键帽拆成 @Component struct KeyCap（@Prop 驱动），
 ForEach 用稳定 id + 子组件响应式更新 —— 需小重构，可单开一批。
+
+### 批 73：字母/符号切换改为「掉下去 → 替补上来」（用户 2026-11-22 01:30 定）
+
+**用户要的效果**：不是整体淡入淡出，而是「按键掉下去消失，新按键再替补上来」。
+
+**实现（两段动画 + 自适应下沉量）**
+- KeyGrid.ets：新增 @Prop kbShiftY: number = 0；根 Column 加 .translate({ y: this.kbShiftY })（与 kbOpacity 并存）。
+- Index.ets：新增 @State keyboardShiftY: number = 0；onSymbols 改为：
+  `	s
+  const shift = this.stageLayout26().keyH;                 // 自适应：整个键盘井高，沉这么多就完全出井
+  animateTo({duration:150, curve:EaseIn}, () => {          // ① 旧键出
+    this.keyboardShiftY = shift; this.keyboardFade = 0;
+  });
+  setTimeout(() => {                                       // ② 换内容
+    this.symbolMode = !this.symbolMode;
+    this.keyboardFade = 0;                                 // ③ 新键入（起点仍在井下方）
+    animateTo({duration:200, curve:EaseOut}, () => {
+      this.keyboardShiftY = 0; this.keyboardFade = 1;
+    });
+  }, 155);
+  `
+- **自适应**：下沉量＝stageLayout26().keyH（平板 371.7vp＝整个井高），沉这么多就被 KeyWell 的 clip 完全裁掉，
+  视觉上「掉进井里消失」；新键从同一位置（井下方）升回 0 —— 不写死任何 vp 常数。
+- 时序：旧出 150ms ＋ 新入 200ms；切换在 155ms 处（旧动画结束、新动画开始）。
+
+**验证**
+- 2338_p71_after_aa：符号面板完整（~ ! @ # $ % ^ & * ( ) + ／ { } [ ] | \ : " < > ? / ／ § ± × ÷ ≠ ≤ ≥ ∞ ¥ €）✔ 功能未退化
+- 2337／2339：字母↔符号来回切换正常 ✔
+- **150/200ms 过渡帧 screenCap 抓不到**（单帧 400–500ms，AGENTS.md 已记），实际观感需人眼确认。
+
+**注**：这是「整片键盘一起下沉/升起」，不是逐键错峰。若要「每键依次掉落」（错峰 10~20ms/键），
+需要给每个键独立 delay —— 可再单开一批做。

@@ -1347,6 +1347,11 @@ struct Index {
    * 切换字母/符号时先设 0.25 再动画回 1 —— 新键盘「柔和浮现」，而不是重建导致的一帧硬切。
    */
   @State keyboardFade: number = 1;
+  /**
+   * 批 73（用户 2026-11-22 01:30 定）：键盘整体纵向位移（vp）。
+   * 切换字母/符号时：旧键沉下去（=整个井高，沉出井被 clip 裁掉）、新键从井下方升上来。
+   */
+  @State keyboardShiftY: number = 0;
   @State correctionMode: CorrectionMode = CorrectionMode.MODERN;
   /** 1920s 分层字车是否可用（层文件缺失时回退旧 strip，不许空白/崩溃）。 */
   @State useLayers: boolean = true;
@@ -4868,12 +4873,24 @@ struct Index {
       onPaper: (): void => { this.onPaperChange(); },
       onBackLine: (): void => { this.onBackLine(); },
       onSymbols: (): void => {
-        this.symbolMode = !this.symbolMode;
-        // 批 72：重建后的新键盘从 0.25 淡入到 1（140ms EaseOut）——「柔和浮现」而非硬闪
-        this.keyboardFade = 0.25;
-        this.getUIContext().animateTo({ duration: 140, curve: Curve.EaseOut }, () => {
-          this.keyboardFade = 1;
+        // 批 73（用户定）：旧键沉下去消失 → 新键从井下方替补上来。
+        // 下沉量＝整个键盘井高（stageLayout.keyH）——沉这么多就完全出井、被井 clip 裁掉，不写死。
+        const shift: number = this.stageLayout26().keyH;
+        // ① 旧键出：下沉 + 淡出（150ms EaseIn）
+        this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+          this.keyboardShiftY = shift;
+          this.keyboardFade = 0;
         });
+        setTimeout(() => {
+          // ② 换内容（新键此刻仍在井下方 = shift 处、透明度 0）
+          this.symbolMode = !this.symbolMode;
+          this.keyboardFade = 0;
+          // ③ 新键入：从 shift 升回 0 + 淡入（200ms EaseOut）
+          this.getUIContext().animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+            this.keyboardShiftY = 0;
+            this.keyboardFade = 1;
+          });
+        }, 155);
       },
     })
       .id('p26_function_caps')
@@ -4924,6 +4941,7 @@ struct Index {
         shiftActive: this.shiftActive,
         symbolMode: this.symbolMode,
         kbOpacity: this.keyboardFade,
+        kbShiftY: this.keyboardShiftY,
         sx: this.xk(), sy: this.yk(),
         capsActive: this.capsLock,
         foldBand: this.layoutMode === 'desk',

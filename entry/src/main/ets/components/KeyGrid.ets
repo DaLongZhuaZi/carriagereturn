@@ -59,6 +59,12 @@ export struct KeyGrid {
    * 而不是一帧硬切（重建本身躲不掉，但视觉上不再闪）。
    */
   @Prop kbOpacity: number = 1;
+  /**
+   * 批 73（用户 2026-11-22 01:30 定）：键盘整体纵向位移（vp）。
+   * 切换字母/符号时做「旧键沉下去消失、新键从下方替补上来」：
+   * 旧键 → +下沉量并淡出（被键盘井裁掉）；新键 → 从 +下沉量升回 0 并淡入。
+   */
+  @Prop kbShiftY: number = 0;
   @Prop overlayFontFamily: string = 'CourierPrime';
   @Prop overlayFontSize: number = 15;
   @Prop labelColor: string = '#312b24';
@@ -499,5 +505,7 @@ export struct KeyGrid {
     .justifyContent(FlexAlign.Center)
     // 批 72：切换字母/符号后整体柔和高透明度淡入（重建躲不掉，但视觉上不再硬闪）
     .opacity(this.kbOpacity)
+    // 批 73：纵向位移——旧键下沉出井、新键从井下方升上来
+    .translate({ y: this.kbShiftY })
   }
 }
