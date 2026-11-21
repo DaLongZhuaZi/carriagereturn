@@ -64,6 +64,16 @@ export struct Carriage26 {
   @Prop contentOpacity: number = 1;
   @Prop pageNo: string = '';
   @Prop strikePhase: number = 0;
+  /**
+   * 批 68（任务 2）：用户拖动纸的位移（vp）。0＝落字位；＞0＝纸被向下拉、露出上半截。
+   * 上界由 Index 按「纸高 − 视口高」钳制（自适应，不写死）。
+   */
+  @Prop paperUserOffsetVp: number = 0;
+  /** 批 68（任务 4）：换纸动画位移（vp）。负＝旧纸向上飞出；正＝新纸藏在视口下方。 */
+  @Prop paperFlyVp: number = 0;
+  /** 批 68（任务 2）：拖动回调——把手势位移交给 Index 钳制与存档。 */
+  onPaperPanStart: () => void = (): void => {};
+  onPaperPanUpdate: (dy: number) => void = (dy: number): void => {};
 
   /** 批 38（平板竖屏首验）：几何打点——用来对账「纸实际画在哪、多宽」。 */
   aboutToAppear(): void {
@@ -177,9 +187,19 @@ export struct Carriage26 {
               .hitTestBehavior(HitTestMode.None)
           }
           .width('100%')
-          .height('100%')
+          // 批 68（任务 1）：必须是**确定的数**——`'100%'` 在 Stack 里落不到确定高度，
+          // Column 按内容定高、justifyContent(End) 等于没生效，纸被顶锚定 ⇒ 纸一长就向下伸进字篮井。
+          // 用 paperAreaH()（＝zoneHVp−18，由 stageLayout 推导）后纸底才真正钉住视口底。
+          .height(this.paperAreaH())
           .justifyContent(FlexAlign.End)
           .alignItems(HorizontalAlign.Center)
+          // 批 68：滑动位移（任务 2）＋换纸飞行位移（任务 4）叠加，只动渲染位置，不改纸高/scrollY
+          .translate({ y: this.paperUserOffsetVp + this.paperFlyVp })
+          .gesture(
+            PanGesture({ fingers: 1, distance: 8 })
+              .onActionStart(() => { this.onPaperPanStart(); })
+              .onActionUpdate((e: GestureEvent) => { this.onPaperPanUpdate(e.offsetY); })
+          )
 
           // 落字指针（跟随光标：纸左缘 ＋ 左边距 ＋ 光标纸内 x ＋ 字车 O；由字车组统一位移）
           Column().width(2).height(10)

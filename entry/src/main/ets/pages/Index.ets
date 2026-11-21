@@ -352,6 +352,15 @@ struct Index {
   @State paperGrowVp: number = 306;
   /** 批 43：标题/光标不透明度（纸到位后才淡入）。 */
   @State paperContentOpacity: number = 1;
+  /**
+   * 批 68（任务 2）：用户拖动纸的位移（vp）。0＝落字位；＞0＝纸被向下拉、露出上半截。
+   * 钳制上界＝max(0, 纸高 − 视口高)，由 layout 与纸内容高推导，不写死。
+   */
+  @State paperUserOffsetVp: number = 0;
+  /** 批 68（任务 4）：换纸动画位移（vp）。负＝旧纸向上飞出；正＝新纸藏在视口下方。 */
+  @State paperFlyVp: number = 0;
+  /** 手势起点偏移（拖动开始时记一次，update 用「起点＋累计位移」）。 */
+  private panStartOffsetVp: number = 0;
   @State functionRowHeight: number = FUNCTION_ROW_HEIGHT_VP;
   @State regionHeightVp: number = 461;
   /** 窗口可用尺寸（vp，onAreaChange 实测，减 inset 后）。 */
@@ -1582,6 +1591,48 @@ struct Index {
     if (mono.indexOf(family) >= 0) { return 'monospace'; }
     if (serif.indexOf(family) >= 0) { return 'serif'; }
     return 'cursive';
+  }
+
+  /**
+   * 批 68（任务 1/2）：纸视口高（vp）——与 `Carriage26.paperAreaH()` 同口径：
+   * 纸区槽高 − 底部家具 18vp（「横尺 12 ＋ 间隙 2 ＋ 色带 4」是批 64 flex 化的既有家具高，不是新常数）。
+   */
+  private paperAreaHVp(): number {
+    const h: number = this.stageLayout26().paperH - 18;
+    return h > 0 ? h : 0;
+  }
+
+  /**
+   * 批 68（任务 2）：滑动位移钳制 `[0, max(0, 纸高 − 视口高)]`。
+   * 自适应：上界由纸内容高与 layout 推导，纸比视口短时上界为 0 ⇒ 不可滑。
+   */
+  private clampPaperOffsetVp(v: number): number {
+    const maxV: number = Math.max(0, this.paperGrowVp - this.paperAreaHVp());
+    if (v < 0) { return 0; }
+    return v > maxV ? maxV : v;
+  }
+
+  /** 批 68（任务 2）：拖动开始——记起点偏移。 */
+  private onPaperPanStart(): void {
+    this.panStartOffsetVp = this.paperUserOffsetVp;
+  }
+
+  /** 批 68（任务 2）：拖动更新——手指位移量即纸位移量（vp），不另设速率。 */
+  private onPaperPanUpdate(dy: number): void {
+    this.paperUserOffsetVp = this.clampPaperOffsetVp(this.panStartOffsetVp + dy);
+    hilog.info(DOMAIN, TAG, 'paperPan dy=%{public}s off=%{public}s max=%{public}s',
+      dy.toFixed(1), this.paperUserOffsetVp.toFixed(1),
+      Math.max(0, this.paperGrowVp - this.paperAreaHVp()).toFixed(1));
+  }
+
+  /** 批 68（任务 3）：下一次落字时把滑动位移动画回 0（250ms）。 */
+  private settlePaperOffset(): void {
+    if (this.paperUserOffsetVp <= 0) { return; }
+    hilog.info(DOMAIN, TAG, 'paperOffset settle from=%{public}s -> 0',
+      this.paperUserOffsetVp.toFixed(1));
+    this.getUIContext().animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
+      this.paperUserOffsetVp = 0;
+    });
   }
 
   private paperVisibleTargetVp(): number {
@@ -3684,6 +3735,8 @@ struct Index {
   }
 
   private commitChar(ch: string): void {
+    // 批 68（任务 3）：落字即回位——把用户拖出的滑动位动画回 0（250ms）
+    this.settlePaperOffset();
     if (this.paperChanging) {
       return;
     }
@@ -3873,7 +3926,9 @@ struct Index {
       }
       return;
     }
-    const o = this.docModel.backspace();
+    // 批 68（任务 3）：退格也回位
+      this.settlePaperOffset();
+      const o = this.docModel.backspace();
     if (o.changed) {
       this.syncRows();
       this.animateGuide();
@@ -4038,20 +4093,19 @@ struct Index {
     // 批 64（T6 余项）：box 改为按纸顶派生（容器字段已删）；整张模式 paperFullSheet 无消费者，一并删除。
     hilog.info(DOMAIN, TAG, 'paperChange start top=%{public}s box=%{public}s',
       startTop.toFixed(1), (this.carriageTopVp - startTop + 2).toFixed(1));
-    // ① 旧纸向上卷出顶部 300ms：纸整体上移约一个纸高并淡出（不是沉进滚筒），滚筒同转
-    const outTop: number = startTop - this.paperHeightVp;
-    // 批 64（T6 余项）：Canvas 分支删除（canvasEnabled 恒 false）。
-    this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-      this.paperTopVp = outTop;
-      this.paperOpacity = 0;
+    // ① 批 68（任务 4）：旧纸**向上飞出视口顶** 300ms，同时淡出。
+    // 飞出距离＝纸高＋视口高（全由 layout 与纸内容高推导），保证整张纸完全出顶。
+    const outFly: number = -(this.paperGrowVp + this.paperAreaHVp());
+    this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseIn }, () => {
+      this.paperFlyVp = outFly;
+      this.paperContentOpacity = 0;
       this.knobAngle = this.knobAngle + 180;
       // 半圈对应的筒面长度 = π×Hc/2，纹理纵向滚同样长度
       this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
     });
-    // animateTo 立即赋终值：同步读即为目标态，可证明方向（负值=向上卷出）
-    hilog.info(DOMAIN, TAG, 'paperChange step1 target top=%{public}s opacity=%{public}s (neg=up)',
-      this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
-    this.pcTrace('step1', pcT0, 'targetTop=' + this.paperTopVp.toFixed(1));
+    hilog.info(DOMAIN, TAG, 'paperChange step1 fly=%{public}s opacity=%{public}s (neg=up)',
+      this.paperFlyVp.toFixed(1), this.paperContentOpacity.toFixed(2));
+    this.pcTrace('step1', pcT0, 'fly=' + this.paperFlyVp.toFixed(1));
     setTimeout(() => {
       // 第 9 批 F12：step1-settled——300ms 定时器回调第一行，dt 即定时器漂移量（期望 ≈300ms，允 ±50）
       this.pcTrace('step1-settled', pcT0, 'expect=300');
@@ -4083,21 +4137,22 @@ struct Index {
       // ★改：新纸从滚筒里卷出——动画开始前先把纸顶放到滚筒处藏起来（只露 2vp 纸底缘），
       // 再让 recalcPaperHeight() 把它推到起打位。纸顶从滚筒处往上长出来，不是从天上掉下来。
       this.paperTopVp = this.carriageTopVp;
-      // ★改：opacity 在动画开始前恢复（否则纸在滚筒处透明/中途 clip 突变闪现）。
-      // 批 64（T6 余项）：容器字段与整张模式 paperFullSheet 已删，打点只记纸顶。
-      this.paperOpacity = 1;
-      this.pcTrace('step2-hide', pcT0, 'top=' + this.paperTopVp.toFixed(1));
-      // 打点在 animateTo 之前：此时 paperTop 就是「藏在滚筒处」的值（应 ≈ carriageTop）
-      hilog.info(DOMAIN, TAG, 'paperChange step2 hide top=%{public}s carriageTop=%{public}s',
-        this.paperTopVp.toFixed(1), this.carriageTopVp.toFixed(1));
-      // 批 64（T6 余项）：Canvas 纸段 mode 2 分支删除（canvasEnabled 恒 false）。
-      this.getUIContext().animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+      // 批 68（任务 4）：新纸先藏到**视口下方**（＋视口高，被视口 clip 藏住、透明度 0），
+      // 再滑到 0 并淡入 ⇒ 新纸从下方出现、落到落字位。
+      this.paperFlyVp = this.paperAreaHVp();
+      this.paperContentOpacity = 0;
+      this.pcTrace('step2-hide', pcT0, 'fly=' + this.paperFlyVp.toFixed(1));
+      hilog.info(DOMAIN, TAG, 'paperChange step2 hide fly=%{public}s areaH=%{public}s',
+        this.paperFlyVp.toFixed(1), this.paperAreaHVp().toFixed(1));
+      this.getUIContext().animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
         this.recalcPaperHeight('paper2');
+        this.paperFlyVp = 0;
+        this.paperContentOpacity = 1;
         this.knobAngle = this.knobAngle + 180;
         this.texOffsetVp = this.texOffsetVp - Math.PI * this.carriageHeight / 2;
       });
-      hilog.info(DOMAIN, TAG, 'paperChange step2 top=%{public}s opacity=%{public}s',
-        this.paperTopVp.toFixed(1), this.paperOpacity.toFixed(2));
+      hilog.info(DOMAIN, TAG, 'paperChange step2 fly=%{public}s opacity=%{public}s',
+        this.paperFlyVp.toFixed(1), this.paperContentOpacity.toFixed(2));
       hilog.info(DOMAIN, TAG, 'paperChange done at 600ms knob=%{public}s top=%{public}s',
         this.knobAngle.toFixed(1), this.paperTopVp.toFixed(1));
       this.pcTrace('step2-begin', pcT0, 'knob=' + this.knobAngle.toFixed(1));
@@ -4109,6 +4164,8 @@ struct Index {
   }
 
   private onNewline(): void {
+    // 批 68（任务 3）：回车也回位
+    this.settlePaperOffset();
     // §18.6 第 1 件：与删／退行统一守旗
     if (this.newlineBusy || this.backBusy) {
       hilog.info(DOMAIN, TAG, 'newline skipped: busy nl=%{public}s bl=%{public}s',
@@ -4688,6 +4745,11 @@ struct Index {
       paperHVp: this.paperGrowVp,
       sx: this.xk(), sy: this.yk(),
       offsetXVp: this.carriageOffsetVp,
+      // 批 68：纸的滑动位移（任务 2）与换纸飞行位移（任务 4），均在 Carriage26 内叠加到 translate
+      paperUserOffsetVp: this.paperUserOffsetVp,
+      paperFlyVp: this.paperFlyVp,
+      onPaperPanStart: (): void => { this.onPaperPanStart(); },
+      onPaperPanUpdate: (dy: number): void => { this.onPaperPanUpdate(dy); },
       strikePhase: this.strikePhase,
       lines: this.docLineTexts(),
       fontSizeVp: this.fontSizeVp,

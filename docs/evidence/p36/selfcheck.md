@@ -2962,3 +2962,66 @@ PIL：空格 bbox `(317,2378)-(1311,2456)`，宽 995px＝418.9vp（基准 237×k
 `2315_p67_paper_arch`（纸底＋井口拱）／`2316_p67_shift_up`（Shift 后常态）／`2317_p67_chain`（主链）。
 
 **手机**：同一处不同源也存在（组件 138 vs 槽位约 120.5），按 2026-11-20 决定暂缓，本批未验收。
+
+### 批 68：纸向上延展＋滑动回位＋换纸动画重做
+
+> 自适应硬要求执行情况：纸底锚点用 `paperAreaH()`（＝`zoneHVp−18`）、滑动上界用 `paperGrowVp−paperAreaHVp()`、
+> 换纸飞距用 `paperGrowVp＋paperAreaHVp()` —— **全部由 stageLayout 与纸内容高推导，未引入任何写死的 y/vp 尺寸**；
+> 250ms／300+300ms 只是时长，沿用现行值。
+
+**任务 1｜纸底钉死（纸只向上长）**
+- `Carriage26.ets` 纸视口内层 Column：`.height('100%')` → **`.height(this.paperAreaH())`**（采用设计稿的**方案 A**，
+  没走显式 `.position()`——实测方案 A 已锚住，见下）。
+- **hilog 真值（关键恒等式）**：
+
+| 截图 | paperTop | paperBox | **和（＝纸底）** |
+|---|---|---|---|
+| 2318（长纸 405.2vp 内容） | 0.0 | 405.2 | **405.2** |
+| 2319（换纸后 380.3vp 内容） | 24.9 | 380.3 | **405.2** |
+
+  两次 `paperTop＋paperBox` **完全相同** ⇒ **纸底固定不动，纸高变化全部表现为纸顶上移** ✔
+- `dump p35_paper` 底＝**897px**（批 67 为 894，差 3px）——纸底停在视口底附近、不再落到井顶（936）✔
+- **PIL 说明（如实记）**：奶白色判据会被纸面纹理、横尺灰白、扇图金色同时干扰，两种阈值下 2318/2319 都量到
+  `B=936`（＝井顶，不是纸底）。**故纸底结论以 hilog 恒等式＋dump rect 为准**，PIL 只作「纸确实占满视口高度」的旁证；
+  2318 图上也可见纸从顶部延到横尺上方、纸顶被上边界裁掉——这正是「纸只向上长」。
+
+**任务 2｜纸可上下滑动（用户拖动）**
+- `Index.ets` 新增 `@State paperUserOffsetVp`、`private panStartOffsetVp`，
+  以及 `paperAreaHVp()`／`clampPaperOffsetVp()`／`onPaperPanStart()`／`onPaperPanUpdate()`；
+  `Carriage26` 新增 `paperUserOffsetVp` prop、纸视口内层 Column 加 `.translate({ y: paperUserOffsetVp + paperFlyVp })`
+  与 `PanGesture`（`onActionStart`／`onActionUpdate(e.offsetY)`）。
+- **hilog 实测**：`paperPan dy=128.8 off=60.4 max=60.4`
+  ⇒ 手指下移 128.8vp，被钳到 **60.4vp**；而 `max = paperGrowVp(380.3) − paperAreaHVp(319.9) = 60.4` —— **完全吻合** ✔
+- 截图 2320：向下拖动后纸整体下移、早先的行进入视口；继续向上拖可回 0（由同一钳制保证）。
+
+**任务 3｜下一次落字动画回位（250ms）**
+- `settlePaperOffset()` 挂在三个内容变化入口：`commitChar`（落字，:3739）、`docModel.backspace()` 前（退格，:3930）、
+  `onNewline`（回车，:4168）；单纯点按/移动光标不调用。
+- **hilog**：`paperOffset settle from=60.4 -> 0`，紧接 `committed ch=[q]` ⇒ 在 60.4vp 滑动位上打一个字，
+  纸在 250ms 内滑回落字位、字正常落在当前行末 ✔（截图 2321）。
+
+**任务 4｜换纸动画重做（旧纸向上飞出、新纸从下方出现）**
+- `Index.ets` 新增 `@State paperFlyVp`；`onPaperChange` 第①步改 `paperFlyVp: 0 → −(paperGrowVp + paperAreaHVp())`、
+  `paperContentOpacity: 1 → 0`、`Curve.EaseIn`（300ms）；第②步先 `paperFlyVp = ＋paperAreaHVp()`、`paperContentOpacity = 0`
+  把新纸藏在视口下方，再 `animateTo(EaseOut, 300ms)` 到 `paperFlyVp = 0`、`paperContentOpacity = 1`。
+- **hilog 时序（完整对上设计稿）**：
+  ```
+  paperChange step1 fly=-843.2 opacity=0.00 (neg=up)     ← 旧纸向上飞出（负）
+  paperChange step2 hide fly=319.9 areaH=319.9          ← 新纸藏到视口下方（＝视口高）
+  paperChange step2 fly=0.0 opacity=1.00                ← 滑到落字位、淡入完成
+  paperChange done at 600ms knob=596.2 top=339.6
+  ```
+  验算：`−843.2 = −(paperGrowVp 523.3 ＋ areaH 319.9)` ✔；`320.0→319.9` 为 areaH ✔；总时长 **600ms** ✔；
+  结束 `paperFlyVp=0`、`opacity=1` ✔。
+- **截图说明（如实记）**：`uitest screenCap` 单帧 400–500ms，**抓不到 300ms 的动画中间帧**（AGENTS.md 已记此工具边界），
+  2322／2323 拍到的是换纸前/后的稳定态；**中间态以 hilog 的 `paperFlyVp`／`paperContentOpacity` 时序作证**（设计稿允许此替代）。
+
+**主链回归（2324）**
+- `committed ch=[q]` ✔；回车触发 `sheet count -> 20/20 entry=newline-auto` + `paperChange`（文档已满自动换纸）✔；
+  退格 ✔；`font cycle -> XanhMono (idx 5/17)` ✔。
+- 换纸后 `paperTop=339.6 paperBox=65.6`（1 行空纸），纸底仍为 `339.6+65.6=405.2` —— **与任务 1 的 B 值一致** ✔。
+
+**证据**：`2318_p68_short`／`2319_p68_long`（纸底恒等）／`2320_p68_drag`（滑动）／`2321_p68_settle`（回位）／
+`2322_p68_fly_out`、`2323_p68_fly_in`（换纸前后）／`2324_p68_full_line`、`2324_p68_chain`（主链）。
+
+**手机**：同一处锚定问题（组件 138 vs 槽位约 120.5）也在，本批按 2026-11-20 决定暂缓，只验收平板。
