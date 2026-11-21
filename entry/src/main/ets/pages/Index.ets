@@ -1566,8 +1566,9 @@ struct Index {
   }
   /** 批 64（T3）：行宽＝纸宽 − 左右边距。旧口径 235·k（平板 307.9）比纸还宽，纸面会溢出，作废。 */
   private lineWidth26(): number {
-    const ml: number = (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk();
-    const mr: number = (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk();
+    // 批 64（用户 2026-11-21）：与 stagePaper 的 marginLVp/marginRVp 同口径——边距不随屏幕放大
+    const ml: number = this.customMarginH > 0 ? this.customMarginH : 25;
+    const mr: number = this.customMarginH > 0 ? this.customMarginH : 30;
     const w: number = this.paperPanelWidthVp() - ml - mr;
     return w > 40 ? w : 40;
   }
@@ -1936,7 +1937,7 @@ struct Index {
       }
       // 批 62（任务 1）：字号读回——存过的用存的值（clamp [12,26]）；没存过才用 220vp 口径的现算值
       const storedFs: number = CustomizeStore.fontSize(this.machineKind as string);
-      this.fontSizeVp = storedFs > 0 ? storedFs : (this.paperPanelWidthVp() / 220 * 11.9);
+      this.fontSizeVp = storedFs > 0 ? storedFs : (11.9 * Math.sqrt(this.paperPanelWidthVp() / 220));
       this.measureAdvance();
       // §18.9：行高与语言无关，唯一公式 fontSize×30/17
       this.lineHeightVp = lineHeightOf(this.fontSizeVp);
@@ -4692,8 +4693,9 @@ struct Index {
       fontSizeVp: this.fontSizeVp,
       lineHeightVp: this.lineHeightVp,
       // 批 62（任务 4）：自定义边距接上——未自定义时用现行等效默认值（左25/右30/上31），外观不变
-      marginLVp: (this.customMarginH > 0 ? this.customMarginH : 25) * this.xk(),
-      marginRVp: (this.customMarginH > 0 ? this.customMarginH : 30) * this.xk(),
+      // 批 64（用户 2026-11-21）：边距是**版心留白**，不随屏幕放大（否则字距/边距一起涨，每行字数永远不变）
+      marginLVp: this.customMarginH > 0 ? this.customMarginH : 25,
+      marginRVp: this.customMarginH > 0 ? this.customMarginH : 30,
       marginTVp: (this.customMarginT > 0 ? this.customMarginT : 31) * this.yk(),
       fontFamily: this.genericFamilyFor(this.fontFamily),   // 批 54：字体条切换即改变纸面渲染
       textColor: this.inkColor,

@@ -184,12 +184,22 @@ export struct KeyGrid {
   }
 
   /**
-   * 横向缩放（批 64 用户 2026-11-21）：键宽随键盘井宽等比放大，井变宽时键自己变大，
-   * 而不是只把 SpaceBetween 的间距拉稀（那会让键盘看着空旷）。
-   * 基准 362.7＝手机宽；平板铺满后 widthVp=673.7 ⇒ 1.857。
+   * 键帽等比缩放系数（批 64 用户 2026-11-21「智能键盘」）。
+   *
+   * 错误做法（已作废）：横向单独放大 `widthVp/362.7`＝1.857、纵向仍 1.3106
+   * ⇒ 键帽被拉成扁的，键帽素材必然变形。
+   *
+   * 正确做法：**键帽只做等比缩放，系数取「宽比/高比」的较小者**——
+   *  · 高比 = 井高 / 基准五行总高（5×34.5 + 4×6.9 = 207）
+   *  · 宽比 = 井宽 / 基准宽 362.7
+   * 取小者保证：任何分辨率下键帽宽高比不变（素材不被拉伸），
+   * 横向多出来的余量交给 `Row(SpaceBetween)` 当间距吸收。
    */
   private kx(): number {
-    return this.widthVp > 0 ? this.widthVp / 362.7 : (this.sx > 0 ? this.sx : 1);
+    const byW: number = this.widthVp > 0 ? this.widthVp / 362.7 : 1;
+    const byH: number = this.heightVp > 0 ? this.heightVp / (KB_ROW_H * 5 + KB_VGAP * 4) : 1;
+    const k: number = byW < byH ? byW : byH;
+    return k > 0 ? k : 1;
   }
 
   /** 平铺后每个键的绝对位置（键区内 x 从 12 起，横缝 3）。 */
