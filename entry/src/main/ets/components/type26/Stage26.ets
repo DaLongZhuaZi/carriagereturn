@@ -54,11 +54,18 @@ export class StageLayout {
   paperCapped: boolean = false;
 
   constructor(availW: number, availH: number) {
-    const byH: number = availH * MACHINE_RATIO;
     this.stageW = availW;
     this.stageH = availH;
-    this.machineW = availW < byH ? availW : byH;
-    this.machineLeft = (availW - this.machineW) / 2;
+    /**
+     * 批 64（用户 2026-11-21 定）：机器宽＝**可用宽**（铺满），不再按机器长宽比封顶。
+     *
+     * 旧口径 `min(availW, availH × 362.7/822.5)` 在竖屏平板上恒为 475.3vp（按高度算），
+     * 永远比屏宽 673.7vp 窄 198vp ⇒ 打字页左右两侧各空 99vp。用户判定「依然没有正确自适应」。
+     * 新口径：机器横向铺满；高度仍由「固定高 + 320:138:172.6 权重」分配，
+     * 机器的长宽比只作参考，不再约束宽度。
+     */
+    this.machineW = availW;
+    this.machineLeft = 0;
     this.paperW = this.machineW * 0.606;
     this.paperMaxH = this.machineW * PAPER_MAX_RATIO;
 

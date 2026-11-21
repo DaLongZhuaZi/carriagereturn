@@ -1532,9 +1532,9 @@ struct Index {
     return w > 0 ? w : 360;
   }
 
-  /** 批 64（N2）：机器宽＝362.7·k（打字页三容器的基准，不再用整画布宽）。 */
+  /** 批 64（N2）：机器宽＝舞台宽（批 64 用户 2026-11-21：打字页横向铺满，不再按机器长宽比收窄）。 */
   private machineWidth26(): number {
-    return 362.7 * this.xk();
+    return this.stageWidth > 0 ? this.stageWidth : 362.7 * this.machineK26();
   }
 
   /** 批 64（T3）：舞台换算表（与 Stage26 同式同参），供纸区等槽位取区高。 */
@@ -1546,7 +1546,16 @@ struct Index {
     const w: number = 362.7 * this.machineK26();
     return (this.stageWidth - w) / 2;
   }
-  private xk(): number { return this.machineK26(); }
+  /**
+   * 横向缩放＝机器宽 / 362.7（批 64 用户 2026-11-21）。
+   *
+   * 旧口径 `xk() === yk() === machineK26() === min(宽比, 高比)`：竖屏平板上被**高度**卡死在 1.3106，
+   * 于是所有横向基准（纸宽、字体条、键井、纸面板内距）都停在手机比例的 1.31 倍，
+   * 机器宽 475.3vp 而屏宽 673.7vp ⇒ 打字页左右各空 99vp。用户判定「依然没有正确自适应」。
+   * 新口径：横向独立按机器宽铺满（1.857），纵向仍按高度比（1.3106）——即允许非等比，换来铺满。
+   * 33 处 `this.xk()` 调用点因此自动跟随，不需要逐个改。
+   */
+  private xk(): number { return this.machineWidth26() / 362.7; }
   private yk(): number { return this.machineK26(); }
   private t26x(base: number): number { return base * this.xk(); }
   private t26y(base: number): number { return base * this.yk(); }

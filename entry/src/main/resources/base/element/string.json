@@ -154,7 +154,7 @@
     },
     {
       "name": "page_customize",
-      "value": "换装"
+      "value": "主题"
     },
     {
       "name": "page_settings",
@@ -258,7 +258,7 @@
     },
     {
       "name": "guide_home_3",
-      "value": "底部一行是卷宗、收藏、换装、设置和导出。"
+      "value": "底部一行是卷宗、收藏、主题、设置和导出。"
     },
     {
       "name": "guide_dossier_title",
@@ -338,7 +338,7 @@
     },
     {
       "name": "guide_collection_3",
-      "value": "设置当前机器后，打字机立刻换装。"
+      "value": "设置当前机器后，打字机立刻主题。"
     },
     {
       "name": "guide_collection_detail_title",
@@ -362,7 +362,7 @@
     },
     {
       "name": "guide_customize_title",
-      "value": "换装"
+      "value": "主题"
     },
     {
       "name": "guide_customize_hint",
@@ -370,7 +370,7 @@
     },
     {
       "name": "guide_customize_1",
-      "value": "换装会即时生效，不用重启。"
+      "value": "主题会即时生效，不用重启。"
     },
     {
       "name": "guide_customize_2",
@@ -470,7 +470,7 @@
     },
     {
       "name": "guide_onboarding_3",
-      "value": "四台时代机在「收藏」里，随时换装。"
+      "value": "四台时代机在「收藏」里，随时主题。"
     },
     {
       "name": "guide_onboarding_4",
@@ -966,11 +966,11 @@
     },
     {
       "name": "guide_onboarding2_p2_title",
-      "value": "机器与换装"
+      "value": "机器与主题"
     },
     {
       "name": "guide_onboarding2_p2_body",
-      "value": "1920s／1930s／1950s／1960s 四台时代机在「收藏」里随时换；信纸／色带／字体在换装里选，即时生效，字体、纸张可导入自定义。"
+      "value": "1920s／1930s／1950s／1960s 四台时代机在「收藏」里随时换；信纸／色带／字体在主题里选，即时生效，字体、纸张可导入自定义。"
     },
     {
       "name": "guide_onboarding2_p3_title",
@@ -986,7 +986,7 @@
     },
     {
       "name": "guide_onboarding2_p4_body",
-      "value": "导出成图片、PDF 或纯文本，可只存本地或直接分享；14 项行为成就，打字、分享、换装都会解锁。"
+      "value": "导出成图片、PDF 或纯文本，可只存本地或直接分享；14 项行为成就，打字、分享、主题都会解锁。"
     },
     {
       "name": "guide_onboarding2_p5_title",

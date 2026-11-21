@@ -183,10 +183,20 @@ export struct KeyGrid {
     ];
   }
 
+  /**
+   * 横向缩放（批 64 用户 2026-11-21）：键宽随键盘井宽等比放大，井变宽时键自己变大，
+   * 而不是只把 SpaceBetween 的间距拉稀（那会让键盘看着空旷）。
+   * 基准 362.7＝手机宽；平板铺满后 widthVp=673.7 ⇒ 1.857。
+   */
+  private kx(): number {
+    return this.widthVp > 0 ? this.widthVp / 362.7 : (this.sx > 0 ? this.sx : 1);
+  }
+
   /** 平铺后每个键的绝对位置（键区内 x 从 12 起，横缝 3）。 */
   private placed(): K33Placed[] {
     const out: K33Placed[] = [];
     const rows: K33Row[] = this.rows();
+    const kx: number = this.kx();
     for (let r = 0; r < rows.length; r++) {
       let x: number = KB_X0;
       const keys: K33Key[] = rows[r].keys;
@@ -198,7 +208,7 @@ export struct KeyGrid {
         }
         out.push({
           label: k.label, legend: k.legend, sub: k.sub, x: px * this.sx,
-          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w, kind: k.kind,
+          y: (rows[r].y + (KB_ROW_H - KB_CAP_H) / 2) * this.sy, w: k.w * kx, kind: k.kind,
           id: (this.symbolMode ? 'S' : 'L') + ':' + rows[r].y.toString() + ':' + i.toString(),
           up: k.up, alt: k.alt,
         });
@@ -242,8 +252,9 @@ export struct KeyGrid {
       return out;
     }
     let sumW: number = 0;
+    const kx: number = this.kx();
     for (let i = 0; i < keys.length; i++) {
-      sumW += keys[i].w;
+      sumW += keys[i].w * kx;
     }
     const rowW: number = this.widthVp - KB_X0 * 2;
     const gap: number = (rowW - sumW) / (keys.length - 1);
@@ -252,7 +263,7 @@ export struct KeyGrid {
     }
     let x: number = 0;
     for (let i = 0; i < keys.length - 1; i++) {
-      x += keys[i].w;
+      x += keys[i].w * kx;
       out.push(x + gap / 2);
       x += gap;
     }

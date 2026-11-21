@@ -204,7 +204,7 @@ export struct HomePage {
       Row() {
         this.entryLink('卷宗', 'dossier')
         this.entryLink('收藏', 'collection')
-        this.entryLink('换装', 'customize')
+        this.entryLink('主题', 'customize')
         this.entryLink('设置', 'settings')
         this.entryLink('导出', 'export')
       }
