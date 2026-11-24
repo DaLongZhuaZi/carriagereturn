@@ -1,4 +1,5 @@
 import { curves } from '@kit.ArkUI';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 /**
  * 26 号稿（打字页面推倒重来）· 零件层：整机一体的盖子／字车／字篮／融盖控件／纸。
  *
@@ -296,6 +297,19 @@ export struct TopZone26 {
 // ---------------------------------------------------------------------------
 // 盖子（机身）：木纹＋柔光＋字篮区 4 颗螺丝（另 4 颗在钢板四角，由 KeyWell 开孔露出）
 // ---------------------------------------------------------------------------
+
+/**
+ * 批 78：柔光素材是同一设计的两种画幅（数值是**素材自身属性**，不是设备常量）：
+ *   手机版 `lid-sheen-v2.png`     1224×2776 ⇒ 0.4409
+ *   平板宽版 `lid-sheen-v2-wide.png` 1600×2560 ⇒ 0.625
+ * 选图只比「盖板盒宽高比（widthVp/heightVp）更接近哪张」，再配 ImageFit.Contain——
+ * 盒比与图比 1:1 ⇒ 铺满且零拉伸（不再需要 Fill 例外）。
+ */
+const LID_SHEEN_ASPECT_PHONE: number = 1224 / 2776;
+const LID_SHEEN_ASPECT_WIDE: number = 1600 / 2560;
+const LID_LOG_TAG: string = 'Lid26';
+const LID_LOG_DOMAIN: number = 0x0100;
+
 @Component
 export struct Lid26 {
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
@@ -304,6 +318,40 @@ export struct Lid26 {
   @Prop sx: number = 1;
   @Prop sy: number = 1;
   @Prop topVp: number = 104;
+
+  /** 批 78：选图打点（每次盖板组件创建一次，供真机取证）。 */
+  aboutToAppear(): void {
+    hilog.info(LID_LOG_DOMAIN, LID_LOG_TAG, 'lidSheen wide=%{public}d aspect=%{public}s',
+      this.lidSheenWide() ? 1 : 0, this.lidAspect().toFixed(4));
+  }
+
+  /** 盖板盒宽高比：由布局量 widthVp/heightVp 派生（异常值回落手机画幅）。 */
+  private lidAspect(): number {
+    if (this.widthVp > 0 && this.heightVp > 0) {
+      return this.widthVp / this.heightVp;
+    }
+    return LID_SHEEN_ASPECT_PHONE;
+  }
+
+  /** 批 78：盒比更接近平板画幅（0.625）用宽版，否则用手机原图（0.4409）。 */
+  private lidSheenWide(): boolean {
+    const a: number = this.lidAspect();
+    return Math.abs(a - LID_SHEEN_ASPECT_WIDE) < Math.abs(a - LID_SHEEN_ASPECT_PHONE);
+  }
+
+  /** 柔光层：Contain＋等画幅图 ⇒ 1:1 铺满、不拉伸、无留白。 */
+  @Builder
+  sheen() {
+    if (this.lidSheenWide()) {
+      Image($rawfile('ui-parts/lid-sheen-v2-wide.png'))
+        .width('100%').height('100%').objectFit(ImageFit.Contain)
+        .hitTestBehavior(HitTestMode.None)
+    } else {
+      Image($rawfile('ui-parts/lid-sheen-v2.png'))
+        .width('100%').height('100%').objectFit(ImageFit.Contain)
+        .hitTestBehavior(HitTestMode.None)
+    }
+  }
 
   @Builder
   screw(cx: number, cy: number) {
@@ -331,10 +379,9 @@ export struct Lid26 {
       // 批 38 §1a：光滑珐琅——纯色底＋边缘倒角线（1.5vp、比 token 亮 L+0.08）
       Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
         .hitTestBehavior(HitTestMode.None)
-      // 批 40（任务 1）：机盖柔光改预渲染贴图（真机 radial/blur 会出黄块，一律走 PNG 1:1 叠加）
-      Image($rawfile('ui-parts/lid-sheen-v2.png'))
-        .width('100%').height('100%').objectFit(ImageFit.Fill)
-        .hitTestBehavior(HitTestMode.None)
+      // 批 40（任务 1）：机盖柔光改预渲染贴图（真机 radial/blur 会出黄块，一律走 PNG 叠加）；
+      // 批 78：按盖板盒宽高比选画幅＋Contain（盒比＝图比 1:1，铺满不拉伸，取消 Fill 例外）。
+      this.sheen()
 
       // 批 38 §1b：边缘倒角线（最上层，1.5vp、比 token 亮 L+0.08，沿盖面边缘一圈）
       Column().width('100%').height('100%')
