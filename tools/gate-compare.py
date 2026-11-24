@@ -44,8 +44,9 @@ REGIONS: List[Tuple[str, float, float, float, float]] = [
 ]
 REGION_ORDER = [r[0] for r in REGIONS]
 
-# 第 24 批（23 号稿 §10.1）：五区重定义——y 范围取批 1 真机实测分配（1224×2776 截图，px → 归一化）。
-# 旧基线 1083–1087（机器照片路线）作废；新基线＝1703 起（批报告 §0 登记）。
+# 历史：第 24／25 批（23 号稿 §10.1）曾尝试五区重定义并登记 1703 起为候选基线；该路线已退役，
+# 现行门图恢复 legacy 四区（本文件 REGIONS）。1083–1087（机器照片路线）作废；
+# 2026-11-25 批 81 起 1920s 基线＝2376（平板）／2377（手机），见 AGENTS.md「基线标定表」。
 PROFILES: Dict[str, List[Tuple[str, float, float, float, float]]] = {
     "legacy": REGIONS,
     # 第 25 批（批 2）：五区重排后的实测分配（1224×2776；paper 351–1371、basket 1398–1837、

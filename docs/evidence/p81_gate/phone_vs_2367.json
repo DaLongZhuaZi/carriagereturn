@@ -1,0 +1,96 @@
+{
+  "baseline": "C:\\Users\\13359\\.paseo\\worktrees\\1uflpafl\\gate-reshoot-1920s\\docs\\shots\\2367_p79_phone_type_fan_q_left.png",
+  "current": "C:\\Users\\13359\\.paseo\\worktrees\\1uflpafl\\gate-reshoot-1920s\\docs\\shots\\2377_1920s_gate_phone.png",
+  "size": [
+    1224,
+    2776
+  ],
+  "scale": null,
+  "threshold": 30,
+  "exclude_band": null,
+  "regions": {
+    "keyboard": {
+      "region": "keyboard",
+      "box_px": [
+        0,
+        1721,
+        1224,
+        2720
+      ],
+      "pixels": 1222776,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 0,
+      "passed": true,
+      "box": [
+        0.0,
+        1.0,
+        0.62,
+        0.98
+      ]
+    },
+    "frame_left": {
+      "region": "frame_left",
+      "box_px": [
+        0,
+        1110,
+        404,
+        1721
+      ],
+      "pixels": 246844,
+      "over_threshold": 20,
+      "percent": 0.01,
+      "max_channel_diff": 81,
+      "passed": false,
+      "box": [
+        0.0,
+        0.33,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_mid": {
+      "region": "frame_mid",
+      "box_px": [
+        404,
+        1110,
+        820,
+        1721
+      ],
+      "pixels": 254176,
+      "over_threshold": 8,
+      "percent": 0.0,
+      "max_channel_diff": 72,
+      "passed": false,
+      "box": [
+        0.33,
+        0.67,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_right": {
+      "region": "frame_right",
+      "box_px": [
+        820,
+        1110,
+        1224,
+        1721
+      ],
+      "pixels": 246844,
+      "over_threshold": 449,
+      "percent": 0.18,
+      "max_channel_diff": 95,
+      "passed": false,
+      "box": [
+        0.67,
+        1.0,
+        0.4,
+        0.62
+      ]
+    }
+  },
+  "profile": "legacy",
+  "verdict": "FAIL",
+  "criterion": "各判区超阈值像素占比全部为 0.00% 才通过"
+}

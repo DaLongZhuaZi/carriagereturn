@@ -1,0 +1,96 @@
+{
+  "baseline": "C:\\Users\\13359\\.paseo\\worktrees\\1uflpafl\\gate-reshoot-1920s\\docs\\shots\\2357_p77_tablet_fan_fix.png",
+  "current": "C:\\Users\\13359\\.paseo\\worktrees\\1uflpafl\\gate-reshoot-1920s\\docs\\shots\\2376_1920s_gate_tablet.png",
+  "size": [
+    1600,
+    2560
+  ],
+  "scale": null,
+  "threshold": 30,
+  "exclude_band": null,
+  "regions": {
+    "keyboard": {
+      "region": "keyboard",
+      "box_px": [
+        0,
+        1587,
+        1600,
+        2509
+      ],
+      "pixels": 1475200,
+      "over_threshold": 0,
+      "percent": 0.0,
+      "max_channel_diff": 1,
+      "passed": true,
+      "box": [
+        0.0,
+        1.0,
+        0.62,
+        0.98
+      ]
+    },
+    "frame_left": {
+      "region": "frame_left",
+      "box_px": [
+        0,
+        1024,
+        528,
+        1587
+      ],
+      "pixels": 297264,
+      "over_threshold": 1617,
+      "percent": 0.54,
+      "max_channel_diff": 110,
+      "passed": false,
+      "box": [
+        0.0,
+        0.33,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_mid": {
+      "region": "frame_mid",
+      "box_px": [
+        528,
+        1024,
+        1072,
+        1587
+      ],
+      "pixels": 306272,
+      "over_threshold": 6108,
+      "percent": 1.99,
+      "max_channel_diff": 158,
+      "passed": false,
+      "box": [
+        0.33,
+        0.67,
+        0.4,
+        0.62
+      ]
+    },
+    "frame_right": {
+      "region": "frame_right",
+      "box_px": [
+        1072,
+        1024,
+        1600,
+        1587
+      ],
+      "pixels": 297264,
+      "over_threshold": 619,
+      "percent": 0.21,
+      "max_channel_diff": 136,
+      "passed": false,
+      "box": [
+        0.67,
+        1.0,
+        0.4,
+        0.62
+      ]
+    }
+  },
+  "profile": "legacy",
+  "verdict": "FAIL",
+  "criterion": "各判区超阈值像素占比全部为 0.00% 才通过"
+}
