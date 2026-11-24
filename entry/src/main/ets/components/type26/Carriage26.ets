@@ -196,7 +196,12 @@ export struct Carriage26 {
               .flexShrink(0)
               .hitTestBehavior(HitTestMode.None)
           }
-          .width('100%')
+          // 批 79（任务 1）：拖拽/触摸面**只铺纸幅**（paperWVp），不再 `'100%'` 铺满整机宽。
+          // 视口 Stack 已因批 70 上延到屏顶（负 margin），若 Column 仍铺满整机宽，
+          // 纸层的触摸矩形会横跨整个顶栏带、压住返回拨杆的命中区（批 70 副作用）。
+          // 改纸幅宽后：纸仍在 Stack 底-中位对齐，视觉不变；触摸面只剩纸自己，
+          // 顶栏再配合 Stage26 的 zIndex(10) ⇒ 返回拨杆永远先命中。
+          .width(this.paperWVp)
           // 批 68（任务 1）：必须是**确定的数**——`'100%'` 在 Stack 里落不到确定高度，
           // Column 按内容定高、justifyContent(End) 等于没生效，纸被顶锚定 ⇒ 纸一长就向下伸进字篮井。
           // 用 paperAreaH()（＝zoneHVp−18，由 stageLayout 推导）后纸底才真正钉住视口底。
@@ -232,6 +237,9 @@ export struct Carriage26 {
         .height(this.paperAreaH() + this.topBarHVp)
         .margin({ top: -this.topBarHVp })
         .clip(true)
+        // 批 79（任务 1）：视口本身不参与命中（只有纸 Column 的拖拽面参与），
+        // 这样即使视口矩形跨到顶栏带，也不会替子节点「接住」触摸。
+        .hitTestBehavior(HitTestMode.None)
 
         // ---- 横尺（绘制宽 700·sx 保留；外层裁到机器宽，修 N2 越界）----
         Row() {

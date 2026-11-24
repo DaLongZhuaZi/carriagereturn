@@ -198,12 +198,16 @@ export struct Stage26 {
       .justifyContent(FlexAlign.Center)
 
       // ---- 顶栏覆盖层（压在纸面／出纸槽之上，保持现行 z 序）----
+      // 批 79（任务 1）：**显式置顶**——批 70 把纸视口上沿扩到屏顶后，纸的触摸面与顶栏带重叠；
+      // 只靠「后渲染的兄弟在上」不够保险（纸的负 margin 溢出会把命中序列搅乱），
+      // 这里给顶栏一个独立 zIndex，保证纸张再长、字车再靠左，返回拨杆/出纸槽也永远先命中。
       Row() {
         Column() { this.topBarZone() }.width(this.layout.machineW).height(this.layout.topBarH)
       }
       .width('100%')
       .height(this.layout.topBarH)
       .justifyContent(FlexAlign.Center)
+      .zIndex(10)
     }
     .width('100%')
     .height('100%')
