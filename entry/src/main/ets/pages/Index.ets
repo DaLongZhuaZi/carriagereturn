@@ -3514,6 +3514,7 @@ struct Index {
       if (!this.symbolMode) {
         this.shiftActive = true;
         this.shiftLiftVp = -10;
+        hilog.info(DOMAIN, TAG, 'shift down lift=%{public}s', this.shiftLiftVp.toString());
       }
       return;
     }
@@ -3555,6 +3556,10 @@ struct Index {
   private onCapUp(cap: CapDef): void {
     if (cap.label === 'Shift') {
       this.shiftActive = false;
+      // 批 77：松开即落回——原先 Grid 的内联 onCapUp 只清 shiftActive、没走本方法，
+      // shiftLiftVp 永不复位，点一下 Shift 扇就永久抬起。抬扇仍是按住期间抬起。
+      this.shiftLiftVp = 0;
+      hilog.info(DOMAIN, TAG, 'shift up lift=%{public}s', this.shiftLiftVp.toString());
     }
   }
 
@@ -4978,9 +4983,7 @@ struct Index {
             this.audioService.playKey();
           }
         },
-        onCapUp: (cap: CapDef): void => {
-          if (cap.label === 'Shift') { this.shiftActive = false; }
-        },
+        onCapUp: (cap: CapDef): void => { this.onCapUp(cap); },
       })
         .id('p25_key_grid')
 

@@ -357,8 +357,32 @@ export struct Lid26 {
 }
 
 // ---------------------------------------------------------------------------
-// 字篮（扇形井：曲线口＋3D 扇形＋枢轴＋井边阴影缝）
+// 字篮（扇形井：曲线口＋字盘／字杆扇＋井边阴影缝）
 // ---------------------------------------------------------------------------
+
+/**
+ * 批 77：字杆的 QWERTY 排布——42 个字符键按**键盘 x 从左到右**排序（数据源＝
+ * keymap 1920s-upright-keymap.json；五台机 keymap 同布局）。x 只用来定顺序，不进布局算式。
+ *
+ * 2026-11-19 定稿（本批按此整块重做，批 76 的「枢轴在井底＋字钉朝上＋A–Z 循环」作废）：
+ *  - 枢轴在**井顶**（纸面/压纸滚筒一侧），字杆从枢轴向下垂进篮子，静止字头在篮底；
+ *  - 静止排布 Q 最左（−45°）、H 中间（+3°）、P 最右（+45°），左键左倾、右键右倾；
+ *  - 细密薄杆 40 多根（本批 42 根，杆宽 1.6×sx），小字头块排在底缘弧上；
+ *  - 打击几何：真实杆长＝井高×74/138，静止字头＝枢轴正下方同距，打击点＝枢轴正上方同距
+ *    （180° 对称，(181,426)→(181,500)、(181,351.5)），所有键同一落点。
+ *    TypebarLayer 打击动画仍暂缓；本静态扇的枢轴／角度排布与该几何同源。
+ */
+const TB_KEYS: string[] = [
+  'A', '1', 'Q', 'S', '2', 'Z', 'W', 'D', '3', 'X', 'E', 'F', '4', 'C', 'R', 'G', '5', 'V',
+  'T', 'H', '6', 'B', 'Y', 'J', '7', 'N', 'U', 'K', '8', 'M', 'I', 'L', '9', ',', 'O', ';',
+  '0', '.', 'P', "'", '-', '/'
+];
+/** 三锚点在 TB_KEYS 里的下标（Q／H／P，由 keymap x 排序得到）。 */
+const TB_I_Q: number = 2;
+const TB_I_H: number = 19;
+const TB_I_P: number = 38;
+const TB_I_LAST: number = 41;
+
 @Component
 export struct Basket26 {
   /** 批 61：Shift 抬扇（0／−10vp，组件侧弹簧驱动；只抬扇、井背不动）。 */
@@ -373,25 +397,9 @@ export struct Basket26 {
   /** 批 66：当前扇图的宽高比（平板 2.6、手机 1.69），用于让盒高正好等于图高。 */
   @Prop fanAspect: number = 1.69;
 
-  /**
-   * 批 67（任务 2）：扇盒高＝min(盒宽/图宽高比, 井高−10)，宽＝高×图比且不超过 213×sx。
-   * −10vp 是给批 61「Shift 抬扇 10vp」留头：扇盒若与井同高，抬起时扇顶会被井的 clip 裁掉 10vp。
-   * 平板：min(152.2, 145.7−10=135.7)=135.7vp，宽 135.7×2.6=352.8vp。
-   */
-  private fanH26(): number {
-    const maxW: number = 213 * this.sx;
-    const byW: number = this.fanAspect > 0 ? maxW / this.fanAspect : maxW;
-    const maxH: number = this.heightVp - 10;
-    return byW < maxH ? byW : maxH;
-  }
+  /** 批 22～批 76：扇图盒比（`fanWide`／`fanAspect` 仍由 Index 传入；批 77 起扇改代码画，盒比不再参与）。 */
 
-  private fanW26(): number {
-    const maxW: number = 213 * this.sx;
-    const w: number = this.fanH26() * this.fanAspect;
-    return w < maxW ? w : maxW;
-  }
-
-  /** 批 76：杆数（杆影与字杆共用）——由井宽派生，不写死。N = max(5, floor(井宽 / 30vp))。 */
+  /** 批 76：杆影道数——由井宽派生，不写死。N = max(5, floor(井宽 / 30vp))。 */
   private stemCount(): number {
     const n: number = Math.floor(this.widthVp / 30);
     return n > 5 ? n : 5;
@@ -413,24 +421,98 @@ export struct Basket26 {
     return this.widthVp / (n + 1) * (i + 1) - 0.75 * this.sx;
   }
 
-  /** 批 76：字杆长（井高 × 0.82）。 */
-  private barLength(): number {
-    return this.heightVp * 0.82;
+  /**
+   * 批 77：枢轴竖直位置＝井高 × 50/138。
+   * 定稿几何（26 号稿基准）：井顶 376、篮高 138 ⇒ 枢轴 (181, 426)，静止字头 (181, 500)。
+   * 不写死 50vp：换分辨率时按井高等比走。
+   */
+  private pivotY(): number {
+    return this.heightVp * (50 / 138);
   }
 
-  /** 批 76：第 i 根字杆的角度（startAngle −38°，总张角 76°，stepAngle = 76/(N−1)）。 */
+  /** 批 77：静止字头到枢轴的竖直距离＝井高 × 74/138（定稿杆长 74vp／篮高 138vp）。 */
+  private restDrop(): number {
+    return this.heightVp * (74 / 138);
+  }
+
+  /**
+   * 批 77：张角上界——由**井宽与井高共同派生**。
+   * 杆头落在井底浅弧上，横向上把两侧填到 94% 井宽：
+   *   θmax = atan(0.47×井宽 ÷ (0.94×静止下坠))。
+   * 手机 240×120.5 ⇒ 61.7°，平板 445.8×145.7 ⇒ 70.7°。
+   * 批 76 的 ±38° 固定张角是手机扇只占井中央一半、平板只占三分之一的根因。
+   */
+  private spreadDeg(): number {
+    const halfW: number = this.widthVp * 0.47;
+    const edgeDrop: number = this.restDrop() * 0.94;
+    const deg: number = Math.atan2(halfW, edgeDrop) * 180 / Math.PI;
+    return deg;
+  }
+
+  /** 批 77：杆头下坠量——中杆最深，两侧浅 6%（底缘浅弧，井下方不留大块空白）。 */
+  private dropFor(deg: number): number {
+    const u: number = Math.abs(deg) / this.spreadDeg();
+    return this.restDrop() * (1 - 0.06 * u * u);
+  }
+
+  /**
+   * 批 77：第 i 根字杆的角度（度）。三锚点按定稿标定：
+   * Q（i=2）＝−45°、H（i=19）＝+3°、P（i=38）＝+45°；两侧最外 3 根再展开到 ±θmax，
+   * 把井左右两侧也填上（θmax 由 spreadDeg() 按井宽/井高派生，不写死）。
+   * 批 76 的 A–Z 循环字母与 ±38° 固定张角作废。
+   */
   private barAngle(i: number): number {
-    const n: number = this.stemCount();
-    if (n <= 1) {
-      return 0;
+    const top: number = this.spreadDeg();
+    if (i <= TB_I_Q) {
+      return -top + (i / TB_I_Q) * (top - 45);
     }
-    return -38 + i * (76 / (n - 1));
+    if (i <= TB_I_H) {
+      return -45 + ((i - TB_I_Q) / (TB_I_H - TB_I_Q)) * 48;
+    }
+    if (i <= TB_I_P) {
+      return 3 + ((i - TB_I_H) / (TB_I_P - TB_I_H)) * 42;
+    }
+    return 45 + ((i - TB_I_P) / (TB_I_LAST - TB_I_P)) * (top - 45);
   }
 
-  /** 批 76：第 i 根字杆的字钉字母（A–Z 循环；设计稿只说「沿用扇图从左到右的顺序」，未给字母表）。 */
+  /**
+   * 批 77：第 i 根字杆的画长＝下坠量 / cosθ（正视图里字头落在底缘浅弧上）。
+   * 定稿的**真实杆长**是 restDrop()（74/138×井高，所有键相同，打击点才同点）；
+   * 这里的画长是正视图 3D 投影（两侧杆看起来更长），与 v4 扇素材同一口径。
+   */
+  private barLength(i: number): number {
+    const deg: number = this.barAngle(i);
+    const c: number = Math.cos(deg * Math.PI / 180);
+    return this.dropFor(deg) / (c > 0.02 ? c : 0.02);
+  }
+
+  /** 批 77：第 i 根字杆的字头字符＝键盘字符（QWERTY 排布，不再 A–Z 循环）。 */
   private barLetter(i: number): string {
-    const ALPHA: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    return ALPHA.charAt(i % 26);
+    return TB_KEYS[i];
+  }
+
+  /** 批 77：字杆数＝42（keymap 的 42 个字符键）——"40 多根细密薄杆"。 */
+  private barIndexes(): number[] {
+    const out: number[] = [];
+    for (let i = 0; i <= TB_I_LAST; i++) {
+      out.push(i);
+    }
+    return out;
+  }
+
+  /** 批 77：字头块边长——由中段相邻字头的弧长间距派生（≈1 个间距：成排紧挨，不叠死也不留缝）。 */
+  private plateSize(): number {
+    const minStepDeg: number = Math.min(48 / (TB_I_H - TB_I_Q), 42 / (TB_I_P - TB_I_H));
+    const step: number = this.restDrop() * minStepDeg * Math.PI / 180;
+    const s: number = step * 1.15;
+    const lo: number = 2.6 * this.sx;
+    const hi: number = 4.8 * this.sx;
+    return s < lo ? lo : (s > hi ? hi : s);
+  }
+
+  /** 批 77：字头块底色——钢 token 提亮，保证小字（#141414）在 6–10px 尺寸下仍可辨。 */
+  private plateColor(): string {
+    return lighten(tierToken(this.machine, 'steel'), 0.32);
   }
 
   build() {
@@ -455,43 +537,79 @@ export struct Basket26 {
             .position({ x: this.stemShadowX(i), y: 0 })
             .hitTestBehavior(HitTestMode.None)
         }, (i: number) => 'p76sh' + i.toString())
-        // 批 76：字杆扇改**逐根代码画**（替掉 basket-fan-*.png 定图，文件留仓；basketFanImage() 函数不动）
-        // 每根：杆身（钢色渐变，与枢轴同系）＋顶端字钉（steel 座 + 字母）；旋转中心＝杆底＝枢轴点
+        // 批 77：字杆扇——**枢轴在井顶**，42 根细杆向下垂、字头块沿底缘浅弧排开。
+        // 每根：杆身（上端深、下端亮）＋底端字头块（钢座 + 键字符）。
+        // 旋转中心＝杆顶（centerY 0）＝枢轴；杆长/角度由井宽井高派生（见 barAngle/barLength）。
         Stack({ alignContent: Alignment.TopStart }) {
-          ForEach(this.stemIndexes(), (i: number) => {
+          ForEach(this.barIndexes(), (i: number) => {
             Column() {
-              // 字钉（顶端）：steel 座 + 字母
-              Column() {
-                Text(this.barLetter(i)).fontSize(7 * this.sx)
-                  .fontColor('#1a1a1a').maxLines(1)
-              }
-              .width(6 * this.sx).height(6 * this.sx)
-              .backgroundColor(tierToken(this.machine, 'steel'))
-              .borderRadius(1.2 * this.sx)
-              .justifyContent(FlexAlign.Center)
-              .hitTestBehavior(HitTestMode.None)
-              // 杆身：细长 Column，钢色渐变
+              // 杆身（上段，长度＝画长扣掉字头块）
               Column()
-                .width(2.5 * this.sx).height(this.barLength() - 6 * this.sx)
+                .width(1.6 * this.sx).height(Math.max(0, this.barLength(i) - this.plateSize()))
                 .linearGradient({
                   direction: GradientDirection.Bottom,
-                  colors: [[STEEL_HI, 0.0], ['#4c4c4f', 1.0]]
+                  colors: [['#4c4c4f', 0.0], [STEEL_HI, 1.0]]
                 })
-                .borderRadius(1.25 * this.sx)
+                .borderRadius(0.8 * this.sx)
                 .hitTestBehavior(HitTestMode.None)
+              // 字头块（杆的下端）：钢座 + 键字符
+              Column() {
+                Text(this.barLetter(i)).fontSize(0.72 * this.plateSize())
+                  .fontColor('#141414').maxLines(1)
+              }
+              .width(this.plateSize()).height(this.plateSize())
+              .backgroundColor(this.plateColor())
+              .border({ width: 0.5 * this.sx, color: darken(tierToken(this.machine, 'steel'), 0.15) })
+              .borderRadius(0.8 * this.sx)
+              .justifyContent(FlexAlign.Center)
+              .hitTestBehavior(HitTestMode.None)
             }
-            .width(2.5 * this.sx)
-            .position({ x: this.widthVp / 2 - 1.25 * this.sx, y: this.heightVp - 8 * this.sy - this.barLength() })
-            // 旋转中心＝杆底（centerY 100%）＝枢轴点
-            .rotate({ angle: this.barAngle(i), centerX: '50%', centerY: '100%' })
+            // 批 77（批 76 实发教训）：外层 Column **必须显式定高**，否则被父 Stack 的井高截短、
+            // 杆顶离开枢轴（平板最短时曾在下半部穿插成 X）。
+            .width(this.plateSize()).height(this.barLength(i))
+            .position({ x: this.widthVp / 2 - this.plateSize() / 2, y: this.pivotY() })
+            // 旋转中心＝杆顶（centerY 0）＝井顶枢轴；杆向下垂、两翼张开
+            .rotate({ angle: this.barAngle(i), centerX: '50%', centerY: 0 })
             .hitTestBehavior(HitTestMode.None)
-          }, (i: number) => 'p76bar' + i.toString())
+          }, (i: number) => 'p77bar' + i.toString())
         }
         .width(this.widthVp).height(this.heightVp)
-        // 批 61：Shift 抬扇——整组字杆同上抬（不是只抬一半），弹簧沿用
+        // 批 61：Shift 抬扇——整组字杆同上抬（只抬杆，不抬字盘；杆顶滑进字盘下沿，不露缝）
         .translate({ y: this.shiftLiftVp })
         .animation({ duration: 260, curve: curves.springMotion(0.3, 0.55) })
         .shadow({ radius: 11, color: '#00000040', offsetX: 0, offsetY: 3 })
+        .hitTestBehavior(HitTestMode.None)
+        // 批 77：字盘（枢轴毂）——压在杆顶，盖住杆根；尺寸由井宽/井高派生
+        Stack({ alignContent: Alignment.TopStart }) {
+          Column().width(this.widthVp * 0.44).height(this.heightVp * 0.26)
+            .linearGradient({
+              direction: GradientDirection.Bottom,
+              colors: [[STEEL_HI, 0.0], [tierToken(this.machine, 'steel'), 0.55], ['#3a3a3d', 1.0]]
+            })
+            .borderRadius({
+              topLeft: this.widthVp * 0.22, topRight: this.widthVp * 0.22,
+              bottomLeft: 2 * this.sx, bottomRight: 2 * this.sx
+            })
+            .border({ width: 1 * this.sx, color: '#2a2a2c' })
+          // 杆出口暗槽（字盘下沿中央）
+          Column().width(this.widthVp * 0.30).height(2.8 * this.sy)
+            .backgroundColor('#0d0d0f').opacity(0.75).borderRadius(1.4 * this.sy)
+            .position({ x: this.widthVp * 0.07, y: this.heightVp * 0.26 - 4.2 * this.sy })
+          // 三颗铆钉
+          Circle().width(2.4 * this.sx).height(2.4 * this.sx).fill('#9a9aa0')
+            .border({ width: 0.5 * this.sx, color: '#2a2a2c' })
+            .position({ x: this.widthVp * 0.09, y: this.heightVp * 0.06 })
+            .hitTestBehavior(HitTestMode.None)
+          Circle().width(2.4 * this.sx).height(2.4 * this.sx).fill('#9a9aa0')
+            .border({ width: 0.5 * this.sx, color: '#2a2a2c' })
+            .position({ x: this.widthVp * 0.33, y: this.heightVp * 0.06 })
+            .hitTestBehavior(HitTestMode.None)
+          Circle().width(1.8 * this.sx).height(1.8 * this.sx).fill('#6f6f74')
+            .position({ x: this.widthVp * 0.21, y: this.heightVp * 0.025 })
+            .hitTestBehavior(HitTestMode.None)
+        }
+        .width(this.widthVp * 0.44).height(this.heightVp * 0.26)
+        .position({ x: this.widthVp * 0.28, y: this.pivotY() - this.heightVp * 0.26 })
         .hitTestBehavior(HitTestMode.None)
       }
       .width(this.widthVp).height(this.heightVp)
@@ -504,29 +622,6 @@ export struct Basket26 {
       Column().width(this.widthVp * 0.9).height(10 * this.sy)
         .backgroundColor('#0b1a14').opacity(0.10).borderRadius(5 * this.sy)
         .position({ x: this.widthVp * 0.05, y: this.heightVp - 4 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-
-      // 枢轴（井底中央 y 514、x 181）——批 42：加接触影＋同心环纹＋中心铆钉点
-      Column().width(24 * this.sx).height(3 * this.sy)
-        .backgroundColor('#000000').opacity(0.10).borderRadius(2 * this.sx)
-        .position({ x: this.widthVp / 2 - 12 * this.sx, y: this.heightVp - 1 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-      Row()
-        .width(26 * this.sx).height(8 * this.sy)
-        .linearGradient({ direction: GradientDirection.Bottom, colors: [[STEEL_HI, 0.0], ['#4c4c4f', 1.0]] })
-        .borderRadius(4)
-        .position({ x: this.widthVp / 2 - 13 * this.sx, y: this.heightVp - 8 * this.sy })
-      Circle().width(9 * this.sx).height(9 * this.sx)
-        .fill('#00000000').border({ width: 0.5 * this.sx, color: '#00000055' })
-        .position({ x: this.widthVp / 2 - 4.5 * this.sx, y: this.heightVp - 7.5 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-      Circle().width(5 * this.sx).height(5 * this.sx)
-        .fill('#00000000').border({ width: 0.5 * this.sx, color: '#00000066' })
-        .position({ x: this.widthVp / 2 - 2.5 * this.sx, y: this.heightVp - 5.5 * this.sy })
-        .hitTestBehavior(HitTestMode.None)
-      Circle().width(2.5 * this.sx).height(2.5 * this.sx)
-        .fill('#d8d8dc').opacity(0.85)
-        .position({ x: this.widthVp / 2 - 1.25 * this.sx, y: this.heightVp - 4.25 * this.sy })
         .hitTestBehavior(HitTestMode.None)
     }
     .width(this.widthVp).height(this.heightVp)
