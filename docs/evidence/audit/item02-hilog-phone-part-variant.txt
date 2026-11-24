@@ -1,0 +1,6 @@
+# 核查①-2 手机侧“主题→标准件→键盘帽形”hilog 摘录
+# 设备：ADA-AL00U（2UCUT24724009680），2026-11-25 06:44
+# 操作：进入主题页，点 round，再点 rounded-rect；两次均触发 onPickPart。
+# 原始命令：hdc -t 2UCUT24724009680 shell "hilog -x | grep -a 'part variant' | tail -4"
+11-25 06:44:56.025 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=key-grid value=round machine=1920s-upright
+11-25 06:44:57.262 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=key-grid value=rounded-rect machine=1920s-upright
