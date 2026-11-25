@@ -202,7 +202,7 @@ R10/R25 的 hilog 原文摘录见 `docs/evidence/audit/item10-hilog-spotlight.tx
 
 ### 6.2 作废截图（`void_` 前缀，26 张）
 
-`void_3470`（步骤状态滞后）、`void_3471`（旧帧）、`void_3472`／`void_3475`／`void_3482`／`void_3489`／`void_3514`／`void_3516`／`void_3521`（其它 App 抢占前台）、`void_3473`／`void_3476`／`void_3480`／`void_3483`／`void_3487`／`void_3488`／`void_3490`／`void_3506`／`void_3515`／`void_3517`／`void_3518`／`void_3519`／`void_3520`／`void_3536`／`void_3537`／`void_3540`（未构成目标状态/点击未命中）。
+`void_3470`（步骤状态滞后）、`void_3471`（旧帧）、`void_3472`／`void_3475`／`void_3482`／`void_3489`／`void_3514`／`void_3516`／`void_3521`（其它 App 抢占前台）、`void_3473`／`void_3476`／`void_3479`／`void_3480`／`void_3483`／`void_3487`／`void_3488`／`void_3490`／`void_3506`／`void_3515`／`void_3517`／`void_3518`／`void_3519`／`void_3520`／`void_3536`／`void_3537`／`void_3540`（未构成目标状态/点击未命中）。
 
 ## 7. 清单状态建议（不改清单文件，供 Kit 统一维护）
 
