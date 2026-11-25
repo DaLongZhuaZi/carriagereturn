@@ -96,7 +96,7 @@ export struct DocumentViewPage {
   }
 
   @Builder
-  titleSheet(w: number) {
+  titleSheet(w: number, h: Length) {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         Text(this.title).fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1a1a1a')
@@ -125,41 +125,90 @@ export struct DocumentViewPage {
       .width('100%').height('100%').padding({ left: 18, right: 18 })
       .justifyContent(FlexAlign.End)
     }
-    .width(w).height('100%')
+    .width(w).height(h)
     .opacity(this.revealN > 0 ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .backgroundColor('#eee4ce').borderRadius(8)
   }
 
+  /** 平板：纸纹 + 正文并排，超出裁掉不滚动；点它进主屏编辑。 */
+  @Builder
+  paperBodyTablet(w: number) {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Image($rawfile(PAPER_RAW[this.paperKey]))
+        .width('100%').height('100%').objectFit(ImageFit.Cover)
+        .hitTestBehavior(HitTestMode.None)
+      Text(this.bodyText())
+        .fontSize(15).lineHeight(24).fontColor('#1a1a1a')
+        .fontFamily('CourierPrime, Noto Serif SC')
+        .padding(16).width('100%')
+        .maxLines(20).textOverflow({ overflow: TextOverflow.Clip })
+        .hitTestBehavior(HitTestMode.None)
+    }
+    .width(w)
+    .layoutWeight(1)
+    .height('100%')
+    .opacity(this.revealN > 1 ? 1 : 0)
+    .animation({ duration: 180, curve: Curve.EaseOut })
+    .clip(true).borderRadius(8)
+    .onClick(() => {
+      hilog.info(0x0000, 'DocumentView', 'body tapped doc=%{public}s', this.docId);
+      this.onEdit(this.docId);
+    })
+  }
+
+  /**
+   * F1 手机：正文页按内容撑高（放进 Scroll 可上下读全文），纸纹走 backgroundImage，
+   * 避免 height 100% 的 Image 在自适应高度容器里把正文压成 0 高。
+   */
+  @Builder
+  paperBodyPhone(w: number) {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Text(this.bodyText())
+        .fontSize(15).lineHeight(24).fontColor('#1a1a1a')
+        .fontFamily('CourierPrime, Noto Serif SC')
+        .padding(16).width('100%')
+    }
+    .width(w)
+    .constraintSize({ minHeight: 360 })
+    .id('document_view__body')
+    .backgroundImage($rawfile(PAPER_RAW[this.paperKey]))
+    .backgroundImageSize(ImageSize.FILL)
+    .opacity(this.revealN > 1 ? 1 : 0)
+    .animation({ duration: 180, curve: Curve.EaseOut })
+    .clip(true).borderRadius(8)
+    .onClick(() => {
+      hilog.info(0x0000, 'DocumentView', 'body tapped doc=%{public}s', this.docId);
+      this.onEdit(this.docId);
+    })
+  }
+
   @Builder
   body() {
     Column() {
-        // P2-6：平板并排、手机上下排（标题页在上、正文页在下）
-        Flex({ direction: this.widthVp < 600 ? FlexDirection.Column : FlexDirection.Row }) {
-          this.titleSheet(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
-          Column().width(16).height(this.widthVp < 600 ? 12 : 16)
-          // 正文页：纸纹 + 正文，超出裁掉不滚动；点它进主屏编辑
-          Stack({ alignContent: Alignment.TopStart }) {
-            Image($rawfile(PAPER_RAW[this.paperKey]))
-              .width('100%').height('100%').objectFit(ImageFit.Cover)
-              .hitTestBehavior(HitTestMode.None)
-            Text(this.bodyText())
-              .fontSize(15).lineHeight(24).fontColor('#1a1a1a')
-              .fontFamily('CourierPrime, Noto Serif SC')
-              .padding(16).width('100%')
-              .maxLines(20).textOverflow({ overflow: TextOverflow.Clip })
-              .hitTestBehavior(HitTestMode.None)
+        // F1：手机竖排＝标题页按内容高度（240）＋正文页占剩余并可滚动；
+        // 原先标题页 height('100%') 会吃掉全部高度，把正文页挤出容器裁掉。
+        Column() {
+          if (this.widthVp < 600) {
+            this.titleSheet(this.widthVp - 40, 240)
+            Column().width('100%').height(12)
+            Scroll() {
+              Column() {
+                this.paperBodyPhone(this.widthVp - 40)
+              }
+              .width('100%')
+            }
+            .width('100%').layoutWeight(1)
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.None)
+          } else {
+            Flex({ direction: FlexDirection.Row }) {
+              this.titleSheet((this.widthVp - 56) / 2, '100%')
+              Column().width(16).height(16)
+              this.paperBodyTablet((this.widthVp - 56) / 2)
+            }
+            .width('100%').layoutWeight(1)
           }
-          .width(this.widthVp < 600 ? this.widthVp - 40 : (this.widthVp - 56) / 2)
-          .layoutWeight(1)
-          .height(this.widthVp < 600 ? 360 : '100%')
-          .opacity(this.revealN > 1 ? 1 : 0)
-          .animation({ duration: 180, curve: Curve.EaseOut })
-          .clip(true).borderRadius(8)
-          .onClick(() => {
-            hilog.info(0x0000, 'DocumentView', 'body tapped doc=%{public}s', this.docId);
-            this.onEdit(this.docId);
-          })
         }
         .width('100%').layoutWeight(1)
         .id('document_view__content')

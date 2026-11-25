@@ -1260,18 +1260,36 @@ struct Index {
     if (k === 'typewriter') { this.playPaperLoad(); }
   }
 
-  /** 回退到栈中的某页（连同其上所有页一起撤掉）。 */
+  /**
+   * 回退到栈中的某页（连同其上所有页一起撤掉）。
+   * F1：栈内没有该页时改为压栈一层（如 主页→卷宗→内页 时点「打开」进打字机），
+   * 返回键回到原页；调用方负责先 load 再切页。
+   */
   private popTo(k: string): void {
     statsService.flushPending();
     statsService.flushFoldTyped();
     const idx: number = this.navStack.indexOf(k);
-    if (idx < 0) { return; }
     this.leaveChinese();
     this.navAnimated = true;
+    if (idx < 0) {
+      if (this.navStack[this.navStack.length - 1] === k) { return; }
+      const pushed: string[] = this.navStack.slice();
+      pushed.push(k);
+      this.navStack = pushed;
+      this.syncFromStack();
+      this.applyStatusBarForTop();
+      if (k === 'typewriter') { this.playPaperLoad(); }
+      return;
+    }
     const s: string[] = this.navStack.slice(0, idx + 1);
     this.navStack = s;
     this.syncFromStack();
     this.applyStatusBarForTop();
+  }
+
+  /** F1：打字机压在栈顶时，卷宗/内页/文档视图不再叠在它上面（返回后自动恢复）。 */
+  private typingOnTop(): boolean {
+    return this.navStack.length > 0 && this.navStack[this.navStack.length - 1] === 'typewriter';
   }
 
   /** 弹一层；栈底是主页时返回 false（交给系统退出 App）。 */
@@ -5105,7 +5123,7 @@ struct Index {
             : TransitionEffect.IDENTITY)
       }
 
-      if (this.dossierOpen) {
+      if (this.dossierOpen && !this.typingOnTop()) {
         DossierPage({
           widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
@@ -5417,7 +5435,7 @@ struct Index {
       }
 
 
-      if (this.dossierOpen && this.detailOpen) {
+      if (this.dossierOpen && this.detailOpen && !this.typingOnTop()) {
         DossierDetailPage({
           widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
@@ -5451,7 +5469,7 @@ struct Index {
       }
 
       // 文档视图（§5.3）：必须排在卷宗内页之后，才能盖在内页之上
-      if (this.dossierOpen && this.openDocId.length > 0) {
+      if (this.dossierOpen && this.openDocId.length > 0 && !this.typingOnTop()) {
         DocumentViewPage({
           widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,

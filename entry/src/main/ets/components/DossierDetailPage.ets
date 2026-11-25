@@ -522,7 +522,10 @@ export struct DossierDetailPage {
         this.searchRow()
         if (this.papers.length === 0) {
           Column() {
-            Text('这里还没有纸。点右上角「新建纸张」放一张进来。')
+            // F1/R23：手机上「新建纸张」收在页眉 ⋯ 菜单里，空态文案按机型指向对应入口
+            Text(this.widthVp < 600
+              ? '这里还没有纸。点右上角「⋯」→「新建纸张」放一张进来。'
+              : '这里还没有纸。点右上角「新建纸张」放一张进来。')
               .fontSize(12).fontColor('rgba(232,221,201,0.6)')
           }
           .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
