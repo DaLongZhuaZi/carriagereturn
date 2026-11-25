@@ -1,0 +1,29 @@
+# 核查①-10 聚光灯/成就 hilog 摘录（原文，设备本地时间；重复行已合并）
+
+## 平板 R10（打字机引导锚点缺失）
+11-25 21:14:27.220 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 21:14:27.365 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 21:15:12.325 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/2 typewriter__function_row
+11-25 21:16:09.481 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/3 typewriter__paper
+
+## 平板 R25（文档视图第 2 步锚点缺失）
+11-25 21:18:10.516 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss document_view/2 document_view__edit_btn
+11-25 21:18:32.240 58185 58185 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor document_view/3 id=document_view__delete_btn rect=0.0,994.1,673.7,56.0
+
+## 手机 R10
+11-25 20:23:39.226 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 20:23:39.324 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 20:24:17.152 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/2 typewriter__function_row
+11-25 20:24:22.369 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/3 typewriter__paper
+
+## 手机 R25（含卷宗/内页自动引导锚点，作上下文）
+11-25 20:23:39.226 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 20:23:39.324 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/1 typewriter__lever
+11-25 20:24:17.152 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/2 typewriter__function_row
+11-25 20:24:22.369 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss typewriter/3 typewriter__paper
+11-25 20:26:07.874 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor dossier/1 id=dossier__list rect=0.0,119.7,362.7,675.0
+11-25 20:26:08.121 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor dossier/1 id=dossier__list rect=0.0,119.7,362.7,675.0
+11-25 20:26:27.738 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor dossier_detail/1 id=dossier_detail__list rect=0.0,211.3,362.7,583.4
+11-25 20:26:27.978 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor dossier_detail/1 id=dossier_detail__list rect=0.0,211.3,362.7,583.4
+11-25 20:29:19.175 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor miss document_view/2 document_view__edit_btn
+11-25 20:29:59.320 46883 46883 I A00000/com.dlzz.carriagereturn/Spotlight: guide anchor document_view/3 id=document_view__delete_btn rect=0.0,738.7,362.7,56.0
