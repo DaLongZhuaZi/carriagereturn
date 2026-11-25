@@ -931,10 +931,18 @@ export struct PaperPanel26 {
     }
     // 批 64（T3）：纸盒改 flex 后，纸的宽高比＝Pw/纸高＝0.7183（与贴图 1484×2066 一致），
     // 所以贴图改回 Fill——Contain 在「窄高盒」里会留白（真机 2280 前身实测：纸顶/纸底各一条白带）。
-    Image($rawfile(this.customTextureRawfile.length > 0
-      ? this.customTextureRawfile
-      : (this.textureRawfile.length > 0 ? this.textureRawfile : 'ui-parts/paper-cream-v5.png')))
-      .width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
+    // F2/A142：导入纸纹是沙箱文件（绝对路径），$rawfile 只认 HAP 内资源名，会报 AceResource 9001005；
+    // 自定义纸纹改走 file:// 路径加载（与 PaperStage／字体导入同一口径），内置四种纸纹仍走 $rawfile。
+    if (this.customTextureRawfile.length > 0) {
+      Image('file://' + this.customTextureRawfile)
+        .width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
+        .onError(() => {
+          hilog.error(0x0100, 'Paper26', 'custom texture load failed path=%{public}s', this.customTextureRawfile);
+        })
+    } else {
+      Image($rawfile(this.textureRawfile.length > 0 ? this.textureRawfile : 'ui-parts/paper-cream-v5.png'))
+        .width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
+    }
   }
 
   build() {
