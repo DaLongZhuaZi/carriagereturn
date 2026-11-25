@@ -327,6 +327,8 @@ struct Index {
   @State fontPrefsRev: number = 0;
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
   @State hintText: string = '';
+  /** F5/R12：出纸槽直出兜底提示（如 image 不支持时回落 txt）。 */
+  @State slotHint: string = '';
   @State docTitle: string = '';
   /** 26 号稿：黄铜铭牌点按显示文档名（1.6s 后自动收起）。 */
   @State plateHint: boolean = false;
@@ -414,7 +416,7 @@ struct Index {
   /** 最大行程（vp）。 */
   private maxTravelVp: number = 64;
   @State strikeTick: number = 0;
-  @State langZh: boolean = false;
+  @State @Watch('onLangZhChanged') langZh: boolean = false;
   /** 中文预编辑串（只显示，不进模型）。 */
   @State cnPreview: string = '';
   /** 中文整词拆单字的 FIFO 队列与出队定时器。 */
@@ -1380,6 +1382,12 @@ struct Index {
   @State bottomInset: number = 0;
 
   aboutToAppear(): void {
+    // F5：语言键/候选翻页走 AppStorage，子组件用 @StorageLink 订阅（@Prop 经 Stage26 槽位不刷新）
+    AppStorage.setOrCreate('langZh', this.langZh);
+    AppStorage.setOrCreate('langLabel', this.langZh ? '中' : 'EN');
+    AppStorage.setOrCreate('candPage', this.candPage);
+    AppStorage.setOrCreate('candPages', this.candPages);
+    AppStorage.setOrCreate('candFont', this.candChipFontSize);
     // 第 26 批（批 3／R-B4）：帧时钟宿主迁入 Index——冷启动即起，全稿单一时间源
     this.ensureFrameClock();
     // 第 9 批 F5：成就服务变化 → 刷新弹窗与收藏页进度
@@ -2475,8 +2483,9 @@ struct Index {
       this.modeKFrom.toFixed(3), this.modeKTo.toFixed(3), MODE_TRANS_DUR_MS.toString());
   }
   private applyMachine(kind: MachineKind): void {
-    // 换机时防御性清空预编辑串
+    // 换机时防御性清空预编辑串；F5/R9：同时取消拼音会话与候选
     this.cnPreview = '';
+    this.cancelCompose();
     const prevKind: MachineKind = this.machineKind;
     this.machineKind = kind;
     // 第 23 批（19 号稿 §4-3）：换机即读该机的动画模式（1960s 恒 realistic，电动单套）。
@@ -3224,6 +3233,32 @@ struct Index {
     return this.langZh && this.cnEngine === 'builtin';
   }
 
+  /** F5/R17：语言状态同步到 AppStorage，语言键标签据此刷新。 */
+  onLangZhChanged(): void {
+    AppStorage.setOrCreate('langZh', this.langZh);
+    AppStorage.setOrCreate('langLabel', this.langZh ? '中' : 'EN');
+  }
+
+  /** F5/R1：候选页码同步到 AppStorage（翻页箭头据此显示）。 */
+  private syncCandNav(): void {
+    AppStorage.setOrCreate('candPage', this.candPage);
+    AppStorage.setOrCreate('candPages', this.candPages);
+  }
+
+  /** F5（R9/R18）：清掉当前拼音会话与候选残留（换纸/换机/切引擎时用）。 */
+  private cancelCompose(): void {
+    if (this.pinyinSession !== null) {
+      this.pinyinSession.cancel();
+    }
+    this.cnPinyin = '';
+    this.cnPreview = '';
+    this.candAll = [];
+    this.candCurrent = [];
+    this.candPage = 0;
+    this.candPages = 1;
+    this.syncCandNav();
+  }
+
   /** 重算候选（page 0），并把拼音串镜像到预编辑显示。 */
   private pinyinRefresh(): void {
     if (this.pinyinSession === null) {
@@ -3233,7 +3268,7 @@ struct Index {
     this.cnPreview = this.cnPinyin.length > 0 ? this.pinyinSession.getBuffer() : '';
     this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
     this.candPage = 0;
-    this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPageSize));
+    this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
     this.pinyinShown();
     // 打点：buffer / 候选数 / 当前页候选
     const cur: string = this.candCurrent.join(',');
@@ -3242,12 +3277,43 @@ struct Index {
   }
 
   private pinyinShown(): void {
-    const start: number = this.candPage * this.candPageSize;
+    const per: number = this.candPerPage();
+    const start: number = this.candPage * per;
     const out: string[] = [];
-    for (let i = start; i < this.candAll.length && out.length < this.candPageSize; i++) {
+    for (let i = start; i < this.candAll.length && out.length < per; i++) {
       out.push(this.candAll[i].text);
     }
     this.candCurrent = out;
+    this.syncCandNav();
+  }
+
+
+  /** F5/R1：候选条一页能放几个（条宽 300vp 扣掉翻页箭头与拼音串；设置值只是上限）。 */
+  private candPageCap(): number {
+    const pinyinW: number = this.cnPinyin.length * 8;
+    const usable: number = 300 - 34 - pinyinW;
+    const per: number = this.candChipFontSize + 8;
+    const cap: number = Math.floor(usable / per);
+    return cap > 0 ? cap : 1;
+  }
+
+  private candPerPage(): number {
+    const cap: number = this.candPageCap();
+    return this.candPageSize < cap ? this.candPageSize : cap;
+  }
+
+  private candPrevPage(): void {
+    if (this.candPage > 0) {
+      this.candPage = this.candPage - 1;
+      this.pinyinShown();
+    }
+  }
+
+  private candNextPage(): void {
+    if (this.candPage + 1 < this.candPages) {
+      this.candPage = this.candPage + 1;
+      this.pinyinShown();
+    }
   }
 
   /** 选第 index 个（当前页 0 起）。走 enqueueChinese（40ms 逐字），余量字母继续组词。 */
@@ -3257,7 +3323,7 @@ struct Index {
     if (this.pinyinSession === null) {
       return;
     }
-    const abs: number = this.candPage * this.candPageSize + index;
+    const abs: number = this.candPage * this.candPerPage() + index;
     if (abs < 0 || abs >= this.candAll.length) {
       return;
     }
@@ -3285,13 +3351,14 @@ struct Index {
     if (this.cnPinyin.length > 0) {
       this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
       this.candPage = 0;
-      this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPageSize));
+      this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
       this.pinyinShown();
     } else {
       this.candAll = [];
       this.candCurrent = [];
       this.candPage = 0;
       this.candPages = 1;
+      this.syncCandNav();
     }
   }
 
@@ -3437,7 +3504,9 @@ struct Index {
         break;
       }
     }
-    const next: number = (idx + 1) % FONTS.length;
+    // F5/R19：未设置字体（idx=-1）时首次点按要真的换一款（默认是 CourierPrime，
+    // 落回下标 0 等于没变），所以从下一款开始
+    const next: number = idx < 0 ? (1 % FONTS.length) : ((idx + 1) % FONTS.length);
     const fam: string = FONTS[next].familyName;
     CustomizeStore.setFontFamily(this.machineKind as string, fam);
     this.applyMachineFont(fam);
@@ -3468,14 +3537,15 @@ struct Index {
     }
     let outPath: string = dir + '/carriage-' + Date.now().toString();
     let ok: boolean = false;
+    let fmtUsed: string = fmt;
     if (fmt === 'image') {
-      // 批 36 修正 A4：不悄悄回落——图片直出需要导出模板渲染（在 ExportPage 内），
-      // 先明确报缺并保持不动，设计口径待用户定夺
-      hilog.error(DOMAIN, TAG,
-        'direct export image unsupported: needs ExportTemplate render in ExportPage (no fallback)');
-      return;
+      // F5/R12（D10）：图片直出需要 ExportPage 的模板渲染，本路径不支持——
+      // 明确提示并回落纯文本，不再静默失败
+      fmtUsed = 'text';
+      this.showSlotHint('图片直出暂不支持，已改为导出纯文本');
+      hilog.info(DOMAIN, TAG, 'direct export image unsupported -> fallback text');
     }
-    if (fmt === 'pdf') {
+    if (fmtUsed === 'pdf') {
       outPath += '.pdf';
       const meta = this.docModel.toDocData().meta;
       const r: ExportResult = ExportService.buildPdf(this.docId, this.machineLabelText(),
@@ -3505,8 +3575,14 @@ struct Index {
     }
     statsService.recordEvent(StatsEvents.DOC_EXPORTED);
     AchievementService.evaluate();
-    hilog.info(DOMAIN, TAG, 'direct export ok format=%{public}s path=%{public}s', fmt, outPath);
+    hilog.info(DOMAIN, TAG, 'direct export ok format=%{public}s path=%{public}s', fmtUsed, outPath);
     this.playSlotFly();
+  }
+
+  /** F5/R12：出纸槽提示条（2.2s 自动收起）。 */
+  private showSlotHint(text: string): void {
+    this.slotHint = text;
+    setTimeout(() => { this.slotHint = ''; }, 2200);
   }
 
   /** 批 36 §3.5：纸片从出纸槽滑出 40vp 后淡出（300ms）。 */
@@ -4149,8 +4225,9 @@ struct Index {
 
   /** 换纸：一次性手动动作，600ms（旧纸卷出 300 + 新纸卷入 300），期间禁打字。 */
   private onPaperChange(entry: string = 'manual'): void {
-    // 换纸时防御性清空预编辑串
+    // 换纸时防御性清空预编辑串；F5/R9：同时取消拼音会话，避免候选残留到新纸
     this.cnPreview = '';
+    this.cancelCompose();
     // 第 12 批 ②：换纸计数——判定必须在 clear() 之前；逐行看 text.length>0（不复用 isEmpty()：
     // 多空行纸会误判为空），有内容才 +1；只打空格也算有内容（空格进落字队列、计入字符）。
     let sheetHasContent: boolean = false;
@@ -4897,12 +4974,13 @@ struct Index {
       widthVp: 401,
       heightVp: 67,
       sx: this.xk(), sy: this.yk(),
-      langLabel: this.langZh
-        ? this.resolveString($r('app.string.keyboard_lang_zh'))
-        : this.resolveString($r('app.string.keyboard_lang_en')),
+      langZhLabel: this.resolveString($r('app.string.keyboard_lang_zh')),
+      langEnLabel: this.resolveString($r('app.string.keyboard_lang_en')),
       langActive: this.langZh,
       symbolActive: this.symbolMode,
       onLang: (): void => {
+        // F5/R18：切引擎前先清掉上一引擎的候选与预编辑，避免残留
+        this.cancelCompose();
         this.langZh = !this.langZh;
         this.applyChineseMode(this.langZh);
         this.recalcTravel();
@@ -4983,6 +5061,9 @@ struct Index {
       sx: this.xk(), sy: this.yk(),
       candidates: this.langZh && this.pinyinReady ? this.candCurrent : [],
       pinyin: this.langZh && this.pinyinReady ? this.cnPinyin : '',
+      // F5/R1：字号与页码经 AppStorage 订阅，这里只传数据与回调
+      onPrevPage: (): void => { this.candPrevPage(); },
+      onNextPage: (): void => { this.candNextPage(); },
       onPick: (i: number): void => { this.pinyinPick(i); },
     })
       .id('p26_cand_strip')
@@ -5399,6 +5480,18 @@ struct Index {
             .position({ x: 150 * this.xk() + 62 * this.xk() + 8 * this.xk(), y: 16 * this.yk() })
             .hitTestBehavior(HitTestMode.None)
         }
+
+        // F5/R12：出纸槽提示条（如 image 直出回落 txt），2.2s 后由状态清掉
+        if (this.slotHint.length > 0) {
+          Text(this.slotHint)
+            .fontSize(13).fontColor('#e8ddc9').textAlign(TextAlign.Center)
+            .width(280 * this.xk()).height(28 * this.yk())
+            .backgroundColor('#3a2f22')
+            .border({ width: 1, color: '#c9a45c' })
+            .borderRadius(4)
+            .position({ x: (this.stageWidth - 280 * this.xk()) / 2, y: 70 * this.yk() })
+            .hitTestBehavior(HitTestMode.None)
+        }
       }
 
       if (this.settingsOpen) {
@@ -5580,11 +5673,19 @@ struct Index {
           onCandidateCount: (n: number): void => {
             this.candPageSize = clampCandidateCount(n);
             appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, this.candPageSize);
+            // F5/R1：设置值变了，页码与当页候选要跟着重算，否则页数还是旧值
+            this.candPage = 0;
+            this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
             this.pinyinShown();
           },
           onCandidateSize: (n: number): void => {
             this.candChipFontSize = clampCandidateSize(n);
             appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_SIZE, this.candChipFontSize);
+            AppStorage.setOrCreate('candFont', this.candChipFontSize);
+            // F5/R1：字号决定一页能放几个，改字号后重算
+            this.candPage = 0;
+            this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
+            this.pinyinShown();
           },
           onBack: (): void => { this.leaveTyping(); },
           onToggleFuzzy: (): void => { this.toggleFuzzy(); },

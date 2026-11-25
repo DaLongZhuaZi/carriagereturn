@@ -140,6 +140,13 @@ export const STEEL_HI: string = '#cfcfd2';
 export const RED26: string = '#c8322d';
 
 /** 机器顶部深色带（顶栏黑区 0–104vp 的底）。 */
+interface CapArgs {
+  label: string;
+  idx: number;
+  cb: () => void;
+  active: boolean;
+}
+
 @Component
 export struct TopDeck26 {
   @Prop machine: MachineKind = MachineKind.UPRIGHT_1920S;
@@ -688,8 +695,12 @@ export struct FunctionCaps26 {
   @Prop heightVp: number = 36;
   @Prop sx: number = 1;
   @Prop sy: number = 1;
-  @Prop langLabel: string = 'EN';
+  @Prop langZhLabel: string = '中';
+  @Prop langEnLabel: string = 'EN';
   @Prop langActive: boolean = false;
+  /** F5/R17：语言键标签直接订阅 AppStorage 字符串，切中英后必刷新。 */
+  @StorageLink('langLabel') langDyn: string = 'EN';
+  @StorageLink('langZh') zhState: boolean = false;
   @Prop symbolActive: boolean = false;
   /** 批 71：功能行按下态（-1＝无）。与 KeyGrid.pressedId 同口径，驱动下沉 2vp + scaleY 0.94。 */
   @State pressedIdx: number = -1;
@@ -700,8 +711,9 @@ export struct FunctionCaps26 {
   onBackLine: () => void = (): void => {};
   onSymbols: () => void = (): void => {};
 
+  /** F5：@Builder 用单个对象参数（按引用），标签/按下态才会随状态刷新。 */
   @Builder
-  cap(label: string, idx: number, cb: () => void, active: boolean) {
+  cap(args: CapArgs) {
     Stack({ alignContent: Alignment.Center }) {
       Column().width('100%').height('100%')
         .linearGradient({
@@ -709,9 +721,9 @@ export struct FunctionCaps26 {
           colors: [['#f4efe3', 0.0], ['#eae5d9', 0.5], ['#bfb6a4', 1.0]],
         })
         .borderRadius(4)
-        .border({ width: 1, color: active ? '#c8322d' : '#8f8677' })
+        .border({ width: 1, color: args.active ? '#c8322d' : '#8f8677' })
         .shadow({ radius: 4, color: '#00000088', offsetX: 0, offsetY: 2 })
-      if (label === 'BL') {
+      if (args.label === 'BL') {
         // 退行：矢量箭头（不用 ↩ 字符，系统字体把它渲成蓝底 emoji）
         Stack({ alignContent: Alignment.TopStart }) {
           Path({ commands: 'M15 3 L4 3 L4 16' }).stroke('#241f1a').strokeWidth(1.6).fillOpacity(0)
@@ -722,8 +734,8 @@ export struct FunctionCaps26 {
         .width(19 * this.sx).height(20 * this.sx)
         .translate({ y: -1.5 * this.sy })
       } else {
-        Text(label)
-          .fontSize((label.length > 1 ? 11 : 14) * this.sx)
+        Text(args.label)
+          .fontSize((args.label.length > 1 ? 11 : 14) * this.sx)
           .fontColor('#241f1a')
           .fontFamily('CourierPrime')
           .maxLines(1)
@@ -737,34 +749,36 @@ export struct FunctionCaps26 {
     }
     // 批 66：功能行六键按 kx 等比放大（36×30 → 66.9×55.7，宽高同系数，不拉伸）
     .width(36 * this.sx).height(30 * this.sx)
-    .position({ x: (idx * 36) * this.sx, y: 3 * this.sx })
+    .position({ x: (args.idx * 36) * this.sx, y: 3 * this.sx })
     // 批 71（用户 2026-11-22 定）：功能键要有**和键盘一样的按下效果**。
     // 口径与 KeyGrid.capCell 完全一致：下沉 2vp（绝对值，不随 sx 缩放——键盘在平板也是 2vp）、
     // scaleY 0.94、90ms springMotion(0.34, 0.9)；按下态由本组件的 pressedIdx 驱动。
-    .translate({ y: this.pressedIdx === idx ? 2 : 0 })
-    .scale({ y: this.pressedIdx === idx ? 0.94 : 1 })
+    .translate({ y: this.pressedIdx === args.idx ? 2 : 0 })
+    .scale({ y: this.pressedIdx === args.idx ? 0.94 : 1 })
     .animation({ duration: 90, curve: curves.springMotion(0.34, 0.9) })
     .onTouch((e: TouchEvent) => {
       if (e.type === TouchType.Down) {
-        this.pressedIdx = idx;
+        this.pressedIdx = args.idx;
       } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
         this.pressedIdx = -1;
       }
     })
     // 批 62 收尾：功能行六键的无障碍文本（读屏朗读名与按钮显示一致）
-    .accessibilityText(label === 'BL' ? '退行' : label)
+    .accessibilityText(args.label === 'BL' ? '退行' : args.label)
     .accessibilityLevel('yes')
-    .onClick(() => { cb(); })
+    .onClick(() => { args.cb(); })
   }
 
   build() {
+    // F5/R17：标签直接由语言状态决定，不依赖父级拼好的字符串（原先切中文后仍显示 EN）
     Stack({ alignContent: Alignment.TopStart }) {
-      this.cap(this.langLabel, 0, this.onLang, this.langActive)
-      this.cap('⌫', 1, this.onDelete, false)
-      this.cap('⏎', 2, this.onNewline, false)
-      this.cap('↻', 3, this.onPaper, false)
-      this.cap('BL', 4, this.onBackLine, false)
-      this.cap('Aa', 5, this.onSymbols, this.symbolActive)
+      this.cap({ label: this.langDyn.length > 0 ? this.langDyn : 'EN', idx: 0,
+        cb: this.onLang, active: this.langActive || this.zhState })
+      this.cap({ label: '⌫', idx: 1, cb: this.onDelete, active: false })
+      this.cap({ label: '⏎', idx: 2, cb: this.onNewline, active: false })
+      this.cap({ label: '↻', idx: 3, cb: this.onPaper, active: false })
+      this.cap({ label: 'BL', idx: 4, cb: this.onBackLine, active: false })
+      this.cap({ label: 'Aa', idx: 5, cb: this.onSymbols, active: this.symbolActive })
     }
     .width(this.widthVp).height(this.heightVp)
   }
@@ -807,7 +821,7 @@ export struct FontPlate26 {
 }
 
 // ---------------------------------------------------------------------------
-// 候选条（盖上的深色纸条；最多 5 个候选，超截断；无候选留空）
+// 候选条（盖上的深色纸条；F5/R1：数量与字号跟设置走，超宽翻页；无候选留空）
 // ---------------------------------------------------------------------------
 @Component
 export struct CandStrip26 {
@@ -818,15 +832,29 @@ export struct CandStrip26 {
   @Prop sy: number = 1;
   @Prop candidates: string[] = [];
   @Prop pinyin: string = '';
+  /** F5/R1：候选字号与页码走 AppStorage（@Prop 经 Stage26 槽位不刷新）。 */
+  @StorageLink('candFont') fontSizeVp: number = 15;
+  @StorageLink('candPage') pageNo: number = 0;
+  @StorageLink('candPages') pageCount: number = 0;
   onPick: (i: number) => void = (_i: number): void => {};
+  onPrevPage: () => void = (): void => {};
+  onNextPage: () => void = (): void => {};
 
   private shown(): string[] {
+    // 每页放几个由 Index 按字号裁好；这里按同口径兜底，不再写死 5
+    const pinyinW: number = this.pinyin.length * 8;
+    const cap: number = Math.floor((300 - 34 - pinyinW) / (this.fontSizeVp + 8));
+    const limit: number = cap > 1 ? cap : 1;
     const out: string[] = [];
-    const n: number = this.candidates.length > 5 ? 5 : this.candidates.length;
+    const n: number = this.candidates.length > limit ? limit : this.candidates.length;
     for (let i = 0; i < n; i++) {
       out.push(this.candidates[i]);
     }
     return out;
+  }
+
+  private canPage(): boolean {
+    return this.pageCount > 1;
   }
 
   /**
@@ -854,26 +882,42 @@ export struct CandStrip26 {
         .borderRadius(2)
         .shadow({ radius: 3, color: '#00000099', offsetX: 0, offsetY: 1 })
         .position({ x: (this.widthVp - 300 * this.sx) / 2, y: 7 * this.sy })
-      Row({ space: 12 * this.sx }) {
-        if (this.pinyin.length > 0) {
+      Row({ space: 8 * this.sx }) {
+        if (this.pinyin.length > 0 && this.candidates.length > 0) {
           Text(this.pinyin + ' ').fontSize(13)
             .fontColor(this.isLightBase() ? '#5a4a33' : '#b8a98f')
             .fontFamily('CourierPrime')
         }
         ForEach(this.shown(), (c: string, i: number) => {
           Text(c)
-            .fontSize(16)
+            .fontSize(this.fontSizeVp)
             .fontColor(this.isLightBase() ? '#241f19' : '#f0e8d8')
             .maxLines(1)
             // 批 62 收尾：候选格的无障碍文本＝候选词本身（读屏朗读与格内显示一致）
             .accessibilityText(c)
             .accessibilityLevel('yes')
             .onClick(() => { this.onPick(i); })
-        }, (c: string, i: number) => i.toString() + c)
+        }, (c: string, i: number) => this.pageNo.toString() + '_' + i.toString() + c)
       }
-      .width(300 * this.sx)
+      .width(264 * this.sx)
+      .clip(true)
       .justifyContent(FlexAlign.Center)
-      .position({ x: (this.widthVp - 300 * this.sx) / 2, y: 14 * this.sy })
+      .position({ x: (this.widthVp - 300 * this.sx) / 2 + 18 * this.sx, y: 14 * this.sy })
+      // F5/R1：翻页箭头绝对定位在纸条两端（Roll 内部放不下时也不会被挤掉）
+      if (this.canPage() && this.pageNo > 0) {
+        Text('‹').fontSize(18)
+          .fontColor(this.isLightBase() ? '#5a4a33' : '#d8c9ab')
+          .position({ x: (this.widthVp - 300 * this.sx) / 2 + 2 * this.sx, y: 12 * this.sy })
+          .accessibilityText('上一页候选')
+          .onClick(() => { this.onPrevPage(); })
+      }
+      if (this.canPage() && this.pageNo + 1 < this.pageCount) {
+        Text('›').fontSize(18)
+          .fontColor(this.isLightBase() ? '#5a4a33' : '#d8c9ab')
+          .position({ x: (this.widthVp + 300 * this.sx) / 2 - 16 * this.sx, y: 12 * this.sy })
+          .accessibilityText('下一页候选')
+          .onClick(() => { this.onNextPage(); })
+      }
     }
     .width(this.widthVp).height(this.heightVp)
   }
