@@ -1,0 +1,44 @@
+# 核查①-6（收藏页＋收藏详情）hilog 摘录，2026-11-25
+
+说明：设备 hilog 环形缓冲滚动很快（笔记本批操作结束后再取已全部滚掉；平板在 11:24 重启后缓冲清空）。
+以下行为**操作当刻 `hilog -x | grep` 读到的原文**，按时间抄录，未补写。
+
+## 平板 MLR-AL10（192.168.5.133:42355）
+
+A95「设为当前机器」五次＋恢复一次（收藏详情页按钮）：
+
+11-25 10:59:59.262 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1920s-upright
+11-25 11:00:25.920 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1930s-portable
+11-25 11:00:55.642 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1950s-streamlined
+11-25 11:01:24.527 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1960s-electric
+11-25 11:02:36.920 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 2020s-modern
+11-25 11:04:26.180 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1920s-upright
+
+2020s 换机后进打字机（截图 2848 的辅助证据）：
+
+11-25 11:03:36.067 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: reloadKeymap called: stageW=673.7 keybedH=230.6 path=keymap/2020s-modern-keymap.json
+11-25 11:03:36.070 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: stage26 stage=673.7x1077.9 machineW=673.7 left=0.0 paperH=337.9 basketH=145.7 keyH=371.7 fixed=222.6 Pw=408.3 fs=16.21 cpl=44 capped=0
+
+## 手机 ADA-AL00U（2UCUT24724009680）
+
+A95「设为当前机器」五次＋恢复一次：
+
+11-25 11:09:46.544 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1920s-upright
+11-25 11:10:08.819 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1930s-portable
+11-25 11:11:44.720 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1950s-streamlined
+11-25 11:12:27.652 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1960s-electric
+11-25 11:14:04.498 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 2020s-modern
+11-25 11:16:18.370 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: collection setCurrent -> 1920s-upright
+
+2020s 换机后进打字机（截图 2882 的辅助证据）：
+
+11-25 11:15:13.587 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: reloadKeymap called: stageW=362.7 keybedH=172.7 path=keymap/2020s-modern-keymap.json
+
+## 落盘偏好核对（收工）
+
+`docs/evidence/audit/item06-prefs-tablet.xml` / `item06-prefs-phone.xml`（设备路径
+`/data/app/el2/100/base/com.dlzz.carriagereturn/haps/entry/preferences/carriagereturn_prefs`）：
+两台 `<string key="machine">1920s-upright</string>`；`guide.collection.seen=true`、
+`guide.collection_detail.seen=true`。
+逐台 set-current 过程中每次点击后立即取该文件，machine 值依次与 hilog 一致
+（1930s-portable → 1950s-streamlined → 1960s-electric → 2020s-modern → 恢复 1920s-upright）。
