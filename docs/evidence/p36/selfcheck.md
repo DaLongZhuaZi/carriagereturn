@@ -3743,6 +3743,8 @@ awfile/keymap/2020s-modern-keymap.json 照抄 1920s，master 改 2020s-modern-ke
 
 ### 批 81：1920s 四区门基线重拍（批 79 字头行重排后）
 
+> **2026-11-26 更正（F2 收尾）**：本批所称「1920s」基线 `2376`／`2377` 经像素复核实为 **2020s 机身**（frame_left 均值 (171,190,178)／(162,183,171)；真 1920s 为 (51,48,45)／(31,29,27)）。根因：采信了设置页「默认机器」回显（R6 陷阱：当前机为 2020s 时回显回落 1920s）。文件已改名 `2376_2020s_*`／`2377_2020s_*` 保留；真 1920s 基线另拍为 `3578`／`3579`（见 `docs/evidence/audit/fix-F2-paper-texture.md` §8）。下文为当时记录，数字与结论未改。
+
 分支 `gate-reshoot-1920s`（base main `c85547a`，发批时 main 已含 audit01）；2026-11-25。批准人 Kit 于 2026-11-25 04:26 全权自主定本批重拍（不再逐项问用户）。本批只拍摄、比对、登记基线；不改代码、不构建、不装包。设备上装的是批 79 构建；main 之后仅批 80 文档提交，渲染等价；2376 vs 2372 四区 0.00% 可证。
 
 #### 前置（按门图流程 §1）
@@ -3761,8 +3763,8 @@ awfile/keymap/2020s-modern-keymap.json 照抄 1920s，master 改 2020s-modern-ke
 
 #### 新基线
 
-* 平板：`docs/shots/2376_1920s_gate_tablet.png`（1600×2560；第二帧 `2378_1920s_gate_tablet_repeat.png`）
-* 手机：`docs/shots/2377_1920s_gate_phone.png`（1224×2776；第二帧 `2379_1920s_gate_phone_repeat.png`）
+* 平板：`docs/shots/2376_2020s_gate_tablet.png`（1600×2560；第二帧 `2378_2020s_gate_tablet_repeat.png`）
+* 手机：`docs/shots/2377_2020s_gate_phone.png`（1224×2776；第二帧 `2379_2020s_gate_phone_repeat.png`）
 
 #### 比对结果（`tools/gate-compare.py`；阈值 30，max 通道差；legacy 四区）
 
