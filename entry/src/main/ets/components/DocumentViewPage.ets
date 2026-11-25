@@ -148,6 +148,7 @@ export struct DocumentViewPage {
     .width(w)
     .layoutWeight(1)
     .height('100%')
+    .id('document_view__body')
     .opacity(this.revealN > 1 ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .clip(true).borderRadius(8)
@@ -300,7 +301,7 @@ export struct DocumentViewPage {
 export function guideStepsForDocumentView(): SpotlightStep[] {
   return [
     { text: $r('app.string.guide_document_view_1'), anchorId: 'document_view__content' },
-    { text: $r('app.string.guide_document_view_2'), anchorId: 'document_view__edit_btn' },
+    { text: $r('app.string.guide_document_view_2'), anchorId: 'document_view__body' },
     { text: $r('app.string.guide_document_view_3'), anchorId: 'document_view__delete_btn' },
   ];
 }

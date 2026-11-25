@@ -17,6 +17,7 @@ import { AppMenu } from './AppMenu';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { componentUtils } from '@kit.ArkUI';
 import { SpotlightStep } from './SpotlightOverlay';
+import { GuideBridge } from '../services/GuideBridge';
 
 const COVER_RAW: Record<string, string> = {
   'kraft': 'dossiers/dossier-kraft.jpg',
@@ -488,6 +489,17 @@ export struct DossierDetailPage {
           }
           .alignItems(HorizontalAlign.Start).margin({ left: 14 }).layoutWeight(1)
 
+          // F4/R11（D12）：问号引导入口，放在 ⋯ 左侧；自定义页眉时 PageShell 不渲染默认 help
+          if (GuideBridge.enabled) {
+            Stack() {
+              AppIcon({ kind: 'help', iconSize: 22, color: '#e8ddc9' })
+            }
+            .width(36).height(36)
+            .id('dossier_detail__help_btn')
+            .accessibilityText('页面引导')
+            .accessibilityLevel('yes')
+            .onClick(() => { GuideBridge.request('dossier_detail'); })
+          }
           Stack() {
             AppIcon({ kind: 'more', iconSize: 22, color: '#e8ddc9' })
           }

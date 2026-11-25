@@ -34,6 +34,8 @@ export struct SpotlightOverlay {
   @State bubble: BubbleLayout = { x: 0, y: 0, w: 280, h: 150, arrowX: 0, arrowY: 0, side: 'center', overlap: false };
   @State fading: boolean = false;
   onClose: (page: string) => void = (p: string): void => {};
+  /** F4/R34：当前步变化回调（Index 用来判断洞口是否落在主页 hero 上）。 */
+  onStepChange: (index: number) => void = (_i: number): void => {};
 
   aboutToAppear(): void {
     if (this.visible) {
@@ -66,6 +68,7 @@ export struct SpotlightOverlay {
       return;
     }
     const step: SpotlightStep = this.steps[Math.min(this.index, this.steps.length - 1)];
+    this.onStepChange(this.index);
     const r1: RectVp | null = this.rectOf(step.anchorId);
     if (r1 === null) {
       this.fallback(step.anchorId);

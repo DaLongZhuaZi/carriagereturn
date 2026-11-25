@@ -36,6 +36,8 @@ export struct HomePage {
   @State op: number = 0;
   /** 第 10 批：引导入口总开关（false 时隐藏）。 */
   @Prop guideEnabled: boolean = true;
+  /** F4/R34：聚光灯正在压暗本页（洞口不在 hero 上）时，hero 带按同一 alpha 自行压暗。 */
+  @Prop heroDim: boolean = false;
   onContinue: () => void = (): void => {};
   onStartTyping: () => void = (): void => {};
   onOpen: (key: string) => void = (): void => {};
@@ -113,16 +115,23 @@ export struct HomePage {
               })
             if (this.machineKind === MachineKind.UPRIGHT_1920S) {
               Image($rawfile('machine/1920s-upright-front.jpg'))
-                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+                .width('100%').height('100%').objectFit(ImageFit.Contain)
             } else if (this.machineKind === MachineKind.PORTABLE_1930S) {
               Image($rawfile('machine/1930s-portable-front.jpg'))
-                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+                .width('100%').height('100%').objectFit(ImageFit.Contain)
             } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
               Image($rawfile('machine/1950s-streamlined-front.jpg'))
-                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+                .width('100%').height('100%').objectFit(ImageFit.Contain)
             } else {
               Image($rawfile('machine/1960s-electric-front.jpg'))
-                .width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.98)
+                .width('100%').height('100%').objectFit(ImageFit.Contain)
+            }
+            // F4/R34：聚光灯压暗时，hero 带按与遮罩相同的 alpha 自行压暗
+            //（hero 的渐变＋大图在真机上会越过浮层单独成像，实测遮罩压不住，见报告）
+            if (this.heroDim) {
+              Column().width('100%').height('100%')
+                .backgroundColor('rgba(0,0,0,0.55)')
+                .hitTestBehavior(HitTestMode.None)
             }
           }
           .width('100%')

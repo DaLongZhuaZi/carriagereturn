@@ -1004,6 +1004,8 @@ struct Index {
   @State guidePage: string = '';
   @State guideTitle: ResourceStr = '';
   @State guideSteps: SpotlightStep[] = [];
+  /** F4/R34：聚光灯当前步（判断洞口是否在主页 hero 上）。 */
+  @State guideStepIndex: number = 0;
   @State onboardingVisible: boolean = false;
   /** 第 13 批 ④：新引导当前页（@Link 给 OnboardingGuide，供返回键做「上一页／首屏跳过」）。 */
   @State onboardingPage: number = 0;
@@ -1073,8 +1075,8 @@ struct Index {
     if (page === GUIDE_PAGE_TYPEWRITER) {
       return [
         { text: $r('app.string.guide_typewriter_1'), anchorId: 'typewriter__lever' },
-        { text: $r('app.string.guide_typewriter_2'), anchorId: 'typewriter__function_row' },
-        { text: $r('app.string.guide_typewriter_3'), anchorId: 'typewriter__paper' },
+        { text: $r('app.string.guide_typewriter_2'), anchorId: 'p26_function_caps' },
+        { text: $r('app.string.guide_typewriter_3'), anchorId: 'p35_paper' },
       ];
     }
     return [];
@@ -5101,6 +5103,9 @@ struct Index {
           // 第 13 批 ⑤：主页 hero 跟随当前启用机型
           machineKind: this.machineKind,
           guideEnabled: this.guideEnabled,
+          // F4/R34：聚光灯亮起且洞口不在 hero 上时，hero 带自行压暗（真机遮罩压不住大图）
+          heroDim: this.guideVisible && !this.onboardingVisible
+            && !(this.guidePage === GUIDE_PAGE_HOME && this.guideStepIndex === 0),
           statsRev: this.statsRev,
           onContinue: (): void => {
             const list = docStore.list();
@@ -5647,6 +5652,7 @@ struct Index {
         creaseBottom: this.creaseBottomVp,
         keyboardTop: this.winHeightVp - this.keybedHeight - FUNCTION_ROW_HEIGHT_VP,
         onClose: (page: string): void => { this.closePageGuide(); },
+        onStepChange: (i: number): void => { this.guideStepIndex = i; },
       })
       // 第 9 批 F5：成就达成弹窗（挂在最上层；一次只弹一条，关掉再弹下一条）
       AppDialog({

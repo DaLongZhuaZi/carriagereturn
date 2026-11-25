@@ -253,6 +253,7 @@ export struct TopZone26 {
             .position({ x: 4 * this.sx, y: 0 })
         }
         .width(16 * this.sx).height(32 * this.sy)
+        .id('typewriter__lever')
         .accessibilityText('返回')
         .accessibilityLevel('yes')
         .onClick(() => { this.onBack(); })
