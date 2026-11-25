@@ -37,7 +37,7 @@
 | `guide.trash.seen` | false | false |
 | 其它（①-7/①-9 残留） | 字号 20、`custom.font.1920s-upright.family` 为空、纸纹指向沙箱截图副本 | 字号 20、`marginH=40`、`family=CourierPrime`、纸纹指向沙箱截图副本 |
 
-起始 prefs 原件：`.audit10_tmp/prefs_{tablet,phone}_start.xml`（未入库，数值已摘录本表）。
+起始 prefs 数值已摘录本表；pull 出的原件未入库（本批临时工作目录已在收工前清理，避免污染工作树）。
 
 ### 0.2 本批测试数据与状态构造
 
@@ -124,7 +124,7 @@ R10/R25 的 hilog 原文摘录见 `docs/evidence/audit/item10-hilog-spotlight.tx
 
 ## 5. 测试残留
 
-- **两机均未再 bm clean 手机；平板已 bm clean（本批主动）**：
+- **手机未 bm clean；平板本批主动 bm clean（为构造 A205/A206/A207 的新装态）**：
   - 平板：应用数据已清空重建（`bm clean -d`）。当前为新装数据：1 篇自动保存的测试文档（纸面为输入的大量 `q`，约 1003 字）、`stats.total.chars=1003`、`stats.day.chars=1003`、每日目标已恢复 500；`onboarding_seen=true`，`guide.home/settings/typewriter.seen=true`，其余 11 页 seen=false；成就新增 `goal_1`、`words_1000`。机器/删除方式为默认（1920s-upright／trash）。
   - 手机：未清数据。`stats.total.chars=1688`、`stats.day.chars=1688`、每日目标已恢复 500；成就新增 `goal_1`、`words_1000`；`guide.dossier/dossier_detail/document_view/home/settings/typewriter.seen=true`，其余 8 页（collection、collection_detail、customize、export、font_manager、paper_custom、pinyin_settings、trash）**被本批“重播页面引导”重置为 false**（其中 export／customize／pinyin_settings 在①-9 时为 true，状态已变化）；手机当前文档纸面被追加大量 `q` 字符（统计累计 1688 字），未新建文档。
   - 两机均停在主页（3549/3550）；App 进程存活，无崩溃。
