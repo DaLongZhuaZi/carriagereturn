@@ -1,0 +1,71 @@
+===== tablet (192.168.5.133:42355) hilog excerpts =====
+--- renamePaper ---
+(no lines remaining in ring buffer)
+--- renamed to ---
+(no lines remaining in ring buffer)
+--- deleteDossier ---
+11-25 09:35:15.714 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: deleteDossier id=d1795570468444991 mode=purge papers=1
+--- paper trashed ---
+11-25 09:37:08.343 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795568999139-89987
+11-25 09:41:03.022 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795570827586-93213
+--- newPaper in dossier ---
+11-25 09:34:43.359 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: newPaper in dossier=d1795570468444991 doc=doc-1795570483357-21436
+11-25 09:40:27.588 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: newPaper in dossier=d1795568897351500 doc=doc-1795570827586-93213
+--- search q= ---
+(no lines remaining in ring buffer)
+--- onExportDossier ---
+(no lines remaining in ring buffer)
+--- nav depth ---
+11-25 09:33:24.919 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:33:30.674 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 09:33:37.830 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:34:28.448 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 09:35:49.610 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:35:51.980 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 09:35:54.213 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:36:00.147 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 09:37:59.336 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:38:03.657 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 09:38:10.424 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:38:44.887 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+--- loadDocument ---
+(no lines remaining in ring buffer)
+
+===== phone (2UCUT24724009680) hilog excerpts =====
+--- renamePaper ---
+(no lines remaining in ring buffer)
+--- renamed to ---
+(no lines remaining in ring buffer)
+--- deleteDossier ---
+(no lines remaining in ring buffer)
+--- paper trashed ---
+11-25 09:37:39.435 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795569024833-56438
+--- newPaper in dossier ---
+(no lines remaining in ring buffer)
+--- search q= ---
+(no lines remaining in ring buffer)
+--- onExportDossier ---
+(no lines remaining in ring buffer)
+--- nav depth ---
+11-25 09:36:08.654 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:36:10.693 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 09:36:12.565 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:36:16.775 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 09:38:13.962 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:38:17.689 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 09:38:23.354 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 09:39:01.538 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+--- loadDocument ---
+(no lines remaining in ring buffer)
+
+
+===== supplemental (captured 09:44-09:46) =====
+===== tablet fresh search log =====
+11-25 09:45:00.138 28218 28218 I A00000/com.dlzz.carriagereturn/DossierDetail: search q=测试 hits=1
+===== phone fresh search log =====
+11-25 09:45:09.555 13230 13230 I A00000/com.dlzz.carriagereturn/DossierDetail: search q=测试 hits=1
+===== tablet fresh export log =====
+11-25 09:45:14.547 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: onExportDossier id=d1795568897351500
+11-25 09:45:14.548 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=4 top=export
+11-25 09:45:14.552 28218 28218 I A00000/com.dlzz.carriagereturn/ExportPage: export target scope=dossier dossier=d1795568897351500 docId=doc-1795569002432-88939
+11-25 09:45:14.576 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: statusBarContentColor -> #dbccb3 (top=export)
