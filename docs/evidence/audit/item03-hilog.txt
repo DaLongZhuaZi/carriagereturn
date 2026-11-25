@@ -1,0 +1,77 @@
+# 核查①-3 打字机页双机核查 hilog 摘录（2026-11-25）
+
+## 平板 MLR-AL10
+--- committed ch=
+--- cn pinyin buf
+--- applyChineseMode
+--- paperPan
+--- paperOffset settle
+--- export slot tap
+--- direct export
+--- font cycle
+--- cn pick
+--- newlineDone
+--- newlineAtLastRow
+
+## 手机 ADA-AL00U
+--- committed ch=
+--- cn pinyin buf
+--- applyChineseMode
+11-25 08:38:40.434 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=false engine=builtin
+--- paperPan
+--- export slot tap
+--- direct export
+--- font cycle
+11-25 08:38:45.021 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> NotoSerifSC (idx 6/17)
+11-25 08:38:45.846 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> LXGWWenKai (idx 7/17)
+11-25 08:38:46.663 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> ZhuqueFangsong (idx 8/17)
+11-25 08:38:47.483 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> MaShanZheng (idx 9/17)
+11-25 08:38:48.297 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> ZhiMangXing (idx 10/17)
+11-25 08:38:49.133 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> LongCang (idx 11/17)
+11-25 08:38:49.955 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> Caveat (idx 12/17)
+11-25 08:38:50.760 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> Kalam (idx 13/17)
+11-25 08:38:51.572 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> PatrickHand (idx 14/17)
+11-25 08:38:52.384 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> ShadowsIntoLight (idx 15/17)
+11-25 08:38:53.191 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> HomemadeApple (idx 16/17)
+11-25 08:38:54.000 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> CourierPrime (idx 0/17)
+--- cn pick
+--- newlineDone
+--- newlineAtLastRow
+
+## 复取：平板出纸槽 image 直出（槽点按原文）
+
+## 复取：手机出纸槽 image 直出（2026-11-25 操作原文）
+11-25 08:41:57.099 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: export slot tap -> direct export format=image
+11-25 08:41:57.100 13230 13230 E A00100/com.dlzz.carriagereturn/MainScreen: direct export image unsupported: needs ExportTemplate render in ExportPage (no fallback)
+--- applyChineseMode
+--- paperPan
+--- font cycle
+--- committed ch
+--- cn pinyin buf
+
+## 说明
+
+设备 hilog 环形缓冲滚动很快。下面“操作当刻读取”的行是操作时从 `hilog -x` 实时读到的原文；收尾补录时已被系统日志覆盖，无法再次抓取。截图为逐项主证据，本文件只作辅助。
+
+## 平板：操作当刻读取（补录时已滚动）
+
+11-25 07:18:02.323 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: font cycle -> CourierPrime (idx 0/17)
+11-25 07:21:49.567 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=true engine=builtin
+11-25 07:33:51.466 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paperPan dy=67.2 off=67.2 max=174.8
+11-25 07:33:51.499 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paperPan dy=80.8 off=80.8 max=174.8
+11-25 07:34:55.600 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paperOffset settle from=80.8 -> 0
+11-25 07:34:55.607 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: committed ch=[啊] shift=off sym=off
+11-25 07:35:49.554 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: committed ch=[!] shift=on sym=off
+11-25 07:45:01.371 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: cn pinyin buf=ni candAll=42 candCur=尼,你,溺爱,昵爱,年,念,娘,酿,蔫儿,黏儿,年底,年度,黏度,念佛
+11-25 07:52:30.769 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: export slot tap -> direct export format=image
+11-25 07:52:30.774 28218 28218 E A00100/com.dlzz.carriagereturn/MainScreen: direct export image unsupported: needs ExportTemplate render in ExportPage (no fallback)
+11-25 07:55:25.923 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=true engine=system
+11-25 07:56:09.342 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=false engine=system
+
+## 手机：操作当刻读取（补录时已滚动）
+
+11-25 08:00:06.874 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: committed ch=[!] shift=on sym=off
+11-25 08:12:40.898 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: paperPan dy=50.1 off=0.0 max=0.0
+11-25 08:13:20.404 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: paperPan dy=56.9 off=0.0 max=0.0
+11-25 08:31:16.310 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=true engine=system
+11-25 08:31:44.083 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: applyChineseMode on=false engine=system
