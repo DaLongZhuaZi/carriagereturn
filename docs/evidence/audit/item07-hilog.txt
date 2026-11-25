@@ -1,0 +1,53 @@
+===== tablet =====
+11-25 14:43:42.537 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize machine -> 1920s-upright
+11-25 14:44:00.433 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1920s-upright mode=simulated
+11-25 14:44:03.165 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1930s-portable mode=simulated
+11-25 14:44:05.825 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1950s-streamlined mode=simulated
+11-25 14:44:08.484 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1920s-upright mode=realistic
+11-25 14:44:10.142 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1930s-portable mode=realistic
+11-25 14:44:11.954 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: anim mode set machine=1950s-streamlined mode=realistic
+11-25 14:44:24.076 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=key-grid value=round machine=1920s-upright
+11-25 14:44:26.873 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=key-grid value=rounded-rect machine=1920s-upright
+11-25 14:44:29.530 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=basket value=metal-gradient machine=1920s-upright
+11-25 14:44:32.177 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=basket value=flat-line machine=1920s-upright
+11-25 14:44:34.805 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=knob value=matte-black machine=1920s-upright
+11-25 14:44:37.345 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=knob value=metal-knurl machine=1920s-upright
+11-25 14:44:39.909 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=body-panel value=1930s-grey machine=1920s-upright
+11-25 14:44:42.657 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=body-panel value=1950s-cream machine=1920s-upright
+11-25 14:44:45.269 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=body-panel value=1960s-lightgrey machine=1920s-upright
+11-25 14:44:47.803 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: part variant part=body-panel value=1920s-black machine=1920s-upright
+11-25 14:45:03.947 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize paper -> manuscript
+11-25 14:45:08.910 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize paper -> postcard
+11-25 14:45:13.996 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize paper -> memo
+11-25 14:45:37.570 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize paper -> letter
+11-25 14:46:15.053 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize ribbon -> blue ink=#24407c
+11-25 14:46:20.973 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize ribbon -> black ink=#1a1a1a
+11-25 14:46:23.847 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize font -> special-elite family=SpecialElite
+11-25 14:46:39.841 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize ribbon -> red ink=#a33327
+11-25 14:46:43.726 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize ribbon -> black ink=#1a1a1a
+11-25 14:47:11.731 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: customize font -> courier-prime family=CourierPrime
+11-25 14:48:21.774 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=fontmanager
+11-25 14:50:49.541 29577 29577 I A00000/com.dlzz.carriagereturn/FontManagerPage: import done family=imp-1795589449540-CaveatTest ok=true size=113164
+11-25 14:51:08.104 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: apply imported font family=imp-1795589449540-CaveatTest
+11-25 14:51:08.104 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: font applied machine=1920s-upright family=imp-1795589449540-CaveatTest
+11-25 14:51:21.663 29577 29577 I A00000/com.dlzz.carriagereturn/FontManagerPage: unlink ok /data/storage/el2/base/haps/entry/files/imports/fonts/1795589449539-CaveatTest.ttf
+11-25 14:51:21.664 29577 29577 I A00000/com.dlzz.carriagereturn/FontManagerPage: machine 1920s-upright font reverted (deleted imp-1795589449540-CaveatTest)
+11-25 14:51:21.666 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: font refresh after delete machine=1920s-upright family=
+11-25 14:51:34.764 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 14:51:37.851 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=papercustom
+11-25 14:54:22.933 29577 29577 I A00000/com.dlzz.carriagereturn/PaperCustomPage: texture imported name=screenshot_20261121_204402_com.dlzz.carriagereturn.jpg
+11-25 14:55:58.163 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 14:56:01.726 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 14:56:06.749 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=typewriter
+11-25 14:57:42.772 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 14:58:14.760 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 14:58:17.174 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=papercustom
+11-25 14:58:42.930 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 14:58:45.236 29577 29577 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+===== phone =====
+11-25 15:15:30.373 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=typewriter
+11-25 15:19:52.333 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 15:20:15.865 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 15:20:18.225 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=papercustom
+11-25 15:21:12.444 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=customize
+11-25 15:21:14.485 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
