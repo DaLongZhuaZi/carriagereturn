@@ -121,6 +121,10 @@
       "value": "Writing font"
     },
     {
+      "name": "export_opt_font_hint",
+      "value": "No custom writing font: on = default Courier Prime, off = system font"
+    },
+    {
       "name": "export_opt_ink",
       "value": "Ink color"
     },

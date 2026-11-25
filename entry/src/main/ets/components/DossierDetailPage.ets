@@ -515,6 +515,16 @@ export struct DossierDetailPage {
         .width('100%').height(96).padding({ left: 20, right: 20 })
   }
 
+  /** F3/R33：手机页眉没有导出按钮，导出项进 ⋯ 菜单；平板页眉已有，不重复。 */
+  private menuItems(): string[][] {
+    const items: string[][] = [['改名', 'rename'], ['新建纸张', 'newpaper']];
+    if (this.widthVp < 600) {
+      items.push(['导出', 'export']);
+    }
+    items.push(['删除卷宗', 'delete']);
+    return items;
+  }
+
   @Builder
   body() {
     Column() {
@@ -737,11 +747,11 @@ export struct DossierDetailPage {
         content: (): void => { this.body() },
         header: (): void => { this.hdrRow() },
       })
-      // D13：⋯ 真菜单（改名／新建纸张／删除卷宗）
+      // D13：⋯ 真菜单（改名／新建纸张／删除卷宗）；F3/R33：手机无页眉导出，改从菜单进
       AppMenu({
         visible: this.moreOpen,
         topVp: 56,
-        items: [['改名', 'rename'], ['新建纸张', 'newpaper'], ['删除卷宗', 'delete']],
+        items: this.menuItems(),
         onClose: () => { this.moreOpen = false; },
         onPick: (key: string): void => {
           if (key === 'rename') {
@@ -749,6 +759,7 @@ export struct DossierDetailPage {
             this.renaming = true;
           }
           if (key === 'newpaper') { this.onNewPaper(); }
+          if (key === 'export') { this.onExport(this.dossierId); }
           if (key === 'delete') { this.confirmDel = true; }
         },
       })

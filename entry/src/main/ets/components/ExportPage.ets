@@ -317,7 +317,16 @@ export struct ExportPage {
   private fontFamilyOf(): string {
     const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     const kind: string = d === null ? this.machineKind : (d.meta.machine as string);
-    return CustomizeStore.fontFamily(kind);
+    const fam: string = CustomizeStore.fontFamily(kind);
+    // F3/R31：未设置书写字体时回落默认 Courier Prime，「开」不再与「关」等价
+    return fam.length > 0 ? fam : 'CourierPrime';
+  }
+
+  /** F3/R31：该机是否设置过书写字体（界面说明用）。 */
+  private hasCustomFont(): boolean {
+    const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
+    const kind: string = d === null ? this.machineKind : (d.meta.machine as string);
+    return CustomizeStore.fontFamily(kind).length > 0;
   }
 
   /** 第 13 批 ⑥：整卷宗名（模板抬头用；非卷宗导出为空串）。 */
@@ -372,6 +381,16 @@ export struct ExportPage {
           });
         }
       }
+    } else if (this.range === 'paper' && this.docId.length > 0) {
+      // F3/A183：当前纸＝该篇归档纸之后的最后一组；单页，页码 1/1
+      const dd: DocData | null = docStore.load(this.docId);
+      const groups: string[][] = this.groupsOf(dd);
+      const cur: string[] = groups.length > 0 ? groups[groups.length - 1] : [];
+      const title: string = this.docTitleState.length > 0 ? this.docTitleState : this.titleOf(dd);
+      plans.push({
+        docId: this.docId, title: title, dateText: this.templateDateText(), dossierName: '',
+        lines: cur, pageNo: 1, pageTotal: 1,
+      });
     } else if (this.docId.length > 0) {
       const dd: DocData | null = docStore.load(this.docId);
       const groups: string[][] = this.groupsOf(dd);
@@ -660,10 +679,18 @@ export struct ExportPage {
           texts.push(assembleSheetText(archived, cur));
         }
         const rt: ExportResult = ExportService.buildTxtFromText(assembleDossierText(texts));
-        return { ok: rt.ok, bytes: rt.bytes, path: '', error: rt.error };
+        return this.logOut('text', { ok: rt.ok, bytes: rt.bytes, path: '', error: rt.error });
+      }
+      // F3/R30：当前纸只出当前纸（归档纸最后一组），不再整篇
+      if (this.range === 'paper') {
+        const ddP: DocData | null = docStore.load(this.docId);
+        const groupsP: string[][] = this.groupsOf(ddP);
+        const curP: string[] = groupsP.length > 0 ? groupsP[groupsP.length - 1] : [];
+        const rt: ExportResult = ExportService.buildTxtFromText(assembleSheetText([], curP));
+        return this.logOut('text', { ok: rt.ok, bytes: rt.bytes, path: '', error: rt.error });
       }
       const r: ExportResult = ExportService.buildTxt(this.docId);
-      return { ok: r.ok, bytes: r.bytes, path: '', error: r.error };
+      return this.logOut('text', { ok: r.ok, bytes: r.bytes, path: '', error: r.error });
     }
     if (fmt.id === 'pdf') {
       const ctx: common.UIAbilityContext | null = this.hostCtx();
@@ -719,7 +746,7 @@ export struct ExportPage {
         if (r2.ok) {
           this.tmpFiles.push(path);
           hilog.info(DOMAIN, TAG, 'export pdf pages=%{public}s', pngPaths.length.toString());
-          return { ok: true, bytes: r2.bytes, path: path, error: '' };
+          return this.logOut('pdf', { ok: true, bytes: r2.bytes, path: path, error: '' });
         }
         hilog.warn(DOMAIN, TAG, 'pdf image build failed, fallback to text: %{public}s', r2.error);
       } else {
@@ -731,21 +758,28 @@ export struct ExportPage {
       if (r.ok) {
         this.tmpFiles.push(path);
       }
-      return { ok: r.ok, bytes: r.bytes, path: r.ok ? path : '', error: r.error };
+      return this.logOut('pdf', { ok: r.ok, bytes: r.bytes, path: r.ok ? path : '', error: r.error });
     }
-    // 图片：F16 模板优先（含机器框）；整篇/整卷宗时 PNG 只出首纸
+    // 图片：F16 模板优先（含机器框）；当前纸取最后一组，整篇/整卷宗仍只出首纸
     const ui: UIContext = this.getUIContext();
     const imgPlans: PagePlan[] = this.pagePlans();
-    this.pageLines = imgPlans.length > 0 ? imgPlans[0].lines.slice(0, EXPORT_BODY_LINES) : [];
-    this.pageNo = 1;
-    this.pageTotal = Math.max(1, imgPlans.length);
-    this.pageTitle = imgPlans.length > 0 ? imgPlans[0].title : this.docTitleState;
-    this.pageDate = imgPlans.length > 0 ? imgPlans[0].dateText : this.dateText;
-    this.pageDossier = imgPlans.length > 0 ? imgPlans[0].dossierName : '';
+    const isPaper: boolean = this.range === 'paper';
+    const pick: number = isPaper ? Math.max(0, imgPlans.length - 1) : 0;
+    const plan0: PagePlan | null = imgPlans.length > pick ? imgPlans[pick] : null;
+    this.pageLines = plan0 !== null ? plan0.lines.slice(0, EXPORT_BODY_LINES) : [];
+    this.pageNo = plan0 !== null ? plan0.pageNo : 1;
+    this.pageTotal = isPaper ? 1 : Math.max(1, imgPlans.length);
+    this.pageTitle = plan0 !== null ? plan0.title : this.docTitleState;
+    this.pageDate = plan0 !== null ? plan0.dateText : this.dateText;
+    this.pageDossier = plan0 !== null ? plan0.dossierName : '';
+    // F3 取证：图片用的是哪一页（验收看 page 与首行内容）
+    hilog.info(DOMAIN, TAG, 'export image page=%{public}s/%{public}s lines=%{public}s first=%{public}s',
+      this.pageNo.toString(), this.pageTotal.toString(), this.pageLines.length.toString(),
+      this.pageLines.length > 0 ? this.pageLines[0].substring(0, Math.min(8, this.pageLines[0].length)) : '');
     const t: ExportResult = await ExportService.buildPngTemplate(ui, this.docId, this.machineKind,
       this.docTitleState, this.dateText, (): void => { this.templateBuilder(); });
     if (t.ok) {
-      return { ok: true, bytes: t.bytes, path: '', error: '' };
+      return this.logOut('image', { ok: true, bytes: t.bytes, path: '', error: '' });
     }
     hilog.warn(DOMAIN, TAG, 'template failed, fallback to preview: %{public}s', t.error);
     const p: ExportResult = await ExportService.buildPngFromPreview(ui, 'export_preview');
@@ -753,7 +787,15 @@ export struct ExportPage {
       return { ok: false, bytes: null, path: '', error: p.error };
     }
     this.templateFallback = true;
-    return { ok: true, bytes: p.bytes, path: '', error: '' };
+    return this.logOut('image', { ok: true, bytes: p.bytes, path: '', error: '' });
+  }
+
+  /** F3：导出产物取证（产物字节数入 hilog，验收用；不改产物）。 */
+  private logOut(fmt: string, o: BuildOutcome): BuildOutcome {
+    const n: number = o.bytes === null ? -1 : o.bytes.byteLength;
+    hilog.info(DOMAIN, TAG, 'export out fmt=%{public}s range=%{public}s bytes=%{public}s',
+      fmt, this.range, n.toString());
+    return o;
   }
 
   /** 离屏模板 builder（createFromBuilder 要求组件作用域的 @Builder，服务拿不到）。 */
@@ -912,6 +954,11 @@ export struct ExportPage {
       Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.10)').margin({ top: 4, bottom: 4 })
       this.optRow($r('app.string.export_opt_paper'), this.optPaper, (v: boolean) => { this.optPaper = v; })
       this.optRow($r('app.string.export_opt_font'), this.optFont, (v: boolean) => { this.optFont = v; })
+      if (!this.hasCustomFont()) {
+        Text($r('app.string.export_opt_font_hint')).fontSize(11)
+          .fontColor('rgba(232,221,201,0.45)').width('100%').margin({ bottom: 4 })
+          .id('export__font_hint')
+      }
       this.optRow($r('app.string.export_opt_ink'), this.optInk, (v: boolean) => { this.optInk = v; })
     }
     .width('100%').alignItems(HorizontalAlign.Start)

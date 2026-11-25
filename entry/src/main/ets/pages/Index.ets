@@ -2363,21 +2363,43 @@ struct Index {
       return false;
     }
     const live: DocData = this.docModel.toDocData();
-    if (targetId === this.docId) {
-      for (let i = 0; i < live.lines.length; i++) {
-        if (live.lines[i].text.replace(/\s/g, '').length > 0) {
+    const disk: DocData | null = docStore.load(targetId);
+    // F3/R32：冷启动从文档视图直接导出时 live 模型可能尚未载入；有盘上数据就按盘判空
+    let src: DocData = live;
+    if (targetId !== this.docId) {
+      src = disk !== null ? disk : live;
+    } else if (!this.docHasText(live) && disk !== null) {
+      src = disk;
+    }
+    for (let i = 0; i < src.lines.length; i++) {
+      if (src.lines[i].text.replace(/\s/g, '').length > 0) {
+        return true;
+      }
+    }
+    const sheets: DocLine[][] = src.sheets === undefined ? [] : src.sheets;
+    for (let si = 0; si < sheets.length; si++) {
+      for (let li = 0; li < sheets[si].length; li++) {
+        if (sheets[si][li].text.replace(/\s/g, '').length > 0) {
           return true;
         }
       }
-      return false;
     }
-    const d: DocData | null = docStore.load(targetId);
-    if (d === null) {
-      return false;
-    }
+    return false;
+  }
+
+  /** F3/R32：模型是否有可见字符（空行不计）。 */
+  private docHasText(d: DocData): boolean {
     for (let i = 0; i < d.lines.length; i++) {
       if (d.lines[i].text.replace(/\s/g, '').length > 0) {
         return true;
+      }
+    }
+    const sheets: DocLine[][] = d.sheets === undefined ? [] : d.sheets;
+    for (let si = 0; si < sheets.length; si++) {
+      for (let li = 0; li < sheets[si].length; li++) {
+        if (sheets[si][li].text.replace(/\s/g, '').length > 0) {
+          return true;
+        }
       }
     }
     return false;
@@ -5114,7 +5136,11 @@ struct Index {
             if (key === 'collection') { this.pushPage('collection'); }
             if (key === 'customize') { this.pushPage('customize'); }
             if (key === 'settings') { this.pushPage('settings'); }
-            if (key === 'export') { this.pushPage('export'); }
+            if (key === 'export') {
+              // F3/R7：主页导出明确以当前文档为目标，不再沿用上次卷宗/文档目标
+              setExportTarget({ docId: this.docId, dossierId: '', scope: 'doc' });
+              this.pushPage('export');
+            }
           },
         })
           // 与另外 8 个分支完全相同的过渡；冷启动首帧不启用

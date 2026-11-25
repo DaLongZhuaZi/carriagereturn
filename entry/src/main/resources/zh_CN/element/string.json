@@ -121,6 +121,10 @@
       "value": "书写字体"
     },
     {
+      "name": "export_opt_font_hint",
+      "value": "未设置书写字体：开＝默认 Courier Prime，关＝系统字体"
+    },
+    {
       "name": "export_opt_ink",
       "value": "墨色"
     },
