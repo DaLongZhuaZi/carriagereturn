@@ -264,40 +264,40 @@
 
 | 编号 | 位置/控件 | 代码位置 | 绑定/处理器 | 预期行为 | 状态 |
 |---|---|---|---|---|---|
-| A96 | 返回 | PageShell:63-70；CustomizePage:403 | `onBack` → `leaveTyping` | 弹栈回打字机 | 已接线 |
-| A97 | 引导“?” | PageShell:78-84 | `GuideBridge.request('customize')` | 打开换装页引导 | 已接线 |
-| A98 | 字号滑杆 | CustomizePage:135-145 | `onFontSize` → Index:2297 | 12–26，实时改当前机器字号并保存 | 已接线 |
-| A99 | “字体管理”行 | CustomizePage:157-163 | `onOpenFontManager` | 压栈字体管理页 | 已接线 |
-| A100 | “纸张自定义”行 | CustomizePage:165-171 | `onOpenPaperCustom` | 压栈纸张自定义页 | 已接线 |
-| A101 | 机器胶囊 1920s | CustomizePage:182-211 | `onPickMachine('1920s-upright')` | 立即换机并落盘 | 已接线 |
-| A102 | 机器胶囊 1930s | 同上 | `onPickMachine('1930s-portable')` | 立即换机并落盘 | 已接线 |
-| A103 | 机器胶囊 1950s | 同上 | `onPickMachine('1950s-streamlined')` | 立即换机并落盘 | 已接线 |
-| A104 | 机器胶囊 1960s | 同上 | `onPickMachine('1960s-electric')` | 立即换机并落盘 | 已接线 |
-| A105 | 机器胶囊 2020s | 同上 | `onPickMachine('2020s-modern')` | 立即换机并落盘 | 已接线 |
-| A106 | 1920s 动画-写实 | CustomizePage:236 | `onPickAnimMode('1920s-upright','realistic')` | 设置该机写实动画并落盘 | 已接线 |
-| A107 | 1920s 动画-模拟 | CustomizePage:242 | `onPickAnimMode(...,'simulated')` | 设置该机模拟动画并落盘 | 已接线 |
-| A108 | 1930s 动画-写实 | 同上 | `onPickAnimMode('1930s-portable','realistic')` | 设置写实 | 已接线 |
-| A109 | 1930s 动画-模拟 | 同上 | `onPickAnimMode(...,'simulated')` | 设置模拟 | 已接线 |
-| A110 | 1950s 动画-写实 | 同上 | `onPickAnimMode('1950s-streamlined','realistic')` | 设置写实 | 已接线 |
-| A111 | 1950s 动画-模拟 | 同上 | `onPickAnimMode(...,'simulated')` | 设置模拟 | 已接线 |
-| A112 | 标准件-键盘帽形 rounded-rect | CustomizePage:258-278 | `onPickPart('key-grid','rounded-rect')` | 只换 token，立即生效 | 已接线 |
-| A113 | 标准件-键盘帽形 round | 同上 | `onPickPart('key-grid','round')` | 只换 token | 已接线 |
-| A114 | 标准件-字篮 flat-line | 同上 | `onPickPart('basket','flat-line')` | 只换 token | 已接线 |
-| A115 | 标准件-字篮 metal-gradient | 同上 | `onPickPart('basket','metal-gradient')` | 只换 token | 已接线 |
-| A116 | 标准件-旋钮 metal-knurl | 同上 | `onPickPart('knob','metal-knurl')` | 只换 token | 已接线 |
-| A117 | 标准件-旋钮 matte-black | 同上 | `onPickPart('knob','matte-black')` | 只换 token | 已接线 |
-| A118 | 标准件-机身 1920s-black | 同上 | `onPickPart('body-panel','1920s-black')` | 只换 token | 已接线 |
-| A119 | 标准件-机身 1930s-grey | 同上 | `onPickPart('body-panel','1930s-grey')` | 只换 token | 已接线 |
-| A120 | 标准件-机身 1950s-cream | 同上 | `onPickPart('body-panel','1950s-cream')` | 只换 token | 已接线 |
-| A121 | 标准件-机身 1960s-lightgrey | 同上 | `onPickPart('body-panel','1960s-lightgrey')` | 只换 token | 已接线 |
-| A122 | 纸张-信纸 | CustomizePage:287-302 | `onPickPaper('letter')` | 立即换纸型并落盘 | 已接线 |
-| A123 | 纸张-稿纸 | 同上 | `onPickPaper('manuscript')` | 立即换纸型并落盘 | 已接线 |
-| A124 | 纸张-明信片 | 同上 | `onPickPaper('postcard')` | 立即换纸型并落盘 | 已接线 |
-| A125 | 纸张-便签 | 同上 | `onPickPaper('memo')` | 立即换纸型并落盘 | 已接线 |
-| A126 | 色带-黑 | CustomizePage:313-322 | `onPickRibbon('black')` | 立即换墨色并落盘 | 已接线 |
-| A127 | 色带-蓝 | 同上 | `onPickRibbon('blue')` | 立即换墨色并落盘 | 已接线 |
-| A128 | 色带-红 | 同上 | `onPickRibbon('red')` | 立即换墨色并落盘 | 已接线 |
-| A129 | 字体列表（17 款，每行） | CustomizePage:335-354 | `onPickFont(f.font)` → Index:5162-5176 | 立即改当前文档字体并保存；注册失败字体标“未加载” | 已接线 |
+| A96 | 返回 | PageShell:63-70；CustomizePage:403 | `onBack` → `leaveTyping` | 弹栈回打字机【2026-11-25 核查①-7 双机通过；实际弹栈回主页，现入口仅主页主题，清单口径待更新（O3）】 | 已接线 |
+| A97 | 引导“?” | PageShell:78-84 | `GuideBridge.request('customize')` | 打开换装页引导【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A98 | 字号滑杆 | CustomizePage:135-145 | `onFontSize` → Index:2297 | 12–26，实时改当前机器字号并保存【2026-11-25 核查①-7 双机通过；数值文本不随拖动刷新，见 R27】 | 已接线 |
+| A99 | “字体管理”行 | CustomizePage:157-163 | `onOpenFontManager` | 压栈字体管理页【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A100 | “纸张自定义”行 | CustomizePage:165-171 | `onOpenPaperCustom` | 压栈纸张自定义页【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A101 | 机器胶囊 1920s | CustomizePage:182-211 | `onPickMachine('1920s-upright')` | 立即换机并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A102 | 机器胶囊 1930s | 同上 | `onPickMachine('1930s-portable')` | 立即换机并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A103 | 机器胶囊 1950s | 同上 | `onPickMachine('1950s-streamlined')` | 立即换机并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A104 | 机器胶囊 1960s | 同上 | `onPickMachine('1960s-electric')` | 立即换机并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A105 | 机器胶囊 2020s | 同上 | `onPickMachine('2020s-modern')` | 立即换机并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A106 | 1920s 动画-写实 | CustomizePage:236 | `onPickAnimMode('1920s-upright','realistic')` | 设置该机写实动画并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A107 | 1920s 动画-模拟 | CustomizePage:242 | `onPickAnimMode(...,'simulated')` | 设置该机模拟动画并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A108 | 1930s 动画-写实 | 同上 | `onPickAnimMode('1930s-portable','realistic')` | 设置写实【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A109 | 1930s 动画-模拟 | 同上 | `onPickAnimMode(...,'simulated')` | 设置模拟【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A110 | 1950s 动画-写实 | 同上 | `onPickAnimMode('1950s-streamlined','realistic')` | 设置写实【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A111 | 1950s 动画-模拟 | 同上 | `onPickAnimMode(...,'simulated')` | 设置模拟【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A112 | 标准件-键盘帽形 rounded-rect | CustomizePage:258-278 | `onPickPart('key-grid','rounded-rect')` | 只换 token，立即生效【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A113 | 标准件-键盘帽形 round | 同上 | `onPickPart('key-grid','round')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A114 | 标准件-字篮 flat-line | 同上 | `onPickPart('basket','flat-line')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A115 | 标准件-字篮 metal-gradient | 同上 | `onPickPart('basket','metal-gradient')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A116 | 标准件-旋钮 metal-knurl | 同上 | `onPickPart('knob','metal-knurl')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A117 | 标准件-旋钮 matte-black | 同上 | `onPickPart('knob','matte-black')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A118 | 标准件-机身 1920s-black | 同上 | `onPickPart('body-panel','1920s-black')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A119 | 标准件-机身 1930s-grey | 同上 | `onPickPart('body-panel','1930s-grey')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A120 | 标准件-机身 1950s-cream | 同上 | `onPickPart('body-panel','1950s-cream')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A121 | 标准件-机身 1960s-lightgrey | 同上 | `onPickPart('body-panel','1960s-lightgrey')` | 只换 token【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A122 | 纸张-信纸 | CustomizePage:287-302 | `onPickPaper('letter')` | 立即换纸型并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A123 | 纸张-稿纸 | 同上 | `onPickPaper('manuscript')` | 立即换纸型并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A124 | 纸张-明信片 | 同上 | `onPickPaper('postcard')` | 立即换纸型并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A125 | 纸张-便签 | 同上 | `onPickPaper('memo')` | 立即换纸型并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A126 | 色带-黑 | CustomizePage:313-322 | `onPickRibbon('black')` | 立即换墨色并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A127 | 色带-蓝 | 同上 | `onPickRibbon('blue')` | 立即换墨色并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A128 | 色带-红 | 同上 | `onPickRibbon('red')` | 立即换墨色并落盘【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A129 | 字体列表（17 款，每行） | CustomizePage:335-354 | `onPickFont(f.font)` → Index:5162-5176 | 立即改当前文档字体并保存；注册失败字体标“未加载”【2026-11-25 核查①-7 双机通过】 | 已接线 |
 
 > 1960s 动画行固定显示“电动单套”（CustomizePage:227-229），不是可点选项。“每机字体”区（CustomizePage:362-384）为只读展示。
 
@@ -307,11 +307,11 @@
 
 | 编号 | 位置/控件 | 代码位置 | 绑定/处理器 | 预期行为 | 状态 |
 |---|---|---|---|---|---|
-| A130 | 返回 | PageShell:63-70；FontManager:280 | `onBack` → `leaveTyping` | 弹栈回换装页 | 已接线 |
-| A131 | 引导“?” | PageShell:78-84 | `GuideBridge.request('font_manager')` | 打开字体管理引导 | 已接线 |
-| A132 | “导入字体” | FontManager:192-212 | `importFont` → `FileHelper.pickFont` | 选 .ttf/.otf、≤20MB、拷入沙箱并注册；失败在页内显示错误行 | 已接线 |
-| A133 | 每行“应用” | FontManager:246-250 | `onApplyFamily` → Index:5187-5195 | 写入当前机字体并立即应用 | 已接线 |
-| A134 | 每行“删除” | FontManager:251-255 | `removeFont` | 删 prefs 与沙箱文件；引用该字体的 4 台老机回退默认（2020s 不在回退循环，见 R6） | 已接线 |
+| A130 | 返回 | PageShell:63-70；FontManager:280 | `onBack` → `leaveTyping` | 弹栈回换装页【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A131 | 引导“?” | PageShell:78-84 | `GuideBridge.request('font_manager')` | 打开字体管理引导【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A132 | “导入字体” | FontManager:192-212 | `importFont` → `FileHelper.pickFont` | 选 .ttf/.otf、≤20MB、拷入沙箱并注册；失败在页内显示错误行【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A133 | 每行“应用” | FontManager:246-250 | `onApplyFamily` → Index:5187-5195 | 写入当前机字体并立即应用【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A134 | 每行“删除” | FontManager:251-255 | `removeFont` | 删 prefs 与沙箱文件；引用该字体的 4 台老机回退默认（2020s 不在回退循环，见 R6）【2026-11-25 核查①-7 双机通过】 | 已接线 |
 
 > 字体注册、文件选择器为真机 API，代码走查不能判定成功与否（见 R15）。
 
@@ -321,17 +321,17 @@
 
 | 编号 | 位置/控件 | 代码位置 | 绑定/处理器 | 预期行为 | 状态 |
 |---|---|---|---|---|---|
-| A135 | 返回 | PageShell:63-70；PaperCustom:422 | `onBack` → Index:5206-5210 | 刷新自定义值、重算纸高后弹栈 | 已接线 |
-| A136 | 引导“?” | PageShell:78-84 | `GuideBridge.request('paper_custom')` | 打开纸张自定义引导 | 已接线 |
-| A137 | 色板（5 色，每格） | PaperCustom:246-258 | `CustomizeStore.setPaperColor` | 选纸色，预览与主屏即时生效 | 已接线 |
-| A138 | “横线”开关 | PaperCustom:264-274 | `setPaperRuled` | 开/关横线 | 已接线 |
-| A139 | 左边距滑杆 | PaperCustom:282-294 | `setPaperMarginH` | 手机 24–40 / 平板 40–56，实时改版心 | 已接线 |
-| A140 | 上边距滑杆 | PaperCustom:298-310 | `setPaperMarginT` | 手机 16–32 / 平板 24–40 | 已接线 |
-| A141 | 下边距滑杆 | PaperCustom:314-326 | `setPaperMarginB` | 手机 16–28 / 平板 20–32 | 已接线 |
-| A142 | “导入纸纹” | PaperCustom:331-357 | `importTexture` → `FileHelper.pickImage` | 选图片拷入沙箱并设为当前纸纹理 | 已接线 |
-| A143 | 预设名输入 | PaperCustom:362-369 | `presetDraft` | 输入预设名 | 已接线 |
-| A144 | “保存”预设 | PaperCustom:370-374 | `savePreset` | 空名不存；保存当前 6 项为预设 | 已接线 |
-| A145 | 预设行“删除” | PaperCustom:380-395 | `deletePreset` | 删除该预设 | 已接线 |
+| A135 | 返回 | PageShell:63-70；PaperCustom:422 | `onBack` → Index:5206-5210 | 刷新自定义值、重算纸高后弹栈【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A136 | 引导“?” | PageShell:78-84 | `GuideBridge.request('paper_custom')` | 打开纸张自定义引导【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A137 | 色板（5 色，每格） | PaperCustom:246-258 | `CustomizeStore.setPaperColor` | 选纸色，预览与主屏即时生效【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A138 | “横线”开关 | PaperCustom:264-274 | `setPaperRuled` | 开/关横线【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A139 | 左边距滑杆 | PaperCustom:282-294 | `setPaperMarginH` | 手机 24–40 / 平板 40–56，实时改版心【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A140 | 上边距滑杆 | PaperCustom:298-310 | `setPaperMarginT` | 手机 16–32 / 平板 24–40【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A141 | 下边距滑杆 | PaperCustom:314-326 | `setPaperMarginB` | 手机 16–28 / 平板 20–32【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A142 | “导入纸纹” | PaperCustom:331-357 | `importTexture` → `FileHelper.pickImage` | 选图片拷入沙箱并设为当前纸纹理【2026-11-25 核查①-7 部分通过：导入链双机通过，主屏渲染失败（O2，Parts26:934 的 $rawfile 绝对路径）】 | 待修 |
+| A143 | 预设名输入 | PaperCustom:362-369 | `presetDraft` | 输入预设名【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A144 | “保存”预设 | PaperCustom:370-374 | `savePreset` | 空名不存；保存当前 6 项为预设【2026-11-25 核查①-7 双机通过】 | 已接线 |
+| A145 | 预设行“删除” | PaperCustom:380-395 | `deletePreset` | 删除该预设【2026-11-25 核查①-7 双机通过】 | 已接线 |
 
 > 顶部小样预览（PaperCustom:210-241）为纯展示。
 
@@ -480,7 +480,7 @@
 | 不可达 | 4（A208–A211） |
 | 待修 | 2（A56，核查①-4 不通过；A78，核查①-5 不通过） |
 | 未确认合计（待确认＋未接线＋不可达） | 13 |
-| 真机已验证（累计） | 99（A02–A12 共 11、A14–A36 共 23、A37–A75 共 39、A76–A84 与 A175–A180 共 15、A85–A95 共 11，2026-11-25 双机通过，见 item02/item03/item04/item05/item06 报告；A34 手机为预期内的部分；A50、A75 为部分，A56、A78 不通过；A13、A19、A23 仍待确认，R7/R9/R1 未闭环） |
+| 真机已验证（累计） | 149（A02–A12 共 11、A14–A36 共 23、A37–A75 共 39、A76–A84 与 A175–A180 共 15、A85–A95 共 11、A96–A145 共 50，2026-11-25 双机通过，见 item02/item03/item04/item05/item06/item07 报告；A34 手机为预期内的部分；A50、A75 为部分，A56、A78 不通过，A142 部分通过；A13、A19、A23 仍待确认，R7/R9/R1 未闭环） |
 
 ---
 
@@ -502,7 +502,7 @@
 | R12 | 出纸槽直出 `image` 不支持且无提示 | Index:3429-3435（只 error 日志）；默认 `text` | 用户点出纸槽不会得到图片，也无反馈。【2026-11-25 核查①-3 双机确认】image 格式直出只记错误、exports/ 无新增、界面无提示 |
 | R13 | 文档视图“分享·待实现”是死占位（已确认） | DocumentView:184-187 | 阅读页没有分享能力。【2026-11-25 核查①-5 双机确认：灰色死占位，点按无任何 App 侧响应、无 hilog，截图 2761/2762、2799/2800 前后差异仅状态栏】 |
 | R14 | 卷宗页没有搜索入口 | DossierPage 全文无搜索；搜索只在 DossierDetail:437-453 | 与 O4 清单记录的缺口一致。【2026-11-25 核查①-4 双机确认】卷宗页只有标题/新建/列表，无搜索框（截图 2594/2718）；搜索仅在内页 |
-| R15 | 字体/纸纹导入、分享、系统输入法 attach 依赖真机 API | FontManager:94-149；PaperCustom:139-170；ExportPage:584-643；Index:881-950 | 代码走查不能判定成功，必须真机验证 |
+| R15 | 字体/纸纹导入、分享、系统输入法 attach 依赖真机 API | FontManager:94-149；PaperCustom:139-170；ExportPage:584-643；Index:881-950 | 代码走查不能判定成功，必须真机验证。【2026-11-25 核查①-7 部分验证】字体导入双机真机通过（含 20MB 上限/应用/删除回退）；纸纹导入链通过但主屏不渲染（O2）；分享留导出批；系统输入法 attach 已在①-3 A35 通过 |
 | R16 | 导出 8 个开关只影响图片/PDF 模板，纯文本导出不读取 | ExportPage:650-757 | 选 txt 时开关无效果，需在验收口径中写明 |
 | R17 | 语言键标签不刷新（新，核查①-3 O5） | Index:4858-4862；Parts26:761 | 切中文后键仍显示“EN”，无激活红框；功能正常 |
 | R18 | 跨引擎候选残留（新，核查①-3 O6，R9 同源） | 手机 2578 | 内置拼音组词未结束切系统输入法，候选条仍显示上一轮内置候选。【2026-11-25 核查①-4 O6 同源观测】长会话内置拼音缓冲残留 `niniceshi`，空格首选上屏“呢呢”而非“测试”（手机 2673/2675）；本批未做受控复现 |
@@ -514,6 +514,7 @@
 | R24 | 手机文档视图正文页高度为 0（新，核查①-5 O1，A78，高优先级） | DocumentViewPage.ets:134-163（`Flex({direction: Column})` 内标题页 `height('100%')` 与正文页顺序排列，无滚动/压缩策略） | 手机（widthVp<600）文档视图只有标题页，正文页零高、落在容器外被裁掉，不可见也不可点；手机无法阅读正文。平板并排布局正常 | 
 | R25 | 文档视图引导第 2 步锚点缺失、文案指向不存在的“编辑”（新，核查①-5 O3，A77） | DocumentViewPage.ets:254（`anchorId: 'document_view__edit_btn'` 不存在）；string.json:316-318 | 引导第 2 步文案“点「编辑」回打字机继续写。”，但页面上没有“编辑”按钮/文字；聚光灯退化为居中气泡、整屏压暗无高亮洞（第 1、3 步有洞，对比明显） |
 | R26 | 收藏页无当前机标识，1920s 卡“默认机器”静态（新，核查①-6 O5，A87） | CollectionPage.ets:62-69（M_COND 为常量资源） | 收藏页没有“当前机器”标识；1920s 卡的“默认机器”是静态条件行，设为 2020s 后仍显示；2020s 卡条件行是整句描述，maxLines(1) 截断且无省略号（O6） |
+| R27 | 换装页字号滑杆数值文本不刷新（新，核查①-7 O1，A98） | CustomizePage.ets:135-145（sliderValueText 来自 @Prop fontSize，只在页面构造时求值）；Index:2297-2309（applyFontSize 只更新 Index 状态，未回传 CustomizePage） | 字号滑杆拖到 25/26/12，右侧数值文本仍显示进页时的 20；实际字号已生效并落盘 |
 
 ---
 
@@ -543,6 +544,7 @@
 | 核查①-5 | A76–A84、A175–A180 | 双机 14/15 通过，1 不通过（A78） | item05-docview-trash.md | 2749–2820（71 张） | 2026-11-25 |
 | 核查①-5 | A78 | 改待修（O1/O2：手机正文页 0 高；平板点正文不回打字机，R21 同源） | 同上 | 同上 | 2026-11-25 |
 | 核查①-6 | A85–A95 | 双机 11/11 通过（A92 符合预期不可达） | item06-collection.md | 2821–2891（71 张，4 张作废） | 2026-11-25 |
+| 核查①-7 | A96–A145 | 双机 49/50 通过，1 部分通过（A142） | item07-theme-font-paper.md | 2892–3070（191 张） | 2026-11-25 |
 
 - 发现问题 O1–O5 见 item02 报告 §2（O1＝R7 未闭环；O2＝引导“四台”与主题页五机型不一致，R6 同源；O3＝“开始写作”只关引导，符合预期；O4＝dumpLayout 方法注意；O5＝测试副作用，平板成就“纸尽其用”已解锁）。
 - 测试残留：两台设备应用数据已清空、各留 1 篇含 `a` 的测试文档、各留 1 个导出文件；后续门图/验收前须再 `bm clean` 或换纸清空纸面。
@@ -554,6 +556,8 @@
 - 核查①-5 测试残留：两机均未 bm clean；平板主页收工，卷宗 `未归档 3 张纸`、`测试卷宗二号 2 张纸`（`测试`含 A79 追加的空行）、回收站 1 张；手机主页收工，卷宗 `未归档 2 张纸`、`测试卷宗二号 2 张纸`（`呢呢测试`含 A79 追加的空行）、回收站 0 张（空态）；删除方式仍为回收站档。后续门图/验收前须 `bm clean` 或换纸清空，并按 item05 §5 仪式重拍/比对。
 - 核查①-6 新问题 O1–O6：O1 2020s 详情史实段落空白、O2 设置页机名回落 1920s、O3 主页 hero 回落 1960s（R6 三处已双机确认，PDF 抬头与 cycleMachine 仍待后续批次）；O4 收藏页仍写“四台”（R6 同族）；O5 无当前机标识、1920s 卡“默认机器”静态记为 R26；O6 2020s 卡条件行整句描述、截断无省略号（并入 R26）。
 - 核查①-6 测试残留：两机均未 bm clean，本批未新建/删除文档；两机已恢复 1920s；收藏引导 seen 已变 true（后续进收藏页不再自动弹引导）。**平板处于锁屏（2891：“重启后需要输入密码”），需人工解锁后才能继续平板侧工作；下一批 audit07 被此阻塞**。手机正常停在主页。后续门图/验收前仍须 `bm clean` 或换纸清空。
+- 核查①-7 新问题 O1–O4：O1 字号滑杆数值文本不刷新记为 R27；O2 导入纸纹主屏不渲染（Parts26:934 $rawfile 绝对路径），A142 改待修；O3 A96 清单口径（“回打字机”与实际“回主页”不符）；O4 平板冷启动主页引导与 guide.home.seen=true 冲突，待确认，留引导批次复测。R15 部分验证：字体导入双机通过，纸纹导入链通过但主屏不渲染，分享留导出批。
+- 核查①-7 测试残留：两机均未 bm clean，本批未新建/删除文档；两机已恢复 1920s；字号已写 20（门图/验收前须 bm clean 或重置，否则 paperTop/paperBox 不回基线）；手机 marginH 被写成 40（滑杆上限，UI 无法写回 48）；纸纹 prefs 仍指向沙箱截图副本；换装/字体/纸张引导 seen 已变 true；新成就解锁（平板 paper_4/ribbon_1，手机 paper_2/paper_4/ribbon_1）。
 
 ---
 
