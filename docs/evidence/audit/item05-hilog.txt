@@ -1,0 +1,53 @@
+核查①-5 双机 hilog 摘录（2026-11-25）
+说明：hilog 环形缓冲滚动快，收工前（10:34 后）只能再取到末尾若干行（见各设备“收工前读取”）。
+本批关键行在操作当刻已读取，原样抄录于“操作当刻摘录”；判定仍以截图为主（AGENTS 识屏验收铁律），hilog 只作辅助。
+未出现的行也有证据意义：例如 A78 在 10:14:21 的 body tapped / loadDocument 之后没有任何 nav depth 行，证明没有发生导航。
+
+===== 平板 MLR-AL10 192.168.5.133:42355（PID 28218） =====
+[操作当刻摘录]
+11-25 10:13:51.804 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail            # A76 返回
+11-25 10:14:21.099 28218 28218 I A00000/com.dlzz.carriagereturn/DocumentView: body tapped doc=doc-1795569002432-88939   # A78
+11-25 10:14:21.107 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: loadDocument id=doc-1795569002432-88939 rows=1
+11-25 10:14:48.797 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: addPage enter id=doc-1795569002432-88939   # A79
+11-25 10:14:48.799 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: addPage ok id=doc-1795569002432-88939 lines=2
+11-25 10:15:01.241 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=5 top=export                     # A80
+11-25 10:15:01.245 28218 28218 I A00000/com.dlzz.carriagereturn/ExportPage: export target scope=doc dossier= docId=doc-1795569002432-88939
+11-25 10:16:02.129 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795569002432-88939    # A83
+11-25 10:16:02.130 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 10:19:09.509 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: trash restored id=doc-1795569002432-88939  # A177
+11-25 10:20:44.110 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: trash purged id=doc-1795570827586-93213    # A179
+11-25 10:22:33.314 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795573326512-40843    # A177 孤儿分支准备
+11-25 10:23:02.621 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: deleteDossier id=d179557331222630 mode=unfile papers=0
+11-25 10:24:38.143 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: restored orphan -> unfiled id=doc-1795573326512-40843   # A177 孤儿分支
+11-25 10:24:38.144 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: trash restored id=doc-1795573326512-40843
+
+[收工前读取（10:34 后）]
+11-25 10:24:38.143 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: restored orphan -> unfiled id=doc-1795573326512-40843
+11-25 10:24:38.144 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: trash restored id=doc-1795573326512-40843
+11-25 10:24:55.758 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=settings
+11-25 10:24:58.452 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+11-25 10:25:03.623 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 10:25:09.101 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 10:33:16.710 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=4 top=docview
+11-25 10:34:03.436 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 10:34:06.307 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=dossier
+11-25 10:34:09.176 28218 28218 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+
+===== 手机 ADA-AL00U 2UCUT24724009680（PID 13230） =====
+[操作当刻摘录]
+11-25 10:26:47.863 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail            # A76 返回
+11-25 10:27:22.330 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: addPage enter id=doc-1795569032687-96374   # A79
+11-25 10:27:22.332 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: addPage ok id=doc-1795569032687-96374 lines=2
+11-25 10:27:36.386 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=5 top=export                     # A80
+11-25 10:27:36.392 13230 13230 I A00000/com.dlzz.carriagereturn/ExportPage: export target scope=doc dossier= docId=doc-1795569032687-96374
+11-25 10:28:27.031 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: paper trashed id=doc-1795569032687-96374    # A83
+11-25 10:28:27.033 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=3 top=detail
+11-25 10:30:34.854 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: trash restored id=doc-1795569032687-96374  # A177
+11-25 10:32:21.608 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: trash purged id=doc-1795569024833-56438    # A179
+
+[收工前读取（10:34 后）]
+11-25 10:32:21.608 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: trash purged id=doc-1795569024833-56438
+11-25 10:34:12.683 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=2 top=settings
+11-25 10:34:15.250 13230 13230 I A00100/com.dlzz.carriagereturn/MainScreen: nav depth=1 top=home
+
+[备注：手机 A78 未产生 body tapped 行——正文页 Stack 高度为 0（dump bbox (67,2534,1156,2534)），没有可点击区域，见报告 O1。]
