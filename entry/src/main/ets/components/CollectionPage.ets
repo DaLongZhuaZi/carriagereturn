@@ -261,63 +261,76 @@ export struct CollectionPage {
     }
   }
 
+  /** F7：列数（从 colsTemplate 数 1fr）。 */
+  private colCount(): number {
+    return this.colsTemplate().split('1fr').length - 1;
+  }
+
+  /** F7：5 张卡按列数算网格高（不再靠 layoutWeight 挤成两行）。 */
+  private gridHeight(): number {
+    const cols: number = this.colCount() > 0 ? this.colCount() : 2;
+    const rows: number = Math.ceil(5 / cols);
+    return rows * 380 + (rows - 1) * 16;
+  }
+
   @Builder
   body() {
-    Column() {
-      // F14 进度收敛到成就列表顶部：总字数／连续天数／已达成数
-      Row({ space: 10 }) {
-        Text($r('app.string.collection_progress'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
-        Text(this.totalWords.toString())
-          .fontSize(12).fontColor('rgba(232,221,201,0.85)')
-        Text($r('app.string.home_unit'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
-        Text('·')
-          .fontSize(12).fontColor('rgba(232,221,201,0.35)')
-        Text($r('app.string.collection_streak'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
-        Text(this.streakDays.toString())
-          .fontSize(12).fontColor('rgba(232,221,201,0.85)')
-        Blank()
+    // F7/R6：整页滚动——网格按卡数给高，成就列表自然接在下面；
+    // 原先 Grid layoutWeight(1) 只能分到两行高，1950s/1960s 被拦腰裁掉、2020s 完全不可见。
+    Scroll() {
+      Column() {
+        // F14 进度收敛到成就列表顶部：总字数／连续天数／已达成数
+        Row({ space: 10 }) {
+          Text($r('app.string.collection_progress'))
+            .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+          Text(this.totalWords.toString())
+            .fontSize(12).fontColor('rgba(232,221,201,0.85)')
+          Text($r('app.string.home_unit'))
+            .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+          Text('·')
+            .fontSize(12).fontColor('rgba(232,221,201,0.35)')
+          Text($r('app.string.collection_streak'))
+            .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+          Text(this.streakDays.toString())
+            .fontSize(12).fontColor('rgba(232,221,201,0.85)')
+          Blank()
+          Text($r('app.string.ach_list_title'))
+            .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+          Text(AchievementService.achievedCount().toString() + '/' + ACHIEVEMENTS.length.toString())
+            .fontSize(12).fontColor('#c9a45c')
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20, top: 4, bottom: 10 })
+
+        Grid() {
+          ForEach(this.kinds, (k: string, idx: number) => {
+            GridItem() {
+              this.card(k, idx)
+            }
+          }, (k: string) => k)
+        }
+        .id('collection__grid')
+        .columnsTemplate(this.colsTemplate())
+        .columnsGap(16).rowsGap(16)
+        .width('100%').height(this.gridHeight())
+        .padding({ left: 20, right: 20 })
+
+        // 成就列表区（14 项，自然排布，随整页滚动）
         Text($r('app.string.ach_list_title'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
-        Text(AchievementService.achievedCount().toString() + '/' + ACHIEVEMENTS.length.toString())
-          .fontSize(12).fontColor('#c9a45c')
-      }
-      .width('100%')
-      .padding({ left: 20, right: 20, top: 4, bottom: 10 })
-
-      Grid() {
-        ForEach(this.kinds, (k: string, idx: number) => {
-          GridItem() {
-            this.card(k, idx)
-          }
-        }, (k: string) => k)
-      }
-      .id('collection__grid')
-      .columnsTemplate(this.colsTemplate())
-      .columnsGap(16).rowsGap(16)
-      .width('100%').layoutWeight(1)
-      .padding({ left: 20, right: 20 })
-
-      // 成就列表区（14 项，可滚动；每项名／说明／进度／已达成态）
-      Text($r('app.string.ach_list_title'))
-        .fontSize(13).fontColor('#c9a45c')
-        .width('100%').padding({ left: 20, right: 20, top: 6, bottom: 6 })
-      Scroll() {
+          .fontSize(13).fontColor('#c9a45c')
+          .width('100%').padding({ left: 20, right: 20, top: 10, bottom: 6 })
         Column({ space: 6 }) {
           ForEach(ACHIEVEMENTS, (d: AchievementDef) => {
             this.achRow(d.id)
           }, (d: AchievementDef) => d.id)
         }
-        .width('100%').padding({ left: 20, right: 20, bottom: 12 })
+        .width('100%').padding({ left: 20, right: 20, bottom: 16 })
       }
-      .scrollBar(BarState.Off)
-      .width('100%').height(250)
+      .width('100%')
     }
+    .scrollBar(BarState.Off)
     .width('100%').height('100%')
   }
-
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       PageShell({
