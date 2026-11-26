@@ -207,3 +207,19 @@
 
 **验真**：signed hap 构建通过；双机四页正常——手机 3695 主页／3696 打字机／3697 收藏／3698 导出；平板 3699／3700／3701／3702。
 （平板 3701／3702 首拍时点击未生效，重拍并以 dump 确认在收藏／导出页后入库。）
+
+## 13. 纠正：Blueprint 系列不是死组件（2026-11-26）
+
+②-1 清单（item02-inventory.md）把 `machines/{1920s,1930s,1950s,1960s}/Blueprint.ets` 与 `BlueprintTypes.ets` 列为死组件，**这是误列**：
+`Index.bp()` 有 7 处活调用（bracketAspect／bracketPivotX／bracketPivotY／bracketRawfile／leverAspect／leverSizeRatio×2），B3b 删 LeverLayer 时已复核并保留。
+特此正名：Blueprint 系列属**活代码**，后续批次不应再按死组件处理。
+
+## 14. B4 落地记录：keycap-face 家族加注（2026-11-26）
+
+按裁决 D-E：家族声明保留。仅在 `model/PartContract.ets` 的 `PARTS` 前加一段注释（+12 行），说明：
+- 8 张 `keycap-face-*`（4 机型 × 直边／圆角）是 23 号稿的画稿契约，不参与 App 渲染；
+- `key-grid.rawfile` 指向它只为 `tools/check-part-colors.py` 的色板校验取样；
+- 真正的键帽由 `KeyGrid.capImage()` 用 `ui-parts/cap3d-*.png` 绘制。
+不动任何渲染逻辑、不改素材。
+
+**验真**：signed hap 构建通过；双机四页正常——手机 3703 主页／3704 打字机／3705 收藏／3706 导出；平板 3707／3708／3709／3710。（手机 3706 首拍被漫画 App 抢到前台，已重新拉起本 App 并 dump 确认在导出页后重拍。）

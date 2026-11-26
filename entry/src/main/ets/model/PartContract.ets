@@ -118,6 +118,16 @@ export const REPLACE_RULES: string[] = [
   '无品牌／型号／logo（风格板 §8 已定）',
 ];
 
+/**
+ * 关于 `keycap-face-*` 家族（B4／裁决 D-E 加注）：
+ * `rawfile/ui-parts/` 下 8 张 keycap-face（4 机型 × 直边／圆角）是 23 号稿的**画稿契约**，
+ * 只用来登记键帽俯视面的配色与边缘口径，**不参与 App 渲染**：
+ *   - 键盘网格的 `rawfile` 指向它，只为 `tools/check-part-colors.py` 的色板校验取样；
+ *   - 屏幕上真正的键帽由 `KeyGrid.capImage()` 用 `ui-parts/cap3d-*.png` 贴片绘制；
+ *   - 换装页与 UI-件清单的素材口径也以本表为准。
+ * 故本家族声明保留、不删、不改素材；改动需同时对齐画稿与本表。
+ */
+
 /** 9 件契约（1920s 试点三件已填满，其余六件登记公式与路径）。 */
 export const PARTS: PartContract[] = [
   {
