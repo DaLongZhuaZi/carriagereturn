@@ -91,9 +91,7 @@ import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, T
 import { Carriage26 } from '../components/type26/Carriage26';
 
 import { TypebarLayer } from '../components/TypebarLayer';
-import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
-import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
@@ -107,9 +105,6 @@ import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
 import { BLUEPRINT_1950 } from '../machines/1950s/Blueprint';
 import { BLUEPRINT_1960 } from '../machines/1960s/Blueprint';
-import { LeverLayer1930 } from '../machines/1930s/LeverLayer1930';
-import { LeverLayer1950 } from '../machines/1950s/LeverLayer';
-import { LeverLayer1960 } from '../machines/1960s/LeverLayer';
 import { TypebarLayer1950 } from '../machines/1950s/TypebarLayer';
 import { TypebarLayer1960 } from '../machines/1960s/TypebarLayer';
 
@@ -284,7 +279,7 @@ struct Index {
   private frozenHVp: number = 0;
   @State strikeLineVp: number = 0;
   @State carriageTopVp: number = 0;
-  /** 换行计数：驱动 LeverLayer 摆动。第 0b 批：四份独立计数，不再跨机共享。 */
+  /** 换行计数：第 0b 批起四份独立计数，不再跨机共享。 */
   @State newlineTick1920: number = 0;
   @State newlineTick1930: number = 0;
   @State newlineTick1950: number = 0;
@@ -2025,7 +2020,7 @@ struct Index {
 
       // 字号定后立刻重算每行字数与每字行程
       this.recalcTravel();
-      // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与 CarriageLayers 不同源
+      // carriageHeight 必须在 maxTravelVp 定稿之后再算，否则 Hc 与字车几何不同源
       // 第 2 版：纸宽 Pw = regionHeight/1.414；纸高从 96 起按行生长，上限 regionHeight
       // ①纸宽：平板 0.72×stageWidth（MLR 485vp / 72%），手机维持 0.82×stageWidth
       // 纸卷收窄留边：平板 0.66×stageWidth（左右各留深底空隙），手机维持 0.82
@@ -2936,7 +2931,7 @@ struct Index {
     }
   }
 
-  /** §18.11：拖拽用的杆长（与 LeverLayer 的 layerSizeVp / LEVER_ASPECT 同源） */
+  /** §18.11：拖拽用的杆长（尺寸按机型与蓝图几何派生）。 */
   private leverHForDrag(): number {
     return this.leverW() / this.bp().leverAspect;
   }
@@ -5780,4 +5775,3 @@ struct Index {
     })
   }
 }
-

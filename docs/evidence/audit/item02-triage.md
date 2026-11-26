@@ -181,3 +181,20 @@
 
 **验真**：signed hap 构建通过；双机装入后四页正常——
 手机 3679 主页／3680 打字机／3681 收藏／3682 导出；平板 3683／3684／3685／3686。
+
+## 11. B3b 落地记录：LeverLayer／装配（2026-11-26）
+
+按 D-A/D-F，本批删除量 584 行（略超「约 500」），因此把任务书里的 Parts26 两个未调用 builder 拆到 B3c，未在本批删。
+
+**删除的代码（5 文件，584 行）**
+- `components/LeverLayer.ets`（156）、`machines/1930s/LeverLayer1930.ets`（122）、`machines/1950s/LeverLayer.ets`（122）、`machines/1960s/LeverLayer.ets`（122）
+- `machines/1920s/BracketAssembly1920.ets`（53）
+- `Index.ets`：删 5 条 import；三处提到已删层的陈旧注释改为中性表述（换行计数、杆长派生、Hc 同源）
+
+**Blueprint 系列：保留（有活引用）**
+`Index.bp()` 被 8 处几何方法调用（bracketAspect／pivot／leverAspect／leverSizeRatio）；`bracketSrc()` 仍引用 `bp().bracketRawfile()`。故 Blueprint 四份与 BlueprintTypes 不动，对应 `layers/*/lever-pivot-bracket.png` 保留。
+
+**删除的孤儿资产（5 张）**
+`layers/{1920s-upright,1930s-portable,1950s-streamlined,1960s-electric}/lever.png`（仅 LeverLayer 引用）＋ `layers/1920s-upright/typebar.png`（全仓 0 引用）。
+
+**验真**：signed hap 构建通过；双机四页正常——手机 3687 主页／3688 打字机／3689 收藏／3690 导出；平板 3691／3692／3693／3694。
