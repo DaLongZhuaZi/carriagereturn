@@ -3268,7 +3268,7 @@ struct Index {
     this.cnPreview = this.cnPinyin.length > 0 ? this.pinyinSession.getBuffer() : '';
     this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
     this.candPage = 0;
-    this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
+    this.recomputeCandPages();
     this.pinyinShown();
     // 打点：buffer / 候选数 / 当前页候选
     const cur: string = this.candCurrent.join(',');
@@ -3277,31 +3277,47 @@ struct Index {
   }
 
   private pinyinShown(): void {
-    const per: number = this.candPerPage();
-    const start: number = this.candPage * per;
+    const starts: number[] = this.candRanges();
+    const page: number = this.candPage < starts.length ? this.candPage : 0;
+    const start: number = starts[page];
+    const end: number = page + 1 < starts.length ? starts[page + 1] : this.candAll.length;
     const out: string[] = [];
-    for (let i = start; i < this.candAll.length && out.length < per; i++) {
+    for (let i = start; i < end; i++) {
       out.push(this.candAll[i].text);
     }
     this.candCurrent = out;
     this.syncCandNav();
   }
-
-
-  /** F5/R1：候选条一页能放几个（条宽 300vp 扣掉翻页箭头与拼音串；设置值只是上限）。 */
-  private candPageCap(): number {
-    const pinyinW: number = this.cnPinyin.length * 8;
-    const usable: number = 300 - 34 - pinyinW;
-    const per: number = this.candChipFontSize + 8;
-    const cap: number = Math.floor(usable / per);
-    return cap > 0 ? cap : 1;
+  /**
+   * F5 返工（R1）：按候选**实际宽度**分页。
+   * 单条宽 = 字数×字号＋间隔 8vp；行宽 264vp（扣拼音串），超宽即断页；设置值仍是每页上限。
+   */
+  private candBudget(): number {
+    return 264;
   }
 
-  private candPerPage(): number {
-    const cap: number = this.candPageCap();
-    return this.candPageSize < cap ? this.candPageSize : cap;
+  /** 各页起始下标（第一页恒为 0；空候选返回 [0]）。 */
+  private candRanges(): number[] {
+    const starts: number[] = [0];
+    let used: number = 0;
+    let count: number = 0;
+    const budget: number = this.candBudget();
+    for (let i = 0; i < this.candAll.length; i++) {
+      const w: number = this.candAll[i].text.length * this.candChipFontSize + 8;
+      if (count > 0 && (used + w > budget || count >= this.candPageSize)) {
+        starts.push(i);
+        used = 0;
+        count = 0;
+      }
+      used += w;
+      count += 1;
+    }
+    return starts;
   }
 
+  private recomputeCandPages(): void {
+    this.candPages = Math.max(1, this.candRanges().length);
+  }
   private candPrevPage(): void {
     if (this.candPage > 0) {
       this.candPage = this.candPage - 1;
@@ -3323,7 +3339,9 @@ struct Index {
     if (this.pinyinSession === null) {
       return;
     }
-    const abs: number = this.candPage * this.candPerPage() + index;
+    const startsP: number[] = this.candRanges();
+    const baseP: number = this.candPage < startsP.length ? startsP[this.candPage] : 0;
+    const abs: number = baseP + index;
     if (abs < 0 || abs >= this.candAll.length) {
       return;
     }
@@ -3351,7 +3369,7 @@ struct Index {
     if (this.cnPinyin.length > 0) {
       this.candAll = this.pinyinSession.currentCandidates(64, this.lastCommittedChar);
       this.candPage = 0;
-      this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
+      this.recomputeCandPages();
       this.pinyinShown();
     } else {
       this.candAll = [];
@@ -4974,8 +4992,6 @@ struct Index {
       widthVp: 401,
       heightVp: 67,
       sx: this.xk(), sy: this.yk(),
-      langZhLabel: this.resolveString($r('app.string.keyboard_lang_zh')),
-      langEnLabel: this.resolveString($r('app.string.keyboard_lang_en')),
       langActive: this.langZh,
       symbolActive: this.symbolMode,
       onLang: (): void => {
@@ -5675,7 +5691,7 @@ struct Index {
             appPreferences.setNumber(PrefKeys.CUSTOM_CANDIDATE_COUNT, this.candPageSize);
             // F5/R1：设置值变了，页码与当页候选要跟着重算，否则页数还是旧值
             this.candPage = 0;
-            this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
+            this.recomputeCandPages();
             this.pinyinShown();
           },
           onCandidateSize: (n: number): void => {
@@ -5684,7 +5700,7 @@ struct Index {
             AppStorage.setOrCreate('candFont', this.candChipFontSize);
             // F5/R1：字号决定一页能放几个，改字号后重算
             this.candPage = 0;
-            this.candPages = Math.max(1, Math.ceil(this.candAll.length / this.candPerPage()));
+            this.recomputeCandPages();
             this.pinyinShown();
           },
           onBack: (): void => { this.leaveTyping(); },

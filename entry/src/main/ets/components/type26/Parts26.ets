@@ -695,8 +695,6 @@ export struct FunctionCaps26 {
   @Prop heightVp: number = 36;
   @Prop sx: number = 1;
   @Prop sy: number = 1;
-  @Prop langZhLabel: string = '中';
-  @Prop langEnLabel: string = 'EN';
   @Prop langActive: boolean = false;
   /** F5/R17：语言键标签直接订阅 AppStorage 字符串，切中英后必刷新。 */
   @StorageLink('langLabel') langDyn: string = 'EN';
@@ -841,18 +839,20 @@ export struct CandStrip26 {
   onNextPage: () => void = (): void => {};
 
   private shown(): string[] {
-    // 每页放几个由 Index 按字号裁好；这里按同口径兜底，不再写死 5
-    const pinyinW: number = this.pinyin.length * 8;
-    const cap: number = Math.floor((300 - 34 - pinyinW) / (this.fontSizeVp + 8));
-    const limit: number = cap > 1 ? cap : 1;
+    // F5 返工（R1）：按实际宽度累加（字数×字号＋间隔 8vp），行宽 264vp（扣拼音串）即断页；
+    // 与 Index.candRanges 同口径，这里只做兜底（Index 已按同规则切页）。
+    const budget: number = 264;
     const out: string[] = [];
-    const n: number = this.candidates.length > limit ? limit : this.candidates.length;
-    for (let i = 0; i < n; i++) {
-      out.push(this.candidates[i]);
+    let used: number = 0;
+    for (let i = 0; i < this.candidates.length; i++) {
+      const c: string = this.candidates[i];
+      const w: number = c.length * this.fontSizeVp + 8;
+      if (used > 0 && used + w > budget) { break; }
+      used += w;
+      out.push(c);
     }
     return out;
   }
-
   private canPage(): boolean {
     return this.pageCount > 1;
   }
