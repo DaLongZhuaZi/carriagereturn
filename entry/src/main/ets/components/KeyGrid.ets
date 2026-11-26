@@ -99,10 +99,6 @@ export struct KeyGrid {
     return i > 0 ? k.substring(0, i) : k;
   }
 
-  private cap3dRawfile(): string {
-    return 'ui-parts/cap3d-' + this.slug() + '-matte.png';
-  }
-
   private space3dRawfile(): string {
     return 'ui-parts/cap3d-space-' + this.slug() + '.png';
   }
