@@ -73,7 +73,6 @@ import { GuideService } from '../services/GuideService';
 import { GuideBridge } from '../services/GuideBridge';
 import { GUIDE_PAGE_HOME, GUIDE_PAGE_DOSSIER, GUIDE_PAGE_DOSSIER_DETAIL, GUIDE_PAGE_DOCUMENT_VIEW, GUIDE_PAGE_COLLECTION, GUIDE_PAGE_COLLECTION_DETAIL, GUIDE_PAGE_CUSTOMIZE, GUIDE_PAGE_SETTINGS, GUIDE_PAGE_EXPORT, GUIDE_PAGE_PINYIN_SETTINGS, GUIDE_PAGE_TYPEWRITER, GUIDE_PAGE_FONT_MANAGER, GUIDE_PAGE_PAPER_CUSTOM, GUIDE_PAGE_TRASH } from '../model/GuideCore';
 import { TopBar } from '../components/TopBar';
-import { CarriageStrip } from '../components/CarriageStrip';
 import { FontBar } from '../components/FontBar';
 // 第 25 批（批 2／§8.1）：PhotoKeybed 整文件已退役删除（R-m20），keyband 照片同步清理。
 import { KeyGrid } from '../components/KeyGrid';
@@ -86,9 +85,7 @@ import { StrikeGuide } from '../components/StrikeGuide';
 // 第 27 批（批 4／R-m24）：标准件变体（10 件 × 4 机型 = 40 键）
 import { bodyColorOfVariant, bodySlugOfVariant, PART_VARIANTS } from '../model/PartVariants';
 // 第 28 批（24 号稿 §2.1）：三档 token 与贴片
-import { plateRawfile, shiftHexColor, tierTileRawfile, tierToken } from '../model/MachineCatalog';
-import { Cheek } from '../components/Cheek';
-import { SteelPlate } from '../components/SteelPlate';
+import { shiftHexColor, tierTileRawfile, tierToken } from '../model/MachineCatalog';
 import { KeyWell } from '../components/KeyWell';
 import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, TopDeck26, TriMark26 } from '../components/type26/Parts26';
 import { Carriage26 } from '../components/type26/Carriage26';
@@ -5789,6 +5786,5 @@ struct Index {
     })
   }
 }
-
 
 

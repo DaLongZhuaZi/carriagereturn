@@ -135,14 +135,6 @@ export function tierToken(machine: MachineKind, tier: 'paperwell' | 'base' | 'ke
   return TIER_TOKENS['1920s-upright'][idx];
 }
 
-/** 第 32 批（25 号稿 §2.1）：钢板贴片名（拉丝纹理，独立于三档 tile，禁用 tierTileRawfile('steel')）。 */
-export function plateRawfile(machine: MachineKind): string {
-  const k: string = machine as string;
-  const i: number = k.indexOf('-');
-  const slug: string = i > 0 ? k.substring(0, i) : k;
-  return 'ui-parts/plate-' + slug + '.png';
-}
-
 /**
  * 第 32 批（25 号稿 §2.4）：按目标亮度差 ΔL 整体缩放 sRGB 色（线性空间缩放各通道，回 sRGB 取整）。
  * 代码一律调本函数，不写死端色。
