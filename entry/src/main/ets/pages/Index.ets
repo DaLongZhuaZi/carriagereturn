@@ -1343,14 +1343,8 @@ struct Index {
       hilog.info(DOMAIN, TAG, 'export busy: back ignored');
       return true;
     }
-    if (this.menuOpen) {
-      this.menuOpen = false;
-      return true;
-    }
     return this.popPage();
   }
-  /** D1：汉堡下拉菜单。 */
-  @State menuOpen: boolean = false;
   /** 换装淡入淡出（§4：200ms，不重建编辑器、不丢光标）。1 = 正常，切换瞬间压到 0.35 再回到 1。 */
   @State switchFade: number = 1;
   /** P1-4：注册失败的字体族名（换装页据此标「未加载」）。 */
@@ -4811,6 +4805,7 @@ struct Index {
     if (this.machineKind === MachineKind.PORTABLE_1930S) { return this.resolveString($r('app.string.machine_name_1930s')); }
     if (this.machineKind === MachineKind.STREAMLINED_1950S) { return this.resolveString($r('app.string.machine_name_1950s')); }
     if (this.machineKind === MachineKind.ELECTRIC_1960S) { return this.resolveString($r('app.string.machine_name_1960s')); }
+    if (this.machineKind === MachineKind.MODERN_2020S) { return this.resolveString($r('app.string.machine_name_modern')); }
     return this.resolveString($r('app.string.machine_name_1920s'));
   }
 
@@ -4823,7 +4818,7 @@ struct Index {
   }
 
   private cycleMachine(): void {
-    const all: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric'];
+    const all: string[] = ['1920s-upright', '1930s-portable', '1950s-streamlined', '1960s-electric', '2020s-modern'];
     const idx: number = all.indexOf(this.machineKind as string);
     const next: MachineKind = all[(idx + 1) % all.length] as MachineKind;
     this.applyMachine(next);
@@ -4930,9 +4925,7 @@ struct Index {
       guideEnabled: this.guideEnabled,
       achGlow: this.plateGlow,
       onBack: (): void => { this.leaveTyping(); },
-      onBell: (): void => { this.toggleSound(); },
       onExportSlot: (): void => { this.onExportSlot(); },
-      onPlate: (): void => { this.onPlateTap(); },
     })
       .id('p26_top_zone')
   }
@@ -5738,21 +5731,6 @@ struct Index {
           .transition(this.navAnimated
             ? TransitionEffect.move(TransitionEdge.END).animation({ duration: 250, curve: Curve.EaseOut })
             : TransitionEffect.IDENTITY)
-      }
-
-      if (this.menuOpen) {
-      AppMenu({
-        visible: this.menuOpen,
-        topVp: this.topInsetValue(),
-        onClose: (): void => { this.menuOpen = false; },
-        onPick: (key: string): void => {
-          if (key === 'collection') { this.pushPage('collection'); }
-          if (key === 'settings') { this.pushPage('settings'); }
-          if (key === 'export') { this.pushPage('export'); }
-        },
-      })
-          // 关闭淡出 150ms（打开动画在 AppMenu 内部）
-          .transition(TransitionEffect.OPACITY.animation({ duration: 150, curve: Curve.EaseOut }))
       }
 
       // 悬浮 A 键只在 system 模式出现（设计稿 §1：builtin 没有系统键盘盖住底行，不需要它）

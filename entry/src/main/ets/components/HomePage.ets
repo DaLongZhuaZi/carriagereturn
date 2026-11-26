@@ -122,8 +122,12 @@ export struct HomePage {
             } else if (this.machineKind === MachineKind.STREAMLINED_1950S) {
               Image($rawfile('machine/1950s-streamlined-front.jpg'))
                 .width('100%').height('100%').objectFit(ImageFit.Contain)
-            } else {
+            } else if (this.machineKind === MachineKind.ELECTRIC_1960S) {
               Image($rawfile('machine/1960s-electric-front.jpg'))
+                .width('100%').height('100%').objectFit(ImageFit.Contain)
+            } else {
+              // F7/R6：2020s 现代机不再回落 1960s 图
+              Image($rawfile('machine/2020s-modern-front.jpg'))
                 .width('100%').height('100%').objectFit(ImageFit.Contain)
             }
             // F4/R34：聚光灯压暗时，hero 带按与遮罩相同的 alpha 自行压暗

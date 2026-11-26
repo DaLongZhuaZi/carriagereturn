@@ -235,9 +235,7 @@ export struct TopZone26 {
   /** 成就解锁高亮（铭牌亮起）。 */
   @Prop achGlow: boolean = false;
   onBack: () => void = (): void => {};
-  onBell: () => void = (): void => {};
   onExportSlot: () => void = (): void => {};
-  onPlate: () => void = (): void => {};
 
   build() {
     // 批 64（T8）：顶栏改 flex 行——返回拨杆在左、出纸槽在右（Blank 撑开），两者顶边都落在 48·sy

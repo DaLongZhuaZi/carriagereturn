@@ -130,6 +130,12 @@ export struct CollectionPage {
 
       Text(M_NAME[kind]).fontSize(17).fontColor('#e8ddc9').margin({ top: 10 })
         .maxLines(1)
+      // F7/R26：当前机器标识
+      if (kind === this.currentMachine) {
+        Text('当前机器').fontSize(11).fontColor('#1a1713')
+          .backgroundColor('#c9a45c').borderRadius(8)
+          .padding({ left: 6, right: 6, top: 2, bottom: 2 }).margin({ top: 4 })
+      }
       Text($r('app.string.collection_owned'))
         .fontSize(12)
         .fontColor('#c9a45c')
@@ -150,8 +156,12 @@ export struct CollectionPage {
           .fontSize(12).fontColor('rgba(232,221,201,0.8)')
       }
       .width('100%').justifyContent(FlexAlign.Center).margin({ top: 4 })
-      Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.6)')
-        .margin({ top: 4 }).maxLines(1)
+      // F7/R26：1920s「默认机器」只在当前机是 1920s 时显示；2020s 条件行允许两行
+      if (!(kind === '1920s-upright' && this.currentMachine !== '1920s-upright')) {
+        Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.6)')
+          .margin({ top: 4 }).maxLines(kind === '2020s-modern' ? 2 : 1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
     }
     .width('100%')
     .padding({ bottom: 12 })

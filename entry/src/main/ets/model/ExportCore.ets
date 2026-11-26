@@ -278,6 +278,9 @@ export function machineTitleKey(kind: string): string {
   if (kind === '1960s-electric') {
     return 'machine_name_1960s';
   }
+  if (kind === '2020s-modern') {
+    return 'machine_name_modern';
+  }
   return MACHINE_NAME_1920S;
 }
 

@@ -17,6 +17,7 @@ const M_INFO: Record<string, Resource> = {
   '1930s-portable': $r('app.string.machine_info_1930s'),
   '1950s-streamlined': $r('app.string.machine_info_1950s'),
   '1960s-electric': $r('app.string.machine_info_1960s'),
+  '2020s-modern': $r('app.string.machine_info_modern'),
 };
 
 @Component
