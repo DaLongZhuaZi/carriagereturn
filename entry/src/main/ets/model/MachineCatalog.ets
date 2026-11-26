@@ -16,20 +16,8 @@ export interface MachineSpec {
   kind: MachineKind;
   /** 第 13 批 ⑤：主页 hero 整机全图（正面全貌，Contain 呈现；运行期按静态分支取字面量）。 */
   frontRawfile: string;
-  /** 主屏照片键区：手机带（2048×975，2.1:1）。 */
-  keybandPhoneRawfile: string;
-  /** 主屏照片键区：折叠半开下半屏带（2048×853，2.4:1；1930s 复用手机带）。 */
-  keybandFoldRawfile: string;
   /** 键位坐标表。 */
   keymapRawfile: string;
-  /** 主屏字车条（carriage-strip.png，各机已按 45%~59% 等带切好）。 */
-  carriageStripRawfile: string;
-  /** 主屏字杆击打层（仅 1920s 有完整动画层，其余三台延后，不用占位顶替）。 */
-  typebarRawfile: string;
-  /** 主屏拨杆动画层（同上）。 */
-  leverRawfile: string;
-  /** 字车层（换行回位用）。 */
-  carriageLayerRawfile: string;
   /** 键帽叠字颜色（§2.3 钉死）。 */
   overlayColor: string;
   /** 键帽叠字字号（vp）。 */
@@ -197,13 +185,7 @@ export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.UPRIGHT_1920S,
     frontRawfile: 'machine/1920s-upright-front.jpg',
-    keybandPhoneRawfile: 'machine/1920s-upright-keyband-phone.jpg',
-    keybandFoldRawfile: 'machine/1920s-upright-keyband-fold.jpg',
     keymapRawfile: 'keymap/1920s-upright-keymap.json',
-    carriageStripRawfile: 'carriage/1920s-upright-carriage-strip.png',
-    typebarRawfile: 'typebar/1920s-typebar-vertical.png',
-    leverRawfile: 'typebar/1920s-lever-single.png',
-    carriageLayerRawfile: 'typebar/1920s-carriage-layer.png',
     overlayColor: '#312b24',
     overlayFontSizeVp: 14,
     bodyColor: '#1e1c1a',
@@ -229,15 +211,8 @@ export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.PORTABLE_1930S,
     frontRawfile: 'machine/1930s-portable-front.jpg',
-    keybandPhoneRawfile: 'machine/1930s-portable-keyband-phone.jpg',
-    // §4：fold 图已入仓（machine/1930s-portable-keyband-fold.jpg），改指 fold 带
-    keybandFoldRawfile: 'machine/1930s-portable-keyband-fold.jpg',
     keymapRawfile: 'keymap/1930s-portable-keymap.json',
-    carriageStripRawfile: 'carriage/1930s-portable-carriage-strip.png',
     // §4：1930s 分层素材已到，三个字段填上
-    typebarRawfile: 'typebar/1930s-portable-typebar-vertical.png',
-    leverRawfile: 'typebar/1930s-portable-lever-single.png',
-    carriageLayerRawfile: 'typebar/1930s-portable-carriage-layer.png',
     overlayColor: '#dbccb3',
     overlayFontSizeVp: 14,
     bodyColor: '#3a4038',
@@ -263,13 +238,7 @@ export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.STREAMLINED_1950S,
     frontRawfile: 'machine/1950s-streamlined-front.jpg',
-    keybandPhoneRawfile: 'machine/1950s-streamlined-keyband-phone.jpg',
-    keybandFoldRawfile: 'machine/1950s-streamlined-keyband-fold.jpg',
     keymapRawfile: 'keymap/1950s-streamlined-keymap.json',
-    carriageStripRawfile: 'carriage/1950s-streamlined-carriage-strip.png',
-    typebarRawfile: 'typebar/1950s-streamlined-typebar-vertical.png',
-    leverRawfile: 'typebar/1950s-streamlined-lever-single.png',
-    carriageLayerRawfile: 'typebar/1950s-streamlined-carriage-layer.png',
     overlayColor: '#312b24',
     overlayFontSizeVp: 14,
     bodyColor: '#d8cbb0',
@@ -295,13 +264,7 @@ export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.ELECTRIC_1960S,
     frontRawfile: 'machine/1960s-electric-front.jpg',
-    keybandPhoneRawfile: 'machine/1960s-electric-keyband-phone.jpg',
-    keybandFoldRawfile: 'machine/1960s-electric-keyband-fold.jpg',
     keymapRawfile: 'keymap/1960s-electric-keymap.json',
-    carriageStripRawfile: 'carriage/1960s-electric-carriage-strip.png',
-    typebarRawfile: 'typebar/1960s-electric-typebar-vertical.png',
-    leverRawfile: 'typebar/1960s-electric-lever-single.png',
-    carriageLayerRawfile: 'typebar/1960s-electric-carriage-layer.png',
     overlayColor: '#312b24',
     overlayFontSizeVp: 14,
     bodyColor: '#a8a8a0',
@@ -327,14 +290,7 @@ export const MACHINES: MachineSpec[] = [
   {
     kind: MachineKind.MODERN_2020S,
     frontRawfile: 'machine/2020s-modern-front.jpg',
-    keybandPhoneRawfile: 'machine/2020s-modern-keyboard.jpg',
-    keybandFoldRawfile: 'machine/2020s-modern-keyarea.jpg',
     keymapRawfile: 'keymap/2020s-modern-keymap.json',
-    // 2020s 无独立 carriage-strip／typebar／lever／carriage-layer 素材：照抄 1920s（设计稿“其余字段照抄”）
-    carriageStripRawfile: 'carriage/1920s-upright-carriage-strip.png',
-    typebarRawfile: 'typebar/1920s-typebar-vertical.png',
-    leverRawfile: 'typebar/1920s-lever-single.png',
-    carriageLayerRawfile: 'typebar/1920s-carriage-layer.png',
     overlayColor: '#312b24',
     overlayFontSizeVp: 14,
     bodyColor: '#adc4b8',

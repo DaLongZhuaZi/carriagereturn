@@ -1748,25 +1748,6 @@ struct Index {
   /** 机身材质贴片（§2.5 第 5 条：机身面板；批 2 起取代 KeyGrid 过渡底板）。 */
   // 第 33 批（批 29 并入项）：bodyPanelRawfile 已删——旧 grain 图 4 张同日删除，机身底改 tierTile。
 
-  /** 字杆贴片（§7.4 typebar-<machine>.png；§4.3 打击动件）。 */
-  private typebarRawfile(): string {
-    const k: string = this.machineKind as string;
-    const i: number = k.indexOf('-');
-    const slug: string = i > 0 ? k.substring(0, i) : k;
-    return 'ui-parts/typebar-' + slug + '.png';
-  }
-
-  /** 字篮扇形贴片（§7.4 basket-fan-<machine>.png）。 */
-  private basketFanRawfile(): string {
-    const k: string = this.machineKind as string;
-    const i: number = k.indexOf('-');
-    const slug: string = i > 0 ? k.substring(0, i) : k;
-    // 第 27 批：字篮风格变体（flat-line★／metal-gradient）
-    const v: string = CustomizeStore.partVariant('basket', k);
-    return v === 'metal-gradient'
-      ? 'ui-parts/basket-fan-metal-' + slug + '.png'
-      : 'ui-parts/basket-fan-' + slug + '.png';
-  }
 
   /** 第 27 批：旋钮面变体（metal-knurl★／matte-black，通用图）。 */
   private knobRawfile(): string {
