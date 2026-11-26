@@ -413,6 +413,10 @@
       "value": "导出不加水印。"
     },
     {
+      "name": "export_empty_hint",
+      "value": "还没有内容，先写几行"
+    },
+    {
       "name": "guide_export_1",
       "value": "先把纸导出成图片、PDF 或纯文本。"
     },
@@ -535,6 +539,10 @@
     {
       "name": "font_import",
       "value": "导入字体"
+    },
+    {
+      "name": "font_empty",
+      "value": "还没有导入字体，点上方导入 .ttf/.otf"
     },
     {
       "name": "font_delete",

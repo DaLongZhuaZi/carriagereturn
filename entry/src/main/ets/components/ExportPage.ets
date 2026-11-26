@@ -163,6 +163,8 @@ export struct ExportPage {
   @State templateFallback: boolean = false;
   /** 进入页面时算好的预览正文/标题/日期（build 期不读文件）。 */
   @State previewText: string = '';
+  /** E1：当前范围下文档为空（预览仍显示空纸，额外加一行提示）。 */
+  @State previewEmpty: boolean = false;
   @State docTitleState: string = '';
   @State dateText: string = '';
 
@@ -251,9 +253,28 @@ export struct ExportPage {
   private refreshPreview(): void {
     const d: DocData | null = this.targetDocId.length > 0 ? docStore.load(this.targetDocId) : null;
     this.previewText = this.previewForRange(d);
+    this.previewEmpty = this.isPreviewEmpty(d);
     if (this.range !== 'paper' && this.picked === 0) {
       this.picked = 1;
     }
+  }
+
+  /** E1：当前范围下是否有正文——空文档提示用，不改预览内容本身。 */
+  private isPreviewEmpty(d: DocData | null): boolean {
+    if (this.range === 'dossier' && this.targetDossierId.length > 0) {
+      return docStore.listByDossier(this.targetDossierId).length === 0;
+    }
+    if (d === null) {
+      return true;
+    }
+    const sheets: DocLine[][] = d.sheets === undefined ? [] : d.sheets;
+    const first: DocLine[] = sheets.length > 0 ? sheets[0] : d.lines;
+    for (let i = 0; i < first.length; i++) {
+      if (first[i].text.trim().length > 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** 第 13 批 ⑥：预览跟随范围（当前纸 / 整篇 / 整卷宗；不跟随自定义开关）。 */
@@ -1151,6 +1172,14 @@ export struct ExportPage {
               Text(this.previewText).fontSize(12).lineHeight(22).fontColor('#1a1a1a')
                 .width('100%').padding({ left: 22, right: 22, top: 26 })
                 .maxLines(16).textOverflow({ overflow: TextOverflow.Clip })
+              // E1：空文档提示（预览仍显示空纸）
+              if (this.previewEmpty) {
+                Text($r('app.string.export_empty_hint'))
+                  .fontSize(12).fontColor('rgba(26,26,26,0.55)')
+                  .width('100%').padding({ left: 22, right: 22 })
+                  .position({ x: 0, y: 60 })
+                  .id('export_preview__empty')
+              }
             }
             .id('export_preview')
             .width('100%').height(480).clip(true).borderRadius(12)
