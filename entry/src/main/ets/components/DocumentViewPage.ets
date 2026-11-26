@@ -106,16 +106,8 @@ export struct DocumentViewPage {
       }
       .width('100%').height('100%').padding({ top: 28, left: 18, right: 18 })
 
-      // P2-8：照片位先置灰并标注「待实现」（系统相册选图本批未接）
-      Column() {
-        Text('照片').fontSize(12).fontColor('rgba(138,122,100,0.55)')
-        Text('待实现').fontSize(12).fontColor('rgba(138,122,100,0.45)').margin({ top: 2 })
-      }
-      .width(120).height(120).backgroundColor('#eee4ce').borderRadius(8)
-      .justifyContent(FlexAlign.Center)
-      .rotate({ angle: 6 })
-      .position({ x: w - 130, y: 96 })
-
+      // E7/I-3（D-2）：照片位「照片／待实现」占位先隐藏，照片插入功能本批不做；
+// 原 P2-8 的置灰卡片代码删掉，等相册选图接入时再连同功能一起加回。
       // P2-8：题注先留空（无题注不显示「题注」二字）；日期改相对布局，不用绝对 y
       Column() {
         Blank()
