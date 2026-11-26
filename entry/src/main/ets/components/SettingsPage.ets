@@ -31,7 +31,10 @@ export struct SettingsPage {
   /** 中文输入引擎：'builtin' 内置拼音｜'system' 系统输入法（设计稿 §1）。 */
   @Prop cnEngine: string = 'builtin';
   /** 第 4 批 F11：每日目标字数（100–2000，step 100；Index 持久化后回传）。 */
-  @Prop dailyGoal: number = 500;
+  @Prop @Watch('onGoalProp') dailyGoal: number = 500;
+  /** F6/R28：滑杆回显文本本地即时更新（不等 Index 回传）。 */
+  @State goalText: string = '';
+  @State goalValue: number = 500;
   /** F6：音量百分数 0–100（AppPreferences VOLUME 0..1 的百分数；Index 持久化后回传）。 */
   @Prop volume0to100: number = 70;
   /** F6：音效总开关（SOUND_ENABLED）；行名"音效"＝全关/全开，不再暗示只关叮声（M-2）。 */
@@ -51,10 +54,6 @@ export struct SettingsPage {
   onToggleSound: () => void = (): void => {};
   onToggleVibrate: () => void = (): void => {};
 
-  /** 批 62（任务 5）：改成 @Prop，开关显示才会跟着 Index 的 a11yOverlayEnabled 变化。 */
-  @Prop a11yEnabled: boolean = false;
-
-  onToggleA11y: () => void = (): void => {};
   onVolume: (v0to100: number) => void = (v0to100: number): void => {};
   onDeleteMode: (mode: string) => void = (mode: string): void => {};
   onPickMachine: () => void = (): void => {};
@@ -63,7 +62,14 @@ export struct SettingsPage {
   @State revealN: number = 0;
   onBack: () => void = (): void => {};
 
+  onGoalProp(): void {
+    this.goalValue = this.dailyGoal;
+    this.goalText = this.dailyGoal.toString() + ' 字';
+  }
+
   aboutToAppear(): void {
+    this.goalValue = this.dailyGoal;
+    this.goalText = this.dailyGoal.toString() + ' 字';
     // D6：逐组 60ms（第 4 批加入"统计"组，第 6 批仍为 6 组：声音/触感/修正方式/统计/默认/关于）
     this.revealN = 0;
     for (let i = 0; i < 6; i++) {
@@ -164,21 +170,6 @@ export struct SettingsPage {
         .opacity(this.revealN > 1 ? 1 : 0)
         .animation({ duration: 180, curve: Curve.EaseOut })
 
-        // 2b Canvas 调试（2B-8 回滚 / 2C-2 无障碍覆盖层）
-        Column() {
-          this.groupTitle('界面')
-          // 第 26 批（批 3）：Canvas 主屏开关随 CanvasTypewriter 退役一并删除（SWITCH_KEYS 4→3）
-          SettingsRow({
-            label: '无障碍覆盖层',
-            mode: 'switch',
-            switchOn: this.a11yEnabled,
-            onToggle: (): void => { this.onToggleA11y(); },
-          })
-        }
-        .width('100%')
-        .opacity(this.revealN > 1 ? 1 : 0)
-        .animation({ duration: 180, curve: Curve.EaseOut })
-
         // 3 修正方式（删除方式三档／中文输入／拼音设置）
         Column() {
           this.groupTitle('修正方式')
@@ -215,14 +206,22 @@ export struct SettingsPage {
           SettingsRow({
             label: $r('app.string.settings_goal'),
             mode: 'slider',
-            sliderValue: this.dailyGoal,
+            sliderValue: this.goalValue,
             sliderMin: 100,
             sliderMax: 2000,
             sliderStep: 100,
             // N-1：SettingsRow 的 sliderValueText 是 string prop，$r 不能拼字符串，故这里用拼接
-            sliderValueText: this.dailyGoal.toString() + ' 字',
+            sliderValueText: this.goalText,
             onSlide: (v: number): void => {
-              this.onGoal(clampDailyGoal(Math.round(v), this.dailyGoal));
+              const g: number = clampDailyGoal(Math.round(v), this.dailyGoal);
+              this.goalValue = g;
+              this.goalText = g.toString() + ' 字';
+              this.onGoal(g);
+            },
+            onSlideLive: (v: number): void => {
+              const lv: number = clampDailyGoal(Math.round(v), this.dailyGoal);
+              this.goalValue = lv;
+              this.goalText = lv.toString() + ' 字';
             },
           })
         }

@@ -690,7 +690,12 @@ export struct DossierDetailPage {
           const id: string = this.paperMenuId;
           this.paperMenuId = '';
           if (id.length > 0) {
-            this.pendingDelPaper = id;
+            // F6/R8：trash 档直接进回收站；ask/direct 弹确认（direct 才真删）
+        if (this.deleteMode === 'trash') {
+          this.onDeletePaper(id);
+        } else {
+          this.pendingDelPaper = id;
+        }
           }
         })
       Text($r('app.string.cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
@@ -724,7 +729,8 @@ export struct DossierDetailPage {
   renameBody() {
     Column() {
       Text('重命名卷宗').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-      TextInput({ placeholder: '给卷宗起个名字' })
+      // F6/R22：打开即显示当前卷宗名
+      TextInput({ text: this.draftName, placeholder: '给卷宗起个名字' })
         .fontSize(15).fontColor('#e8ddc9').margin({ top: 14 })
         .defaultFocus(true)
         .onChange((v: string) => { this.draftName = v; })

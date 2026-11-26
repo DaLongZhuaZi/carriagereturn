@@ -70,7 +70,10 @@ export struct CustomizePage {
   /** P1-4：注册失败的字体族名（行上标「未加载」，不许静默回落）。 */
   @Prop failedFonts: string[] = [];
   /** 第 2 批 F3：字号（0 = 未设置，沿用 measureStage 现算值）；当前机器。 */
-  @Prop fontSize: number = 0;
+  @Prop @Watch('onFontSizeProp') fontSize: number = 0;
+  /** F6/R27：字号回显文本本地即时更新。 */
+  @State sizeText: string = '';
+  @State sizeValue: number = 0;
   /** 第 2 批 F3：四台机器各自的字体族名（与 MACHINES 同序；空串 = 未设置）。 */
   @Prop machineFonts: string[] = [];
   /** P2-14：点按缩放反馈（0.95／100ms）。 */
@@ -88,7 +91,14 @@ export struct CustomizePage {
   onOpenPaperCustom: () => void = (): void => {};
   onFontSize: (v: number) => void = (v: number): void => {};
 
+  onFontSizeProp(): void {
+    this.sizeValue = this.sliderFontSize();
+    this.sizeText = this.sliderFontSize().toString();
+  }
+
   aboutToAppear(): void {
+    this.sizeValue = this.sliderFontSize();
+    this.sizeText = this.sliderFontSize().toString();
     // insets 交给 PageShell；D6：60ms 逐区揭示（原 80ms）
     this.revealN = 0;
     for (let i = 0; i < 4; i++) {
@@ -135,13 +145,22 @@ export struct CustomizePage {
       SettingsRow({
         label: '字号',
         mode: 'slider',
-        sliderValue: this.sliderFontSize(),
+        sliderValue: this.sizeValue,
         sliderMin: FONT_SIZE_MIN,
         sliderMax: FONT_SIZE_MAX,
         sliderStep: 1,
-        sliderValueText: this.sliderFontSize().toString(),
+        sliderValueText: this.sizeText,
         reveal: true,
-        onSlide: (v: number): void => { this.onFontSize(v); },
+        onSlide: (v: number): void => {
+          const sv: number = Math.round(v);
+          this.sizeValue = sv;
+          this.sizeText = sv.toString();
+          this.onFontSize(sv);
+        },
+        onSlideLive: (v: number): void => {
+          this.sizeValue = Math.round(v);
+          this.sizeText = Math.round(v).toString();
+        },
       })
       Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
     }

@@ -326,7 +326,10 @@ struct Index {
   /** 第 2 批 F3：字体偏好变更计数（触发换装页四机字体行刷新）。 */
   @State fontPrefsRev: number = 0;
   @State ribbon: RibbonKind = DEFAULT_RIBBON;
-  @State hintText: string = '';
+  @State @Watch('onHintChanged') hintText: string = '';
+  /** F5/R5：提示条可见（1.8s 自动收起）。 */
+  @State hintVisible: boolean = false;
+  private hintTimer: number = -1;
   /** F5/R12：出纸槽直出兜底提示（如 image 不支持时回落 txt）。 */
   @State slotHint: string = '';
   @State docTitle: string = '';
@@ -988,7 +991,6 @@ struct Index {
   @State animMode: string = 'realistic';
   /** 机型页四行的模式回显（顺序＝ANIM_ROWS：1920s／1930s／1950s；1960s 固定 realistic）。 */
   @State animModes: string[] = ['realistic', 'realistic', 'realistic'];
-  @State a11yOverlayEnabled: boolean = false;
   /** §11：冷启动首帧就是主页。 */
   @State homeOpen: boolean = true;
   /** 第 6 批 F6/F10：设置接线与回收站。 */
@@ -3233,6 +3235,21 @@ struct Index {
     return this.langZh && this.cnEngine === 'builtin';
   }
 
+  /** F6/R5（D16）：hintText 有值即可见，1.8s 自动收起（轻量 Toast）。 */
+  onHintChanged(): void {
+    if (this.hintText.length === 0) {
+      this.hintVisible = false;
+      return;
+    }
+    this.hintVisible = true;
+    if (this.hintTimer >= 0) {
+      clearTimeout(this.hintTimer);
+    }
+    this.hintTimer = setTimeout(() => {
+      this.hintTimer = -1;
+      this.hintVisible = false;
+    }, 1800);
+  }
   /** F5/R17：语言状态同步到 AppStorage，语言键标签据此刷新。 */
   onLangZhChanged(): void {
     AppStorage.setOrCreate('langZh', this.langZh);
@@ -5256,6 +5273,7 @@ struct Index {
           widthVp: this.overlayWidthVp(),
           heightVp: this.winHeightVp > 0 ? this.winHeightVp : 720,
           docs: docStore.list(),
+          listRev: this.docsRev,
           onBack: (): void => { this.leaveTyping(); },
           onOpenDossier: (id: string): void => {
             this.openDossierId = id;
@@ -5508,6 +5526,8 @@ struct Index {
             .position({ x: (this.stageWidth - 280 * this.xk()) / 2, y: 70 * this.yk() })
             .hitTestBehavior(HitTestMode.None)
         }
+
+
       }
 
       if (this.settingsOpen) {
@@ -5522,8 +5542,6 @@ struct Index {
           deleteMode: this.deleteMode,
           onToggleSound: (): void => { this.toggleSound(); },
           onToggleVibrate: (): void => { this.toggleVibrate(); },
-          a11yEnabled: this.a11yOverlayEnabled,
-          onToggleA11y: (): void => { this.a11yOverlayEnabled = !this.a11yOverlayEnabled; },
           onVolume: (v: number): void => { this.setVolume(v); },
           onDeleteMode: (mode: string): void => { this.setDeleteMode(mode); },
           onPickMachine: (): void => { this.cycleMachine(); },
@@ -5782,6 +5800,17 @@ struct Index {
         },
         content: (): void => { this.achDialogBody() },
       })
+      // F6/R5：提示条（最上层，设置页等覆盖层之上）
+      if (this.hintVisible && this.hintText.length > 0) {
+        Text(this.hintText)
+          .fontSize(13).fontColor('#2a1f10').textAlign(TextAlign.Center)
+          .width(260 * this.xk()).height(26 * this.yk())
+          .backgroundColor('#d8b874')
+          .border({ width: 1, color: '#6d5326' })
+          .borderRadius(4)
+          .position({ x: (this.winWidthVp - 260 * this.xk()) / 2, y: this.winHeightVp - 320 })
+          .hitTestBehavior(HitTestMode.None)
+      }
     }
     .width('100%')
     .height('100%')

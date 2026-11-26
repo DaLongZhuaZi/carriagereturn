@@ -239,8 +239,14 @@ export struct DocumentViewPage {
             .id('dv_del')
             .layoutWeight(1).height(44).textAlign(TextAlign.Center)
             .borderRadius(28).backgroundColor('#241c16')
-            // 第 6 批 F10：先二次确认（文案按 deleteMode），确认后才 onDelete
-            .onClick(() => { this.confirmDel = true; })
+            // F6/R8：trash 档直接进回收站，不弹确认；ask/direct 仍确认（direct 才真删）
+            .onClick(() => {
+              if (this.deleteMode === 'trash') {
+                this.onDelete(this.docId);
+              } else {
+                this.confirmDel = true;
+              }
+            })
         }
         .width('100%').height(56)
         .id('document_view__delete_btn')

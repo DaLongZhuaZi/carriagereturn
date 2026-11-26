@@ -25,6 +25,8 @@ export struct DossierPage {
   @Prop heightVp: number = 720;
   /** P1-3：docs 变化时刷新列表。 */
   @Prop @Watch('onDocsChanged') docs: DocSummary[] = [];
+  /** F6/R20：返回卷宗页时强制刷新（改名/删卷宗不改 docs 内容）。 */
+  @Prop @Watch('onListRev') listRev: number = 0;
   @State dossiers: Dossier[] = [];
   @State creating: boolean = false;
   /** 非受控输入：普通字段，打字不触发重建（@State 会让每次按键重建对话框、丢焦点丢字）。 */
@@ -44,6 +46,10 @@ export struct DossierPage {
   }
 
   onDocsChanged(): void {
+    this.reload();
+  }
+
+  onListRev(): void {
     this.reload();
   }
 
@@ -167,7 +173,7 @@ export struct DossierPage {
               })
               .onClick(() => { this.onOpenDossier(d.id); })
             }
-          }, (d: Dossier) => d.id + ':' + d.updatedAt.toString())
+          }, (d: Dossier) => d.id + ':' + d.updatedAt.toString() + ':' + d.name + ':' + this.paperCount(d.id).toString())
         }
         .id('dossier__list')
         .columnsTemplate(this.colsTemplate())

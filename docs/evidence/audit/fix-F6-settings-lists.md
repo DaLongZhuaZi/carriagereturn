@@ -1,0 +1,56 @@
+# F6 修复批：设置与列表状态（R2、R5、R8、R20、R22、R27、R28）
+
+- 日期：2026-11-26
+- 分支：`fix/settings-lists`（base `main` @ `912624b`）
+- 工作树：`D:\HarmonyAPP\carriagereturn\.worktrees\fix-settings-lists`
+- 构建：DevEco 26 hvigorw `assembleHap`（debug，signed hap）
+- 设备：手机 ADA-AL00U `2UCUT24724009680`、平板 MLR-AL10 `192.168.5.133:42355`
+
+## 1. 改动（7 个文件，+105/−36）
+
+| 文件 | 改动 |
+|---|---|
+| `SettingsPage.ets` | R2（D6）：删除「无障碍覆盖层」开关整组；R28：每日目标滑杆加本地 `goalValue/goalText`，拖动实时更新（onSlideLive），落盘仍只在松手 |
+| `Index.ets` | R2：删 `a11yOverlayEnabled` 状态与传参；R5（D16）：`hintText` 加 `@Watch`，在**最上层**渲染轻量 Toast（1.8s 自动收起）；R20：给 DossierPage 传 `listRev` |
+| `SettingsRow.ets` | R27/R28：新增 `onSlideLive`（Slider Moving 时回调，不落盘） |
+| `CustomizePage.ets` | R27：字号滑杆加本地 `sizeValue/sizeText`，拖动实时跟随 |
+| `DocumentViewPage.ets` | R8（D7）：删除按钮按档分流——`trash` 直接进回收站（无弹窗），`ask`/`direct` 弹确认 |
+| `DossierDetailPage.ets` | R8：纸卡片删除同样按档分流；R22：重命名弹窗 `TextInput({ text: this.draftName })`，打开即显示当前名 |
+| `DossierPage.ets` | R20：ForEach key 加入 `d.name` 与纸张数（原先 key＝id+updatedAt，改名不触发重绘）；新增 `listRev` 变化即 `reload()` |
+
+## 2. 验收
+
+| 条目 | 结果 | 证据 |
+|---|---|---|
+| R2 无障碍开关删除 | **通过** | 设置页「界面」组消失，无「无障碍覆盖层」行（3628；dump 计数 0） |
+| R5 提示有可见落点 | **通过** | 设置→重播页面引导后，屏幕中部出现提示条「已重置，下次进入页面生效」，1.8s 收起（3631） |
+| R8 ask 档弹确认 | **通过** | 删除方式＝先问时，文档视图点删除弹出「删除这张纸？删除后进回收站，可恢复。」＋删除/取消（3632） |
+| R8 trash 档不弹窗 | **通过** | 删除方式＝进回收站时，点删除无弹窗，hilog `paper trashed id=…`（3633） |
+| R8 direct 档真删 | **代码确认**（未做真机删除） | `Index.deletePaper` 对 direct 走 `removePermanently`（本次未改该分支；ask/trash 的分流已实测） |
+| R20 列表刷新 | **部分**：代码已改，真机复测未完成 | 改法与根因见 §1；本批设备上创建/删除卷宗后的列表状态复测因导航点击反复失手未取得干净证据（3635 为删除后截图，未能确认卡片已即时消失）。需补一次干净复测 |
+| R22 重命名预填 | **通过** | 打开重命名弹窗，TextInput 文本＝「未命名卷宗」（3634；dump 第二个 TextInput 的 text 即当前名） |
+| R27 字号滑杆数值跟随 | **通过** | 点/拖字号滑杆后，右侧数字由 20 变为 22（3630；dump 值文本同步） |
+| R28 每日目标数值跟随 | **通过** | 拖动每日目标后，文本由 200 字变为 1500 字（3629） |
+| 候选字号 15 复验 | **未完成** | 本批未在设置页留下「15」可截图的数值回显，也未做 15 与 20 的字高成对测量；F5 的 3624/3625 仅作参考，不算本批证据 |
+
+## 3. 未完成与建议
+
+1. **R20 真机复测**：设备上已创建一个「未命名卷宗」，删除流程走到确认框后返回列表的干净证据未取到。建议单独用一次运行：创建→改名（或删除）→返回列表，确认卡片即时更新；代码侧已把 key 改为含名称与张数、并加 `listRev` 兜底。
+2. **候选字号 15**：需要一次「设置页显示 15＋候选条截图＋字高像素测量」的成对证据；本批时间不够未做，不算通过。
+
+## 4. 截图（`docs/shots/`，3628 起）
+
+| 编号 | 文件 | 内容 |
+|---|---|---|
+| 3628 | `3628_f6_settings_no_a11y.png` | 设置页顶部：无「无障碍覆盖层」行、无「界面」组 |
+| 3629 | `3629_f6_goal_slider_live.png` | 每日目标拖到 1500 字，文本即时更新 |
+| 3630 | `3630_f6_fontsize_slider_live.png` | 字号滑杆点到 22，数字即时更新 |
+| 3631 | `3631_f6_hint_toast.png` | 重播页面引导后的提示 Toast |
+| 3632 | `3632_f6_delete_ask_confirm.png` | ask 档删除确认弹窗 |
+| 3633 | `3633_f6_delete_trash_no_dialog.png` | trash 档删除无弹窗（删除后画面） |
+| 3634 | `3634_f6_rename_prefill.png` | 重命名弹窗预填当前卷宗名 |
+| 3635 | `3635_f6_dossier_list_after_delete.png` | 删除卷宗后返回列表（复测不完整，见 §3） |
+
+## 5. 提交
+
+- 分支 `fix/settings-lists`：7 个源文件 + 本报告 + 截图。不合 main、不推 main、不改清单。

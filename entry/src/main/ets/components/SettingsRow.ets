@@ -30,6 +30,8 @@ export struct SettingsRow {
   @Prop reveal: boolean = true;
   onToggle: () => void = (): void => {};
   onSlide: (v: number) => void = (v: number): void => {};
+  /** F6/R27-R28：拖动过程中的实时回调（只更新数值文本，不落盘）。 */
+  onSlideLive: (v: number) => void = (v: number): void => {};
   onRowClick: () => void = (): void => {};
 
   @State pressed: boolean = false;
@@ -63,6 +65,8 @@ export struct SettingsRow {
           .onChange((v: number, changeMode: SliderChangeMode) => {
             if (changeMode === SliderChangeMode.End || changeMode === SliderChangeMode.Click) {
               this.onSlide(Math.round(v));
+            } else {
+              this.onSlideLive(Math.round(v));
             }
           })
       } else {
