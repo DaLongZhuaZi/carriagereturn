@@ -37,51 +37,6 @@ export const H_GRID: number = 172.6;
 export const MACHINE_X0: number = 8;
 export const MACHINE_X1: number = 354.7;
 
-/** 木纹贴片（$rawfile 需字面量，按机静态分支）。 */
-@Builder
-export function lidTileImage(machine: MachineKind) {
-  if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/tile-1920s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
-  } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/tile-1930s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
-  } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/tile-1950s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
-  } else {
-    Image($rawfile('ui-parts/tile-1960s-base-v2.png')).width('100%').height('100%').objectFit(ImageFit.Fill).opacity(1.0)
-  }
-}
-
-/** 字篮扇形（生成件）。
- *  批 74：**四台老机各用自己的扇图**（平板＝本批宽扇 2.6:1；手机＝年代扇原图）。
- *  现代机（2020s-modern）沿用当前“26”主题的 v5-wide-26（平板）／v4（手机）。
- *  全部 ImageFit.Contain，盒比由 Index 的 fanAspect26() 按机型取真实图比 ⇒ 不拉伸。 */
-@Builder
-export function basketFanImage(machine: MachineKind, wide: boolean) {
-  if (wide) {
-    if (machine === MachineKind.UPRIGHT_1920S) {
-      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1920s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-    } else if (machine === MachineKind.PORTABLE_1930S) {
-      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1930s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-    } else if (machine === MachineKind.STREAMLINED_1950S) {
-      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1950s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-    } else if (machine === MachineKind.ELECTRIC_1960S) {
-      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-1960s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-    } else {
-      Image($rawfile('ui-parts/basket-fan-3d-v5-wide-26.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-    }
-  } else if (machine === MachineKind.UPRIGHT_1920S) {
-    Image($rawfile('ui-parts/basket-fan-1920s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-  } else if (machine === MachineKind.PORTABLE_1930S) {
-    Image($rawfile('ui-parts/basket-fan-1930s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-  } else if (machine === MachineKind.STREAMLINED_1950S) {
-    Image($rawfile('ui-parts/basket-fan-1950s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-  } else if (machine === MachineKind.ELECTRIC_1960S) {
-    Image($rawfile('ui-parts/basket-fan-1960s.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-  } else {
-    Image($rawfile('ui-parts/basket-fan-3d-v4.png')).width('100%').height('100%').objectFit(ImageFit.Contain)
-  }
-}
-
 /** 机身基准色（§10）。 */
 export function lidColor(machine: MachineKind): string {
   return tierToken(machine, 'base');

@@ -198,3 +198,12 @@
 `layers/{1920s-upright,1930s-portable,1950s-streamlined,1960s-electric}/lever.png`（仅 LeverLayer 引用）＋ `layers/1920s-upright/typebar.png`（全仓 0 引用）。
 
 **验真**：signed hap 构建通过；双机四页正常——手机 3687 主页／3688 打字机／3689 收藏／3690 导出；平板 3691／3692／3693／3694。
+
+## 12. B3c 落地记录：Parts26 两个未调用 builder（2026-11-26）
+
+**删前核对**：全仓 grep `lidTileImage`／`basketFanImage`，除定义处外 0 个引用点，确认无调用。
+
+**删除**：`components/type26/Parts26.ets` 里 `@Builder lidTileImage` 与 `@Builder basketFanImage`（含注释，共 −46 行）。`lidColor` 等其余函数未动。
+
+**验真**：signed hap 构建通过；双机四页正常——手机 3695 主页／3696 打字机／3697 收藏／3698 导出；平板 3699／3700／3701／3702。
+（平板 3701／3702 首拍时点击未生效，重拍并以 dump 确认在收藏／导出页后入库。）
