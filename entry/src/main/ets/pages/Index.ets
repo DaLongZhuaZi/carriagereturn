@@ -91,13 +91,9 @@ import { TopZone26, Lid26, Basket26, FunctionCaps26, FontPlate26, CandStrip26, T
 import { Carriage26 } from '../components/type26/Carriage26';
 
 import { TypebarLayer } from '../components/TypebarLayer';
-import { CarriageLayers } from '../components/CarriageLayers';
 import { LeverLayer } from '../components/LeverLayer';
 import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 import { BracketAssembly1920 } from '../machines/1920s/BracketAssembly1920';
-import { RollerAssembly1920 } from '../machines/1920s/RollerAssembly1920';
-import { MetalAssembly1920 } from '../machines/1920s/MetalAssembly1920';
-import { CarriageLayers1930 } from '../machines/1930s/CarriageLayers1930';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
@@ -111,8 +107,6 @@ import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
 import { BLUEPRINT_1950 } from '../machines/1950s/Blueprint';
 import { BLUEPRINT_1960 } from '../machines/1960s/Blueprint';
-import { CarriageLayers1950 } from '../machines/1950s/CarriageLayers';
-import { CarriageLayers1960 } from '../machines/1960s/CarriageLayers';
 import { LeverLayer1930 } from '../machines/1930s/LeverLayer1930';
 import { LeverLayer1950 } from '../machines/1950s/LeverLayer';
 import { LeverLayer1960 } from '../machines/1960s/LeverLayer';
@@ -5786,5 +5780,4 @@ struct Index {
     })
   }
 }
-
 

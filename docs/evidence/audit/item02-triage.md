@@ -164,3 +164,20 @@
 | 导出页 | 3674 | 3678 |
 
 四页画面与删前一致（四组件本来就没有实例化）。
+## 10. B3a 落地记录：CarriageLayers 分层（2026-11-26）
+
+按 D-A/D-F 只做分层的一半，并因删除量（代码 1653 行）按你的口径拆批：本批 = CarriageLayers 家族；LeverLayer 家族留 B3b。
+
+**删除的代码（7 文件，1653 行）**
+- `components/CarriageLayers.ets`（350 行，含 1920/1950/1960 三个 struct）
+- `machines/1920s/CarriageLayers.ets`、`machines/1930s/CarriageLayers1930.ets`、`machines/1950s/CarriageLayers.ets`、`machines/1960s/CarriageLayers.ets`（各 303 行）
+- 依赖它们、同样无实例化的汇编件：`machines/1920s/MetalAssembly1920.ets`（44）、`RollerAssembly1920.ets`（40）
+- `Index.ets`：删对应 6 条 import
+
+**删除的资产（21 张，孤儿）**
+`layers/{1920s-upright,1930s-portable,1950s-streamlined,1960s-electric}/` 下
+`roller-texture-v7.jpg`、`typebar-basket-strip.png`、`carriage-base-rail.png`、`paper-bail-v2.png`、`central-guide.png`（5×4），加 `1920s-upright/master-reference.jpg`（全仓 0 引用）。
+**保留**：`layers/*/lever.png`（LeverLayer 还在，B3b 处理）、`layers/*/lever-pivot-bracket.png`（Blueprint/BracketAssembly 仍引用）。
+
+**验真**：signed hap 构建通过；双机装入后四页正常——
+手机 3679 主页／3680 打字机／3681 收藏／3682 导出；平板 3683／3684／3685／3686。
