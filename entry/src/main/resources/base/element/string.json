@@ -465,6 +465,10 @@
       "value": "离页自动保存，回来还能接着写。"
     },
     {
+      "name": "guide_typewriter_4",
+      "value": "左上拨杆＝返回。"
+    },
+    {
       "name": "guide_onboarding_title",
       "value": "欢迎使用回车"
     },

@@ -212,7 +212,8 @@ export struct TopZone26 {
             .borderRadius(5 * this.sx)
             .position({ x: 4 * this.sx, y: 0 })
         }
-        .width(16 * this.sx).height(32 * this.sy)
+        // E4/I-1：热区放大到 ≥44×44vp（原 16×32vp 太小）；拨杆造型与枢轴位置不动
+        .width(44 * Math.max(1, this.sx)).height(44 * Math.max(1, this.sy))
         .id('typewriter__lever')
         .accessibilityText('返回')
         .accessibilityLevel('yes')

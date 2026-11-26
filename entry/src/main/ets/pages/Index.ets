@@ -1067,6 +1067,8 @@ struct Index {
         { text: $r('app.string.guide_typewriter_1'), anchorId: 'typewriter__lever' },
         { text: $r('app.string.guide_typewriter_2'), anchorId: 'p26_function_caps' },
         { text: $r('app.string.guide_typewriter_3'), anchorId: 'p35_paper' },
+        // E4/I-1：补一步说明左上拨杆＝返回（热区已放大到 44×44vp）
+        { text: $r('app.string.guide_typewriter_4'), anchorId: 'typewriter__lever' },
       ];
     }
     return [];
