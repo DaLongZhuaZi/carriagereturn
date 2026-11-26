@@ -573,9 +573,18 @@ export struct DossierDetailPage {
                       .fontFamily('CourierPrime, Noto Serif SC')
                       .maxLines(3).textOverflow({ overflow: TextOverflow.Clip })
                       .padding(10).width('100%')
+                    // E3/I-2：右上角「查看」角标，让「点缩略图＝查看」可被发现
+                    Row() {
+                      Text($r('app.string.doc_view'))
+                        .fontSize(11).fontColor('#f2ead6')
+                        .backgroundColor('rgba(20,16,12,0.55)')
+                        .borderRadius(8).padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                        .id('doc_view_badge_' + p.id)
+                    }
+                    .width('100%').justifyContent(FlexAlign.End).padding({ right: 8, top: 8 })
                   }
                   .width('100%').height(150).clip(true).borderRadius(12)
-                  // §5.3：点缩略图进「文档视图」（阅读视图）；「打开」文字链仍直接进主屏编辑（§5.2）
+                  // §5.3：点缩略图进「文档视图」（阅读视图）；「编辑」文字链直接进主屏编辑（§5.2）
                   .onClick(() => { this.onOpenDoc(p.id); })
 
                   Text(p.title.length > 0 ? p.title : '未命名')
@@ -586,7 +595,7 @@ export struct DossierDetailPage {
                     .fontSize(12).fontColor('rgba(232,221,201,0.6)').margin({ top: 2 })
                   Row() {
                     Blank()
-                    Text('打开').fontSize(12).fontColor('#c9a45c')
+                    Text($r('app.string.doc_edit')).fontSize(12).fontColor('#c9a45c')
                       .id('open_' + p.id)
                       .onClick(() => { this.onOpenPaper(p.id); })
                     // 第 6 批 F10：⋯ 收「重命名纸／删除」两项（删除不再裸放在卡片上）
@@ -679,9 +688,26 @@ export struct DossierDetailPage {
   @Builder
   paperMenuBody() {
     Column() {
+      // E3/I-2：⋯ 菜单与卡片文案同步——查看（文档视图）／编辑（打字机）
+      Text($r('app.string.doc_view')).fontSize(15).fontColor('#e8ddc9')
+        .id('paper_menu_view')
+        .width('100%').textAlign(TextAlign.Center)
+        .onClick(() => {
+          const id: string = this.paperMenuId;
+          this.paperMenuId = '';
+          if (id.length > 0) { this.onOpenDoc(id); }
+        })
+      Text($r('app.string.doc_edit')).fontSize(15).fontColor('#e8ddc9')
+        .id('paper_menu_edit')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => {
+          const id: string = this.paperMenuId;
+          this.paperMenuId = '';
+          if (id.length > 0) { this.onOpenPaper(id); }
+        })
       Text($r('app.string.rename_paper_title')).fontSize(15).fontColor('#c9a45c')
         .id('paper_menu_rename')
-        .width('100%').textAlign(TextAlign.Center)
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
         .onClick(() => { this.openPaperRename(this.paperMenuId); })
       Text($r('app.string.delete')).fontSize(15).fontColor('#a33327')
         .id('paper_menu_delete')

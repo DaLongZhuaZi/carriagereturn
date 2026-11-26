@@ -141,21 +141,15 @@ export struct CollectionPage {
         .fontColor('#c9a45c')
         .margin({ top: 4 })
       // F14：当前进度（条件行位置；锁定态也可见）。文案走资源键，不在本页写死进度短语。
-      Row({ space: 2 }) {
-        Text($r('app.string.collection_progress'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)').maxLines(1)
-        Text(this.totalWords.toString())
-          .fontSize(12).fontColor('rgba(232,221,201,0.8)')
-        Text($r('app.string.home_unit'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)')
-        Text('·')
-          .fontSize(12).fontColor('rgba(232,221,201,0.35)')
-        Text($r('app.string.collection_streak'))
-          .fontSize(12).fontColor('rgba(232,221,201,0.5)').maxLines(1)
-        Text(this.streakDays.toString())
-          .fontSize(12).fontColor('rgba(232,221,201,0.8)')
-      }
-      .width('100%').justifyContent(FlexAlign.Center).margin({ top: 4 })
+      // E3/I-5：改成单条 Text——原来 7 个 Text 横排，窄卡会把「连续天数 (」截断。
+      Text(this.resolveStr($r('app.string.collection_progress')) + ' '
+        + this.totalWords.toString() + this.resolveStr($r('app.string.home_unit'))
+        + ' · ' + this.resolveStr($r('app.string.collection_streak')) + ' '
+        + this.streakDays.toString())
+        .fontSize(12).fontColor('rgba(232,221,201,0.5)')
+        .maxLines(2).lineHeight(16)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
       // F7/R26：1920s「默认机器」只在当前机是 1920s 时显示；2020s 条件行允许两行
       if (!(kind === '1920s-upright' && this.currentMachine !== '1920s-upright')) {
         Text(M_COND[kind]).fontSize(12).fontColor('rgba(232,221,201,0.6)')

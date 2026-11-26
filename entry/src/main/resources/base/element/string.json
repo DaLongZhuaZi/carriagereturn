@@ -302,7 +302,7 @@
     },
     {
       "name": "guide_dossier_detail_3",
-      "value": "点纸打开，点「⋯」可改名或删除。"
+      "value": "点纸查看，点「编辑」继续写；「⋯」可改名或删除。"
     },
     {
       "name": "guide_document_view_title",
@@ -747,6 +747,14 @@
     {
       "name": "search_empty",
       "value": "没有匹配的纸"
+    },
+    {
+      "name": "doc_view",
+      "value": "查看"
+    },
+    {
+      "name": "doc_edit",
+      "value": "编辑"
     },
     {
       "name": "rename_paper_title",
