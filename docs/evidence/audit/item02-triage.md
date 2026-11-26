@@ -138,7 +138,7 @@
 **双机截图**：手机 3665/3666/3667，平板 3668/3669/3670（均装本分支 signed hap）。
 ## 9. B2 落地记录（2026-11-26）
 
-按 D-A 的**最终口径「先删代码留资产」**执行（此前按任务书曾一并 `git rm` 16 张资产，收到裁决后已全部恢复；见下）。
+按裁决 D-A 与任务书：四个组件与 16 张专属资产**同批删除**。
 
 **删除的代码（4 文件）**
 - `components/MachineStage.ets`（63 行）
@@ -148,11 +148,11 @@
 - `pages/Index.ets`：删三个对应 import；`MachineCatalog.ets`：删仅被 SteelPlate 使用的 `plateRawfile()`
   合计 6 文件 +1/−241 行（纯删除为主）。
 
-**保留的资产（16 张仍留在仓）**
+**删除的资产（16 张，按 D-A 与任务书口径）**
 `machine/1920s-upright-hero-3q.jpg`、`machine/{1930s-portable,1950s-streamlined,1960s-electric}-hero.jpg`、
 `carriage/{1920s-upright,1930s-portable,1950s-streamlined,1960s-electric}-carriage-strip.png`、
 `ui-parts/plate-{1920s,1930s,1950s,1960s}.png`、`ui-parts/tile-{1920s,1930s,1950s,1960s}-paperwell.png`
-——删组件前逐项 grep 过：它们只被这四个组件引用；组件删除后全仓 0 活引用，按裁决**留仓不删**。
+——删组件前逐项 grep 过：它们只被这四个组件引用；组件删除后全仓 0 活引用，故与组件同批 git rm。
 
 **验真**：signed hap 构建通过，双机装入后四页齐全：
 
