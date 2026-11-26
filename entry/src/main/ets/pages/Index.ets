@@ -1121,6 +1121,11 @@ struct Index {
       return;
     }
     const page: string = this.currentGuidePage();
+    // E6/I-9（D-4）：首次进入只自动弹回收站引导；其余页不再弹居中卡，
+    // 仍可点各页右上角「?」手动查看（showPageGuide 走 manual 分支，不受这里限制）。
+    if (page !== GUIDE_PAGE_TRASH) {
+      return;
+    }
     if (page.length === 0 || !GuideService.shouldShow(page)) {
       return;
     }
