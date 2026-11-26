@@ -175,10 +175,16 @@ export struct SettingsPage {
           this.groupTitle('修正方式')
           SettingsRow({
             label: $r('app.string.settings_delete_mode'),
-            mode: 'value',
+            // E5/I-7：加右箭头，提示这一行可点（点击循环三档）
+            mode: 'chevron',
             value: this.deleteModeText(),
             onRowClick: (): void => { this.onDeleteMode(this.nextMode()); },
           })
+          // E5/I-7：行下方一行小字，说明点击是切换档位
+          Text($r('app.string.settings_delete_mode_hint'))
+            .fontSize(11).fontColor('rgba(232,221,201,0.4)')
+            .width('100%').margin({ top: -4, bottom: 8 })
+            .id('settings_delete_mode_hint')
           this.divider()
           // 中文输入：内置拼音（默认）｜系统输入法。必须落 AppPreferences（设计稿 §1／§7）
           SettingsRow({

@@ -689,6 +689,10 @@
       "value": "音效"
     },
     {
+      "name": "settings_delete_mode_hint",
+      "value": "点击切换"
+    },
+    {
       "name": "settings_delete_mode",
       "value": "删除方式"
     },
