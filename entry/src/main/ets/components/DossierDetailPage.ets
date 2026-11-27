@@ -573,15 +573,16 @@ export struct DossierDetailPage {
                       .fontFamily('CourierPrime, Noto Serif SC')
                       .maxLines(3).textOverflow({ overflow: TextOverflow.Clip })
                       .padding(10).width('100%')
-                    // E3/I-2：右上角「查看」角标，让「点缩略图＝查看」可被发现
+                    // U-6／D-3 方案 A：右上角「查看」由深底 pill 角标改为**金色文字链**，
+                    // 与卡片下方「编辑」同字号（12 号）同金色（#c9a45c），去掉深底 pill，两处「可点」归一。
+                    // 行为不变：文字本身不挂 onClick，点按冒泡到外层缩略图 Stack → onOpenDoc（文档视图）。
                     Row() {
                       Text($r('app.string.doc_view'))
-                        .fontSize(11).fontColor('#f2ead6')
-                        .backgroundColor('rgba(20,16,12,0.55)')
-                        .borderRadius(8).padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                        .fontSize(12).fontColor('#c9a45c')
+                        .padding({ left: 10, right: 4, top: 6, bottom: 6 })
                         .id('doc_view_badge_' + p.id)
                     }
-                    .width('100%').justifyContent(FlexAlign.End).padding({ right: 8, top: 8 })
+                    .width('100%').justifyContent(FlexAlign.End).padding({ right: 4, top: 2 })
                   }
                   .width('100%').height(150).clip(true).borderRadius(12)
                   // §5.3：点缩略图进「文档视图」（阅读视图）；「编辑」文字链直接进主屏编辑（§5.2）
