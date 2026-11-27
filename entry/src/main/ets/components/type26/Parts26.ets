@@ -92,6 +92,10 @@ export const BRASS: string = '#b08d4f';
 export const BRASS_HI: string = '#d8b874';
 export const STEEL: string = '#8f8f92';
 export const STEEL_HI: string = '#cfcfd2';
+/** 红色分工（U-5，2026-11-27）：#c8322d 为拟物机身红，只用于机身 RETURN 键与拨杆等机件（本文件内同值字面量同义）；
+ *  UI 危险操作红另用 #a33327（删除／清空／移除等，均不在本文件）。
+ *  两者语义不同：拟物红是「机器的一部分」，UI 红是「界面上的危险提示」，不要统一、也不要互换。
+ */
 export const RED26: string = '#c8322d';
 
 /** 机器顶部深色带（顶栏黑区 0–104vp 的底）。 */

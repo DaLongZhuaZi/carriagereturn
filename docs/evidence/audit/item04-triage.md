@@ -195,3 +195,37 @@
 1. **`GuideOverlay`／`SpotlightOverlay` 的观感未能实拍到**：这两个组件在当前构建里都不在可达路径上——`GuideOverlay` 已由 `OnboardingGuide` 取代（仅保留作回滚对照）；`SpotlightOverlay` 需要的页面引导在本次会话里无法通过「设置 → 重播页面引导」稳定复现（重播后进入收藏页未出现气泡，见「未复现」而非「已验」）。两处改动为纯数值、已过构建，但**渲染观感未经截图确认**。
 2. **打字机页手机截图 3889 顶部状态栏与顶栏有轻微叠字观感**（时间「21:03」与顶栏左侧重叠一处），平板 3863 无此现象；该现象与本批圆角无关，未作处理，仅供后续核查参考。
 3. 回收站两机均非空态（手机「ni」、平板「bbb」），与 §7 同一限制：未为拍空态删用户数据。
+
+## 9. V4 落地记录：红色分工注释（U-5，2026-11-27，分支 `fix/v4-red-comments`）
+
+按 §1 的 U-5 处置执行：**不修代码，只加注释**。基底为 `main` @ `67802c7`（V3 已合入）。
+
+### 9.1 改动
+
+- 文件：`entry/src/main/ets/components/type26/Parts26.ets` **1 个文件**，`RED26` 定义（L95）上方新增 4 行中文注释，**＋4／−0 行**。
+- 未改任何渲染代码：`git diff` 只有新增注释行，无一行代码增删改。
+- 注释内容（要点）：
+  - `#c8322d` 是**拟物机身红**，只用于机身 RETURN 键与拨杆等机件；本文件内同值字面量（`TriMark26.color` 默认值、`cap()` 按下态描边）同属此义。
+  - **UI 危险操作红**另用 `#a33327`（删除／清空／移除等），且均不在本文件。
+  - 两者语义不同（机器的一部分 vs 界面上的危险提示），**不要统一、也不要互换**。
+
+### 9.2 事实核对（与 §0 的 U-5 结论一致）
+
+| 项 | 核对结果 |
+|---|---|
+| `#c8322d` 出现范围 | 仅 `Parts26.ets`：L95 `RED26` 定义、L150 `TriMark26.color` 默认值、L676 `cap()` 按下态描边；全仓无其他文件出现 |
+| `#a33327` 出现范围 | **改动前**全仓 17 处，拆解为：**14 处 UI 危险文案／图标用法**（`CustomizePage`×1、`DocumentViewPage`×1、`DossierDetailPage`×3、`DossierPage`×1、`FontManagerPage`×3、`PaperCustomPage`×2、`PinyinSettingsPage`×1、`TrashPage`×2）＋ **2 处代码注释**（`DocModel.ets` L8 色板注释、`MachineCatalog.ets` L68 注释）＋ **1 处红色色带墨色**（`MachineCatalog.ets` L320 `inkColor`）；**无任何一处是本文件里的用法**（本次新增注释里那 1 处提及为纯文字说明，不是用法）。 |
+| 是否同一语义 | 否，见 §0 U-5 |
+
+### 9.3 构建
+
+- DevEco 26 hvigorw（`G:\DevEco Studio 26\DevEco Studio\tools\hvigor\bin\hvigorw.bat`，需 `DEVECO_SDK_HOME=G:\DevEco Studio 26\DevEco Studio\sdk`）
+  `hvigorw --mode module -p module=entry@default -p product=default -p buildMode=debug assembleHap` → **BUILD SUCCESSFUL**（55s，41 tasks：35 executed／6 up-to-date；0 ERROR，仅既有 WARN）。
+  产物 `entry/build/default/outputs/default/entry-default-signed.hap`（250,549,422 字节）。
+- 本批**不改渲染**，故按任务书不拍双机截图；本节的「构建通过」只证明注释不影响编译，不代表任何观感验收。
+
+### 9.4 诚实说明
+
+1. **首轮构建曾失败于依赖缺失，非本批代码问题**：新工作树不带未跟踪的 `entry/oh_modules/`，`CompileArkTS` 报 `Cannot find module 'ngf_framework'`（`EntryAbility.ets:6:175`）。在树内跑 `ohpm install --all` 补齐依赖链接后重建即通过。依赖目录为 gitignore 下的未跟踪内容，未进入提交。
+2. **首轮构建还撞上宿主机磁盘写满**（D 盘当时仅剩 12MB，`tail` 写临时文件报 `No space left on device`），**该次结果不代表编译结论**；空间恢复后（D 约 3.1GB／C 约 5.2GB）重跑得到上述成功结果。
+3. 本条为 U-5 的**收尾说明**，U-5 本身**没有可观测的产品行为变化**，无需截图验真；若后续有人把两套红统一或互换，属对 DESIGN 口径的有意变更，应先提裁决而非顺手改。
