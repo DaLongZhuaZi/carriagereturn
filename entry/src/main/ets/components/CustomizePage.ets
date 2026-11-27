@@ -133,8 +133,9 @@ export struct CustomizePage {
 
   @Builder
   sectionTitle(t: string) {
-    Text(t).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#e8ddc9')
-      .width('100%').margin({ bottom: 12 })
+    // V1/I-U-1（D-1=A）：分区标题向设置页 groupTitle 收——12 号、常规字重、40% 灰
+    Text(t).fontSize(12).fontColor('rgba(232,221,201,0.4)')
+      .width('100%').margin({ top: 24, bottom: 6 })
   }
 
   @Builder
