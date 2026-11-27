@@ -446,7 +446,7 @@ export struct DossierDetailPage {
         .fontColor('#e8ddc9')
         .placeholderColor('rgba(232,221,201,0.4)')
         .backgroundColor('#241c16')
-        .borderRadius(10)
+        .borderRadius(8)
         .onChange((v: string) => { this.onSearchChange(v); })
     }
     .width('100%')

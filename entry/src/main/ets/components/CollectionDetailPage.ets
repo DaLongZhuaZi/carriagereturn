@@ -58,10 +58,10 @@ export struct CollectionDetailPage {
             // 中部两张特写并排
             Row() {
               Image($rawfile('machine/' + this.machineKind + '-keyboard.jpg'))
-                .layoutWeight(1).height(150).objectFit(ImageFit.Cover).borderRadius(10)
+                .layoutWeight(1).height(150).objectFit(ImageFit.Cover).borderRadius(12)
               Column().width(12)
               Image($rawfile('machine/' + this.machineKind + '-carriage.jpg'))
-                .layoutWeight(1).height(150).objectFit(ImageFit.Cover).borderRadius(10)
+                .layoutWeight(1).height(150).objectFit(ImageFit.Cover).borderRadius(12)
             }.width('100%').margin({ top: 12 })
             .opacity(this.revealN > 1 ? 1 : 0)
             .animation({ duration: 180, curve: Curve.EaseOut })

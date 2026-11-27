@@ -236,7 +236,7 @@ export struct SpotlightOverlay {
         .width(this.bubble.w)
         .height(this.bubble.h)
         .padding(14)
-        .borderRadius(10)
+        .borderRadius(8)
         .backgroundColor('#211b16')
         .border({ width: 1, color: 'rgba(201,164,92,0.5)' })
         .position({ x: this.bubble.x, y: this.bubble.y })

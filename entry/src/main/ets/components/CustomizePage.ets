@@ -288,7 +288,7 @@ export struct CustomizePage {
                           .fontSize(12)
                           .fontColor(CustomizeStore.partVariant(part, this.machineKind) === v ? '#1a1a1a' : '#8a7f70')
                           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-                          .borderRadius(10)
+                          .borderRadius(8)
                           .backgroundColor(CustomizeStore.partVariant(part, this.machineKind) === v ? '#c9a45c' : '#f3ead8')
                           .margin({ right: 8 })
                           .onClick(() => { this.onPickPart(part, v); })

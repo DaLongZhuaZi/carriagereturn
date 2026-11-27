@@ -961,7 +961,7 @@ export struct ExportPage {
         Text($r('app.string.export_opt_filename')).fontSize(14).fontColor('#e8ddc9').width(96)
         TextInput({ text: this.nameDraft, placeholder: this.docTitleState })
           .layoutWeight(1).height(36).fontSize(13)
-          .backgroundColor('#241c16').borderRadius(10).fontColor('#e8ddc9')
+          .backgroundColor('#241c16').borderRadius(8).fontColor('#e8ddc9')
           .placeholderColor('rgba(232,221,201,0.35)')
           .onChange((v: string) => { this.nameDraft = v === undefined ? '' : v; })
           .id('export__filename')
@@ -1017,7 +1017,7 @@ export struct ExportPage {
       .fontSize(14)
       .fontColor(this.range === key ? '#e8ddc9' : 'rgba(232,221,201,0.55)')
       .layoutWeight(1).height(40).textAlign(TextAlign.Center)
-      .borderRadius(20)
+      .borderRadius(28)
       .backgroundColor(this.range === key ? '#2e2620' : '#241c16')
       .border({ width: 1, color: this.range === key ? '#c9a45c' : 'rgba(232,221,201,0.12)' })
       .onClick(() => {

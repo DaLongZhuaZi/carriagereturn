@@ -412,7 +412,7 @@ export struct KeyGrid {
           .hitTestBehavior(HitTestMode.None)
         Column().width('62%').height('52%')
           .backgroundColor('#000000').opacity(0.05)
-          .borderRadius(6)
+          .borderRadius(8)
           .hitTestBehavior(HitTestMode.None)
         if (p.sub.length > 0 && p.kind === 'k') {
           Column() {

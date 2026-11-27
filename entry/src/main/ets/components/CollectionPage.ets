@@ -159,7 +159,7 @@ export struct CollectionPage {
     }
     .width('100%')
     .padding({ bottom: 12 })
-    .borderRadius(10)
+    .borderRadius(12)
     .backgroundColor('#241c16')
     .clip(true)
     .scale({ x: this.pressedIdx === idx ? 0.97 : 1, y: this.pressedIdx === idx ? 0.97 : 1 })

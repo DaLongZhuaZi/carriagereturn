@@ -56,7 +56,7 @@ export struct KeyWell {
     }
     .width(this.widthVp)
     .height(this.heightVp)
-    .borderRadius(10)
+    .borderRadius(12)
     .clip(true)
     .hitTestBehavior(HitTestMode.None)
   }

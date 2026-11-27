@@ -5489,7 +5489,7 @@ struct Index {
             .width(280 * this.xk()).height(28 * this.yk())
             .backgroundColor('#3a2f22')
             .border({ width: 1, color: '#c9a45c' })
-            .borderRadius(4)
+            .borderRadius(8)
             .position({ x: (this.stageWidth - 280 * this.xk()) / 2, y: 70 * this.yk() })
             .hitTestBehavior(HitTestMode.None)
         }
@@ -5759,7 +5759,7 @@ struct Index {
           .width(260 * this.xk()).height(26 * this.yk())
           .backgroundColor('#d8b874')
           .border({ width: 1, color: '#6d5326' })
-          .borderRadius(4)
+          .borderRadius(8)
           .position({ x: (this.winWidthVp - 260 * this.xk()) / 2, y: this.winHeightVp - 320 })
           .hitTestBehavior(HitTestMode.None)
       }

@@ -73,7 +73,7 @@ export struct GuideOverlay {
               .fontSize(14)
               .fontColor('#171310')
               .backgroundColor('#c9a45c')
-              .borderRadius(16)
+              .borderRadius(28)
               .padding({ left: 16, right: 16, top: 6, bottom: 6 })
               .onClick(() => { this.onNext(); })
           }
@@ -83,7 +83,7 @@ export struct GuideOverlay {
         .width('100%')
         .padding({ left: 20, right: 20, top: 18, bottom: 18 })
         .backgroundColor('#2b2621')
-        .borderRadius({ topLeft: 16, topRight: 16 })
+        .borderRadius({ topLeft: 12, topRight: 12 })
         .onClick(() => {})
       }
       .width('100%')

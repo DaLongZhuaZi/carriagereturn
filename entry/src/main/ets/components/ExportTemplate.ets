@@ -119,7 +119,7 @@ export struct ExportTemplate {
           .width('100%').height('100%').objectFit(ImageFit.Cover)
       }
       .width(FRAME_W).height(EXPORT_MACHINE_H)
-      .backgroundColor(PLATE_BG).borderRadius(10).clip(true)
+      .backgroundColor(PLATE_BG).borderRadius(12).clip(true)
       .border({ width: 3, color: '#2b2621' })
       .position({ x: EXPORT_MARGIN_X, y: this.layout().machineY })
       }
@@ -144,7 +144,7 @@ export struct ExportTemplate {
       }
       .width(PLATE_W).height(PLATE_H)
       .padding({ left: PLATE_PAD_X, right: PLATE_PAD_X, top: PLATE_PAD_Y, bottom: PLATE_PAD_Y })
-      .backgroundColor(this.paperBg).borderRadius(6)
+      .backgroundColor(this.paperBg).borderRadius(8)
       .alignItems(HorizontalAlign.Start)
       .position({ x: PLATE_X, y: this.layout().bodyTop - PLATE_PAD_Y })
       }
