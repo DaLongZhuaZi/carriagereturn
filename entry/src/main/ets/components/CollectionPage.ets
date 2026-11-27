@@ -131,11 +131,16 @@ export struct CollectionPage {
       Text(M_NAME[kind]).fontSize(17).fontColor('#e8ddc9').margin({ top: 10 })
         .maxLines(1)
       // F7/R26：当前机器标识
-      if (kind === this.currentMachine) {
-        Text('当前机器').fontSize(11).fontColor('#1a1713')
-          .backgroundColor('#c9a45c').borderRadius(8)
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 }).margin({ top: 4 })
+      // U-7b：角标行固定高度占位——无角标的卡片同样留位，角标有无不改变进度文案起笔高度。
+      // 槽高 20.5vp＝徽标实高约 16.5vp（11 号字＋上下各 2 padding）＋ margin top 4vp（§11.4 量测 39px/2.375、56px/3.375）。
+      Column() {
+        if (kind === this.currentMachine) {
+          Text('当前机器').fontSize(11).fontColor('#1a1713')
+            .backgroundColor('#c9a45c').borderRadius(8)
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 }).margin({ top: 4 })
+        }
       }
+      .height(20.5)
       Text($r('app.string.collection_owned'))
         .fontSize(12)
         .fontColor('#c9a45c')
