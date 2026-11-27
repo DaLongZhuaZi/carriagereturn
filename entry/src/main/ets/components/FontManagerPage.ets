@@ -223,10 +223,11 @@ export struct FontManagerPage {
         Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
 
         // E1 空态：还没导入字体时的说明（字体管理页原先只有列表，空列表整页空白）
+        // V2/I-U-2（D-2 批）：字号与灰度向回收站空态看齐——12 号 / rgba(232,221,201,0.6)
         if (this.fonts.length === 0) {
           Text($r('app.string.font_empty'))
-            .fontSize(13)
-            .fontColor('rgba(232,221,201,0.55)')
+            .fontSize(12)
+            .fontColor('rgba(232,221,201,0.6)')
             .width('100%')
             .margin({ top: 24 })
             .id('font_manager__empty')
