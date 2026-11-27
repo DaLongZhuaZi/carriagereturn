@@ -148,6 +148,8 @@ export struct CollectionPage {
         + this.streakDays.toString())
         .fontSize(12).fontColor('rgba(232,221,201,0.5)')
         .maxLines(2).lineHeight(16)
+        // U-7：进度文案固定占两行高（16×2），四卡此处高度一致，下方条件行基线才对得齐。
+        .height(32)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
       // F7/R26：1920s「默认机器」只在当前机是 1920s 时显示；2020s 条件行允许两行
