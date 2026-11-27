@@ -609,6 +609,18 @@
       "value": "导入纸纹"
     },
     {
+      "name": "paper_texture_remove",
+      "value": "移除纸纹"
+    },
+    {
+      "name": "paper_texture_remove_title",
+      "value": "移除纸纹？"
+    },
+    {
+      "name": "paper_texture_remove_confirm",
+      "value": "移除后恢复内置纸纹，需要时可重新导入。"
+    },
+    {
       "name": "paper_error_texture",
       "value": "纸纹导入失败，请重试"
     },

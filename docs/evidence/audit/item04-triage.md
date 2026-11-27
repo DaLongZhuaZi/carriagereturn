@@ -498,3 +498,75 @@
 3. **未改任何边距值**：截图中的滑块头位置来自设备上原有设置（平板 T／B 在最小值、手机 H 在最大值），本批只读。
 4. **静止比对只取滑杆区域**：全图比对会含状态栏时钟等动态区域，故未做全图逐像素判定。
 5. **证据文件**：3909／3910 为双机页面全图，3911／3912 为连拍复现；编号接上批 3908。
+
+## 14. V8 落地记录：自定义纸纹移除入口（R35，2026-11-28，分支 `fix/r35-paper-texture-remove`）
+
+### 14.1 代码定位（改动前）
+
+- **导入入口**：`PaperCustomPage.ets` 的 `importTexture()`（原 L138–170）——`FileHelper.pickImage` → `FileHelper.copyToSandbox(ctx, uri, 'paper')` → `CustomizeStore.setPaperTexture(paperKind, dest)`；落盘目录实为 `files/imports/paper/`（`FileHelper.IMPORT_DIR = 'imports'`，任务书写的是 `paper`，以代码为准）。
+- **已导入纸纹的展示位置**：同一页「纸纹」区（原 L329–358）——导入行右侧显示 `textureName()`（沙箱路径末段，宽 160、单行省略）；页面顶部小样 `PaperStage({ texturePath: this.texture })` 直接铺该图。**该页只有导入入口，没有任何清除/替换入口**，与 R35 描述一致。
+- 主屏消费链：`CustomizeStore.paper()` → `Index.refreshPaperCustom()`（`syncFromStack` 每次弹栈都调，含系统返回）→ `Parts26.texture()` 的 `customTextureRawfile`；因此页面内清空后返回即恢复内置纸纹，无需另加刷新通道。
+
+### 14.2 改动（2 个文件，+112／−10）
+
+| 文件 | 位置（改后行号） | 内容 |
+|---|---|---|
+| `entry/src/main/ets/components/PaperCustomPage.ets` | L14／L19 | 新增 `fileIo`（`@kit.CoreFileKit`）与 `AppDialog` 导入 |
+| 同上 | L60–61 | `@State confirmRemoveTexture`（弹窗开关） |
+| 同上 | L177–194 | `textureReferencedElsewhere(path)`：删文件前查其他三个纸种与全部预设是否仍引用该路径 |
+| 同上 | L196–213 | `removeTexture()`：`this.texture=''` → `CustomizeStore.setPaperTexture(kind,'')` → 未被引用时 `fileIo.unlinkSync`（try/catch，删失败不阻断，与 `FontManagerPage.removeFont` 同口径） |
+| 同上 | L403–414 | 「移除纸纹」行（红 `#a33327`、15 号、52vp 行高、`id=paper_custom__texture_remove`），仅 `texture` 非空时渲染；点击只开确认弹窗 |
+| 同上 | L472–493 | `removeTextureBody()` 弹窗体：标题「移除纸纹？」＋说明「移除后恢复内置纸纹，需要时可重新导入。」＋红色「移除纸纹」（`id=paper_custom_dlg_remove`）＋「取消」（`id=paper_custom_dlg_cancel`） |
+| 同上 | L495–516 | `build()` 由裸 `PageShell` 改为 `Stack{ PageShell + AppDialog }`（照 `TrashPage`／`DocumentViewPage` 现成写法，遮罩与卡片由 AppDialog 内部同层兄弟实现），根 Stack 补 `expandSafeArea` |
+| `entry/src/main/resources/base/element/string.json` | L611–623 | 新增 `paper_texture_remove`／`paper_texture_remove_title`／`paper_texture_remove_confirm` |
+
+- 交互完全复用现有删除模式：列表/页内红色动作 → `AppDialog` 二次确认（标题＋后果说明＋红色确认＋取消）→ 确认才执行。未新增任何弹窗或手势形态。
+- 移除只写 `custom.paper.<kind>.texture` 一个键；颜色、横线、三个边距的设置路径未触碰。
+
+### 14.3 构建
+
+- `ohpm install --all`（本树原先无 `oh_modules`，`ngf_framework` 为 file 依赖）→ `install completed`。
+- DevEco 26 hvigorw（`G:\DevEco Studio 26\DevEco Studio\tools\hvigor\bin\hvigorw.bat`，`DEVECO_SDK_HOME=G:\DevEco Studio 26\DevEco Studio\sdk`）`--mode module -p module=entry@default -p product=default -p buildMode=debug assembleHap` → **BUILD SUCCESSFUL in 23s 558ms**（43 tasks，43 executed，0 ERROR；WARN 均为既有：`AudioService` 能力告警、`DocumentViewPage` 重复 id、2in1 API 告警）。
+- 产物 `entry/build/default/outputs/default/entry-default-signed.hap`，**250,549,897 字节**（2026-11-28 07:20）。构建前 D 盘余量 13.10 GB、构建后 12.30 GB，未清任何其他目录。双机 `install -r` 均 `install bundle successfully`。
+
+### 14.4 双机核对
+
+设备：平板 MLR-AL10 `192.168.5.133:42355`（1600×2560）；手机 ADA-AL00U `2UCUT24724009680`（1224×2776）。开工亮屏三件套已重跑；开工取帧平均亮度 44.9／72.9（>20，亮屏）。
+
+| # | 设备 | 操作 | 截图 | 结果 |
+|---|---|---|---|---|
+| 3913 | 平板 | 进纸张自定义页（导入前） | ✓ | 「纸纹」区只有「导入纸纹」，**无移除行**，小样为内置纸 |
+| 3914 | 手机 | 同上（下滚到纸纹区） | ✓ | 同上 |
+| 3915 | 平板 | 点「导入纸纹」→ 系统相册选择器 | ✓ | picker 正常弹出（安全访问图库） |
+| 3916 | 平板 | 选中「聊天框和 Agent 不一样」 | ✓ | 选中预览＋「完成」 |
+| 3917 | 平板 | 完成导入 | ✓ | 小样换成该图；导入行右侧出现 `1795821876634-…`；**新增红色「移除纸纹」行** |
+| 3918 | 平板 | 点「移除纸纹」 | ✓ | AppDialog：移除纸纹？／移除后恢复内置纸纹，需要时可重新导入。／红色「移除纸纹」／「取消」；背景整体压暗（模态） |
+| 3919 | 平板 | 点「取消」 | ✓ | 弹窗关闭；文件名、移除行、导入纹理小样**全部保留**（取消不生效） |
+| 3920 | 平板 | 再点「移除纸纹」→ 红色「移除纸纹」确认 | ✓ | 小样回内置纸；文件名与移除行消失；颜色／横线／三滑杆位置与 3913 完全一致 |
+| 3921 | 平板 | 系统返回×2 → 主页「继续写作」 | ✓ | 打字机纸面为内置纸纹，导入图不再出现 |
+| 3922 | 手机 | 点「导入纸纹」→ 相册选择器 | ✓ | picker 正常弹出 |
+| 3923 | 手机 | 选中「Agent 是什么」 | ✓ | 选中预览＋「完成」 |
+| 3924 | 手机 | 完成导入 | ✓ | 小样换成该图；文件名 `1795822119133-…`；红色「移除纸纹」行出现 |
+| 3925 | 手机 | 点「移除纸纹」 | ✓ | 同款确认弹窗（标题／说明／红色确认／取消） |
+| 3926 | 手机 | 点「取消」 | ✓ | 弹窗关闭，纹理与文件名保留 |
+| 3927 | 手机 | 确认移除 | ✓ | 小样回内置纸；文件名与移除行消失；其余设置与 3914 一致 |
+| 3928 | 手机 | 系统返回×2 → 主页「继续写作」 | ✓ | 打字机纸面为内置纸纹，导入图不再出现 |
+
+**设备侧数据核对（prefs＋沙箱，双机各一对 before/after）**：
+
+| 设备 | `custom.paper.letter.texture` 移除前 | 移除后 | 沙箱 `files/imports/paper/` 移除前 | 移除后 |
+|---|---|---|---|---|
+| 平板 | `/data/storage/el2/base/haps/entry/files/imports/paper/1795821876634-IMG_20261116_141757_1.jpg` | 空串 | 1 个文件，566,794 B | `total 0`（已删） |
+| 手机 | `/data/storage/el2/base/haps/entry/files/imports/paper/1795822119133-IMG_20261116_141757.jpg` | 空串 | 1 个文件，493,754 B | `total 0`（已删） |
+
+- prefs 由 `hdc file recv .../preferences/carriagereturn_prefs` 直接读取，字符串为节点文本。两机 before/after 的其他键（`custom.paper.*` 的 color/ruled/margin 均未写入、`machine`、`custom.font.*`、`stats.*`）逐项相同——**移除纸纹没有触碰其余纸张设置**。
+- 移除后主屏不再出现导入图（3921／3928），证明 `syncFromStack → refreshPaperCustom` 链路把清空后的值带到打字机页。
+
+### 14.5 诚实说明
+
+1. **弹窗帧平均亮度低于 20**：3918／3925 因 `AppDialog` 60% 黑遮罩把均值压到 19.5／21.5，并非黑屏/息屏；弹窗文字与背景页面内容均清晰可辨。
+2. **一次点击未命中**：首次点「取消」按截图比例换算的坐标偏高 30px（点在文字框上沿外），弹窗未关；改用 `dumpLayout` 的 `paper_custom_dlg_cancel` bounds（平板 y1372–1414）重点后关闭。3919 已用正确帧覆盖，非产品缺陷。
+3. **只实测 letter 纸种**：双机均在当前纸种（`letter`）导入/移除；`manuscript/postcard/memo` 走同一 `paperKind` 参数路径但未逐一实拍。「被其他纸种/预设引用则不删文件」是防御分支，本批没有构造引用预设来触发它，逻辑仅经编译与代码走查。
+4. **删除是即时物理删除**：沙箱文件确认已 unlink；文案按「移除」表述，不承诺可恢复（需重新导入）。预设若引用同一路径，文件会保留（14.2 分支），但本批未构造该状态。
+5. **未做单元测试**：本仓 ArkTS UI 无对应测试桩，验收口径为构建 + 双机截图 + prefs/沙箱数据；截图 3913–3928 编号接上批 3912。
+

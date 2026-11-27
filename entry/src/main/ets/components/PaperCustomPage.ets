@@ -3,6 +3,7 @@
  *
  * 色板（CustomizeCore.PAPER_COLORS）／横线开关／边距三滑杆（手机与平板两套范围，
  * isTablet 由 widthVp ≥ 600 判断）／纸纹导入（FileHelper.pickImage → copyToSandbox('paper')）
+ * ／纸纹移除（R35：AppDialog 二次确认后清 prefs 并尝试删沙箱文件，与回收站同口径）
  * ／预设保存与删除（行内 TextInput，不求精致）。
  *
  * 小样预览只用 PaperStage（评审 M-2：PaperSheet 自带 1.7 行高是死代码，不能当预览）。
@@ -10,9 +11,11 @@
  */
 
 import { common } from '@kit.AbilityKit';
+import { fileIo } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { PaperKind } from '../model/DocModel';
 import { PaperRow } from '../ui/PaperSheet';
+import { AppDialog } from './AppDialog';
 import { PageShell } from './PageShell';
 import { SettingsRow } from './SettingsRow';
 import { PaperStage } from './PaperStage';
@@ -54,6 +57,8 @@ export struct PaperCustomPage {
   @State errKind: number = 0;
   @State importBusy: boolean = false;
   @State pressedKey: string = '';
+  /** R35：移除纸纹二次确认弹窗开关。 */
+  @State confirmRemoveTexture: boolean = false;
   /** 小样预览行（PaperStage 只读）。 */
   @State previewRows: PaperRow[] = [
     { line: 0, text: 'The quick brown fox', ribbon: 'black', active: false },
@@ -167,6 +172,44 @@ export struct PaperCustomPage {
     } finally {
       this.importBusy = false;
     }
+  }
+
+  /** 该沙箱路径是否仍被其他纸种或任一预设引用（被引用则只清当前纸，不删文件）。 */
+  private textureReferencedElsewhere(path: string): boolean {
+    const kinds: string[] = [PaperKind.LETTER as string, PaperKind.MANUSCRIPT as string,
+      PaperKind.POSTCARD as string, PaperKind.MEMO as string];
+    for (let i = 0; i < kinds.length; i++) {
+      if (kinds[i] !== this.paperKind && CustomizeStore.paper(kinds[i]).texture === path) {
+        return true;
+      }
+    }
+    const names: string[] = CustomizeStore.presets();
+    for (let i = 0; i < names.length; i++) {
+      const p: PaperPreset | null = CustomizeStore.preset(names[i]);
+      if (p !== null && p.texture === path) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * R35：移除已导入纸纹——清当前纸的 texture（其余颜色/横线/边距不动），
+   * 并尝试删沙箱文件；文件删失败不阻断（与字体删除同口径）。
+   */
+  private removeTexture(): void {
+    const target: string = this.texture;
+    this.texture = '';
+    CustomizeStore.setPaperTexture(this.paperKind, '');
+    if (target.length > 0 && !this.textureReferencedElsewhere(target)) {
+      try {
+        fileIo.unlinkSync(target);
+        hilog.info(DOMAIN, TAG, 'texture unlink ok %{public}s', target);
+      } catch (e) {
+        hilog.error(DOMAIN, TAG, 'texture unlink failed %{public}s', target);
+      }
+    }
+    hilog.info(DOMAIN, TAG, 'texture removed kind=%{public}s', this.paperKind);
   }
 
   /** 保存当前设置为预设（空名不存）。 */
@@ -357,6 +400,19 @@ export struct PaperCustomPage {
         .onClick(() => { this.importTexture(); })
         Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
 
+        // R35：已导入纸纹的移除入口（仅 texture 非空时出现；先确认再删，与回收站同口径）
+        if (this.texture.length > 0) {
+          Row() {
+            Text($r('app.string.paper_texture_remove')).fontSize(15).fontColor('#a33327')
+            Blank()
+          }
+          .width('100%')
+          .height(52)
+          .id('paper_custom__texture_remove')
+          .onClick(() => { this.confirmRemoveTexture = true; })
+          Column().width('100%').height(1).backgroundColor('rgba(232,221,201,0.12)')
+        }
+
         // 预设：保存 + 列表删除
         this.sectionLabel($r('app.string.paper_preset_save'))
         Row() {
@@ -413,17 +469,51 @@ export struct PaperCustomPage {
     .scrollBar(BarState.Off)
   }
 
+  /** R35：移除纸纹确认弹窗（遮罩/卡片由 AppDialog 内部同层兄弟实现）。 */
+  @Builder
+  removeTextureBody() {
+    Column() {
+      Text($r('app.string.paper_texture_remove_title')).fontSize(17).fontWeight(FontWeight.Bold)
+        .fontColor('#e8ddc9')
+      Text($r('app.string.paper_texture_remove_confirm'))
+        .fontSize(12).fontColor('rgba(232,221,201,0.75)').margin({ top: 10 })
+      Text($r('app.string.paper_texture_remove')).fontSize(15).fontColor('#a33327')
+        .id('paper_custom_dlg_remove')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 18 })
+        .onClick(() => {
+          this.confirmRemoveTexture = false;
+          this.removeTexture();
+        })
+      Text($r('app.string.cancel')).fontSize(15).fontColor('rgba(232,221,201,0.6)')
+        .id('paper_custom_dlg_cancel')
+        .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
+        .onClick(() => { this.confirmRemoveTexture = false; })
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
+
   build() {
-    PageShell({
-        guidePage: 'paper_custom',
-      widthVp: this.widthVp,
-      heightVp: this.heightVp,
-      title: $r('app.string.paper_custom_title'),
-      onBack: (): void => { this.onBack(); },
-      subtitle: $r('app.string.guide_paper_custom_hint'),
-      showSubtitle: true,
-      content: (): void => { this.body() },
-    })
+    Stack({ alignContent: Alignment.TopStart }) {
+      PageShell({
+          guidePage: 'paper_custom',
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        title: $r('app.string.paper_custom_title'),
+        onBack: (): void => { this.onBack(); },
+        subtitle: $r('app.string.guide_paper_custom_hint'),
+        showSubtitle: true,
+        content: (): void => { this.body() },
+      })
+      // R35：移除纸纹二次确认（遮罩与卡片由 AppDialog 内部同层兄弟实现）
+      AppDialog({
+        visible: this.confirmRemoveTexture,
+        widthVp: this.widthVp,
+        heightVp: this.heightVp,
+        onClose: () => { this.confirmRemoveTexture = false; },
+        content: (): void => { this.removeTextureBody() },
+      })
+    }
+    .width(this.widthVp).height(this.heightVp)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
 
