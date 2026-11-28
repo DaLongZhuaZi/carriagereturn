@@ -71,7 +71,7 @@ test('restDegFor / swingDegFor：平板/手机分支', () => {
   assert.equal(mod.swingDegFor(false), 20);
 });
 
-test('冻结源检查：四份渲染件都从 LeverAngleCore 取常量，无本地 REST_DEG/SWING_DEG', () => {
+test('冻结源检查：四份拨杆渲染件已随批39退役，不得复活', () => {
   const files = [
     'entry/src/main/ets/components/LeverLayer.ets',
     'entry/src/main/ets/machines/1930s/LeverLayer1930.ets',
@@ -79,21 +79,16 @@ test('冻结源检查：四份渲染件都从 LeverAngleCore 取常量，无本�
     'entry/src/main/ets/machines/1960s/LeverLayer.ets',
   ];
   for (const rel of files) {
-    const text = fs.readFileSync(path.join(root, rel), 'utf8');
-    assert.ok(text.includes("from '../model/LeverAngleCore'") || text.includes("from '../../model/LeverAngleCore'"),
-      `${rel} 未 import LeverAngleCore`);
-    assert.ok(!/const\s+REST_DEG\s*=/.test(text), `${rel} 仍有本地 REST_DEG`);
-    assert.ok(!/const\s+SWING_DEG\s*=/.test(text), `${rel} 仍有本地 SWING_DEG`);
-    assert.ok(text.includes('angleFor('), `${rel} 未走 angleFor`);
+    assert.ok(!fs.existsSync(path.join(root, rel)), `${rel} 已被批39删除，不应重新出现`);
   }
 });
 
-test('冻结源检查：MachineCatalog 四台机 leverAspect/pivot 未被改动', () => {
+test('冻结源检查：MachineCatalog 五台机 leverAspect/pivot 未被改动', () => {
   const text = fs.readFileSync(path.join(root, 'entry/src/main/ets/model/MachineCatalog.ets'), 'utf8');
   const aspects = [...text.matchAll(/leverAspect:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
   const pivotsX = [...text.matchAll(/leverPivotX:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
   const pivotsY = [...text.matchAll(/leverPivotY:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
-  assert.deepEqual(aspects, [0.2125, 0.3264, 0.09, 0.12]);
-  assert.deepEqual(pivotsX, [0.5, 0.538, 0.496, 0.502]);
-  assert.deepEqual(pivotsY, [0.952, 0.96, 0.942, 0.948]);
+  assert.deepEqual(aspects, [0.2125, 0.3264, 0.09, 0.12, 0.2125]);
+  assert.deepEqual(pivotsX, [0.5, 0.538, 0.496, 0.502, 0.5]);
+  assert.deepEqual(pivotsY, [0.952, 0.96, 0.942, 0.948, 0.952]);
 });

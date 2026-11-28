@@ -95,12 +95,11 @@ import { TypebarAssembly1920 } from '../machines/1920s/TypebarAssembly1920';
 // §14：拨杆暂留 Index（几何已由 Blueprint 提供）
 import { TypebarLayer1930 } from '../machines/1930s/TypebarLayer1930';
 import { MachineBlueprint } from '../machines/BlueprintTypes';
-import { dragRatioFor, pulledEnough, restDegFor, swingDegFor } from '../model/LeverAngleCore';
 import { CANDIDATE_COUNT_DEFAULT, CANDIDATE_SIZE_DEFAULT, clampCandidateCount, clampCandidateSize } from '../model/CandidateCore';
 import { CustomizeStore, PaperValues } from '../services/CustomizeStore';
 import { deleteModeOf, volumeToPref, prefToVolume, paperPrefOf } from '../model/SettingsCore';
 import { clampFontSize, effectiveFontSize, lineHeightOf, ImportedFont } from '../model/CustomizeCore';
-import { nextEpoch, shouldResetOnSwitch, slotOf } from '../model/LeverStateCore';
+import { slotOf } from '../model/LeverStateCore';
 import { BLUEPRINT_1920 } from '../machines/1920s/Blueprint';
 import { BLUEPRINT_1930 } from '../machines/1930s/Blueprint';
 import { BLUEPRINT_1950 } from '../machines/1950s/Blueprint';
@@ -212,20 +211,6 @@ struct Index {
   private readonly ROLLER_K: number = 1.0;
   /** §19.2：手机滚筒走满 O（与纸永远对齐）；滚筒不出屏改由 maxTravel 封顶兜底 */
   private readonly ROLLER_K_PHONE: number = 1.0;
-  /** §18.11：拉杆拖拽状态（拨杆节点不可触摸，改由字车层接管）。
-   *  第 0b 批：按机隔离——四份独立比例状态，切机全清零；不再共享单一 leverDragRatio。 */
-  @State leverRatio1920: number = 0;
-  @State leverRatio1930: number = 0;
-  @State leverRatio1950: number = 0;
-  @State leverRatio1960: number = 0;
-  /** 第 0b 批：切机纪元——渲染件 Watch 到变化立即回静止角（不带动画），切断在途摆动跨机。 */
-  @State leverEpoch: number = 0;
-  private leverDragActive: boolean = false;
-  /** 批 2（§7）：Index 侧只留「逻辑比例」（过半判定用），不写 @State、不回写给 Canvas。 */
-  private leverRatioLogical: number = 0;
-  /** 批 2：松手判定结果与释放 tick（Canvas 下一帧按 commit 播提交/回弹）。 */
-  @State canvasLeverReleaseTick: number = 0;
-  @State canvasLeverReleaseCommit: boolean = false;
   /** 批 20：拱的目标 tick（换行/退行/换纸发；打击由 Canvas 自跟，不发）。 */
   // 第 26 批（批 3）：canvasArchTick／canvasArchTargetVp／canvasArchDurMs 随 Canvas 退役删除（R-B3）
   /** §18.8：候选栏区常驻高度（英文态也占位，不许 0/44 跳变） */
@@ -249,11 +234,10 @@ struct Index {
   // 的 paperGrowVp 决定；旧容器值只在 parts 日志里按 paperTop 派生。
   /**
    * 第 26 批（批 3／§4.3）：帧时钟驱动的 ArkUI 字段（Canvas 退役后唯一的动画事实源）。
-   * paperOffsetVp＝K×O（纸面板左移）；guideXVp＝落字导件 x；leverAngleVp＝拨杆摆角；
+   * paperOffsetVp＝K×O（纸面板左移）；guideXVp＝落字导件 x；
    * strikePhase＝打击相位 0..1（字杆/色带）。旋钮改读累积 knobAngle（第 31 批）。
    */
   @State paperOffsetVp: number = 0;
-  @State leverAngleVp: number = 0;
   @State strikePhase: number = 0;
   /** 第 27 批：变体变更计数（换装页改一件 → 重建该件，其余不动）。 */
   @State partsRev: number = 0;
@@ -2456,7 +2440,6 @@ struct Index {
     // 换机时防御性清空预编辑串；F5/R9：同时取消拼音会话与候选
     this.cnPreview = '';
     this.cancelCompose();
-    const prevKind: MachineKind = this.machineKind;
     this.machineKind = kind;
     // 第 23 批（19 号稿 §4-3）：换机即读该机的动画模式（1960s 恒 realistic，电动单套）。
     this.animMode = kind === MachineKind.ELECTRIC_1960S ? 'realistic' : CustomizeStore.animMode(kind as string);
@@ -2472,11 +2455,6 @@ struct Index {
           AudioService.packForMachine(kind as string), ok ? 'true' : 'false');
       })
       .catch(() => { hilog.warn(DOMAIN, TAG, 'audio pack preload failed'); });
-    // 第 0b 批隔离：换机即清空四份拨杆比例与拖拽旗，并递增纪元让渲染件立即回静止角
-    if (shouldResetOnSwitch(prevKind as string, kind as string)) {
-      this.resetLeverStates();
-      this.leverEpoch = nextEpoch(this.leverEpoch);
-    }
     // §10：机型改成全局偏好——换机即落盘，重启仍记得
     appPreferences.setString(PrefKeys.MACHINE, kind as string);
     this.docModel.setMachine(kind);
@@ -2828,33 +2806,6 @@ struct Index {
     return this.bp().bracketRawfile();
   }
 
-  /** 当前机型的拨杆拖拽比例（读当前机型那一份，依赖按机建立）。 */
-  private leverRatio(): number {
-    const slot: number = slotOf(this.machineKind as string);
-    if (slot === 0) { return this.leverRatio1920; }
-    if (slot === 1) { return this.leverRatio1930; }
-    if (slot === 2) { return this.leverRatio1950; }
-    return this.leverRatio1960;
-  }
-
-  /** 写当前机型的拨杆拖拽比例（只动本机那一份）。 */
-  private setLeverRatio(v: number): void {
-    const slot: number = slotOf(this.machineKind as string);
-    if (slot === 0) {
-      this.leverRatio1920 = v;
-      return;
-    }
-    if (slot === 1) {
-      this.leverRatio1930 = v;
-      return;
-    }
-    if (slot === 2) {
-      this.leverRatio1950 = v;
-      return;
-    }
-    this.leverRatio1960 = v;
-  }
-
   /** 当前机型的换行计数（第 0b 批四份独立，不再共享）。 */
   private newlineTick(): number {
     const slot: number = slotOf(this.machineKind as string);
@@ -2880,67 +2831,6 @@ struct Index {
       return;
     }
     this.newlineTick1960 = this.newlineTick1960 + 1;
-  }
-
-  /** 切机时清空四份比例与拖拽旗（隔离：跨机型不携带任何在途状态）。 */
-  private resetLeverStates(): void {
-    this.leverRatio1920 = 0;
-    this.leverRatio1930 = 0;
-    this.leverRatio1950 = 0;
-    this.leverRatio1960 = 0;
-    this.leverDragActive = false;
-    this.leverRatioLogical = 0;
-  }
-
-  // ---- 第 0b 批：拖拽处理唯一实现（原三份复制粘贴收敛于此）----
-  // 批 2（§7）：canvas 开时角度归 Canvas（内部字段直驱），Index 只留「逻辑比例」用于过半判定，
-  // 不回写角度、不写 @State（避免每帧 Move 触发 ArkUI 重渲染）。canvas 关时仍走旧路径。
-
-  /** 拖拽开始：active 由调用方按热区判定（字车层按 x，覆盖层恒 true）。 */
-  private leverPanStart(active: boolean, source: string): void {
-    this.leverDragActive = active;
-    this.leverRatioLogical = 0;
-    if (!this.canvasEnabled) { this.setLeverRatio(0); }
-    hilog.info(DOMAIN, TAG, 'lever pan start src=%{public}s active=%{public}s canvas=%{public}s',
-      source, active ? 'true' : 'false', this.canvasEnabled ? 'true' : 'false');
-  }
-
-  /** 拖拽更新：dy 截断在 [0, 杆长]，换算比例走纯函数（两侧同一函数、同一杆长）。 */
-  private leverPanUpdate(dyRaw: number): void {
-    if (!this.leverDragActive) {
-      return;
-    }
-    this.leverRatioLogical = dragRatioFor(dyRaw, this.leverHForDrag());
-    if (!this.canvasEnabled) { this.setLeverRatio(this.leverRatioLogical); }
-  }
-
-  /** 拖拽结束：过半换行；canvas 开时释放动画交给 Canvas（判定归 Index）。 */
-  private leverPanEnd(): void {
-    if (!this.leverDragActive) {
-      return;
-    }
-    const pulled: number = this.canvasEnabled ? this.leverRatioLogical : this.leverRatio();
-    this.leverDragActive = false;
-    hilog.info(DOMAIN, TAG, 'lever pan end pull=%{public}s canvas=%{public}s',
-      pulled.toFixed(3), this.canvasEnabled ? 'true' : 'false');
-    const commit: boolean = pulledEnough(pulled);
-    if (this.canvasEnabled) {
-      // 判定结果交给 Canvas 播 200ms 提交／150ms 回弹；Index 不写角度。
-      this.canvasLeverReleaseCommit = commit;
-      this.canvasLeverReleaseTick = this.canvasLeverReleaseTick + 1;
-      hilog.info(DOMAIN, TAG, 'trigger lever t=%{public}s commit=%{public}s pull=%{public}s',
-        Date.now().toString(), commit ? 'true' : 'false', pulled.toFixed(3));
-    } else {
-      this.setLeverRatio(0);
-    }
-    if (commit) {
-      this.onNewline();
-    }
-  }
-
-  /** §18.11：拖拽用的杆长（尺寸按机型与蓝图几何派生）。 */
-  private leverHForDrag(): number {
-    return this.leverW() / this.bp().leverAspect;
   }
 
   // 第 26 批（批 3）：hasLayers 随 Canvas 机器层退役删除
@@ -3749,7 +3639,6 @@ struct Index {
     }
     // ③ 字段回写：纸面板 V＝K×O；导件写实固定/模拟追踪（§4.1 D3–D4、D10）
     this.paperOffsetVp = this.modeK * this.carriageOffsetVp;
-    this.leverAngleVp = restDegFor(false) + swingDegFor(false) * this.leverRatioLogical;
     const fixed: number = this.stageWidth * 0.5;
     if (this.animMode === ANIM_MODE_SIMULATED) {
       const tracked: number = Math.min(fixed + 0.7 * (-this.carriageOffsetVp), this.stageWidth);
