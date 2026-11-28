@@ -83,6 +83,16 @@
 - 验真：全仓 grep `leverPan|leverDragActive|leverRatioLogical|leverAngleVp|leverEpoch|canvasLeverRelease` 零命中；构建通过；`node --test tools/tests/*.mjs` 无新增红（`lever-angle` 两项转绿或按五机更新）；双机 smoke：打字、RETURN 换行、↻ 换纸、切机、返回，截图与清理前一致（该批不应有任何像素变化）。
 - 风险：低。删的都是零调用代码；唯一注意是按上面清单保留 `newlineTick` 链。
 
+**实施记录（2026-11-28，分支 `fix/w3-lever-deadcode`，base `0c1ea6d`，D-2=A）**
+
+- 代码：`Index.ets` 删除 `leverPanStart/Update/End`、`leverDragActive`、`leverRatioLogical`、`leverRatio1920..1960`、`leverRatio()`/`setLeverRatio()`、`resetLeverStates()`（含 `applyMachine` 调用点）、`leverHForDrag()`、`leverAngleVp`（含 `tickFrame` 唯一写点）、`leverEpoch`、`canvasLeverReleaseTick/Commit`，以及随之无用的 `LeverAngleCore` 全部 import 与 `nextEpoch`/`shouldResetOnSwitch`（保留 `slotOf`）；`applyMachine` 的无用 `prevKind` 一并删除。+2/−113 行。保留 `newlineTick1920..1960`/`newlineTick()`/`bumpNewlineTick()`（换行代际守卫在用）、`canvasEnabled` 只读常量及历史分支、`leverW/pinXRel/pinYRel`（几何打点仍在用）；`LeverAngleCore.ets`/`LeverStateCore.ets` 未动。
+- 测试：`lever-angle.test.mjs` 两条失效断言按现状改写——四份已删 `LeverLayer*.ets` 改为「不得复活」阴性断言；`MachineCatalog` 四机断言更新为五机实际值（aspect `0.2125/0.3264/0.09/0.12/0.2125`），其余纯函数断言未削弱，单跑 9/9 PASS。另删除 `lever-direct-p17.test.mjs`（首行读批64 已删的 `CanvasTypewriter.ets`，基线整文件红）与 `lever-gate.test.mjs`（5 项中 4 项断言批39 已删的 LeverLayer 与 Index `dragRatio` 接线，基线 4 红），两者断言对象均属同一退役链路。
+- 构建：DevEco 26 hvigorw `assembleHap`（debug signed）**BUILD SUCCESSFUL in 1 min 5 s 202**，43 tasks，0 ERROR；debug signed HAP 137,281,583 B（base 重建）→ **137,254,173 B**（−27,410 B）。
+- 单测：基线 169 pass / 16 fail → 清理后 **170 pass / 9 fail，新增红 0**；剩余 9 项为基线既有（Canvas 时代静态测试与 customize/stats 断言）。
+- 双机 A/B smoke（`bm clean` 同初态；同一脚本按 dump 定位点击；序列：首页→空纸→打 `Q`→`⏎` 换行→`↻` 换纸→设置切机 1920s→1930s→返回）：平板 before 4021–4028 / after 4037–4044，手机 before 4029–4036 / after 4045–4052。**16/16 对截图的正文区（状态栏以下）>30 像素数＝0**；全部差异落在状态栏 y 区间（平板 56–86，手机 67–113）。
+- 证据：截图 4021–4052；报告 `docs/evidence/audit/fix-W3-lever-deadcode.md`。
+- 缺口：A/B 每轮 `bm clean` 清空了设备上 W1/W2 的测试文档（为同一初态，已披露）；状态栏时钟/网速不参与比对；剩余 9 项既有红未处理（与 Q-3 无关）。
+
 ### W4 HAP 零引用资源清理（Q-4 体积 / P-7，第一阶段）
 
 - 范围：`entry/src/main/resources/rawfile/`。静态扫描结果（本树 `564a87c`）：
