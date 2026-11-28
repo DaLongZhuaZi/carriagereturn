@@ -148,24 +148,25 @@ export struct DocumentViewPage {
     .backgroundColor('#eee4ce').borderRadius(8)
   }
 
-  /** 平板：纸纹 + 正文并排，超出裁掉不滚动；点它进主屏编辑。 */
+  /**
+   * 平板（核查⑤ W2 / Q-1 / D-1 A）：正文按内容撑高，由外层 Scroll 独立滚动读全文；
+   * 去掉旧的 maxLines(20) 固定行数封顶。纸纹走 backgroundImage（与手机 F1 同一做法），
+   * 避免 height 100% 的 Image 在自适应高度容器里把正文压成 0 高；短内容仍撑满可视高度。
+   */
   @Builder
   paperBodyTablet(w: number) {
     Stack({ alignContent: Alignment.TopStart }) {
-      Image($rawfile(PAPER_RAW[this.paperKey]))
-        .width('100%').height('100%').objectFit(ImageFit.Cover)
-        .hitTestBehavior(HitTestMode.None)
       Text(this.bodyText())
         .fontSize(15).lineHeight(24).fontColor('#1a1a1a')
         .fontFamily('CourierPrime, Noto Serif SC')
         .padding(16).width('100%')
-        .maxLines(20).textOverflow({ overflow: TextOverflow.Clip })
         .hitTestBehavior(HitTestMode.None)
     }
     .width(w)
-    .layoutWeight(1)
-    .height('100%')
+    .constraintSize({ minHeight: '100%' })
     .id('document_view__body')
+    .backgroundImage($rawfile(PAPER_RAW[this.paperKey]))
+    .backgroundImageSize(ImageSize.FILL)
     .opacity(this.revealN > 1 ? 1 : 0)
     .animation({ duration: 180, curve: Curve.EaseOut })
     .clip(true).borderRadius(8)
@@ -220,10 +221,18 @@ export struct DocumentViewPage {
             .scrollBar(BarState.Off)
             .edgeEffect(EdgeEffect.None)
           } else {
+            // 核查⑤ W2（Q-1 / D-1 A）：标题页固定左列，正文列独立滚动读全文（与手机一致）。
             Flex({ direction: FlexDirection.Row }) {
               this.titleSheet((this.widthVp - 56) / 2, '100%')
               Column().width(16).height(16)
-              this.paperBodyTablet((this.widthVp - 56) / 2)
+              Scroll() {
+                this.paperBodyTablet((this.widthVp - 56) / 2)
+              }
+              .width((this.widthVp - 56) / 2)
+              .height('100%')
+              .align(Alignment.TopStart)
+              .scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.None)
             }
             .width('100%').layoutWeight(1)
           }

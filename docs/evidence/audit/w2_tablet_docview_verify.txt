@@ -1,0 +1,48 @@
+核查⑤ W2 平板文档视图滚动读全文（Q-1 / D-1 A）取证摘录
+日期：2026-11-28
+设备：平板 MLR-AL10 192.168.5.133:42355（1600×2560，vp2px=2.375）
+构建：entry-default-signed.hap 250,557,001 B（2026-11-28 17:23，debug signed）
+
+一、测试文档（App 自身 UI 创建：卷宗→未归档→新建纸张→编辑→点键帽打字）
+doc-1795858049601-56401（未归档，1920s-upright / letter / Special Elite）
+落盘 JSON 结构（hdc shell cat .../files/documents/doc-1795858049601-56401.json）：
+  sheets = 3 张归档纸（14 / 17 / 17 行）＋ 当前纸 3 行 = 51 显示行
+  sheets[0] 首尾：'' , 'xx' … 'x' , ''（手动 ↻ 换纸时归档）
+  sheets[1] / sheets[2]：各 17 行（App 在末行满时自动换纸：newlineAtLastRow -> paperChange）
+  lines（当前纸）：['x', 'x', 'end']  ← 最后一纸最后一行为 end
+  注：第 27 行（索引 26）为 'endx'，是第二次进入打字机时光标停在上一次 END 行、首字 x 追加所致，不影响末行判定。
+
+二、文档视图正文（dump，平板）
+document_view__body bounds = (819, 284, 1553, 3267)   ← 内容高 2983px
+可视区（document_view__content）= (0, 284, 1600, 2361)  ← 正文列视口高 2077px
+正文 Text 显示 51 行：
+  首 3 行：'' / 'xx' / 'x'
+  末 3 行：'x' / 'x' / 'end'
+结论：内容高 2983px > 视口 2077px（超出 906px），可滚动；短文档（aaa/bbb）时
+document_view__body = (819, 284, 1553, 2361)，与视口同高（constraintSize minHeight 100% 生效）。
+
+三、滚动取证（截图）
+3980_w2_tablet_docview_top.png   顶部：正文从第 1 行开始，纸底仍在屏外
+3981_w2_tablet_docview_bottom.png 正文列上滑两次后：末纸末行 end 出现在纸底，标题页位置未动
+（两图正文内容整体位移，标题页左列像素不变 → 正文列独立滚动）
+
+四、点正文仍进打字机（截图 3982）
+在已滚动态点正文（1186,1200）→ dump：document_view__body 消失，
+p26_lid / p35_paper / p25_key_grid / p26_function_caps 等打字机节点出现；
+纸面显示末纸三行 'x' / 'x' / 'end'（光标在 end 后）。
+
+五、短文档回归（截图 3984）
+同一份 aaa/bbb 两行文档：正文纸满视口（819,284,1553,2361），纸纹铺满右列，布局与旧实现一致。
+纸纹实现由 Image(Cover) 改为 backgroundImage(FILL)（D-1 A 要求、与手机一致），纹理观感略有差异
+（3973 旧实现 vs 3984 新实现），文字位置与版式不变。
+
+六、手机回归（截图 3983）
+手机 ADA-AL00U 文档视图（W1 文档 doc-1795856550822-78825，aaa/bbb）：
+与 W1 基线 3975_w1_phone_docview_2sheets.png 逐像素比对（排除顶部 120px 状态栏）：
+mean diff 1.18，max 48，>30 差 186 px（3,250,944 px 中；主要在状态栏与零星纹理），布局一致。
+手机分支本批未改（paperBodyPhone 与 body() 手机分支原样）。
+
+七、hilog（打字链路，供文档来源核对）
+committed ch=[x] / committed ch=[e] / committed ch=[n] / committed ch=[d]
+newlineDone rows=13 paperTop=-47.7 line=12 col=0 O=0.0
+（自动换纸的 newlineAtLastRow 行未在缓冲轮转前留存；4 纸结构以落盘 JSON 为准）

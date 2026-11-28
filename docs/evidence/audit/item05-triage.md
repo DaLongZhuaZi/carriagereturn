@@ -9,7 +9,7 @@
 ## 0. 结论摘要
 
 - **Q-1～Q-4 四项观察全部核实成立，无事实性误判（撤 0 项）**。其中 Q-1 需修正一处口径：平板裁切本身符合设计稿 §5.3，但 `maxLines(20)` 比「页底」更早截断，且设计稿给的「翻页走加页」并未实现为翻页（加页只是追加空行），长文不可读仍是真实问题。
-- **裁决：修 3 项＋1 项优化批**——Q-2（分隔行泄漏，W1）、Q-1（平板阅读全文，W2，待 D-1）、Q-3（拨杆死代码清理，W3）、Q-4 体积部分（W4）；Q-4 内存部分记（先量后定）。
+- **裁决：修 3 项＋1 项优化批**——Q-2（分隔行泄漏，W1）、Q-1（平板阅读全文，W2，D-1=A 已实施）、Q-3（拨杆死代码清理，W3）、Q-4 体积部分（W4）；Q-4 内存部分记（先量后定）。
 - **P-6 soak：留（做）**，降级为独立验证项 S1（双机 30 分钟起步，异常再延到 60 分钟），不并入修复批。
 - **P-7 体积优化：做（保留该优化项）**，但第一阶段不是压字体，而是清理零引用资源：静态扫描 rawfile 230.3MiB 中约 **102.5MiB 零引用**（ui-parts 93.8、typebar 8.0、machine 0.7），HAP 250.5MB 可望降到约 143MB（−43%）；字体子集化/纹理压缩/词表压缩留档，需单独裁决。
 - **附带发现（与 Q-3 同源）**：`tools/tests/lever-angle.test.mjs` 在 main 上有 **2 项失败**——一项引用批39 已删除的 `LeverLayer.ets`，一项四机断言未纳入第五台 2020s。清理批应一并处理。
@@ -33,7 +33,7 @@
 
 | 编号 | 严重度 | 裁决 | 批次 | 理由 | 修复方向 |
 |---|---|---|---|---|---|
-| Q-1 | 低 | **修** | W2（待 D-1） | `maxLines(20)` 是固定行数上限，不是「页底」裁切：正文区尚有余量时就会截断；当前正文源是整篇（归档纸＋当前纸），20 行封顶会静默藏掉后续纸；手机已 `Scroll`，双端行为不一致；设计稿的「加页翻页」并不存在。 | 首选按手机 F1 方案：平板正文改 `Scroll`＋纸纹 `backgroundImage`，去掉 `maxLines(20)`；或按纸分页＋页码（D-1）。同步更新设计稿 §5.3。 |
+| Q-1 | 低 | **修** | W2（已实施） | `maxLines(20)` 是固定行数上限，不是「页底」裁切：正文区尚有余量时就会截断；当前正文源是整篇（归档纸＋当前纸），20 行封顶会静默藏掉后续纸；手机已 `Scroll`，双端行为不一致；设计稿的「加页翻页」并不存在。 | 首选按手机 F1 方案：平板正文改 `Scroll`＋纸纹 `backgroundImage`，去掉 `maxLines(20)`；或按纸分页＋页码（D-1）。同步更新设计稿 §5.3。 |
 | Q-2 | 低 | **修** | W1 | 分隔行是 `.txt` 孪生/导出的存储格式，不是阅读内容；阅读视图直接读同一 `.txt` 造成泄漏，3965/3966 可见。 | `DocumentViewPage` 改读 `DocStore.load()`（`DocStore.ets:104-122`），展平 `sheets`＋`lines` 并跳过分隔行；标题用 `DocSummary.title`；`readPlainText` 保留给导出/搜索。 |
 | Q-3 | 低（维护性） | **修（清理）** | W3（最低优先） | 观察成立且清理收益明确：约 100 行死代码、8 个写而不读的 `@State`（`leverRatio×4`、`leverEpoch`、`canvasLeverReleaseTick/Commit`、`leverAngleVp`）、2 条红测；无用户可见影响，故不排功能批。若 Kit 认为本轮不动主屏，可降为「记」。 | 删 `leverPanStart/Update/End`、`leverDragActive`、`leverRatioLogical`、`leverRatio1920..1960`、`leverRatio()`/`setLeverRatio()`、`resetLeverStates()` 中拨杆段、`leverHForDrag()`、`leverAngleVp`、`leverEpoch`、`canvasLeverReleaseTick/Commit` 及未用 import；`canvasEnabled` 历史分支按注释保留，不在本批扩大清理。同步修/删 `lever-angle.test.mjs` 两条失效断言。 |
 | Q-4 | 低 | **修（体积，W4）＋记（内存）** | W4 | 体积不是缺陷，但静态扫描发现约 102.5MiB 运行时零引用资源，清理风险低、收益可量化；内存 249–277MB 主要来自启动即预加载词表（ArkTS 堆 81–83MB），属 §17.3 设计取舍，先量后定。 | 体积：W4 先删/移出零引用资源并重测 HAP；内存：先做「system 引擎不预加载 / 延迟预加载」的 PSS 对比，再决定是否改预加载策略。 |
@@ -58,13 +58,22 @@
 - 证据：截图 3973–3979；报告 `docs/evidence/audit/fix-W1-docview-separator.md`。单测 `export-multipage`＋`docstore-state`＋`docstore-trash` 17 pass / 0 fail。
 - 缺口：平板 >20 行阅读属 W2，本批未动；未注入损坏 JSON 验证 `load()===null` 分支；测试文档与导出 TXT 留在设备便于复核。
 
-### W2 平板阅读全文（Q-1，待 D-1）
+### W2 平板阅读全文（Q-1，D-1=A）— **已实施（2026-11-28）**
 
 - 文件：`entry/src/main/ets/components/DocumentViewPage.ets`（`paperBodyTablet` 与 `body()` 平板分支）；若选分页方案另加页码状态。
 - 做法（推荐 A）：照手机 `paperBodyPhone` 的 F1 实现，正文纸改 `backgroundImage` 纸纹＋`Scroll` 包裹，去掉 `maxLines(20)`；标题页仍固定左列，正文列独立滚动。保留点正文进打字机。
 - 预估：±30 行（A）；分页方案 ±120 行以上（B）。
 - 验真：平板造 >20 行、≥2 纸文档，文档视图能滚到最后一纸最后一行；顶部/底部各一张截图；点正文仍进打字机；手机回归一张。
 - 风险：中低。设计稿 §5.3 明写「不许滚动出页」，选 A 必须同步改设计稿（D-1），否则实现与设计稿冲突。
+
+**实施记录（2026-11-28，分支 `fix/w2-tablet-docview-scroll`，base `9cf4220`）**
+
+- 代码：`paperBodyTablet()` 删掉 `height('100%')` 的纸纹 `Image` 与 `maxLines(20)＋Clip`，改 `backgroundImage` 纸纹＋正文按内容撑高，`constraintSize({ minHeight: '100%' })` 保短内容满高（与手机 F1 同法）；`body()` 平板分支正文列外包 `Scroll`（宽 `(widthVp−56)/2`、高 100%、`scrollBar Off`、`edgeEffect None`、`align TopStart`），标题页仍固定左列；点正文 `onEdit` 保留。手机分支未动。+18/−9 行。
+- 设计稿：`docs/界面重设计稿.md` §5.3 已同步（可滚动读全文，原「裁掉不许滚动出页」作废）。
+- 构建：DevEco 26 hvigorw `assembleHap`（debug signed）**BUILD SUCCESSFUL in 26 s 510 ms**，43 tasks，0 ERROR；HAP 250,557,001 B；双机 `install -r` 成功。
+- 验真（平板 `doc-1795858049601-56401`，App UI 创建：3 张归档纸 14/17/17 行＋当前纸 3 行＝**51 显示行、4 纸**，末行 `end`）：① `document_view__body` 内容高 2983px > 视口 2077px（超出 906px），可滚；② 顶部 3980、滚到底 3981 显示末纸末行 `end`，标题页位置不变（正文列独立滚动）；③ 已滚动态点正文仍进打字机（dump 出现 `p26_lid`/`p35_paper`/`p25_key_grid`，纸面显示末纸 `x/x/end`，截图 3982）；④ 短文档（aaa/bbb）正文纸满视口（3984），`minHeight 100%` 生效；⑤ 手机回归 3983 vs W1 基线 3975 像素差 mean 1.18、>30 差 186/3,250,944 px（布局一致，手机分支未改）。
+- 证据：截图 3980–3984；报告 `docs/evidence/audit/fix-W2-tablet-docview-scroll.md`；取证摘录 `docs/evidence/audit/w2_tablet_docview_verify.txt`。
+- 缺口：未录屏滚动惯性（`edgeEffect None` 无回弹）；纸纹由 `Image(Cover)` 改 `backgroundImage(FILL)`，短文档纹理观感与旧实现略有差异（3973 vs 3984），版式/文字位置不变；手机未造长文复测（分支未改）。
 
 ### W3 拨杆死代码清理（Q-3，最低优先）
 
@@ -114,7 +123,7 @@
 
 | 编号 | 问题 | 选项 | 建议 |
 |---|---|---|---|
-| D-1 | Q-1 阅读交互 | A 平板改 `Scroll`，与手机一致，同步改设计稿 §5.3；B 双端改按纸分页＋页码（更贴纸页隐喻，工作量大）；C 不修（撤回 Q-1） | **A**：改动小、双端一致；B 可作为后续体验升级 |
+| D-1 | Q-1 阅读交互 | A 平板改 `Scroll`，与手机一致，同步改设计稿 §5.3；B 双端改按纸分页＋页码（更贴纸页隐喻，工作量大）；C 不修（撤回 Q-1） | **A（已定，2026-11-28 W2 实施）**：改动小、双端一致；B 可作为后续体验升级 |
 | D-2 | Q-3 是否本轮清理 | A 清理（W3）；B 只留档不修 | **A**：死代码已导致红测与误读，清理成本低 |
 | D-3 | W4 资源清理边界 | A 只删运行时零引用；B 连契约样张一起移出 HAP（放 `tools/contract-assets/`）；C 暂不动 | **B**（A 为底线）：契约样张不参与运行，移出可再省；需同步改 `check-part-colors.py` 路径 |
 | D-4 | S1 soak 时长 | A 30 分钟双机；B 60 分钟双机；C 不做 | **A**：足够覆盖主要路径，异常再延长 |
@@ -123,7 +132,7 @@
 
 | 编号 | 裁决 | 批次 | 是否阻塞其它批 |
 |---|---|---|---|
-| Q-1 | 修 | W2（待 D-1） | 否 |
+| Q-1 | 修 | W2（已实施） | 否 |
 | Q-2 | 修 | W1 | 否 |
 | Q-3 | 修（清理） | W3（最低优先） | 否 |
 | Q-4 体积 | 修（优化） | W4 | 否 |
