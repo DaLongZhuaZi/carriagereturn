@@ -5,7 +5,7 @@
  * 点正文页进主屏编辑。沉浸式：两纸顶距 = topInset、底栏底距 = bottomInset。
  */
 
-import { DocSummary } from '../model/DocModel';
+import { DocData, DocLine, DocSummary } from '../model/DocModel';
 import { docStore } from '../services/DocStore';
 import { dossierStore, Dossier } from '../services/DossierStore';
 import { PageShell } from './PageShell';
@@ -54,12 +54,18 @@ export struct DocumentViewPage {
     }
   }
 
+  /**
+   * 核查⑤-2 W1（Q-2）：正文改读结构化 JSON，不再读 `.txt` 孪生。
+   * `.txt` 是导出/搜索的存储格式（归档纸后带 `--- 第 n / N 纸 ---` 分隔行），
+   * 直接显示会把分隔行泄漏进阅读视图。结构化数据本身不含分隔行。
+   */
   private load(): void {
-    const text: string = docStore.readPlainText(this.docId);
-    const arr: string[] = text.split('\n');
-    this.lines = arr;
-    this.title = arr.length > 0 && arr[0].length > 0 ? arr[0] : '未命名';
+    const data: DocData | null = docStore.load(this.docId);
+    this.lines = data === null ? [] : this.displayLinesOf(data);
     const sum: DocSummary | null = this.findSummary();
+    const first: string = this.lines.length > 0 ? this.lines[0] : '';
+    this.title = sum !== null && sum.title.length > 0 ? sum.title
+      : (first.length > 0 ? first : '未命名');
     this.paperKey = sum === null ? 'letter' : (sum.paper as string);
     const ts: number = sum === null ? Date.now() : sum.updatedAt;
     const d: Date = new Date(ts);
@@ -77,6 +83,25 @@ export struct DocumentViewPage {
       }
     }
     return null;
+  }
+
+  /**
+   * 核查⑤-2 W1：显示行＝归档纸（按换纸顺序）＋当前纸。
+   * 不插入任何分隔行；旧文档无 sheets 字段时只展平当前纸。
+   */
+  private displayLinesOf(data: DocData): string[] {
+    const out: string[] = [];
+    const sheets: DocLine[][] = data.sheets === undefined ? [] : data.sheets;
+    for (let i = 0; i < sheets.length; i++) {
+      const sheet: DocLine[] = sheets[i];
+      for (let j = 0; j < sheet.length; j++) {
+        out.push(sheet[j].text);
+      }
+    }
+    for (let k = 0; k < data.lines.length; k++) {
+      out.push(data.lines[k].text);
+    }
+    return out;
   }
 
   private bodyText(): string {

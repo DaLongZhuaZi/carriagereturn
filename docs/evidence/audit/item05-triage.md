@@ -42,13 +42,21 @@
 
 ## 3. 后续修复批清单
 
-### W1 文档视图去分隔行（Q-2，可立即做）
+### W1 文档视图去分隔行（Q-2，可立即做）— **已实施（2026-11-28）**
 
 - 文件：`entry/src/main/ets/components/DocumentViewPage.ets`（主改）；如需 helper，`entry/src/main/ets/services/DocStore.ets` 增加只读的「显示行」接口（或页面内直接用已有 `load()`）。
 - 做法：`load()` 不再 `readPlainText()`；用 `docStore.load(this.docId)` 取 `DocData`，按 `data.sheets`（归档纸，顺序）＋`data.lines`（当前纸）展平为显示行。结构化数据本身不含分隔行；若实现上仍走文本接口，才需按 `sheetSeparatorText` 同格式精确匹配过滤（不要用宽泛正则误伤用户正文）。标题取 `DocSummary.title`，找不到摘要再回落首行。
 - 预估：±25 行。
 - 验真：双机打开同一份 2 纸文档的文档视图——正文无 `--- 第 n / N 纸 ---`；归档纸＋当前纸文字齐全且顺序正确；标题与列表一致；点正文仍进打字机（A78/F1 回归）；导出 TXT 仍含分隔行（读设备落盘文件核对）。
 - 风险：低。`readPlainText` 不动，导出/搜索口径不变。
+
+**实施记录（2026-11-28，分支 `fix/w1-docview-separator`，base `a92b02b`）**
+
+- 代码：`DocumentViewPage.ets` `load()` 改 `docStore.load(docId)` 取 `DocData`；新增 `displayLinesOf()` 按 `sheets`（归档纸，顺序）＋`lines`（当前纸）展平，不插分隔行；标题取 `DocSummary.title`，摘要缺失回落首行。`readPlainText`／`plainTextOf`／`sheetSeparatorText` 未改，导出与搜索口径不变。+30/−5 行；未新增 `DocStore` 接口。
+- 构建：DevEco 26 hvigorw `assembleHap`（debug signed）**BUILD SUCCESSFUL in 23 s 201 ms**，43 tasks，0 ERROR；WARN 均为既有（AudioService 能力、2in1 API、`document_view__body` 重复 id）。HAP 250,557,085 B；双机 `install -r` 成功。
+- 验真（双机各建同一份 2 纸文档：归档纸 `aaa`＋当前纸 `bbb`；平板 `doc-1795856442723-73990`、手机 `doc-1795856550822-78825`，`sheetNo/sheetCount=2`）：① 文档视图 `document_view__body` dump 原文 `aaa\nbbb`，无分隔行；② 归档纸在前、当前纸在后；③ 列表与文档视图标题均为 `bbb`（旧实现取 `.txt` 首行会显示 `aaa`）；④ 点正文 `nav depth=4 top=docview → depth=5 top=typewriter`，纸面 `bbb`；⑤ 真实导出 TXT（整篇→纯文本→保存到 Download）双机均 30 B，内容 `aaa`／`--- 第 1 / 2 纸 ---`／`bbb`，落盘文件回收为 `docs/evidence/audit/w1_export_{tablet,phone}_bbb.txt`；⑥ 单纸旧文档（`q`）回归正常。
+- 证据：截图 3973–3979；报告 `docs/evidence/audit/fix-W1-docview-separator.md`。单测 `export-multipage`＋`docstore-state`＋`docstore-trash` 17 pass / 0 fail。
+- 缺口：平板 >20 行阅读属 W2，本批未动；未注入损坏 JSON 验证 `load()===null` 分支；测试文档与导出 TXT 留在设备便于复核。
 
 ### W2 平板阅读全文（Q-1，待 D-1）
 
