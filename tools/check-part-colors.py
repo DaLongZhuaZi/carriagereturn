@@ -5,7 +5,8 @@
 口径（设计稿 §2.1／§10.3，定案）：
   - 每件 3 个采样点（相对坐标，登记在 `model/PartContract.ets` 的 `colorSamples`）；
   - 实测该点像素与该件契约 `color` 比，任一通道偏差 > 10%（相对值）即 FAIL；
-  - 采样对象就是仓内 `rawfile/ui-parts/` 的 PNG，不另取图。
+  - 采样对象不另取图：先查 HAP 内 `rawfile/`，找不到再查 `tools/contract-assets/`
+    （W4 起不参与运行的契约样张已移出 HAP，运行期贴片仍在 rawfile）。
 
 契约来源：直接解析 `entry/src/main/ets/model/PartContract.ets`（单一真源，不在这里另抄一份表）。
 
@@ -28,8 +29,18 @@ except ImportError:  # pragma: no cover
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARTS_DIR = os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile")
+# W4（item05-triage §3，D-3=B）：契约样张不参与运行，已移出 HAP 到 tools/contract-assets/。
+CONTRACT_DIR = os.path.join(ROOT, "tools", "contract-assets")
 CONTRACT = os.path.join(ROOT, "entry", "src", "main", "ets", "model", "PartContract.ets")
 TOL = 0.10
+
+
+def sample_path(rawfile: str) -> str:
+    """契约样张查找顺序：HAP rawfile → tools/contract-assets。"""
+    in_hap = os.path.join(PARTS_DIR, rawfile)
+    if os.path.exists(in_hap):
+        return in_hap
+    return os.path.join(CONTRACT_DIR, rawfile)
 
 
 def parse_contract() -> list[dict]:
@@ -71,7 +82,7 @@ def main() -> int:
         if not p["rawfile"] or not p["samples"]:
             rows.append({"id": p["id"], "verdict": "SKIP", "note": "无贴片或未登记采样点（本批只登记公式）"})
             continue
-        path = os.path.join(PARTS_DIR, p["rawfile"])
+        path = sample_path(p["rawfile"])
         if not os.path.exists(path):
             rows.append({"id": p["id"], "verdict": "MISS", "note": path})
             failed += 1

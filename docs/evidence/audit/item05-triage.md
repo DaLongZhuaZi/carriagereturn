@@ -98,6 +98,12 @@
 - 做法：① 先补一次全量引用复核（含 `tools/check-part-colors.py`、`entry/src/main/resources/rawfile/ASSET-MANIFEST.md` 等契约/文档引用）；仅被工具或文档引用的样张移出 HAP（如放 `tools/contract-assets/`），不改契约语义；② 确认无引用后删除；③ 更新 `ASSET-MANIFEST.md`；④ 重构建 debug signed HAP 记录前后字节；⑤ 双机装包，按 14 页清单逐页截图（重点：五机机身、四种纸纹＋自定义纸纹、字体列表、音效、键位、导出、文档视图）。
 - 预估：纯资源删除，代码 0～±10 行（manifest/工具路径）。
 - 风险：中低。主要风险是漏掉动态拼串或契约样张；用「先复核、后删除、整页截图回归」控制。删除前留 `backup/` 分支或单独提交，便于回滚。
+- **实施结果（2026-11-28，W4 完成，分支 `fix/w4-rawfile-cleanup`）**：
+  - 出包 90 文件 / 108.02MiB：**删除**运行时零引用 52 文件 / 70.82MiB；**移出 HAP** 契约样张 38 文件 / 37.20MiB 至 `tools/contract-assets/`（不删、不改像素；`check-part-colors.py` 改「rawfile → contract-assets」双路径查找，`check-part-grain.py` 两处取并集，契约语义不变）。
+  - 与静态估算的差异：ui-parts 实测零运行时引用 78 件（估算 72 件）。多出的 6 件是原扫描把 `PartContract.ets` 取样字段／`PartVariants` 件 id 字符串误当运行时引用——`paper-letter`／`keycap-face-1920s`／`basket-fan-1920s`／`lever`／`ruler`（契约样张，移出）与 `ribbon-strip`（件 id 字符串，删除）；均已逐项复核，确认不参与渲染。typebar 9 件、machine 2 件按原判删除；字体协议原文按 OFL 要求保留。
+  - 实测体积：rawfile 297 文件 / 230.28MiB → **207 文件 / 122.25MiB**；debug signed HAP **250,557,000 B → 137,273,392 B（−45.2%）**，优于预估约 143MB。
+  - 验真：双机装包，14 页逐页截图（平板 3985–3998、手机 4004–4017；重点项另附平板 3999–4003b、手机 4018–4020b），覆盖五机机身（收藏页／收藏详情／2020s 打字机）、四种纸纹（主题页纸卡）、自定义纸纹页、字体列表、键位落字与退格、拼音词库加载（409 音节／251,364 词条）、导出、文档视图。契约工具：`check-part-grain.py` 40 件 PASS；`check-part-colors.py` 4 件金属件 FAIL 为清理前既有偏差（`docs/自检记录.md` 4202／4225 行已记录），非本次引入。
+  - 回滚：`backup/w4-pre-cleanup`（指向清理前 HEAD `6977994`）。
 
 ### W5（可选，留档，不在本轮）
 

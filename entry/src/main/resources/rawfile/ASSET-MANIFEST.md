@@ -4,6 +4,8 @@
 > 落位根：`entry/src/main/resources/rawfile/`
 > 实测工具：vips 8.18.7（`vipsheader` 读尺寸、`vips thumbnail` / `vips jpegsave` 处理）；字节数为 `stat -c %s` 实测。
 > 说明：本清单只记录实际进包的文件；未落位素材与排除理由见 §5。所有"目标字节 / 目标尺寸"均为落位后文件的实测值，未照抄任何文档中的预估数字。
+>
+> **2026-11-28（W4 零引用清理）**：§0–§7 是 2026-11-03 的初始落位记录，早于五机化与后续批次，部分文件（如 `machine/*-hero*.jpg`）已不在当前树。**当前实际进包清单与本次清理记录见 §8。**
 
 ## 0. 总览
 
@@ -167,3 +169,138 @@
 5. 文件类型抽检：机器图为 `JPEG image data ... 1536x1536`；字体为 `TrueType Font data`；音效为 `Ogg data, Vorbis audio, mono, 44100 Hz`。
 6. 逐字节一致性：4 个字体文件、4 份协议原文、23 个 .ogg 与 `assets/` 源文件 `cmp` 全部相同（23/23 SAME）。
 7. `.gitignore`：`git check-ignore -v entry/src/main/resources/rawfile/machine/1920s-upright-hero-3q.jpg` 退出码 1（**未被忽略，会被 git 跟踪**）；本任务不修改 .gitignore，进仓方式待用户定（见交付回报）。
+
+## 8. 当前进包清单与 W4 零引用清理（2026-11-28）
+
+### 8.1 当前 `rawfile/` 实际进包（W4 后，`find`＋`stat` 实测）
+
+| 目录 | 文件数 | 字节 | MiB |
+|---|---:|---:|---:|
+| `（根：本清单＋2 份署名文件）` | 3 | 27,439 | 0.03 |
+| `dict/` | 3 | 7,893,399 | 7.53 |
+| `dossiers/` | 4 | 950,520 | 0.91 |
+| `font/` | 38 | 76,624,294 | 73.07 |
+| `keyboard/` | 1 | 1,085 | 0.00 |
+| `keymap/` | 5 | 51,923 | 0.05 |
+| `layers/` | 4 | 5,063,251 | 4.83 |
+| `machine/` | 20 | 4,735,607 | 4.52 |
+| `paper/` | 4 | 1,752,634 | 1.67 |
+| `sound/` | 87 | 712,849 | 0.68 |
+| `typebar/` | 4 | 2,766,494 | 2.64 |
+| `ui-parts/` | 34 | 27,613,481 | 26.33 |
+| **合计** | **207** | **128,192,976** | **122.25** |
+
+- 清理前：297 文件 / 241,462,526 B（230.28 MiB）；本次出包 90 文件 / 113,269,550 B（108.02 MiB）。
+- debug signed HAP：**250,557,000 B → 137,273,392 B**（−113,283,608 B，−45.2%）。
+- 口径：按 `entry/src/main/ets/**/*.ets|ts`、`entry/src/main/resources/base/**`、`tools/**`、`docs/**` 全量复核 basename／相对路径；并计入动态拼串 `machine/<kind>-{front,side,keyboard,carriage}.jpg`（5 机）与 `ui-parts/tile-<slug>-{paperwell,base,keybed}.png`，以及 `sound/` 运行时目录列举。字体协议原文按 OFL 要求继续随包，不在清理范围。
+
+### 8.2 移出 HAP：契约样张 → `tools/contract-assets/`（38 文件，39,012,230 B / 37.20 MiB）
+
+只被 `tools/check-part-colors.py`／`check-part-grain.py` 与 `PartContract.ets` 取样引用、不参与 App 渲染。**文件未删除、未改像素**，仅换位置；`check-part-colors.py` 改为「rawfile → `tools/contract-assets/`」顺序查找，`check-part-grain.py` 两处取并集，检查范围不变。
+
+| 文件 | 字节 | MiB |
+|---|---:|---:|
+| `ui-parts/basket-fan-1920s.png` | 1,664,285 | 1.59 |
+| `ui-parts/keycap-face-1920s.png` | 248,408 | 0.24 |
+| `ui-parts/keycap-face-1930s.png` | 259,803 | 0.25 |
+| `ui-parts/keycap-face-1950s.png` | 288,405 | 0.28 |
+| `ui-parts/keycap-face-1960s.png` | 204,703 | 0.20 |
+| `ui-parts/keycap-face-round-1920s.png` | 804,573 | 0.77 |
+| `ui-parts/keycap-face-round-1930s.png` | 1,384,363 | 1.32 |
+| `ui-parts/keycap-face-round-1950s.png` | 717,430 | 0.68 |
+| `ui-parts/keycap-face-round-1960s.png` | 462,020 | 0.44 |
+| `ui-parts/keycap-pressed-1920s.png` | 261,989 | 0.25 |
+| `ui-parts/keycap-pressed-1930s.png` | 268,655 | 0.26 |
+| `ui-parts/keycap-pressed-1950s.png` | 301,321 | 0.29 |
+| `ui-parts/keycap-pressed-1960s.png` | 224,578 | 0.21 |
+| `ui-parts/keycap-pressed-round-1920s.png` | 776,168 | 0.74 |
+| `ui-parts/keycap-pressed-round-1930s.png` | 1,347,581 | 1.29 |
+| `ui-parts/keycap-pressed-round-1950s.png` | 687,582 | 0.66 |
+| `ui-parts/keycap-pressed-round-1960s.png` | 453,204 | 0.43 |
+| `ui-parts/lever.png` | 250,661 | 0.24 |
+| `ui-parts/paper-cream-v1.png` | 2,690,566 | 2.57 |
+| `ui-parts/paper-cream-v2.png` | 3,080,358 | 2.94 |
+| `ui-parts/paper-cream-v3.png` | 4,033,288 | 3.85 |
+| `ui-parts/paper-cream-v4.png` | 4,073,371 | 3.88 |
+| `ui-parts/paper-curl-v2.png` | 420,711 | 0.40 |
+| `ui-parts/paper-curl-v3.png` | 418,862 | 0.40 |
+| `ui-parts/paper-curl.png` | 623,117 | 0.59 |
+| `ui-parts/paper-letter.png` | 3,127,182 | 2.98 |
+| `ui-parts/paper-manuscript.png` | 2,134,195 | 2.04 |
+| `ui-parts/paper-memo.png` | 2,339,175 | 2.23 |
+| `ui-parts/paper-postcard.png` | 3,158,570 | 3.01 |
+| `ui-parts/ruler.png` | 220,522 | 0.21 |
+| `ui-parts/spacebar-face-1920s.png` | 164,192 | 0.16 |
+| `ui-parts/spacebar-face-1930s.png` | 120,523 | 0.11 |
+| `ui-parts/spacebar-face-1950s.png` | 200,643 | 0.19 |
+| `ui-parts/spacebar-face-1960s.png` | 315,401 | 0.30 |
+| `ui-parts/spacebar-face-round-1920s.png` | 229,083 | 0.22 |
+| `ui-parts/spacebar-face-round-1930s.png` | 357,384 | 0.34 |
+| `ui-parts/spacebar-face-round-1950s.png` | 398,584 | 0.38 |
+| `ui-parts/spacebar-face-round-1960s.png` | 300,774 | 0.29 |
+
+### 8.3 运行时零引用、已删除（52 文件，74,257,320 B / 70.82 MiB）
+
+历史批次作废件／死组件素材；全量复核后无代码、工具或动态拼串引用。文件可从 `backup/w4-pre-cleanup` 分支或 git 历史恢复。
+
+| 文件 | 字节 | MiB |
+|---|---:|---:|
+| `machine/2020s-modern-hero.jpg` | 296,337 | 0.28 |
+| `machine/2020s-modern-keyarea.jpg` | 452,227 | 0.43 |
+| `typebar/1920s-carriage-layer.png` | 1,772,070 | 1.69 |
+| `typebar/1920s-lever-single.png` | 689,741 | 0.66 |
+| `typebar/1920s-typebar-single.png` | 533,567 | 0.51 |
+| `typebar/1930s-portable-carriage-layer.png` | 1,706,192 | 1.63 |
+| `typebar/1930s-portable-lever-single.png` | 504,088 | 0.48 |
+| `typebar/1950s-streamlined-carriage-layer.png` | 1,523,631 | 1.45 |
+| `typebar/1950s-streamlined-lever-single.png` | 350,701 | 0.33 |
+| `typebar/1960s-electric-carriage-layer.png` | 824,515 | 0.79 |
+| `typebar/1960s-electric-lever-single.png` | 494,163 | 0.47 |
+| `ui-parts/basket-fan-1930s.png` | 2,201,393 | 2.10 |
+| `ui-parts/basket-fan-1950s.png` | 2,682,093 | 2.56 |
+| `ui-parts/basket-fan-1960s.png` | 2,527,634 | 2.41 |
+| `ui-parts/basket-fan-3d-v2.png` | 849,879 | 0.81 |
+| `ui-parts/basket-fan-3d-v3.png` | 2,556,574 | 2.44 |
+| `ui-parts/basket-fan-3d-v4.png` | 2,693,464 | 2.57 |
+| `ui-parts/basket-fan-3d-v5-wide-1920s.png` | 2,528,271 | 2.41 |
+| `ui-parts/basket-fan-3d-v5-wide-1930s.png` | 2,665,263 | 2.54 |
+| `ui-parts/basket-fan-3d-v5-wide-1950s.png` | 2,567,197 | 2.45 |
+| `ui-parts/basket-fan-3d-v5-wide-1960s.png` | 2,572,561 | 2.45 |
+| `ui-parts/basket-fan-3d-v5-wide-20.png` | 2,569,349 | 2.45 |
+| `ui-parts/basket-fan-3d-v5-wide-23.png` | 2,302,449 | 2.20 |
+| `ui-parts/basket-fan-3d-v5-wide-26.png` | 2,418,652 | 2.31 |
+| `ui-parts/basket-fan-3d.png` | 864,396 | 0.82 |
+| `ui-parts/basket-fan-metal-1920s.png` | 2,500,518 | 2.38 |
+| `ui-parts/basket-fan-metal-1930s.png` | 2,290,589 | 2.18 |
+| `ui-parts/basket-fan-metal-1950s.png` | 2,587,508 | 2.47 |
+| `ui-parts/basket-fan-metal-1960s.png` | 2,329,345 | 2.22 |
+| `ui-parts/bell-brass-v1.png` | 1,118,549 | 1.07 |
+| `ui-parts/cap3d-return.png` | 200,975 | 0.19 |
+| `ui-parts/carriage-lever-v2.png` | 777,418 | 0.74 |
+| `ui-parts/carriage-lever.png` | 29,337 | 0.03 |
+| `ui-parts/fanwell-back-v1.png` | 33,291 | 0.03 |
+| `ui-parts/fanwell-back-v2.png` | 31,155 | 0.03 |
+| `ui-parts/keywell-floor-v1.png` | 50,910 | 0.05 |
+| `ui-parts/keywell-floor-v2.png` | 59,726 | 0.06 |
+| `ui-parts/knob-disc-v2.png` | 1,699,967 | 1.62 |
+| `ui-parts/knob-metal-v2.png` | 2,227,687 | 2.12 |
+| `ui-parts/knob-side-v1.png` | 889,221 | 0.85 |
+| `ui-parts/lid-sheen-v1.png` | 62,631 | 0.06 |
+| `ui-parts/plate-brass-blank-v1.png` | 997,783 | 0.95 |
+| `ui-parts/platen-roller-v1.png` | 1,189,989 | 1.13 |
+| `ui-parts/ribbon-strip.png` | 1,172,617 | 1.12 |
+| `ui-parts/tile-1920s-base-v2.png` | 2,383,815 | 2.27 |
+| `ui-parts/tile-1930s-base-v2.png` | 2,499,890 | 2.38 |
+| `ui-parts/tile-1950s-base-v2.png` | 3,367,163 | 3.21 |
+| `ui-parts/tile-1960s-base-v2.png` | 3,182,090 | 3.03 |
+| `ui-parts/typebar-1920s.png` | 285,977 | 0.27 |
+| `ui-parts/typebar-1930s.png` | 395,253 | 0.38 |
+| `ui-parts/typebar-1950s.png` | 295,742 | 0.28 |
+| `ui-parts/typebar-1960s.png` | 451,767 | 0.43 |
+
+### 8.4 验真（本机实测，2026-11-28）
+
+1. 构建：`hvigorw --mode module -p module=entry@default -p product=default -p buildMode=debug assembleHap` → **BUILD SUCCESSFUL**（清理前后各一次）。
+2. HAP 内容核对：清理后 signed HAP 内 `resources/rawfile/` 无上表删除项（抽检 `knob-metal-v2`／`tile-1920s-base-v2`／`1920s-carriage-layer`／`2020s-modern-hero` 均 0 命中）；保留项（`paper-cream-v5`／`cap3d-1920s-matte`／`1920s-typebar-vertical`／`2020s-modern-front`／`tile-1920s-keybed`）均在包内。
+3. 契约工具：`check-part-grain.py` 40 件 PASS；`check-part-colors.py` 的 4 件金属件 FAIL（横尺 30.4%／字篮 34.2%／拨杆 62.1%／旋钮 25.0%）为清理前既有偏差（`docs/自检记录.md` 第 4202／4225 行已记录），非本次引入；查找路径已覆盖 `tools/contract-assets/`。
+4. 静态守卫：字体协议原文全部保留（OFL 要求随包）。

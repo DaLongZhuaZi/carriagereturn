@@ -29,7 +29,12 @@ except ImportError:  # pragma: no cover
     sys.exit(2)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PARTS_DIR = os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile", "ui-parts")
+# W4（item05-triage §3，D-3=B）：不参与运行的契约样张已移出 HAP 到 tools/contract-assets/。
+# 两处取并集，保持本工具的检查范围（batch-1 的 paper-*／keycap-*／spacebar-*）不变。
+PARTS_DIRS = [
+    os.path.join(ROOT, "entry", "src", "main", "resources", "rawfile", "ui-parts"),
+    os.path.join(ROOT, "tools", "contract-assets", "ui-parts"),
+]
 LIMIT = 0.15
 BOX = 64
 
@@ -58,9 +63,17 @@ def region_metrics(img: Image.Image, x: int, y: int) -> tuple[float, float]:
 
 
 def main() -> int:
-    all_files = sorted(glob.glob(os.path.join(PARTS_DIR, "*.png")))
+    all_files, seen = [], set()
+    for parts_dir in PARTS_DIRS:
+        for p in sorted(glob.glob(os.path.join(parts_dir, "*.png"))):
+            name = os.path.basename(p)
+            if name in seen:  # 同名时以 HAP rawfile 优先（PARTS_DIRS 顺序）
+                continue
+            seen.add(name)
+            all_files.append(p)
+    all_files.sort(key=lambda p: os.path.basename(p))
     if not all_files:
-        print(f"no PNG under {PARTS_DIR}")
+        print(f"no PNG under {PARTS_DIRS}")
         return 2
     if "--all" in sys.argv:
         files = all_files
@@ -88,7 +101,7 @@ def main() -> int:
         rows.append({"part": name, "maxmin": round(mm, 4), "hf": round(hf, 4), "ok": ok,
                      "regions_hf": [round(p[1], 4) for p in pairs]})
         print(f"{name:<28}{star} maxmin={mm:.3f}  hf={hf:.3f}  {'PASS' if ok else 'FAIL'}")
-    scope = "ALL 32" if "--all" in sys.argv else "batch-1 set (paper-* + keycap-*/spacebar-*)"
+    scope = f"ALL {len(all_files)}" if "--all" in sys.argv else "batch-1 set (paper-* + keycap-*/spacebar-*)"
     print(f"\n[SCOPE] {scope}")
     print(f"[RULE] PASS if hf <= {LIMIT:.2f} (grain); maxmin printed for reference; '*' = the two disagree")
     print(f"[RESULT] parts={len(rows)} PASS={len(rows) - failed} FAIL={failed}")

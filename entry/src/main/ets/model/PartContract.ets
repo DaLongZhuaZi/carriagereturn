@@ -37,7 +37,12 @@ export interface PartContract {
   affordance: string;
   /** 本批状态：'filled' = 1920s 已填满实测值；'formula' = 仅登记公式与路径（批 2 填）。 */
   status: string;
-  /** 贴片路径（相对 `entry/src/main/resources/rawfile/`；空串＝该件不走图片贴片）。 */
+  /**
+   * 贴片路径（空串＝该件不走图片贴片）。
+   * 语义仍是「相对 rawfile/ 的契约路径」；W4 起**不参与运行**的契约样张实际存放于
+   * `tools/contract-assets/`（已移出 HAP），`tools/check-part-colors.py` 按
+   * 「rawfile/ → tools/contract-assets/」顺序查找，契约值本身不变。
+   */
   rawfile: string;
   /** 色板采样点（相对坐标 [x,y]，0..1，取自贴片；§10.3 色板校验用）。 */
   colorSamples: number[][];
@@ -120,7 +125,8 @@ export const REPLACE_RULES: string[] = [
 
 /**
  * 关于 `keycap-face-*` 家族（B4／裁决 D-E 加注）：
- * `rawfile/ui-parts/` 下 8 张 keycap-face（4 机型 × 直边／圆角）是 23 号稿的**画稿契约**，
+ * `tools/contract-assets/ui-parts/` 下 8 张 keycap-face（4 机型 × 直边／圆角）是 23 号稿的**画稿契约**
+ * （W4 前在 `rawfile/ui-parts/`，为省 HAP 体积已随其余契约样张移出包），
  * 只用来登记键帽俯视面的配色与边缘口径，**不参与 App 渲染**：
  *   - 键盘网格的 `rawfile` 指向它，只为 `tools/check-part-colors.py` 的色板校验取样；
  *   - 屏幕上真正的键帽由 `KeyGrid.capImage()` 用 `ui-parts/cap3d-*.png` 贴片绘制；

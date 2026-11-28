@@ -6,7 +6,7 @@
  *    数字行 13 键、Q 行 13 键、A 行 15 键（SHIFT LOCK＋13×17.25＋RETURN）、
  *    Z 行 12 键（SHIFT＋10×21.17＋SHIFT）、空格 1 键。
  *  - 帽身＝生成件 cap3d-<slug>.png（503×512，顶面＋四边侧壁＋底影）＋ ArkUI Text 叠加图例；
- *    红 RETURN＝cap3d-return.png；空格＝cap3d-space-<slug>.png 九宫格中心拉伸（只拉中间段）。
+ *    红 RETURN＝cap3d-return-v2.png；空格＝cap3d-space-<slug>.png 九宫格中心拉伸（只拉中间段）。
  *  - 图例不 baked；图例中心＝顶面中心：整组上移 5.0vp（27.6×0.181，修正 2）。
  *  - 键杆：竖缝暗色竖条（本批加深到与 #050506 井底有可辨对比）。
  *  - 按压：pressedId 下沉 2vp（SHIFT／SHIFT LOCK 不改帽色）。

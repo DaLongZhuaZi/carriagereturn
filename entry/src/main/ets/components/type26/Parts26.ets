@@ -534,7 +534,7 @@ export struct Basket26 {
       Stack({ alignContent: Alignment.Bottom }) {
         // 批 38 §2：井底去黑——与盖面同色薄荷绿（扇直接长在机身上）
         Column().width('100%').height('100%').backgroundColor(lidColor(this.machine))
-        // 批 76：井背改**代码画**（替掉批 40 的 fanwell-back-v2.png 定图，文件留仓）
+        // 批 76：井背改**代码画**（替掉批 40 的 fanwell-back-v2.png 定图；该图 W4 已清出 HAP）
         // 上＝paperwell 浅、下＝base 深，随 tierToken 自动跟机型色——根治批 75 补记的「定图不跟 base、露浅薄荷绿块」
         Column().width('100%').height('100%')
           .linearGradient({
